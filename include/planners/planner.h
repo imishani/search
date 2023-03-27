@@ -24,11 +24,21 @@ namespace ims{
         ///@brief Destructor
         virtual ~Planner();
 
-        /// Initialize the problem
-        virtual void init() = 0;
+        /// @brief Initialize the planner
+        /// @param start The start state
+        /// @param goal The goal state
+        virtual void initializePlanner(state start, state goal) = 0;
 
-        /// Check if a state is a goal state
-        virtual bool isGoal() = 0;
+
+        /// Setters
+        /// @brief Set the start state
+        /// @param start The start state
+        void setStartState(state start) { m_start = &start; }
+
+        /// @brief Set the goal state
+        /// @param goal The goal state
+        void setGoalState(state goal) { m_goal = &goal; }
+
 
         using openList =  smpl::intrusive_heap<state, stateCompare>;
         openList m_open;
@@ -46,6 +56,9 @@ namespace ims{
 
         /// @brief Reconstruct the path
         virtual void reconstructPath() = 0;
+
+        state* m_start;
+        state* m_goal;
 
 
     };
