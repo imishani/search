@@ -2,6 +2,7 @@
 
 #include <iostream>
 
-void hello() {
-    std::cout << "Hello, World!" << std::endl;
+ims::Planner::Planner(const ims::PlannerParams& params) : m_params(params) {
+
 }
+

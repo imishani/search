@@ -5,13 +5,23 @@
 
 // project includes
 #include "common/state.hpp"
+#include "common/action.hpp"
 
 // Always initialize the static member variable
 size_t ims::state::id_counter = 0;
 
 namespace ims{
 
-    /// Pure virtual base class planner interface
+    /// @class Planner Parameters abstract class
+    struct PlannerParams{
+        /// @brief Constructor
+        PlannerParams() = default;
+
+        /// @brief Destructor
+        virtual ~PlannerParams() = default;
+    };
+
+    ///@brief Pure virtual base class planner interface
     /// It should include methods for initializing the problem, evaluating the cost of a state,
     /// generating successors, and checking if a state is a goal state.
     /// This interface should be implemented by all search problem instances.
@@ -19,10 +29,11 @@ namespace ims{
     public:
 
         ///@brief Constructor
-        Planner();
+        ///@param params The planner parameters based on PlannerParams struct
+        explicit Planner(const PlannerParams& params);
 
         ///@brief Destructor
-        virtual ~Planner();
+        virtual ~Planner() = default;
 
         /// @brief Initialize the planner
         /// @param start The start state
@@ -48,9 +59,6 @@ namespace ims{
         /// Evaluate the cost of a state
         virtual double evaluateCost() = 0;
 
-        /// Generate successors of a state
-        virtual void generateSuccessors() = 0;
-
         /// @brief Expand the current state
         virtual void expand() = 0;
 
@@ -59,9 +67,12 @@ namespace ims{
 
         state* m_start;
         state* m_goal;
+        PlannerParams m_params;
 
 
     };
+
+
 
 }
 

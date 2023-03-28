@@ -135,15 +135,15 @@ namespace ims{
 
     protected:
         // id's
-        int state_id;
+        size_t state_id;
         static size_t id_counter;
         // vars
         stateType m_state;
         double g;
         double h;
-        double f;
-        state* parentPointer{};
-        int flag{};
+        double f; // Is it necessary to store it here?
+        state* parentPointer{nullptr};
+        int flag{-1};
         // flag it as closed or not
         enum Flags {
             CLOSED = 1,
