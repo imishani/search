@@ -11,11 +11,10 @@ ims::BestFirstSearch::BestFirstSearch(const BestFirstSearchParams &params) : Pla
 
 void ims::BestFirstSearch::initializePlanner(stateType start, stateType goal) {
     // Evaluate the start state
-    std::shared_ptr<state> startState;
-    startState->setState(start);
-    startState->g = 0;
-    startState->h = computeHeuristic(*startState);
-    startState->f = startState->g + startState->h;
+    m_start->setState(start);
+    m_start->g = 0;
+    m_start->h = computeHeuristic(*m_start);
+    m_start->f = m_start->g + m_start->h;
 }
 
 double ims::BestFirstSearch::computeHeuristic(ims::state &s) {
@@ -30,5 +29,6 @@ double ims::BestFirstSearch::computeHeuristic(ims::state &s1, ims::state &s2) {
 bool ims::BestFirstSearch::plan() {
     m_open.clear();
     m_open.push(m_start);
+
 
 }

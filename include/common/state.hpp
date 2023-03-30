@@ -167,7 +167,7 @@ namespace ims{
         /// @param s2 The second state
         /// @return True if s1 is less than s2, false otherwise
         bool operator()(const state* s1, const state* s2) const {
-            return s1->getF() < s2->getF();
+            return s1->f < s2->f;
         }
     };
 
