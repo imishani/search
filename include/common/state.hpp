@@ -37,6 +37,10 @@ namespace ims{
         /// @param state The state of the robot
         void setState(const stateType& state) { m_state = state; }
 
+        /// @{ In general, it is better to directly set the g, h, and f values rather than
+        /// calling these functions since it requires additional code to run,
+        /// but they are provided for convenience.
+
         /// @brief Set the g value
         /// @param g_value The g value
         void setG(double g_value) { g = g_value; }
@@ -48,6 +52,8 @@ namespace ims{
         /// @brief Set the f value
         /// @param f_value The f value
         void setF(double f_value){ f = f_value; }
+
+        /// @}
 
         /// @brief Set parent pointer
         /// @param parent The parent pointer
@@ -132,6 +138,9 @@ namespace ims{
 
         }
 
+        double g;
+        double h;
+        double f; // Is it necessary to store it here?
 
     protected:
         // id's
@@ -139,9 +148,6 @@ namespace ims{
         static size_t id_counter;
         // vars
         stateType m_state;
-        double g;
-        double h;
-        double f; // Is it necessary to store it here?
         state* parentPointer{nullptr};
         int flag{-1};
         // flag it as closed or not

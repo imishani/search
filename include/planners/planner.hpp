@@ -1,8 +1,8 @@
-#ifndef SEARCH_PLANNER_H
-#define SEARCH_PLANNER_H
+#ifndef SEARCH_PLANNER_HPP
+#define SEARCH_PLANNER_HPP
 
 // standard includes
-
+#include <memory>
 // project includes
 #include "common/state.hpp"
 #include "common/action.hpp"
@@ -38,17 +38,21 @@ namespace ims{
         /// @brief Initialize the planner
         /// @param start The start state
         /// @param goal The goal state
-        virtual void initializePlanner(state start, state goal) = 0;
+        virtual void initializePlanner(stateType start, stateType goal) = 0;
 
 
         /// Setters
         /// @brief Set the start state
         /// @param start The start state
-        void setStartState(state start) { m_start = &start; }
+        void setStartState(state& start) { m_start = &start; }
 
         /// @brief Set the goal state
         /// @param goal The goal state
-        void setGoalState(state goal) { m_goal = &goal; }
+        void setGoalState(state& goal) { m_goal = &goal; }
+
+        /// @brief plan
+        /// @return if the plan was successful or not
+        virtual bool plan() = 0;
 
 
         using openList =  smpl::intrusive_heap<state, stateCompare>;
@@ -56,8 +60,6 @@ namespace ims{
 
 
     protected:
-        /// Evaluate the cost of a state
-        virtual double evaluateCost() = 0;
 
         /// @brief Expand the current state
         virtual void expand() = 0;
@@ -77,4 +79,4 @@ namespace ims{
 }
 
 
-#endif //SEARCH_PLANNER_H
+#endif //SEARCH_PLANNER_HPP

@@ -26,8 +26,8 @@ namespace ims{
     public:
         /// @brief Constructor
         /// @param action The action
-        explicit action(actionType action=actionType()){
-            m_action = std::move(action);
+        explicit action(const actionType& action=actionType()){
+            m_action = action;
         }
 
         /// @brief Destructor

@@ -17,6 +17,7 @@ const double PI = 3.14159265358979323846;
 using stateType = std::vector<double>;
 using actionType = std::vector<double>;
 using paramsType = std::unordered_map<std::string, double>;
+using Heuristic = std::function<double(const stateType&, const stateType&)>;
 
 // Structs
 struct plannerStats{
