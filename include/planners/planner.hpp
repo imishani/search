@@ -3,6 +3,7 @@
 
 // standard includes
 #include <memory>
+#include <chrono>
 // project includes
 #include "common/state.hpp"
 #include "common/action.hpp"
@@ -15,10 +16,12 @@ namespace ims{
     /// @class Planner Parameters abstract class
     struct PlannerParams{
         /// @brief Constructor
-        PlannerParams() = default;
+        PlannerParams() : m_timeLimit(1000.0) {}
 
         /// @brief Destructor
         virtual ~PlannerParams() = default;
+
+        double m_timeLimit; // seconds
     };
 
     ///@brief Pure virtual base class planner interface
@@ -30,7 +33,7 @@ namespace ims{
 
         ///@brief Constructor
         ///@param params The planner parameters based on PlannerParams struct
-        explicit Planner(const PlannerParams& params);
+        explicit Planner(const PlannerParams& params): m_params(params) {};
 
         ///@brief Destructor
         virtual ~Planner() = default;
@@ -50,10 +53,23 @@ namespace ims{
         /// @param goal The goal state
         void setGoalState(state& goal) { m_goal = &goal; }
 
+        /// @brief start the timer
+        void startTimer() { t_start_ = std::chrono::steady_clock::now(); }
+
+        void getTimeFromStart(double &elapsed_time) {
+            auto t_end = std::chrono::steady_clock::now();
+            elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start_).count();
+        }
+
+        bool isTimeOut() {
+            double elapsed_time;
+            getTimeFromStart(elapsed_time);
+            return elapsed_time > m_params.m_timeLimit;
+        }
+
         /// @brief plan
         /// @return if the plan was successful or not
         virtual bool plan() = 0;
-
 
         using openList =  smpl::intrusive_heap<state, stateCompare>;
         openList m_open;
@@ -62,15 +78,20 @@ namespace ims{
     protected:
 
         /// @brief Expand the current state
-        virtual void expand() = 0;
+        virtual void expand(state* state) = 0;
 
         /// @brief Reconstruct the path
         virtual void reconstructPath() = 0;
 
+        /// @brief Check if the current state is the goal state
+        /// @return if the current state is the goal state or not
+        virtual bool isGoalState(const state& s) = 0;
+
         state* m_start;
         state* m_goal;
         PlannerParams m_params;
-
+        std::chrono::time_point<std::chrono::steady_clock> t_start_;
+        plannerStats m_stats;
 
     };
 

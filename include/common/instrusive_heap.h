@@ -29,8 +29,9 @@
 
 /// \author Andrew Dornbush
 
-#ifndef SEARCH_INSTRUSIVE_HEAP_H
-#define SEARCH_INSTRUSIVE_HEAP_H
+#ifndef SMPL_INTRUSIVE_HEAP_H
+#define SMPL_INTRUSIVE_HEAP_H
+
 #include <cstdlib>
 #include <vector>
 
@@ -52,7 +53,7 @@ namespace smpl {
         friend class intrusive_heap;
     };
 
-///@brief Provides an intrusive binary heap implementation. Objects inserted into the
+/// Provides an intrusive binary heap implementation. Objects inserted into the
 /// heap must derive from the \p heap_element class to implement efficient
 /// mutability. The implementation stores pointers to inserted objects, which
 /// must remain valid throughout the lifetime of the heap.
@@ -159,4 +160,4 @@ namespace smpl {
 
 #include "intrusive_heap.hpp"
 
-#endif //SEARCH_INSTRUSIVE_HEAP_H
+#endif

@@ -166,9 +166,13 @@ namespace ims{
         /// @param s1 The first state
         /// @param s2 The second state
         /// @return True if s1 is less than s2, false otherwise
-        bool operator()(const state* s1, const state* s2) const {
-            return s1->f < s2->f;
-        }
+        bool operator() (const state& s1, const state& s2) {
+            // tie breaking. TODO: do i need this?
+            if (s1.f == s2.f){
+                return s1.getStateId() < s2.getStateId();
+            } else
+            return s1.f < s2.f;
+        };
     };
 
 }

@@ -7,5 +7,4 @@ set(CMAKE_CXX_STANDARD 14)
 include_directories(include)
 
 add_library(search
-        src/planners/planner.cpp
         src/planners/BestFirstSearch.cpp)

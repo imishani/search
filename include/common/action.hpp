@@ -21,13 +21,15 @@ namespace ims{
         virtual ~actionType() = default;
     };
 
+    template <typename Environment>
     /// @class Action class for the search problem
     class action{
     public:
         /// @brief Constructor
         /// @param action The action
-        explicit action(const actionType& action=actionType()){
+        explicit action(const Environment& env, const actionType& action=actionType()){
             m_action = action;
+            m_env = env;
         }
 
         /// @brief Destructor
@@ -39,9 +41,14 @@ namespace ims{
         /// @return Success bool
         virtual bool getSuccessors(const state& curr_state, state& successor) = 0;
 
+        /// @brief check if the state is valid
+        /// @param state_val The values if the state
+        /// @return Validity bool
+        virtual bool isValid(const stateType& state_val) = 0;
 
     protected:
         actionType m_action;
+        Environment m_env;
 
     };
 }

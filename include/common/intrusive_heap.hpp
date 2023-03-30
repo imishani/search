@@ -29,13 +29,12 @@
 
 /// \author Andrew Dornbush
 
-#ifndef SEARCH_INTRUSIVE_HEAP_HPP
-#define SEARCH_INTRUSIVE_HEAP_HPP
+#ifndef SMPL_INTRUSIVE_HEAP_HPP
+#define SMPL_INTRUSIVE_HEAP_HPP
 
-#include "intrusive_heap.h"
-
-#include <assert.h>
-#include <stdio.h>
+#include <common/instrusive_heap.h>
+#include <cassert>
+#include <cstdio>
 
 namespace smpl {
 
@@ -475,4 +474,4 @@ namespace smpl {
 
 } // namespace smpl
 
-#endif //SEARCH_INTRUSIVE_HEAP_HPP
+#endif

@@ -18,7 +18,7 @@ namespace ims{
     /// So you define a heuristic function and then pass it to the constructor of the BestFirstSearchParams
     struct BestFirstSearchParams : public PlannerParams{
         /// @brief Constructor
-        BestFirstSearchParams(Heuristic &heuristic) : PlannerParams(), m_heuristicFunction(heuristic) {}
+        explicit BestFirstSearchParams(Heuristic &heuristic) : PlannerParams(), m_heuristicFunction(heuristic) {}
 
         /// @brief Destructor
         ~BestFirstSearchParams() override = default;
@@ -57,9 +57,11 @@ namespace ims{
 
     protected:
 
-        void expand() override;
+        void expand(state* state) override;
 
         void reconstructPath() override;
+
+        bool isGoalState(const state& s) override;
 
         Heuristic m_heuristicFunction;
 
