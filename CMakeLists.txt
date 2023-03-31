@@ -7,4 +7,6 @@ set(CMAKE_CXX_STANDARD 14)
 include_directories(include)
 
 add_library(search
-        src/planners/BestFirstSearch.cpp)
+        src/planners/BestFirstSearch.cpp
+        src/planners/dijkstra.cpp
+        src/planners/AStar.cpp)

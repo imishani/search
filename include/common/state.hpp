@@ -23,6 +23,7 @@ namespace ims{
         /// @param state The state of the robot
         explicit state(stateType state=stateType()){
             m_state = std::move(state);
+            parentInd = -3;
             g = INF;
             h = -1;
             f = INF;
@@ -30,7 +31,9 @@ namespace ims{
         }
 
         /// @brief Destructor
-        ~state() = default;
+        ~state() {
+            id_counter--;
+        };
 
         // Setters
         /// @brief Set the state
@@ -57,7 +60,7 @@ namespace ims{
 
         /// @brief Set parent pointer
         /// @param parent The parent pointer
-        void setParent(state* parent) { parentPointer = parent; }
+        void setParent(int parentInd_) { parentInd = parentInd_; }
 
         /// @brief Set as closed
         void setClosed() { flag = CLOSED; }
@@ -88,6 +91,10 @@ namespace ims{
         /// @brief Get the state id
         /// @return The state id
         int getStateId() const { return state_id; }
+
+        /// @brief Get the parent index
+        /// @return The parent index
+        int getParentInd() const { return parentInd; }
 
         /// @brief Check if the state is closed
         /// @return True if the state is closed, false otherwise
@@ -122,6 +129,7 @@ namespace ims{
             resetFlags();
         }
 
+
         /// @brief Print the state
         void print() const {
             std::cout << "state_id: " << state_id << std::endl;
@@ -144,11 +152,11 @@ namespace ims{
 
     protected:
         // id's
-        size_t state_id;
-        static size_t id_counter;
+        int state_id;
+        static int id_counter;
         // vars
         stateType m_state;
-        state* parentPointer{nullptr};
+        int parentInd;
         int flag{-1};
         // flag it as closed or not
         enum Flags {
@@ -175,7 +183,31 @@ namespace ims{
         };
     };
 
+    bool operator==(const ims::state& a, const ims::state& b)
+    {
+        return a.getState() == b.getState();
+    }
+
 }
+
+
+namespace std {
+    template <>
+    struct hash<ims::state>
+    {
+        typedef ims::state argument_type;
+        typedef std::size_t result_type;
+        result_type operator()(const argument_type& s) const;
+    };
+
+    auto hash<ims::state>::operator()(const argument_type& s) const -> result_type
+    {
+        size_t seed = 0;
+        boost::hash_combine(seed, boost::hash_range(s.getState().begin(), s.getState().end()));
+        return seed;
+    }
+
+} // namespace std
 
 
 #endif //SEARCH_STATE_HPP

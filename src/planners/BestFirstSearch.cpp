@@ -9,17 +9,22 @@ ims::BestFirstSearch::BestFirstSearch(const BestFirstSearchParams &params) : Pla
     m_heuristicFunction = params.m_heuristicFunction;
 }
 
-void ims::BestFirstSearch::initializePlanner(stateType start, stateType goal) {
+void ims::BestFirstSearch::initializePlanner(std::shared_ptr<actionSpace>& actionSpacePtr,
+                                             stateType start, stateType goal) {
+    // space pointer
+    m_actionSpacePtr = actionSpacePtr;
     // Evaluate the start state
     m_start->setState(start);
     m_start->g = 0;
-    m_start->h = computeHeuristic(*m_start);
-    m_start->f = m_start->g + m_start->h;
+    m_start->f = computeHeuristic(*m_start);
     m_open.push(m_start);
     m_start->setOpen();
     // Evaluate the goal state
     m_goal->setState(goal);
-    m_goal->h = 0;
+}
+
+ims::state *ims::BestFirstSearch::getState(size_t state_id) {
+    return m_actionSpacePtr->getState(state_id);
 }
 
 double ims::BestFirstSearch::computeHeuristic(ims::state &s) {
@@ -31,7 +36,7 @@ double ims::BestFirstSearch::computeHeuristic(ims::state &s1, ims::state &s2) {
 }
 
 
-bool ims::BestFirstSearch::plan() {
+bool ims::BestFirstSearch::plan(std::vector<state*>& path) {
     startTimer();
     while (!m_open.empty() || !isTimeOut()){
         state* state  = m_open.min();
@@ -40,7 +45,7 @@ bool ims::BestFirstSearch::plan() {
         if (isGoalState(*state)){
             m_goal = state;
             getTimeFromStart(m_stats.time);
-            reconstructPath();
+            reconstructPath(path);
             return true;
         }
         expand(state);
@@ -49,14 +54,51 @@ bool ims::BestFirstSearch::plan() {
     return false;
 }
 
-void ims::BestFirstSearch::expand(ims::state* state){
+void ims::BestFirstSearch::expand(ims::state* state_){
+    std::vector<state*> successors;
+    std::vector<double> costs; // In this case we use the "cost" as the new f value
+    m_actionSpacePtr->getSuccessors(*state_, successors, costs);
+    for (size_t i {0} ; i < successors.size() ; ++i){
+        state* successor = successors[i];
+        double cost = costs[i];
+        if (successor->isClosed()){
+            continue;
+        }
+        if (successor->isOpen()){
+            if (successor->f > cost){
+                successor->setParent(state_->getStateId());
+                successor->f = cost;
+                m_open.update(successor);
+            }
+        } else {
+            setStateVals(successor, state_, cost);
+            m_open.push(successor);
+            successor->setOpen();
+        }
+    }
 }
 
-void ims::BestFirstSearch::reconstructPath() {
-
+void ims::BestFirstSearch::reconstructPath(std::vector<state*>& path) {
+    state* state_ = m_goal;
+    while (state_->getParentInd() != -1){
+        path.push_back(state_);
+        state_ = getState(state_->getParentInd());
+    }
+    path.push_back(state_);
+    std::reverse(path.begin(), path.end());
 }
 
 bool ims::BestFirstSearch::isGoalState(const ims::state &s) {
-    return false;
+    if (s.getStateId() == m_goal->getStateId())
+        return true;
+    else
+        return false;
 }
+
+void ims::BestFirstSearch::setStateVals(state* state_, state* parent, double cost)
+{
+    state_->setParent(parent->getStateId());
+    state_->f = cost;
+}
+
 
