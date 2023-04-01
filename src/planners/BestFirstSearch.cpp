@@ -14,12 +14,14 @@ void ims::BestFirstSearch::initializePlanner(std::shared_ptr<actionSpace>& actio
     // space pointer
     m_actionSpacePtr = actionSpacePtr;
     // Evaluate the start state
+    m_start->setParent(START);
     m_start->setState(start);
     m_start->g = 0;
     m_start->f = computeHeuristic(*m_start);
     m_open.push(m_start);
     m_start->setOpen();
     // Evaluate the goal state
+    m_goal->setParent(GOAL);
     m_goal->setState(goal);
 }
 
@@ -57,7 +59,7 @@ bool ims::BestFirstSearch::plan(std::vector<state*>& path) {
 void ims::BestFirstSearch::expand(ims::state* state_){
     std::vector<state*> successors;
     std::vector<double> costs; // In this case we use the "cost" as the new f value
-    m_actionSpacePtr->getSuccessors(*state_, successors, costs);
+    m_actionSpacePtr->getSuccessors(state_->getStateId(), successors, costs);
     for (size_t i {0} ; i < successors.size() ; ++i){
         state* successor = successors[i];
         double cost = costs[i];

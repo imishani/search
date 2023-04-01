@@ -12,6 +12,7 @@ void ims::AStar::initializePlanner(std::shared_ptr<actionSpace>& actionSpacePtr,
     // space pointer
     m_actionSpacePtr = actionSpacePtr;
     // Evaluate the start state
+    m_start->setParent(START);
     m_start->setState(start);
     m_start->g = 0;
     m_start->h = computeHeuristic(*m_start);
@@ -19,6 +20,7 @@ void ims::AStar::initializePlanner(std::shared_ptr<actionSpace>& actionSpacePtr,
     m_open.push(m_start);
     m_start->setOpen();
     // Evaluate the goal state
+    m_goal->setParent(GOAL);
     m_goal->setState(goal);
     m_goal->h = 0;
 }
@@ -27,7 +29,7 @@ void ims::AStar::initializePlanner(std::shared_ptr<actionSpace>& actionSpacePtr,
 void ims::AStar::expand(ims::state* state_){
     std::vector<state*> successors;
     std::vector<double> costs;
-    m_actionSpacePtr->getSuccessors(*state_, successors, costs);
+    m_actionSpacePtr->getSuccessors(state_->getStateId(), successors, costs);
     for (size_t i {0} ; i < successors.size() ; ++i){
         state* successor = successors[i];
         double cost = costs[i];
