@@ -76,7 +76,8 @@ namespace ims{
         /// @param actionSpacePtr The action space
         /// @param start The start state
         /// @param goal The goal state
-        void initializePlanner(std::shared_ptr<actionSpace>& actionSpacePtr, stateType start, stateType goal) override;
+        void initializePlanner(const std::shared_ptr<actionSpace>& actionSpacePtr,
+                               const stateType& start, const stateType& goal) override;
 
 
     protected:

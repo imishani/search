@@ -9,19 +9,25 @@ ims::BestFirstSearch::BestFirstSearch(const BestFirstSearchParams &params) : Pla
     m_heuristicFunction = params.m_heuristicFunction;
 }
 
-void ims::BestFirstSearch::initializePlanner(std::shared_ptr<actionSpace>& actionSpacePtr,
-                                             stateType start, stateType goal) {
+void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<actionSpace>& actionSpacePtr,
+                                             const stateType& start, const stateType& goal) {
     // space pointer
     m_actionSpacePtr = actionSpacePtr;
+
+    int m_start_ind = m_actionSpacePtr->getOrCreateState(start);
+    m_start = m_actionSpacePtr->getState(m_start_ind);
+
+    int m_goal_ind = m_actionSpacePtr->getOrCreateState(start);
+    m_goal = m_actionSpacePtr->getState(m_goal_ind);
     // Evaluate the start state
-    m_start->setParent(START);
+    m_start->setParent(PARENT_TYPE(START));
     m_start->setState(start);
     m_start->g = 0;
     m_start->f = computeHeuristic(*m_start);
     m_open.push(m_start);
     m_start->setOpen();
     // Evaluate the goal state
-    m_goal->setParent(GOAL);
+    m_goal->setParent(PARENT_TYPE(GOAL));
     m_goal->setState(goal);
 }
 
@@ -34,13 +40,22 @@ double ims::BestFirstSearch::computeHeuristic(ims::state &s) {
 }
 
 double ims::BestFirstSearch::computeHeuristic(ims::state &s1, ims::state &s2) {
-    return m_heuristicFunction(s1.getState(), s2.getState());
+    double dist;
+    if (!m_heuristicFunction(s1.getState(), s2.getState(), dist))
+        throw std::runtime_error("Heuristic function failed");
+    else
+        return dist;
 }
 
 
 bool ims::BestFirstSearch::plan(std::vector<state*>& path) {
     startTimer();
-    while (!m_open.empty() || !isTimeOut()){
+    int iter {0};
+    while (!m_open.empty() && !isTimeOut()){
+        // report progress every 1000 iterations
+        if (iter % 1000 == 0){
+            std::cout << "open size: " << m_open.size() << std::endl;
+        }
         state* state  = m_open.min();
         m_open.pop();
         state->setClosed();
@@ -48,9 +63,11 @@ bool ims::BestFirstSearch::plan(std::vector<state*>& path) {
             m_goal = state;
             getTimeFromStart(m_stats.time);
             reconstructPath(path);
+            ims::state::resetIdCounter();
             return true;
         }
         expand(state);
+        ++iter;
     }
     getTimeFromStart(m_stats.time);
     return false;

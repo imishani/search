@@ -37,19 +37,13 @@
 #define SEARCH_DIJKSTRA_HPP
 
 #include <planners/AStar.hpp>
+#include <common/stdHeuristics.hpp>
 
 namespace ims{
 
-    /// @brief The heuristic function
-    /// @param s1 The state values
-    /// @param s2 The state values
-    double heuristicFunction(const stateType &s1, const stateType &s2){
-        return 0;
-    }
-    Heuristic heuristic = heuristicFunction;
-
     struct dijkstraParams : public AStarParams{
 
+        Heuristic heuristic = zeroHeuristic;
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
         dijkstraParams() : AStarParams(heuristic) {}

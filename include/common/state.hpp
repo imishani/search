@@ -53,6 +53,7 @@ namespace ims{
         /// @brief Constructor
         /// @param state The state of the robot
         explicit state(stateType state=stateType()){
+            flag = -1;
             m_state = std::move(state);
             parentInd = INVALID;
             g = INF;
@@ -91,7 +92,8 @@ namespace ims{
 
         /// @brief Set parent pointer
         /// @param parent The parent pointer
-        void setParent(int parentInd_) { parentInd = parentInd_; }
+        void setParent(int parentInd_) {
+            parentInd = parentInd_; }
 
         /// @brief Set as closed
         void setClosed() { flag = CLOSED; }
@@ -129,15 +131,15 @@ namespace ims{
 
         /// @brief Check if the state is closed
         /// @return True if the state is closed, false otherwise
-        bool isClosed() const { return flag & CLOSED; }
+        bool isClosed() const { return flag == CLOSED; }
 
         /// @brief Check if the state is open
         /// @return True if the state is open, false otherwise
-        bool isOpen() const { return flag & OPEN; }
+        bool isOpen() const { return flag == OPEN; }
 
         /// @brief Check if the state is inconsistent
         /// @return True if the state is inconsistent, false otherwise
-        bool isIncons() const { return flag & INCONS; }
+        bool isIncons() const { return flag == INCONS; }
 
         /// Reset methods
         /// @brief Reset g value
@@ -150,7 +152,10 @@ namespace ims{
         void resetF() { f = INF; }
 
         /// @brief Reset the flags
-        void resetFlags() { state_id &= ~(CLOSED | OPEN | INCONS); }
+        void resetFlags() { state_id &= ~(CLOSED | OPEN | INCONS); } // TODO: Check this
+
+        /// @brief Reset the id counter
+        static void resetIdCounter() { id_counter = 0; }
 
         /// @brief Reset everything
         void reset() {
@@ -188,7 +193,7 @@ namespace ims{
         // vars
         stateType m_state;
         int parentInd;
-        int flag{-1};
+        int flag;
         // flag it as closed or not
         enum Flags {
             CLOSED = 1,
@@ -214,7 +219,8 @@ namespace ims{
         };
     };
 
-    bool operator==(const ims::state& a, const ims::state& b)
+    inline
+    bool operator==(const state& a, const state& b)
     {
         return a.getState() == b.getState();
     }
@@ -230,7 +236,7 @@ namespace std {
         typedef std::size_t result_type;
         result_type operator()(const argument_type& s) const;
     };
-
+    inline
     auto hash<ims::state>::operator()(const argument_type& s) const -> result_type
     {
         size_t seed = 0;

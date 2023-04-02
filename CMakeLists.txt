@@ -10,6 +10,10 @@ include_directories(include)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
+# link boost libraries
+find_package(Boost REQUIRED COMPONENTS system filesystem)
+include_directories(${Boost_INCLUDE_DIRS})
+
 add_library(search
         src/planners/BestFirstSearch.cpp
         src/planners/dijkstra.cpp
@@ -17,5 +21,5 @@ add_library(search
 
 add_executable(run_2d_rob_nav domains/2d_robot_nav/run_2d.cpp)
 
-target_link_libraries(run_2d_rob_nav search ${OpenCV_LIBS})
+target_link_libraries(run_2d_rob_nav search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 

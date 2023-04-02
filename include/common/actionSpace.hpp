@@ -77,13 +77,7 @@ namespace ims{
     class actionSpace{
     public:
         /// @brief Constructor
-        /// @param env The environment
-        /// @param actions_ptr The action definitions
-        explicit actionSpace(const std::shared_ptr<SceneInterface>& env,
-                             const std::shared_ptr<actionType>& actions_ptr){
-            m_actions_ptr = actions_ptr;
-            m_env = env;
-        }
+        explicit actionSpace() = default;
 
         /// @brief Destructor
         ~actionSpace() = default;
@@ -139,10 +133,6 @@ namespace ims{
         using StateEqual = PointerValueEqual<StateKey>;
         hash_map<StateKey*, int, StateHash, StateEqual> m_state_to_id;
 
-    protected:
-
-        std::shared_ptr<actionType> m_actions_ptr;
-        std::shared_ptr<SceneInterface> m_env;
 
     };
 }

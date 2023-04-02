@@ -7,21 +7,33 @@
 
 ims::AStar::AStar(const ims::AStarParams &params) : BestFirstSearch(params) {}
 
-void ims::AStar::initializePlanner(std::shared_ptr<actionSpace>& actionSpacePtr,
-                                             stateType start, stateType goal) {
+void ims::AStar::initializePlanner(const std::shared_ptr<actionSpace>& actionSpacePtr,
+                                   const stateType& start, const stateType& goal) {
     // space pointer
     m_actionSpacePtr = actionSpacePtr;
-    // Evaluate the start state
+    // check if start is valid
+    if (!m_actionSpacePtr->isStateValid(start)){
+        throw std::runtime_error("Start state is not valid");
+    }
+    // check if goal is valid
+    if (!m_actionSpacePtr->isStateValid(goal)){
+        throw std::runtime_error("Goal state is not valid");
+    }
+    int m_start_ind = m_actionSpacePtr->getOrCreateState(start);
+    printf("start ind: %d \n", m_start_ind);
+    m_start = m_actionSpacePtr->getState(m_start_ind);
     m_start->setParent(START);
-    m_start->setState(start);
+    int m_goal_ind = m_actionSpacePtr->getOrCreateState(goal);
+    m_goal = m_actionSpacePtr->getState(m_goal_ind);
+    m_goal->setParent(GOAL);
+
+    // Evaluate the start state
     m_start->g = 0;
     m_start->h = computeHeuristic(*m_start);
     m_start->f = m_start->g + m_start->h;
     m_open.push(m_start);
     m_start->setOpen();
     // Evaluate the goal state
-    m_goal->setParent(GOAL);
-    m_goal->setState(goal);
     m_goal->h = 0;
 }
 

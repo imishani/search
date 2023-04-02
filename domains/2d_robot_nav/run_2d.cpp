@@ -33,6 +33,7 @@
 */
 
 
+#include <boost/filesystem.hpp>
 #include <vector>
 #include <memory>
 #include <iostream>
@@ -44,6 +45,12 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
+// project includes
+#include <planners/AStar.hpp>
+#include <common/stdHeuristics.hpp>
+#include "ActionScene2dRob.hpp"
+
+int ims::state::id_counter = 0;
 
 double to_degrees(double rads)
 {
@@ -61,39 +68,93 @@ std::vector<std::vector<int>> loadMap(const char *fname, cv::Mat& img,
                                       std::string& type, int& width,
                                       int& height, int scale=1) {
 
-    std::ifstream file(fname);
-    std::string str;
+//    std::ifstream file(fname);
+//    std::string str;
+//    std::vector<std::vector<int>> map;
+//    std::vector<std::vector<int>> scaled_map;
+//    std::vector<int> row;
+//    int i = 0;
+//    while (std::getline(file, str)) {
+//        if (i == 0) {
+//            /// the line should be "type octile" so we want type = octile
+//            type = str.substr(5);
+//        } else if (i == 1) {
+//            /// the line should be "height 100" so we want height = 100
+//            width = std::stoi(str.substr(7));
+//        } else if (i == 2) {
+//            /// the line should be "width 100" so we want width = 100
+//            height = std::stoi(str.substr(6));
+//        } else if (i == 3) {
+//            /// the line should be "map" so we want to skip it but first, we resize the map
+//            map.resize(width, std::vector<int>(height));
+//            scaled_map.resize(scale*width, std::vector<int>(height));
+//            i++;
+//            continue;
+//        } else {
+//            /// For now we assume the map is of type "octile".
+//            for (int x = 0; x < width; x++)
+//            {
+//                char c;
+//                do {
+//                    // fscanf(f, "%c", &c);
+//                    c = str[x];
+//                } while (isspace(c));
+//                map[x][i] = (c == '.' || c == 'G' || c == 'S' || c == 'T') ? 0 : 100;
+//            }
+//        }
+//        i++;
+//    }
+//    int scaled_height = scale*height;
+//    int scaled_width = scale*width;
+//
+//    for (int y = 0; y < scaled_height; y++)
+//    {
+//        for (int x = 0; x < scaled_width; x++)
+//        {
+//            scaled_map[x].resize(scaled_height);
+//            std::cout << map[x/scale][y/scale];
+//            scaled_map[x][y] = map[x/scale][y/scale];
+//        }
+//    }
+//
+//    img = cv::Mat(scaled_height, scaled_width, CV_8UC3);
+//
+//    for (int y = 0; y < scaled_height; y++)
+//    {
+//        for (int x = 0; x < scaled_width; x++)
+//        {
+//            img.at<cv::Vec3b>(y,x) = (scaled_map[x][y] > 0) ? cv::Vec3b(0,0,0) : cv::Vec3b(255,255,255);
+//        }
+//    }
+//
+//    return scaled_map;
     std::vector<std::vector<int>> map;
-    std::vector<int> row;
-    int i = 0;
-    while (std::getline(file, str)) {
-        if (i == 0) {
-            /// the line should be "type octile" so we want type = octile
-            type = str.substr(5);
-        } else if (i == 1) {
-            /// the line should be "height 100" so we want height = 100
-            width = std::stoi(str.substr(7));
-        } else if (i == 2) {
-            /// the line should be "width 100" so we want width = 100
-            height = std::stoi(str.substr(6));
-        } else if (i == 3) {
-            /// the line should be "map" so we want to skip it but first, we resize the map
+    FILE *f;
+    f = fopen(fname, "r");
+
+    if (f)
+    {
+        if (fscanf(f, "type octile\nheight %d\nwidth %d\nmap\n", &height, &width))
+        {
             map.resize(width, std::vector<int>(height));
-            continue;
-        } else {
-            /// For now we assume the map is of type "octile".
-            for (int x = 0; x < width; x++)
+
+            for (int y = 0; y < height; y++)
             {
-                char c;
-                do {
-                    // fscanf(f, "%c", &c);
-                    c = str[x];
-                } while (isspace(c));
-                map[x][i] = (c == '.' || c == 'G' || c == 'S' || c == 'T') ? 0 : 100;
+                for (int x = 0; x < width; x++)
+                {
+                    char c;
+                    do {
+                        fscanf(f, "%c", &c);
+                    } while (isspace(c));
+
+                    map[x][y] = (c == '.' || c == 'G' || c == 'S' || c == 'T') ? 0 : 100;
+                }
             }
         }
-        i++;
+
+        fclose(f);
     }
+
     std::vector<std::vector<int>> scaled_map;
     int scaled_height = scale*height;
     int scaled_width = scale*width;
@@ -148,6 +209,7 @@ void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, std::vect
 }
 
 
+
 int main(int argc, char** argv) {
 
     if (argc < 2) {
@@ -155,19 +217,21 @@ int main(int argc, char** argv) {
         return 0;
     }
     std::vector<std::string> maps;
-    // get current directory using boost
 
-    maps.emplace_back("/home/itamar/work/code/algorithms/search/domains/2d_robot_nav/data/hrt201n/hrt201n.map");
-    maps.emplace_back("/home/itamar/work/code/algorithms/search/domains/2d_robot_nav/data/den501d/den501d.map");
-    maps.emplace_back("/home/itamar/work/code/algorithms/search/domains/2d_robot_nav/data/den520d/den520d.map");
-    maps.emplace_back("/home/itamar/work/code/algorithms/search/domains/2d_robot_nav/data/ht_chantry/ht_chantry.map");
-    maps.emplace_back("/home/itamar/work/code/algorithms/search/domains/2d_robot_nav/data/brc203d/brc203d.map");
+    boost::filesystem::path full_path( boost::filesystem::current_path() );
+    std::cout << "Current path is : " << full_path.string() << std::endl;
+    // At each emplace_back, use the full pathh and concatenate the map name
+    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/hrt201n.map");
+    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/den501d/den501d.map");
+    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/den520d/den520d.map");
+    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/ht_chantry.map");
+    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/brc203d/brc203d.map");
 
-    std::vector<std::string> starts_goals_path = {"/home/itamar/work/code/algorithms/search/domains/2d_robot_nav/data/hrt201n/",
-                                        "/home/itamar/work/code/algorithms/search/domains/2d_robot_nav/data/den501d/",
-                                        "/home/itamar/work/code/algorithms/search/domains/2d_robot_nav/data/den520d/",
-                                        "/home/itamar/work/code/algorithms/search/domains/2d_robot_nav/data/ht_chantry/",
-                                        "/home/itamar/work/code/algorithms/search/domains/2d_robot_nav/data/brc203d/",
+    std::vector<std::string> starts_goals_path = {full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/",
+                                        full_path.string() + "/../domains/2d_robot_nav/data/den501d/",
+                                        full_path.string() + "/../domains/2d_robot_nav/data/den520d/",
+                                        full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/",
+                                        full_path.string() + "/../domains/2d_robot_nav/data/brc203d/",
     };
 
     int map_index = std::stoi(argv[1]);
@@ -185,8 +249,61 @@ int main(int argc, char** argv) {
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
 
-    std::cout << "Map: " << img << std::endl;
+    // construct the planner
+    std::cout << "Constructing planner..." << std::endl;
+    // construct planner params
+    Heuristic heuristic = ims::euclideanHeuristic;
+    ims::AStarParams params (heuristic);
+    // construct the scene and the action space
+    scene2DRob scene (map);
+    actionType2dRob action_type;
+    for (int i {0}; i < starts.size(); i++){
+        // round the start and goal to the nearest integer
+        std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
+        std::cout << "Goal: " << goals[i][0] << ", " << goals[i][1] << std::endl;
+        for (int j {0}; j < 2; j++){
+            starts[i][j] = std::round(starts[i][j]);
+            goals[i][j] = std::round(goals[i][j]);
+        }
+        std::cout << "Rounded Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
+        std::cout << "Rounded Goal: " << goals[i][0] << ", " << goals[i][1] << std::endl;
 
+        // print the value in the map
+        std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
+        std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
+
+        std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
+        // construct planner
+        ims::AStar planner(params);
+//        planner.initializePlanner(ActionSpace, starts[i], goals[i]);
+        // catch the exception if the start or goal is not valid
+        try {
+            planner.initializePlanner(ActionSpace, starts[i], goals[i]);
+        }
+        catch (std::exception& e) {
+            std::cout << "Start or goal is not valid!" << std::endl;
+            continue;
+        }
+        // plan
+        std::cout << "Planning..." << std::endl;
+        std::vector<ims::state*> path_;
+        if (!planner.plan(path_)) {
+            std::cout << "No path found!" << std::endl;
+//            return 0;
+        }
+        else
+            std::cout << "Path found!" << std::endl;
+        // draw the start in red and goal in green
+        img.at<cv::Vec3b>((int)starts[i][1], (int)starts[i][0]) = cv::Vec3b(0,0,255);
+        img.at<cv::Vec3b>((int)goals[i][1], (int)goals[i][0]) = cv::Vec3b(0,255,0);
+
+        // draw the path in blue but skip the start and goal
+        for (auto& state : path_) {
+            if (state->getStateId() != path_.front()->getStateId() && state->getStateId() != path_.back()->getStateId())
+                img.at<cv::Vec3b>((int)state->getState()[1], (int)state->getState()[0]) = cv::Vec3b(255,0,0);
+        }
+
+    }
     cv::namedWindow("Map", cv::WINDOW_NORMAL);
     cv::imshow("Map", img);
     cv::waitKey(0);

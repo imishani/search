@@ -44,7 +44,7 @@
 #include "common/actionSpace.hpp"
 
 // Always initialize the static member variable
-int ims::state::id_counter = 0;
+//int ims::state::id_counter = 0;
 
 namespace ims{
 
@@ -68,7 +68,10 @@ namespace ims{
 
         ///@brief Constructor
         ///@param params The planner parameters based on PlannerParams struct
-        explicit Planner(const PlannerParams& params): m_params(params) {};
+        explicit Planner(const PlannerParams& params): m_params(params) {
+            m_start = nullptr;
+            m_goal = nullptr;
+        };
 
         ///@brief Destructor
         virtual ~Planner() = default;
@@ -77,8 +80,8 @@ namespace ims{
         /// @param actionSpacePtr The action space
         /// @param start The start state
         /// @param goal The goal state
-        virtual void initializePlanner(std::shared_ptr<actionSpace>& actionSpacePtr, stateType start, stateType goal) = 0;
-
+        virtual void initializePlanner(const std::shared_ptr<actionSpace>& actionSpacePtr,
+                                       const stateType& start, const stateType& goal) = 0;
 
         /// Setters
         /// @brief Set the start state
