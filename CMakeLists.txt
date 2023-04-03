@@ -3,6 +3,29 @@ project(search)
 
 set(CMAKE_CXX_STANDARD 14)
 
+#function(my_export_target _target _include_dir)
+#    file(
+#            WRITE "${CMAKE_CURRENT_BINARY_DIR}/${_target}Config.cmake"
+#            "
+#            include(\"\$\{CMAKE_CURRENT_LIST_DIR\}/${_target}Targets.cmake\")
+#            set_property(
+#                TARGET ${_target}
+#                APPEND PROPERTY
+#                    INTERFACE_INCLUDE_DIRECTORIES \"${_include_dir}\"
+#            )
+#        "
+#    )
+#
+#    export(TARGETS ${_target} FILE "${CMAKE_CURRENT_BINARY_DIR}/${_target}Targets.cmake")
+#
+#    # NOTE: The following call can pollute your PC's CMake package registry
+#    #       See comments/alternatives below
+#    export(PACKAGE ${_target})
+#endfunction(my_export_target)
+
+set($(PROJECT_NAME)_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set($(PROJECT_NAME)_LIBRARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
+
 # add include directories
 include_directories(include)
 
@@ -14,7 +37,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 include_directories(${Boost_INCLUDE_DIRS})
 
-add_library(search
+add_library(search SHARED
         src/planners/BestFirstSearch.cpp
         src/planners/dijkstra.cpp
         src/planners/AStar.cpp)

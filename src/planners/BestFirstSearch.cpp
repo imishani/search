@@ -63,6 +63,8 @@ bool ims::BestFirstSearch::plan(std::vector<state*>& path) {
             m_goal = state;
             getTimeFromStart(m_stats.time);
             reconstructPath(path);
+            m_stats.cost = m_goal->g;
+            m_stats.pathLength = (int)path.size();
             ims::state::resetIdCounter();
             return true;
         }

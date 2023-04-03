@@ -116,6 +116,10 @@ namespace ims{
             return elapsed_time > m_params.m_timeLimit;
         }
 
+        plannerStats reportStats () {
+            return m_stats;
+        }
+
         /// @brief plan
         /// @param path The path
         /// @return if the plan was successful or not

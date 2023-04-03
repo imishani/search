@@ -293,6 +293,11 @@ int main(int argc, char** argv) {
         }
         else
             std::cout << "Path found!" << std::endl;
+        plannerStats stats = planner.reportStats();
+        std::cout << "Planning time: " << stats.time << " sec" << std::endl;
+        std::cout << "cost: " << stats.cost << std::endl;
+        std::cout << "Path length: " << path_.size() << std::endl;
+
         // draw the start in red and goal in green
         img.at<cv::Vec3b>((int)starts[i][1], (int)starts[i][0]) = cv::Vec3b(0,0,255);
         img.at<cv::Vec3b>((int)goals[i][1], (int)goals[i][0]) = cv::Vec3b(0,255,0);
@@ -302,8 +307,8 @@ int main(int argc, char** argv) {
             if (state->getStateId() != path_.front()->getStateId() && state->getStateId() != path_.back()->getStateId())
                 img.at<cv::Vec3b>((int)state->getState()[1], (int)state->getState()[0]) = cv::Vec3b(255,0,0);
         }
-
     }
+
     cv::namedWindow("Map", cv::WINDOW_NORMAL);
     cv::imshow("Map", img);
     cv::waitKey(0);

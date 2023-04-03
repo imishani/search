@@ -85,7 +85,6 @@ struct VectorHash
     }
 };
 
-
 // Typedefs
 using stateType = std::vector<double>;
 using pathType = std::vector<stateType>;
@@ -102,7 +101,7 @@ enum PARENT_TYPE {
 struct plannerStats{
     double time {0};
     double cost {0};
-    double pathLength {0};
+    int pathLength {0};
 
     int numExpanded {0};
     int numGenerated {0};
