@@ -23,8 +23,12 @@ set(CMAKE_CXX_STANDARD 14)
 #    export(PACKAGE ${_target})
 #endfunction(my_export_target)
 
-set($(PROJECT_NAME)_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
-set($(PROJECT_NAME)_LIBRARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
+# print ${CMAKE_INSTALL_PREFIX}
+#message(STATUS "CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
+
+#set($(PROJECT_NAME)_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
+set($(PROJECT_NAME)_INCLUDE_DIR include)
+set($(PROJECT_NAME)_LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib)
 
 # add include directories
 include_directories(include)
@@ -41,6 +45,14 @@ add_library(search SHARED
         src/planners/BestFirstSearch.cpp
         src/planners/dijkstra.cpp
         src/planners/AStar.cpp)
+
+# support for cmake-config files
+configure_file("${PROJECT_NAME}Config.cmake.in" "${PROJECT_NAME}Config.cmake" @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/${PROJECT_NAME})
+
+# support for cmake-target files
+install(TARGETS search DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 add_executable(run_2d_rob_nav domains/2d_robot_nav/run_2d.cpp)
 

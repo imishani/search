@@ -125,6 +125,9 @@ namespace ims{
         /// @return Validity bool
         virtual bool isStateValid(const stateType& state_val) = 0;
 
+        /// @brief check if the path is valid
+        /// @param path The path
+        /// @return Validity bool
         virtual bool isPathValid(const pathType& path) = 0;
 
         std::vector<state*> m_states;
