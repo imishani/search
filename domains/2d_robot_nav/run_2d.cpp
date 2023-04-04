@@ -68,66 +68,6 @@ std::vector<std::vector<int>> loadMap(const char *fname, cv::Mat& img,
                                       std::string& type, int& width,
                                       int& height, int scale=1) {
 
-//    std::ifstream file(fname);
-//    std::string str;
-//    std::vector<std::vector<int>> map;
-//    std::vector<std::vector<int>> scaled_map;
-//    std::vector<int> row;
-//    int i = 0;
-//    while (std::getline(file, str)) {
-//        if (i == 0) {
-//            /// the line should be "type octile" so we want type = octile
-//            type = str.substr(5);
-//        } else if (i == 1) {
-//            /// the line should be "height 100" so we want height = 100
-//            width = std::stoi(str.substr(7));
-//        } else if (i == 2) {
-//            /// the line should be "width 100" so we want width = 100
-//            height = std::stoi(str.substr(6));
-//        } else if (i == 3) {
-//            /// the line should be "map" so we want to skip it but first, we resize the map
-//            map.resize(width, std::vector<int>(height));
-//            scaled_map.resize(scale*width, std::vector<int>(height));
-//            i++;
-//            continue;
-//        } else {
-//            /// For now we assume the map is of type "octile".
-//            for (int x = 0; x < width; x++)
-//            {
-//                char c;
-//                do {
-//                    // fscanf(f, "%c", &c);
-//                    c = str[x];
-//                } while (isspace(c));
-//                map[x][i] = (c == '.' || c == 'G' || c == 'S' || c == 'T') ? 0 : 100;
-//            }
-//        }
-//        i++;
-//    }
-//    int scaled_height = scale*height;
-//    int scaled_width = scale*width;
-//
-//    for (int y = 0; y < scaled_height; y++)
-//    {
-//        for (int x = 0; x < scaled_width; x++)
-//        {
-//            scaled_map[x].resize(scaled_height);
-//            std::cout << map[x/scale][y/scale];
-//            scaled_map[x][y] = map[x/scale][y/scale];
-//        }
-//    }
-//
-//    img = cv::Mat(scaled_height, scaled_width, CV_8UC3);
-//
-//    for (int y = 0; y < scaled_height; y++)
-//    {
-//        for (int x = 0; x < scaled_width; x++)
-//        {
-//            img.at<cv::Vec3b>(y,x) = (scaled_map[x][y] > 0) ? cv::Vec3b(0,0,0) : cv::Vec3b(255,255,255);
-//        }
-//    }
-//
-//    return scaled_map;
     std::vector<std::vector<int>> map;
     FILE *f;
     f = fopen(fname, "r");
