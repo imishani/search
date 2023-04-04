@@ -123,8 +123,9 @@ namespace ims {
             return false;
         }
         else{
+            dist = 0;
             for (int i {0} ; i < state1.size() ; i++){
-                dist = std::min(std::abs(state1[i] - state2[i]), 2*M_PI - std::abs(state1[i] - state2[i]));
+                dist += std::min(std::abs(state1[i] - state2[i]), 2*M_PI - std::abs(state1[i] - state2[i]));
             }
             return true;
         }
