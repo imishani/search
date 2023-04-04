@@ -1,0 +1,8 @@
+/home/itamar/work/code/algorithms/search/build/CMakeFiles/install/local.dir
+/home/itamar/work/code/algorithms/search/build/CMakeFiles/edit_cache.dir
+/home/itamar/work/code/algorithms/search/build/CMakeFiles/install.dir
+/home/itamar/work/code/algorithms/search/build/CMakeFiles/list_install_components.dir
+/home/itamar/work/code/algorithms/search/build/CMakeFiles/rebuild_cache.dir
+/home/itamar/work/code/algorithms/search/build/CMakeFiles/run_2d_rob_nav.dir
+/home/itamar/work/code/algorithms/search/build/CMakeFiles/install/strip.dir
+/home/itamar/work/code/algorithms/search/build/CMakeFiles/search.dir

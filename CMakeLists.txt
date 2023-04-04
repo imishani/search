@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.16.3)
 project(search)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -23,12 +23,6 @@ set(CMAKE_CXX_STANDARD 14)
 #    export(PACKAGE ${_target})
 #endfunction(my_export_target)
 
-# print ${CMAKE_INSTALL_PREFIX}
-#message(STATUS "CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
-
-#set($(PROJECT_NAME)_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
-set($(PROJECT_NAME)_INCLUDE_DIR include)
-set($(PROJECT_NAME)_LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib)
 
 # add include directories
 include_directories(include)
@@ -46,13 +40,22 @@ add_library(search SHARED
         src/planners/dijkstra.cpp
         src/planners/AStar.cpp)
 
+
+set($(PROJECT_NAME)_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
+#set($(PROJECT_NAME)_INCLUDE_DIR include)
+set($(PROJECT_NAME)_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+
 # support for cmake-config files
 configure_file("${PROJECT_NAME}Config.cmake.in" "${PROJECT_NAME}Config.cmake" @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/${PROJECT_NAME})
 
 # support for cmake-target files
-install(TARGETS search DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+message(STATUS "CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
+#install(TARGETS search DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+        FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
+install(TARGETS search
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 add_executable(run_2d_rob_nav domains/2d_robot_nav/run_2d.cpp)
 

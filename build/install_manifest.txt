@@ -1,0 +1,13 @@
+/usr/local/lib/cmake/search/searchConfig.cmake
+/usr/local/include/planners/dijkstra.hpp
+/usr/local/include/planners/BestFirstSearch.hpp
+/usr/local/include/planners/planner.hpp
+/usr/local/include/planners/AStar.hpp
+/usr/local/include/common/intrusive_heap.hpp
+/usr/local/include/common/types.hpp
+/usr/local/include/common/state.hpp
+/usr/local/include/common/stdHeuristics.hpp
+/usr/local/include/common/SceneInterface.hpp
+/usr/local/include/common/instrusive_heap.h
+/usr/local/include/common/actionSpace.hpp
+/usr/local/lib/libsearch.so

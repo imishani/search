@@ -215,7 +215,6 @@ int main(int argc, char** argv) {
         std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
         // construct planner
         ims::AStar planner(params);
-//        planner.initializePlanner(ActionSpace, starts[i], goals[i]);
         // catch the exception if the start or goal is not valid
         try {
             planner.initializePlanner(ActionSpace, starts[i], goals[i]);
