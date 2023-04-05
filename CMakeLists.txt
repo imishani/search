@@ -38,7 +38,8 @@ include_directories(${Boost_INCLUDE_DIRS})
 add_library(search SHARED
         src/planners/BestFirstSearch.cpp
         src/planners/dijkstra.cpp
-        src/planners/AStar.cpp)
+        src/planners/AStar.cpp
+        src/planners/wAStar.cpp)
 
 
 set($(PROJECT_NAME)_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
@@ -60,4 +61,10 @@ install(TARGETS search
 add_executable(run_2d_rob_nav domains/2d_robot_nav/run_2d.cpp)
 
 target_link_libraries(run_2d_rob_nav search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+
+add_executable(run_2d_rob_nav_weighted domains/2d_robot_nav/run_2d_weighted.cpp)
+
+target_link_libraries(run_2d_rob_nav_weighted search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+
+
 

@@ -56,6 +56,13 @@ namespace ims{
         /// @brief Destructor
         virtual ~PlannerParams() = default;
 
+        /// @brief Add new parameter to the PlannerParams as an attribute
+        /// @param param The parameter
+        /// make it take any type of parameter
+//        template<typename T>
+//        void addParam(const T& param) {
+//        }
+
         double m_timeLimit; // seconds
     };
 
