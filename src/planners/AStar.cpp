@@ -29,12 +29,13 @@ void ims::AStar::initializePlanner(const std::shared_ptr<actionSpace>& actionSpa
 
     // Evaluate the start state
     m_start->g = 0;
-    m_start->h = computeHeuristic(*m_start);
+    m_start->h = computeHeuristic(m_start);
     m_start->f = m_start->g + m_start->h;
     m_open.push(m_start);
     m_start->setOpen();
     // Evaluate the goal state
     m_goal->h = 0;
+    m_heuristic->setGoal(m_goal);
 }
 
 
@@ -68,7 +69,7 @@ void ims::AStar::setStateVals(state* state_, state* parent, double cost)
 {
     state_->setParent(parent->getStateId());
     state_->g = parent->g + cost;
-    state_->h = computeHeuristic(*state_);
+    state_->h = computeHeuristic(state_);
     state_->f = state_->g + state_->h;
 }
 

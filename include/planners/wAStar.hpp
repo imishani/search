@@ -52,7 +52,7 @@ namespace ims{
 
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit wAStarParams(Heuristic &heuristic,
+        explicit wAStarParams(baseHeuristic* heuristic,
                               double &epsilon) : BestFirstSearchParams(heuristic) {
             this->epsilon = epsilon;
         }
@@ -91,8 +91,6 @@ namespace ims{
         void setStateVals(state* state_, state* parent, double cost) override;
 
         void expand(state* state_) override;
-
-        Heuristic m_heuristicFunction;
 
         wAStarParams m_params;
 

@@ -90,7 +90,7 @@ using stateType = std::vector<double>;
 using pathType = std::vector<stateType>;
 using action = std::vector<double>;
 using paramsType = std::unordered_map<std::string, double>;
-using Heuristic = std::function<bool(const stateType&, const stateType&, double&)>;
+//using Heuristic = std::function<bool(const stateType&, const stateType&, double&)>;
 
 enum PARENT_TYPE {
     START = -1,

@@ -37,16 +37,16 @@
 #define SEARCH_DIJKSTRA_HPP
 
 #include <planners/AStar.hpp>
-#include <common/stdHeuristics.hpp>
+#include <heuristics/standardHeu.hpp>
 
 namespace ims{
 
     struct dijkstraParams : public AStarParams{
 
-        Heuristic heuristic = zeroHeuristic;
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        dijkstraParams() : AStarParams(heuristic) {}
+        dijkstraParams(zeroHeuristic* heuristic) : AStarParams(heuristic) {
+        }
 
         /// @brief Destructor
         ~dijkstraParams() override = default;
@@ -64,7 +64,6 @@ namespace ims{
         ~dijkstra() override = default;
 
         bool exhaustPlan();
-
 
     };
 

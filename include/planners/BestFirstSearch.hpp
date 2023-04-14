@@ -44,6 +44,7 @@
 
 // project includes
 #include <planners/planner.hpp>
+#include <common/baseHeuristic.hpp>
 
 namespace ims{
 
@@ -53,12 +54,12 @@ namespace ims{
     /// @note Since this is general BestFS, the heuristic function returns an f value!
     struct BestFirstSearchParams : public PlannerParams{
         /// @brief Constructor
-        explicit BestFirstSearchParams(Heuristic &heuristic) : PlannerParams(), m_heuristicFunction(heuristic) {}
+        explicit BestFirstSearchParams(baseHeuristic* heuristic) : PlannerParams(), m_heuristic(heuristic) {}
 
         /// @brief Destructor
         ~BestFirstSearchParams() override = default;
 
-        Heuristic m_heuristicFunction;
+        baseHeuristic* m_heuristic = nullptr;
     };
 
     /// @class BestFirstSearch class.
@@ -87,12 +88,12 @@ namespace ims{
 
         /// @brief Compute the heuristic value of from state s to the goal state
         /// @param s The state
-        double computeHeuristic(state& s);
+        double computeHeuristic(state* s);
 
         /// @brief Compute the heuristic value from state s1 to state s2
         /// @param s1 The state
         /// @param s2 The state
-        double computeHeuristic(state& s1, state& s2);
+        double computeHeuristic(state* s1, state* s2);
 
         /// @brief plan
         /// @param path The path
@@ -109,7 +110,7 @@ namespace ims{
 
         bool isGoalState(const state& s) override;
 
-        Heuristic m_heuristicFunction;
+        baseHeuristic* m_heuristic = nullptr;
 
     };
 

@@ -47,7 +47,7 @@
 
 // project includes
 #include <planners/AStar.hpp>
-#include <common/stdHeuristics.hpp>
+#include <heuristics/standardHeu.hpp>
 #include "ActionScene2dRob.hpp"
 
 int ims::state::id_counter = 0;
@@ -192,7 +192,8 @@ int main(int argc, char** argv) {
     // construct the planner
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
-    Heuristic heuristic = ims::euclideanHeuristic;
+    auto* heuristic = new ims::euclideanHeuristic();
+    // initialize the heuristic
     ims::AStarParams params (heuristic);
     // construct the scene and the action space
     scene2DRob scene (map);

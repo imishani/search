@@ -6,7 +6,7 @@
 
 
 ims::BestFirstSearch::BestFirstSearch(const BestFirstSearchParams &params) : Planner(params) {
-    m_heuristicFunction = params.m_heuristicFunction;
+    m_heuristic = params.m_heuristic;
 }
 
 void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<actionSpace>& actionSpacePtr,
@@ -23,25 +23,26 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<actionSpace>&
     m_start->setParent(PARENT_TYPE(START));
     m_start->setState(start);
     m_start->g = 0;
-    m_start->f = computeHeuristic(*m_start);
+    m_start->f = computeHeuristic(m_start);
     m_open.push(m_start);
     m_start->setOpen();
     // Evaluate the goal state
     m_goal->setParent(PARENT_TYPE(GOAL));
     m_goal->setState(goal);
+    m_heuristic->setGoal(m_goal);
 }
 
 ims::state *ims::BestFirstSearch::getState(size_t state_id) {
     return m_actionSpacePtr->getState(state_id);
 }
 
-double ims::BestFirstSearch::computeHeuristic(ims::state &s) {
-    return computeHeuristic(s, *m_goal);
+double ims::BestFirstSearch::computeHeuristic(ims::state* s) {
+    return computeHeuristic(s, m_goal);
 }
 
-double ims::BestFirstSearch::computeHeuristic(ims::state &s1, ims::state &s2) {
+double ims::BestFirstSearch::computeHeuristic(ims::state* s1, ims::state* s2) {
     double dist;
-    if (!m_heuristicFunction(s1.getState(), s2.getState(), dist))
+    if (!m_heuristic->getHeuristic(s1, s2, dist))
         throw std::runtime_error("Heuristic function failed");
     else
         return dist;
