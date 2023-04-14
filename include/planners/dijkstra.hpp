@@ -63,6 +63,9 @@ namespace ims{
         /// @brief Destructor
         ~dijkstra() override = default;
 
+        bool exhaustPlan();
+
+
     };
 
 }
