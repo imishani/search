@@ -114,7 +114,7 @@ namespace ims{
 
         void getTimeFromStart(double &elapsed_time) {
             auto t_end = std::chrono::steady_clock::now();
-            elapsed_time = 1e-9*std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start_).count();
+            elapsed_time = 1e-3*std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start_).count();
         }
 
         bool isTimeOut() {

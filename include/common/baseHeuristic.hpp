@@ -41,7 +41,7 @@ namespace ims{
         /// @brief Set the goal state
         /// @param goal The goal state
         /// @note You have to set the goal state if you want to use the getHeuristic(const std::shared_ptr<state> s) function
-        void setGoal(state* goal) {
+        virtual void setGoal(state* goal) {
             mGoal = goal;
         }
 

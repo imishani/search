@@ -18,12 +18,15 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<actionSpace>& actionSp
     if (!m_actionSpacePtr->isStateValid(goal)){
         throw std::runtime_error("Goal state is not valid");
     }
+    ims::state::resetIdCounter();
     int m_start_ind = m_actionSpacePtr->getOrCreateState(start);
     m_start = m_actionSpacePtr->getState(m_start_ind);
     m_start->setParent(START);
     int m_goal_ind = m_actionSpacePtr->getOrCreateState(goal);
     m_goal = m_actionSpacePtr->getState(m_goal_ind);
     m_goal->setParent(GOAL);
+
+    m_heuristic->setGoal(m_goal);
 
     // Evaluate the start state
     m_start->g = 0;
@@ -33,7 +36,7 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<actionSpace>& actionSp
     m_start->setOpen();
     // Evaluate the goal state
     m_goal->h = 0;
-    m_heuristic->setGoal(m_goal);
+
 }
 
 

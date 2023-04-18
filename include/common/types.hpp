@@ -43,6 +43,7 @@
 
 // Constants
 const double INF = std::numeric_limits<double>::infinity();
+const int Infinity = std::numeric_limits<int16_t>::max();
 const double PI = 3.14159265358979323846;
 
 

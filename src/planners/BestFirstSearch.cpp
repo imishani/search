@@ -13,7 +13,7 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<actionSpace>&
                                              const stateType& start, const stateType& goal) {
     // space pointer
     m_actionSpacePtr = actionSpacePtr;
-
+    ims::state::resetIdCounter();
     int m_start_ind = m_actionSpacePtr->getOrCreateState(start);
     m_start = m_actionSpacePtr->getState(m_start_ind);
 
@@ -54,7 +54,7 @@ bool ims::BestFirstSearch::plan(std::vector<state*>& path) {
     int iter {0};
     while (!m_open.empty() && !isTimeOut()){
         // report progress every 1000 iterations
-        if (iter % 1000 == 0){
+        if (iter % 100000 == 0){
             std::cout << "open size: " << m_open.size() << std::endl;
         }
         state* state  = m_open.min();

@@ -19,6 +19,7 @@ void ims::AStar::initializePlanner(const std::shared_ptr<actionSpace>& actionSpa
     if (!m_actionSpacePtr->isStateValid(goal)){
         throw std::runtime_error("Goal state is not valid");
     }
+    ims::state::resetIdCounter();
     int m_start_ind = m_actionSpacePtr->getOrCreateState(start);
     printf("start ind: %d \n", m_start_ind);
     m_start = m_actionSpacePtr->getState(m_start_ind);
@@ -26,7 +27,7 @@ void ims::AStar::initializePlanner(const std::shared_ptr<actionSpace>& actionSpa
     int m_goal_ind = m_actionSpacePtr->getOrCreateState(goal);
     m_goal = m_actionSpacePtr->getState(m_goal_ind);
     m_goal->setParent(GOAL);
-
+    m_heuristic->setGoal(m_goal);
     // Evaluate the start state
     m_start->g = 0;
     m_start->h = computeHeuristic(m_start);
@@ -35,7 +36,7 @@ void ims::AStar::initializePlanner(const std::shared_ptr<actionSpace>& actionSpa
     m_start->setOpen();
     // Evaluate the goal state
     m_goal->h = 0;
-    m_heuristic->setGoal(m_goal);
+
 }
 
 

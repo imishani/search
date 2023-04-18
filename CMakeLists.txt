@@ -3,27 +3,6 @@ project(search)
 
 set(CMAKE_CXX_STANDARD 14)
 
-#function(my_export_target _target _include_dir)
-#    file(
-#            WRITE "${CMAKE_CURRENT_BINARY_DIR}/${_target}Config.cmake"
-#            "
-#            include(\"\$\{CMAKE_CURRENT_LIST_DIR\}/${_target}Targets.cmake\")
-#            set_property(
-#                TARGET ${_target}
-#                APPEND PROPERTY
-#                    INTERFACE_INCLUDE_DIRECTORIES \"${_include_dir}\"
-#            )
-#        "
-#    )
-#
-#    export(TARGETS ${_target} FILE "${CMAKE_CURRENT_BINARY_DIR}/${_target}Targets.cmake")
-#
-#    # NOTE: The following call can pollute your PC's CMake package registry
-#    #       See comments/alternatives below
-#    export(PACKAGE ${_target})
-#endfunction(my_export_target)
-
-
 # add include directories
 include_directories(include)
 
@@ -39,7 +18,8 @@ add_library(search SHARED
         src/planners/BestFirstSearch.cpp
         src/planners/dijkstra.cpp
         src/planners/AStar.cpp
-        src/planners/wAStar.cpp)
+        src/planners/wAStar.cpp
+        src/common/bfs3d.cpp)
 
 
 set($(PROJECT_NAME)_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
