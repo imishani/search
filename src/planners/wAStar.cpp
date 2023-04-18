@@ -36,6 +36,8 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<actionSpace>& actionSp
     m_start->setOpen();
     // Evaluate the goal state
     m_goal->h = 0;
+    // update stats suboptimality
+    m_stats.subOptimality = m_params.epsilon;
 
 }
 
@@ -63,6 +65,7 @@ void ims::wAStar::expand(ims::state* state_){
             successor->setOpen();
         }
     }
+    m_stats.numExpanded++;
 }
 
 

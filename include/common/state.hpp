@@ -157,6 +157,9 @@ namespace ims{
         /// @brief Reset the id counter
         static void resetIdCounter() { id_counter = 0; }
 
+        /// @brief Get the id counter
+        static int getIdCounter() { return id_counter; }
+
         /// @brief Reset everything
         void reset() {
             resetG();

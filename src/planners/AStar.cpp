@@ -63,6 +63,7 @@ void ims::AStar::expand(ims::state* state_){
             successor->setOpen();
         }
     }
+    m_stats.numExpanded++;
 }
 
 

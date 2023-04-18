@@ -234,9 +234,12 @@ int main(int argc, char** argv) {
         else
             std::cout << "Path found!" << std::endl;
         plannerStats stats = planner.reportStats();
-        std::cout << "Planning time: " << stats.time << " sec" << std::endl;
+        std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
         std::cout << "cost: " << stats.cost << std::endl;
         std::cout << "Path length: " << path_.size() << std::endl;
+        std::cout << "Number of nodes expanded: " << stats.numExpanded << std::endl;
+        std::cout << "Number of nodes generated: " << stats.numGenerated << std::endl;
+        std::cout << "Suboptimality: " << stats.subOptimality << RESET << std::endl;
 
         // draw the start in red and goal in green
         img.at<cv::Vec3b>((int)starts[i][1], (int)starts[i][0]) = cv::Vec3b(0,0,255);
