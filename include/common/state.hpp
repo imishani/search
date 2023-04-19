@@ -72,6 +72,10 @@ namespace ims{
         /// @param state The state of the robot
         void setState(const stateType& state) { m_state = state; }
 
+        void setUndiscretizedState(const stateType& state) { m_state_undiscretized = state; }
+
+        void setMappedState(const stateType& state) { m_state_map = state; }
+
         /// @{ In general, it is better to directly set the g, h, and f values rather than
         /// calling these functions since it requires additional code to run,
         /// but they are provided for convenience.
@@ -108,6 +112,10 @@ namespace ims{
         /// @brief Get the state
         /// @return The state of the robot
         const stateType& getState() const { return m_state; }
+
+        const stateType& getUndiscretizedState() const { return m_state_undiscretized; }
+
+        const stateType& getMappedState() const { return m_state_map; }
 
         /// @brief Get the g value
         /// @return The g value
@@ -195,6 +203,8 @@ namespace ims{
         static int id_counter;
         // vars
         stateType m_state;
+        stateType m_state_undiscretized;
+        stateType m_state_map;
         int parentInd;
         int flag;
         // flag it as closed or not

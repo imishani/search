@@ -15,7 +15,7 @@
 namespace ims {
 
     /// @brief The Euclidean distance heuristic
-    class euclideanHeuristic : public baseHeuristic {
+    struct euclideanHeuristic : public baseHeuristic {
 
         bool getHeuristic(state* s1, state* s2,
                           double& dist) override {
@@ -34,7 +34,7 @@ namespace ims {
     };
 
     /// @brief The Manhattan distance heuristic
-    class manhattanHeuristic : public baseHeuristic {
+    struct manhattanHeuristic : public baseHeuristic {
 
         bool getHeuristic(state* s1, state* s2,
                           double& dist) override {
@@ -52,7 +52,7 @@ namespace ims {
     };
 
     /// @brief The Chebyshev distance heuristic
-    class chebyshevHeuristic : public baseHeuristic {
+    struct chebyshevHeuristic : public baseHeuristic {
 
         bool getHeuristic(state* s1, state* s2,
                           double& dist) override {
@@ -71,7 +71,7 @@ namespace ims {
     };
 
     /// @brief The Minkowski distance heuristic
-    class minkowskiHeuristic : public baseHeuristic {
+    struct minkowskiHeuristic : public baseHeuristic {
 
         bool getHeuristic(state* s1, state* s2,
                           double& dist) override {
@@ -90,7 +90,7 @@ namespace ims {
     };
 
     /// @brief The Octile distance heuristic
-    class octileHeuristic : public baseHeuristic {
+    struct octileHeuristic : public baseHeuristic {
 
         bool getHeuristic(state* s1, state* s2,
                           double& dist) override {
@@ -109,7 +109,7 @@ namespace ims {
     };
 
     /// @brief The Zero distance heuristic
-    class zeroHeuristic : public baseHeuristic {
+    struct zeroHeuristic : public baseHeuristic {
 
         bool getHeuristic(state* s1, state* s2,
                           double& dist) override {
@@ -131,7 +131,7 @@ namespace ims {
     };
 
     /// @brief Robot joint angles distance heuristic
-    class jointAnglesHeuristic : public baseHeuristic {
+    struct jointAnglesHeuristic : public baseHeuristic {
 
         bool getHeuristic(state* s1, state* s2,
                           double& dist) override {
@@ -151,8 +151,8 @@ namespace ims {
     };
 
     /// @brief SE(3) distance heuristic
-    class SE3HeuristicRPY : public baseHeuristic {
-
+    struct SE3HeuristicRPY : public baseHeuristic {
+    
         bool getHeuristic(state* s1, state* s2,
                           double& dist) override {
             // check id the states are the same size
@@ -181,8 +181,7 @@ namespace ims {
     };
 
     /// @brief SE(3) distance heuristic
-    class SE3HeuristicQuat : public baseHeuristic {
-
+    struct SE3HeuristicQuat : public baseHeuristic {
         bool getHeuristic(state* s1, state* s2,
                           double& dist) override {
             // check id the states are the same size
@@ -219,7 +218,7 @@ namespace ims {
     }
 
     /// @brief SE(3) distance heuristic using hopf coordinates
-    class SE3HeuristicHopf : public baseHeuristic {
+    struct SE3HeuristicHopf : public baseHeuristic {
 
         bool getHeuristic(state* s1, state* s2,
                           double& dist) override {

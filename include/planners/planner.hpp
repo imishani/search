@@ -93,7 +93,7 @@ namespace ims{
         /// Setters
         /// @brief Set the start state
         /// @param start The start state
-        void setStartState(state& start) {
+        virtual void setStartState(state& start) {
             m_start = &start;
             m_start->setParent(-1);
             m_actionSpacePtr->m_states.push_back(m_start);
@@ -102,7 +102,7 @@ namespace ims{
 
         /// @brief Set the goal state
         /// @param goal The goal state
-        void setGoalState(state& goal) {
+        virtual void setGoalState(state& goal) {
             m_goal = &goal;
             m_goal->setParent(-2);
             m_actionSpacePtr->m_states.push_back(m_goal);
@@ -114,7 +114,9 @@ namespace ims{
 
         void getTimeFromStart(double &elapsed_time) {
             auto t_end = std::chrono::steady_clock::now();
-            elapsed_time = 1e-3*std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start_).count();
+            double scaler = 10e9;
+            elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_start_).count();
+            elapsed_time /= scaler;
         }
 
         bool isTimeOut() {
@@ -131,9 +133,6 @@ namespace ims{
         /// @param path The path
         /// @return if the plan was successful or not
         virtual bool plan(std::vector<state*>& path) = 0;
-
-        using openList =  smpl::intrusive_heap<state, stateCompare>;
-        openList m_open;
 
 
     protected:
@@ -154,6 +153,9 @@ namespace ims{
         std::chrono::time_point<std::chrono::steady_clock> t_start_;
         plannerStats m_stats;
         std::shared_ptr<actionSpace> m_actionSpacePtr;
+
+        using openList =  smpl::intrusive_heap<state, stateCompare>;
+        openList m_open;
 
     };
 

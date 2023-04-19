@@ -84,16 +84,16 @@ namespace ims{
         /// @brief Get the state by id
         /// @param state_id The id of the state
         /// @return The state
-        state* getState(size_t state_id);
+        virtual state* getState(size_t state_id);
 
         /// @brief Compute the heuristic value of from state s to the goal state
         /// @param s The state
-        double computeHeuristic(state* s);
+        virtual double computeHeuristic(state* s);
 
         /// @brief Compute the heuristic value from state s1 to state s2
         /// @param s1 The state
         /// @param s2 The state
-        double computeHeuristic(state* s1, state* s2);
+        virtual double computeHeuristic(state* s1, state* s2);
 
         /// @brief plan
         /// @param path The path

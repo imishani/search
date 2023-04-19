@@ -86,7 +86,7 @@ namespace ims{
         /// @param id The id of the state
         /// @return The state
         /// @note The id is assumed to be valid - meaning that the state exists in m_states
-        state* getState(size_t id){
+        virtual state* getState(size_t id){
             assert(id < m_states.size() && id >= 0);
             return m_states[id];
         }
@@ -94,7 +94,7 @@ namespace ims{
         /// @brief Get or create state by state value
         /// @param state_val The state value
         /// @return The state id
-        int getOrCreateState(const stateType& state_val){
+        virtual int getOrCreateState(const stateType& state_val){
             // check if the state exists
             auto* curr_state = new state(state_val);
             auto it = m_state_to_id.find(curr_state);
@@ -135,7 +135,6 @@ namespace ims{
         using StateHash = PointerValueHash<StateKey>;
         using StateEqual = PointerValueEqual<StateKey>;
         hash_map<StateKey*, int, StateHash, StateEqual> m_state_to_id;
-
 
     };
 }
