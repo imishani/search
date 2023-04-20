@@ -115,7 +115,7 @@ namespace ims{
         void getTimeFromStart(double &elapsed_time) {
             auto t_end = std::chrono::steady_clock::now();
             double scaler = 10e9;
-            elapsed_time = std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_start_).count();
+            elapsed_time = (double)std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_start_).count();
             elapsed_time /= scaler;
         }
 
@@ -158,9 +158,6 @@ namespace ims{
         openList m_open;
 
     };
-
-
-
 }
 
 

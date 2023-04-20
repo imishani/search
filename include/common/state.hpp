@@ -197,6 +197,11 @@ namespace ims{
         double h;
         double f; // Is it necessary to store it here?
 
+        bool greedy{};
+        bool covered = false;
+        bool covered_this = false;
+
+
     protected:
         // id's
         int state_id;
@@ -207,13 +212,13 @@ namespace ims{
         stateType m_state_map;
         int parentInd;
         int flag;
+
         // flag it as closed or not
         enum Flags {
             CLOSED = 1,
             OPEN = 2,
             INCONS = 3
         };
-
 
     };
 
