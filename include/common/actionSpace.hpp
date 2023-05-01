@@ -102,6 +102,7 @@ namespace ims{
                 delete curr_state;
                 return it->second;
             }
+            curr_state->setStateId((int)m_states.size());
             m_states.push_back(curr_state);
             m_state_to_id[curr_state] = curr_state->getStateId();
             return curr_state->getStateId();

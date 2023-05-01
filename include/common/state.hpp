@@ -59,13 +59,10 @@ namespace ims{
             g = INF;
             h = -1;
             f = INF;
-            state_id = id_counter++;
         }
 
         /// @brief Destructor
-        ~state() {
-            id_counter--;
-        };
+        ~state() = default;
 
         // Setters
         /// @brief Set the state
@@ -93,6 +90,10 @@ namespace ims{
         void setF(double f_value){ f = f_value; }
 
         /// @}
+
+        /// @brief Set the state id
+        /// @param id The state id
+        void setStateId(int id) { state_id = id; }
 
         /// @brief Set parent pointer
         /// @param parent The parent pointer
@@ -160,13 +161,10 @@ namespace ims{
         void resetF() { f = INF; }
 
         /// @brief Reset the flags
-        void resetFlags() { state_id &= ~(CLOSED | OPEN | INCONS); } // TODO: Check this
-
-        /// @brief Reset the id counter
-        static void resetIdCounter() { id_counter = 0; }
-
-        /// @brief Get the id counter
-        static int getIdCounter() { return id_counter; }
+        void resetFlags() {
+//            state_id &= ~(CLOSED | OPEN | INCONS); // // TODO: Check this
+            flag = -1;
+        }
 
         /// @brief Reset everything
         void reset() {
@@ -205,7 +203,6 @@ namespace ims{
     protected:
         // id's
         int state_id;
-        static int id_counter;
         // vars
         stateType m_state;
         stateType m_state_undiscretized;

@@ -50,7 +50,6 @@
 #include <heuristics/standardHeu.hpp>
 #include "ActionScene2dRob.hpp"
 
-int ims::state::id_counter = 0;
 
 double to_degrees(double rads)
 {

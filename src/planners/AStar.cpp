@@ -19,7 +19,6 @@ void ims::AStar::initializePlanner(const std::shared_ptr<actionSpace>& actionSpa
     if (!m_actionSpacePtr->isStateValid(goal)){
         throw std::runtime_error("Goal state is not valid");
     }
-    ims::state::resetIdCounter();
     int m_start_ind = m_actionSpacePtr->getOrCreateState(start);
     printf("start ind: %d \n", m_start_ind);
     m_start = m_actionSpacePtr->getState(m_start_ind);
