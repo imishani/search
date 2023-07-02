@@ -142,9 +142,12 @@ namespace ims {
             } else {
                 dist = 0;
                 for (int i{0}; i < s1->getState().size(); i++) {
-                    dist += std::min(std::abs(s1->getState()[i] - s2->getState()[i]),
-                                     2*M_PI - std::abs(s1->getState()[i] - s2->getState()[i]));
+//                    dist += std::min(std::abs(s1->getState()[i] - s2->getState()[i]),
+//                                     2*M_PI - std::abs(s1->getState()[i] - s2->getState()[i]));
+                    double dj = (s1->getState()[i] - s2->getState()[i]);
+                    dist += dj*dj;
                 }
+                dist = sqrt(dist);
                 return true;
             }
         }
