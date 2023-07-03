@@ -2,7 +2,7 @@
 // Created by itamar on 3/29/23.
 //
 
-#include <planners/BestFirstSearch.hpp>
+#include <planners/best_first_search.hpp>
 
 
 ims::BestFirstSearch::BestFirstSearch(const BestFirstSearchParams &params) : Planner(params) {

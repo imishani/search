@@ -15,10 +15,10 @@ find_package(Boost REQUIRED COMPONENTS system filesystem)
 include_directories(${Boost_INCLUDE_DIRS})
 
 add_library(search SHARED
-        src/planners/BestFirstSearch.cpp
+        src/planners/best_first_search.cpp
         src/planners/dijkstra.cpp
-        src/planners/AStar.cpp
-        src/planners/wAStar.cpp
+        src/planners/astar.cpp
+        src/planners/wastar.cpp
         src/common/bfs3d.cpp)
 
 
@@ -33,7 +33,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake DESTINATIO
 # support for cmake-target files
 message(STATUS "CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
 #install(TARGETS search DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}
         FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
 install(TARGETS search
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)

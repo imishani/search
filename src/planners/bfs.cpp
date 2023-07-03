@@ -2,7 +2,7 @@
 // Created by itamar on 4/13/23.
 //
 
-#include "planners/BFS.hpp"
+#include "planners/bfs.hpp"
 
 //ims::BFS::BFS(const ims::BFSParams &params) : Planner(params) {
 //    exhaustive = params.mExhaustive;

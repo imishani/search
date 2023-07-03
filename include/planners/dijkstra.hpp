@@ -36,8 +36,8 @@
 #ifndef SEARCH_DIJKSTRA_HPP
 #define SEARCH_DIJKSTRA_HPP
 
-#include <planners/AStar.hpp>
-#include <heuristics/standardHeu.hpp>
+#include <planners/astar.hpp>
+#include <heuristics/standard_heuristics.hpp>
 
 namespace ims{
 

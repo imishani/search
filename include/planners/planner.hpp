@@ -41,7 +41,7 @@
 #include <chrono>
 // project includes
 #include "common/state.hpp"
-#include "common/actionSpace.hpp"
+#include "common/action_space.hpp"
 
 // Always initialize the static member variable
 //int ims::state::id_counter = 0;

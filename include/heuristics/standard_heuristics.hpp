@@ -6,7 +6,7 @@
 #define SEARCH_STANDARDHEU_HPP
 
 
-#include <common/baseHeuristic.hpp>
+#include <common/base_heuristic.hpp>
 #include <common/types.hpp>
 
 #include <eigen3/Eigen/Dense>

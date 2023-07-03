@@ -46,9 +46,9 @@
 #include <opencv2/imgproc.hpp>
 
 // project includes
-#include <planners/wAStar.hpp>
-#include <heuristics/standardHeu.hpp>
-#include "ActionScene2dRob.hpp"
+#include <planners/wastar.hpp>
+#include <heuristics/standard_heuristics.hpp>
+#include "action_space_2d_rob.hpp"
 
 
 double to_degrees(double rads)

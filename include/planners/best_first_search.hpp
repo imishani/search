@@ -44,7 +44,7 @@
 
 // project includes
 #include <planners/planner.hpp>
-#include <common/baseHeuristic.hpp>
+#include <common/base_heuristic.hpp>
 
 namespace ims{
 

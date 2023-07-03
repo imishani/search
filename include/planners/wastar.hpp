@@ -27,14 +27,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   AStar.hpp
+ * \file   wastar.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
 */
 
-
-#ifndef SEARCH_ASTAR_HPP
-#define SEARCH_ASTAR_HPP
+#ifndef SEARCH_WASTAR_HPP
+#define SEARCH_WASTAR_HPP
 
 // standard includes
 #include <functional>
@@ -43,34 +42,41 @@
 #include <algorithm>
 
 // project includes
-#include <planners/BestFirstSearch.hpp>
+#include <planners/best_first_search.hpp>
 
 namespace ims{
 
     /// @class AStarParams class.
     /// @brief The parameters for the AStar algorithm
-    struct AStarParams : public BestFirstSearchParams{
+    struct wAStarParams : public BestFirstSearchParams{
 
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit AStarParams(baseHeuristic* heuristic) : BestFirstSearchParams(heuristic) {}
+        explicit wAStarParams(baseHeuristic* heuristic,
+                              double &epsilon) : BestFirstSearchParams(heuristic) {
+            this->epsilon = epsilon;
+        }
 
         /// @brief Destructor
-        ~AStarParams() override = default;
+        ~wAStarParams() override = default;
+
+        double epsilon;
 
     };
 
 
-    /// @class AStar class.
-    /// @brief A* is a best first search algorithm that uses admissible heuristics and g values to find the optimal path
-    class AStar : public BestFirstSearch{
+    /// @class wAStar class. Weighted A* algorithm
+    /// @brief A weighted A* algorithm implementation. This algorithm is a modification of the A* algorithm that
+    /// uses inflation of the heuristic function to find a solution with a cost that is within a factor of epsilon
+    /// of the optimal solution (epsilon-suboptimality).
+    class wAStar : public BestFirstSearch{
     public:
         /// @brief Constructor
         /// @param params The parameters
-        explicit AStar(const AStarParams &params);
+        explicit wAStar(const wAStarParams &params);
 
         /// @brief Destructor
-        ~AStar() override = default;
+        ~wAStar() override = default;
 
         /// @brief Initialize the planner
         /// @param actionSpacePtr The action space
@@ -86,11 +92,11 @@ namespace ims{
 
         void expand(state* state_) override;
 
-//        Heuristic m_heuristicFunction;
+        wAStarParams m_params;
 
     };
 
 }
 
 
-#endif //SEARCH_ASTAR_HPP
+#endif //SEARCH_WASTAR_HPP

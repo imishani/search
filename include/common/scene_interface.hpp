@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   SceneInterface.hpp
+ * \file   scene_interface.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
 */

@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   actionSpace.hpp
+ * \file   action_space.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
 */
@@ -41,7 +41,7 @@
 
 // project includes
 #include <common/state.hpp>
-#include <common/SceneInterface.hpp>
+#include <common/scene_interface.hpp>
 
 //auto std::hash<ims::state>::operator()(
 //        const argument_type& s) const -> result_type
