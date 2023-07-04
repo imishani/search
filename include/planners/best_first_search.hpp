@@ -54,12 +54,12 @@ namespace ims{
     /// @note Since this is general BestFS, the heuristic function returns an f value!
     struct BestFirstSearchParams : public PlannerParams{
         /// @brief Constructor
-        explicit BestFirstSearchParams(baseHeuristic* heuristic) : PlannerParams(), m_heuristic(heuristic) {}
+        explicit BestFirstSearchParams(BaseHeuristic* heuristic) : PlannerParams(), heuristic_(heuristic) {}
 
         /// @brief Destructor
         ~BestFirstSearchParams() override = default;
 
-        baseHeuristic* m_heuristic = nullptr;
+        BaseHeuristic* heuristic_ = nullptr;
     };
 
     /// @class BestFirstSearch class.
@@ -77,40 +77,40 @@ namespace ims{
         /// @param actionSpacePtr The action space
         /// @param start The start state
         /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<actionSpace>& actionSpacePtr,
-                               const stateType& start, const stateType& goal) override;
+        void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+                               const StateType& start, const StateType& goal) override;
 
         /// TODO: Do I need this function?
         /// @brief Get the state by id
         /// @param state_id The id of the state
         /// @return The state
-        virtual state* getState(size_t state_id);
+        virtual State* getState(size_t state_id);
 
         /// @brief Compute the heuristic value of from state s to the goal state
         /// @param s The state
-        virtual double computeHeuristic(state* s);
+        virtual double computeHeuristic(State* s);
 
         /// @brief Compute the heuristic value from state s1 to state s2
         /// @param s1 The state
         /// @param s2 The state
-        virtual double computeHeuristic(state* s1, state* s2);
+        virtual double computeHeuristic(State* s1, State* s2);
 
         /// @brief plan
         /// @param path The path
         /// @return if the plan was successful or not
-        bool plan(std::vector<state*>& path) override;
+        bool plan(std::vector<State*>& path) override;
 
     protected:
 
-        virtual void setStateVals(state* state_, state* parent, double cost);
+        virtual void setStateVals(State* state_, State* parent, double cost);
 
-        void expand(state* state_) override;
+        void expand(State* state_) override;
 
-        void reconstructPath(std::vector<state*>& path) override;
+        void reconstructPath(std::vector<State*>& path) override;
 
-        bool isGoalState(const state& s) override;
+        bool isGoalState(const State& s) override;
 
-        baseHeuristic* m_heuristic = nullptr;
+        BaseHeuristic* heuristic_ = nullptr;
 
     };
 

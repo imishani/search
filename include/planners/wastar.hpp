@@ -52,7 +52,7 @@ namespace ims{
 
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit wAStarParams(baseHeuristic* heuristic,
+        explicit wAStarParams(BaseHeuristic* heuristic,
                               double &epsilon) : BestFirstSearchParams(heuristic) {
             this->epsilon = epsilon;
         }
@@ -82,17 +82,17 @@ namespace ims{
         /// @param actionSpacePtr The action space
         /// @param start The start state
         /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<actionSpace>& actionSpacePtr,
-                               const stateType& start, const stateType& goal) override;
+        void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+                               const StateType& start, const StateType& goal) override;
 
 
     protected:
 
-        void setStateVals(state* state_, state* parent, double cost) override;
+        void setStateVals(State* state_, State* parent, double cost) override;
 
-        void expand(state* state_) override;
+        void expand(State* state_) override;
 
-        wAStarParams m_params;
+        wAStarParams params_;
 
     };
 

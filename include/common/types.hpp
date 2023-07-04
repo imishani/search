@@ -105,11 +105,11 @@ struct VectorHash
 };
 
 // Typedefs
-using stateType = std::vector<double>;
-using pathType = std::vector<stateType>;
-using action = std::vector<double>;
-using paramsType = std::unordered_map<std::string, double>;
-//using Heuristic = std::function<bool(const stateType&, const stateType&, double&)>;
+using StateType = std::vector<double>;
+using PathType = std::vector<StateType>;
+using Action = std::vector<double>;
+using ParamsType = std::unordered_map<std::string, double>;
+//using Heuristic = std::function<bool(const StateType&, const StateType&, double&)>;
 
 enum PARENT_TYPE {
     START = -1,
@@ -117,16 +117,16 @@ enum PARENT_TYPE {
     INVALID = -3};
 
 // Structs
-struct plannerStats{
+struct PlannerStats{
     double time {0};
     double cost {0};
-    int pathLength {0};
+    int path_length {0};
 
-    int numExpanded {0};
-    int numGenerated {0};
-    int numReopened {0};
+    int num_expanded {0};
+    int num_generated {0};
+    int num_reopened {0};
 
-    double subOptimality {1};  // AKA: epsilon
+    double suboptimality {1};  // AKA: epsilon
 
 };
 

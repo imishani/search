@@ -45,7 +45,7 @@ namespace ims{
 
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        dijkstraParams(zeroHeuristic* heuristic) : AStarParams(heuristic) {
+        dijkstraParams(ZeroHeuristic* heuristic) : AStarParams(heuristic) {
         }
 
         /// @brief Destructor

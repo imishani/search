@@ -4,49 +4,49 @@
 
 #include "planners/wastar.hpp"
 
-ims::wAStar::wAStar(const ims::wAStarParams &params) : m_params(params), BestFirstSearch(params) {}
+ims::wAStar::wAStar(const ims::wAStarParams &params) : params_(params), BestFirstSearch(params) {}
 
-void ims::wAStar::initializePlanner(const std::shared_ptr<actionSpace>& actionSpacePtr,
-                                   const stateType& start, const stateType& goal) {
+void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+                                   const StateType& start, const StateType& goal) {
     // space pointer
-    m_actionSpacePtr = actionSpacePtr;
+    action_space_ptr_ = actionSpacePtr;
     // check if start is valid
-    if (!m_actionSpacePtr->isStateValid(start)){
+    if (!action_space_ptr_->isStateValid(start)){
         throw std::runtime_error("Start state is not valid");
     }
     // check if goal is valid
-    if (!m_actionSpacePtr->isStateValid(goal)){
+    if (!action_space_ptr_->isStateValid(goal)){
         throw std::runtime_error("Goal state is not valid");
     }
-    int m_start_ind = m_actionSpacePtr->getOrCreateState(start);
-    m_start = m_actionSpacePtr->getState(m_start_ind);
-    m_start->setParent(START);
-    int m_goal_ind = m_actionSpacePtr->getOrCreateState(goal);
-    m_goal = m_actionSpacePtr->getState(m_goal_ind);
-    m_goal->setParent(GOAL);
+    int start_ind_ = action_space_ptr_->getOrCreateState(start);
+    start_ = action_space_ptr_->getState(start_ind_);
+    start_->setParent(START);
+    int goal_ind_ = action_space_ptr_->getOrCreateState(goal);
+    goal_ = action_space_ptr_->getState(goal_ind_);
+    goal_->setParent(GOAL);
 
-    m_heuristic->setGoal(m_goal);
+    heuristic_->setGoal(goal_);
 
     // Evaluate the start state
-    m_start->g = 0;
-    m_start->h = computeHeuristic(m_start);
-    m_start->f = m_start->g + m_params.epsilon*m_start->h;
-    m_open.push(m_start);
-    m_start->setOpen();
+    start_->g = 0;
+    start_->h = computeHeuristic(start_);
+    start_->f = start_->g + params_.epsilon*start_->h;
+    open_.push(start_);
+    start_->setOpen();
     // Evaluate the goal state
-    m_goal->h = 0;
+    goal_->h = 0;
     // update stats suboptimality
-    m_stats.subOptimality = m_params.epsilon;
+    stats_.suboptimality = params_.epsilon;
 
 }
 
 
-void ims::wAStar::expand(ims::state* state_){
-    std::vector<state*> successors;
+void ims::wAStar::expand(ims::State* state_){
+    std::vector<State*> successors;
     std::vector<double> costs;
-    m_actionSpacePtr->getSuccessors(state_->getStateId(), successors, costs);
+    action_space_ptr_->getSuccessors(state_->getStateId(), successors, costs);
     for (size_t i {0} ; i < successors.size() ; ++i){
-        state* successor = successors[i];
+       State* successor = successors[i];
         double cost = costs[i];
         if (successor->isClosed()){
             continue;
@@ -55,23 +55,23 @@ void ims::wAStar::expand(ims::state* state_){
             if (successor->g > state_->g + cost){
                 successor->setParent(state_->getStateId());
                 successor->g = state_->g + cost;
-                successor->f = successor->g + m_params.epsilon*successor->h;
-                m_open.update(successor);
+                successor->f = successor->g + params_.epsilon*successor->h;
+                open_.update(successor);
             }
         } else {
             setStateVals(successor, state_, cost);
-            m_open.push(successor);
+            open_.push(successor);
             successor->setOpen();
         }
     }
-    m_stats.numExpanded++;
+    stats_.num_expanded++;
 }
 
 
-void ims::wAStar::setStateVals(state* state_, state* parent, double cost)
+void ims::wAStar::setStateVals(State* state_, State* parent, double cost)
 {
     state_->setParent(parent->getStateId());
     state_->g = parent->g + cost;
     state_->h = computeHeuristic(state_);
-    state_->f = state_->g + m_params.epsilon*state_->h;
+    state_->f = state_->g + params_.epsilon*state_->h;
 }
