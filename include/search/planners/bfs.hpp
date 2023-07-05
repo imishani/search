@@ -1,3 +1,11 @@
+//
+// Created by itamar on 4/13/23.
+//
+
+#ifndef SEARCH_BFS_HPP
+#define SEARCH_BFS_HPP
+
+
 /*
  * Copyright (C) 2023, Itamar Mishani
  * All rights reserved.
@@ -44,7 +52,6 @@
 
 // project includes
 #include <planners/planner.hpp>
-#include <common/baseHeuristic.hpp>
 
 namespace ims{
 
@@ -52,65 +59,57 @@ namespace ims{
     /// @note Before initializing the planner, the heuristic function must be set
     /// So you define a heuristic function and then pass it to the constructor of the BestFirstSearchParams
     /// @note Since this is general BestFS, the heuristic function returns an f value!
-    struct BestFirstSearchParams : public PlannerParams{
+    struct BFSParams : public PlannerParams{
         /// @brief Constructor
-        explicit BestFirstSearchParams(baseHeuristic* heuristic) : PlannerParams(), m_heuristic(heuristic) {}
+        explicit BFSParams(bool exhaustive = true) : PlannerParams(), mExhaustive(exhaustive){}
 
         /// @brief Destructor
-        ~BestFirstSearchParams() override = default;
+        ~BFSParams() override = default;
 
-        baseHeuristic* m_heuristic = nullptr;
+        bool mExhaustive;
+
     };
 
-    /// @class BestFirstSearch class.
+    /// @class BFS class.
     /// @brief A general search algorithm that uses heuristics and g values to find the optimal path
-    class BestFirstSearch : public Planner{
+    class BFS : public Planner{
     public:
         /// @brief Constructor
         /// @param params The parameters
-        explicit BestFirstSearch(const BestFirstSearchParams &params);
+        explicit BFS(const BFSParams &params);
 
         /// @brief Destructor
-        ~BestFirstSearch() override = default;
+        ~BFS() override = default;
 
         /// @brief Initialize the planner
         /// @param actionSpacePtr The action space
         /// @param start The start state
         /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<actionSpace>& actionSpacePtr,
-                               const stateType& start, const stateType& goal) override;
+        void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+                               const StateType& start, const StateType& goal) override;
 
         /// TODO: Do I need this function?
         /// @brief Get the state by id
         /// @param state_id The id of the state
         /// @return The state
-        virtual state* getState(size_t state_id);
-
-        /// @brief Compute the heuristic value of from state s to the goal state
-        /// @param s The state
-        virtual double computeHeuristic(state* s);
-
-        /// @brief Compute the heuristic value from state s1 to state s2
-        /// @param s1 The state
-        /// @param s2 The state
-        virtual double computeHeuristic(state* s1, state* s2);
+       State* getState(size_t state_id);
 
         /// @brief plan
         /// @param path The path
         /// @return if the plan was successful or not
-        bool plan(std::vector<state*>& path) override;
+        bool plan(std::vector<State*>& path) override;
 
     protected:
 
-        virtual void setStateVals(state* state_, state* parent, double cost);
+        virtual void setStateVals(State* state_, State* parent, double cost);
 
-        void expand(state* state_) override;
+        void expand(State* state_) override;
 
-        void reconstructPath(std::vector<state*>& path) override;
+        void reconstructPath(std::vector<State*>& path) override;
 
-        bool isGoalState(const state& s) override;
+        bool isGoalState(const State& s) override;
 
-        baseHeuristic* m_heuristic = nullptr;
+        bool exhaustive;
 
     };
 
@@ -120,3 +119,7 @@ namespace ims{
 
 
 #endif //SEARCH_BESTFIRSTSEARCH_HPP
+
+
+
+#endif //SEARCH_BFS_HPP

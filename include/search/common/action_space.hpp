@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   actionSpace.hpp
+ * \file   action_space.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
 */
@@ -40,10 +40,10 @@
 #include <memory>
 
 // project includes
-#include <common/state.hpp>
-#include <common/SceneInterface.hpp>
+#include <search/common/state.hpp>
+#include <search/common/scene_interface.hpp>
 
-//auto std::hash<ims::state>::operator()(
+//auto std::hash<ims::State>::operator()(
 //        const argument_type& s) const -> result_type
 //{
 //    size_t seed = 0;
@@ -54,57 +54,67 @@
 namespace ims{
     /// @brief Action type abstract struct. This struct should be inherited by the action type
     /// Make sure to implement the getActions() function
-    struct actionType{
+    struct ActionType{
         /// @brief Constructor
-        actionType() = default;
+        ActionType() = default;
 
         /// @brief Destructor
-        virtual ~actionType() = default;
+        virtual ~ActionType() = default;
 
         /// @brief Get the possible actions
         /// @return The possible actions
-        virtual std::vector<action> getActions() = 0;
+        virtual std::vector<Action> getActions() = 0;
 
         /// @brief Get the resolution of the state space (for discretization)
         /// @param state_des The state discretization
-        virtual void Discretization(stateType& state_des) = 0;
+        virtual void Discretization(StateType& state_des) = 0;
 
-        stateType mStateDiscretization;
-
+        // The discretization steps for each dimension in the state vector.
+        StateType state_discretization_;
     };
 
     /// @class Action class for the search problem
-    class actionSpace{
+    class ActionSpace{
     public:
+
+        // Members
+        /// @brief The states
+        std::vector<State*> states_;
+        using StateKey = State;
+        using StateHash = PointerValueHash<StateKey>;
+        using StateEqual = PointerValueEqual<StateKey>;
+        hash_map<StateKey*, int, StateHash, StateEqual> state_to_id_;
+
+        /// Methods
         /// @brief Constructor
-        explicit actionSpace() = default;
+        explicit ActionSpace() = default;
 
         /// @brief Destructor
-        ~actionSpace() = default;
+        ~ActionSpace() = default;
 
         /// @brief Get a state by id
         /// @param id The id of the state
         /// @return The state
-        /// @note The id is assumed to be valid - meaning that the state exists in m_states
-        virtual state* getState(size_t id){
-            assert(id < m_states.size() && id >= 0);
-            return m_states[id];
+        /// @note The id is assumed to be valid - meaning that the state exists in states_
+        virtual State* getState(size_t id){
+            assert(id < states_.size() && id >= 0);
+            return states_[id];
         }
 
         /// @brief Get or create state by state value
         /// @param state_val The state value
         /// @return The state id
-        virtual int getOrCreateState(const stateType& state_val){
+        virtual int getOrCreateState(const StateType& state_val){
             // check if the state exists
-            auto* curr_state = new state(state_val);
-            auto it = m_state_to_id.find(curr_state);
-            if(it != m_state_to_id.end()){
+            auto* curr_state = new State(state_val);
+            auto it = state_to_id_.find(curr_state);
+            if(it != state_to_id_.end()){
                 delete curr_state;
                 return it->second;
             }
-            curr_state->setStateId((int)m_states.size());
-            m_states.push_back(curr_state);
-            m_state_to_id[curr_state] = curr_state->getStateId();
+            curr_state->setStateId((int)states_.size());
+            states_.push_back(curr_state);
+            state_to_id_[curr_state] = curr_state->getStateId();
             return curr_state->getStateId();
         }
 
@@ -113,30 +123,23 @@ namespace ims{
         /// @param curr_state_ind The current state index
         /// @param successors The successor state
         /// @return Success bool
-        /// @note Beware the you should make sure that the state is discretized! (see actionType::Discretization)
+        /// @note Beware the you should make sure that the state is discretized! (see ActionType::Discretization)
         /// If you are using an implicit graph where the state space is not discrete the define the discretization
         /// based on the tolerance for comparison between states.
         /// @attention You should use getOrCreateState() and getState() when generating the successors!
         virtual bool getSuccessors(int curr_state_ind,
-                                   std::vector<state*>& successors,
+                                   std::vector<State*>& successors,
                                    std::vector<double>& costs) = 0;
 
         /// @brief check if the state is valid
         /// @param state_val The values if the state
         /// @return Validity bool
-        virtual bool isStateValid(const stateType& state_val) = 0;
+        virtual bool isStateValid(const StateType& state_val) = 0;
 
         /// @brief check if the path is valid
         /// @param path The path
         /// @return Validity bool
-        virtual bool isPathValid(const pathType& path) = 0;
-
-        std::vector<state*> m_states;
-        using StateKey = state;
-        using StateHash = PointerValueHash<StateKey>;
-        using StateEqual = PointerValueEqual<StateKey>;
-        hash_map<StateKey*, int, StateHash, StateEqual> m_state_to_id;
-
+        virtual bool isPathValid(const PathType& path) = 0;
     };
 }
 #endif //SEARCH_ACTIONSPACE_HPP

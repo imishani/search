@@ -41,20 +41,20 @@
 #include <iostream>
 
 // project includes
-#include "common/instrusive_heap.h"
-#include "common/types.hpp"
+#include <search/common/intrusive_heap.h>
+#include <search/common/types.hpp>
 
 namespace ims{
     /// @class State class for the search problem
     /// @note This class can both be used and extended by inheriting from it
-    class state : public smpl::heap_element{
+    class State : public smpl::HeapElement{
     public:
 
         /// @brief Constructor
         /// @param state The state of the robot
-        explicit state(stateType state=stateType()){
+        explicit State(StateType state=StateType()){
             flag = -1;
-            m_state = std::move(state);
+            state_ = std::move(state);
             parentInd = INVALID;
             g = INF;
             h = -1;
@@ -62,16 +62,16 @@ namespace ims{
         }
 
         /// @brief Destructor
-        ~state() = default;
+        ~State() = default;
 
         // Setters
         /// @brief Set the state
         /// @param state The state of the robot
-        void setState(const stateType& state) { m_state = state; }
+        void setState(const StateType& state) { state_ = state; }
 
-        void setUndiscretizedState(const stateType& state) { m_state_undiscretized = state; }
+        void setUndiscretizedState(const StateType& state) { state_undiscretized_ = state; }
 
-        void setMappedState(const stateType& state) { m_state_map = state; }
+        void setMappedState(const StateType& state) { state_map_ = state; }
 
         /// @{ In general, it is better to directly set the g, h, and f values rather than
         /// calling these functions since it requires additional code to run,
@@ -112,11 +112,11 @@ namespace ims{
         // Getters
         /// @brief Get the state
         /// @return The state of the robot
-        const stateType& getState() const { return m_state; }
+        const StateType& getState() const { return state_; }
 
-        const stateType& getUndiscretizedState() const { return m_state_undiscretized; }
+        const StateType& getUndiscretizedState() const { return state_undiscretized_; }
 
-        const stateType& getMappedState() const { return m_state_map; }
+        const StateType& getMappedState() const { return state_map_; }
 
         /// @brief Get the g value
         /// @return The g value
@@ -179,7 +179,7 @@ namespace ims{
         void print() const {
             std::cout << "state_id: " << state_id << std::endl;
             std::cout << "State: " << std::endl;
-            for (auto& i : m_state){
+            for (auto& i : state_){
                 std::cout << "  " << i << ", ";
             }
             std::cout << "g: " << g << std::endl;
@@ -191,6 +191,7 @@ namespace ims{
 
         }
 
+        // Public variables.
         double g;
         double h;
         double f; // Is it necessary to store it here?
@@ -204,9 +205,9 @@ namespace ims{
         // id's
         int state_id;
         // vars
-        stateType m_state;
-        stateType m_state_undiscretized;
-        stateType m_state_map;
+        StateType state_;
+        StateType state_undiscretized_;
+        StateType state_map_;
         int parentInd;
         int flag;
 
@@ -225,7 +226,7 @@ namespace ims{
         /// @param s1 The first state
         /// @param s2 The second state
         /// @return True if s1 is less than s2, false otherwise
-        bool operator() (const state& s1, const state& s2) {
+        bool operator() (const State& s1, const State& s2) {
             // tie breaking. TODO: do i need this?
             if (s1.f == s2.f){
                 return s1.getStateId() < s2.getStateId();
@@ -235,7 +236,7 @@ namespace ims{
     };
 
     inline
-    bool operator==(const state& a, const state& b)
+    bool operator==(const State& a, const State& b)
     {
         return a.getState() == b.getState();
     }
@@ -245,14 +246,14 @@ namespace ims{
 
 namespace std {
     template <>
-    struct hash<ims::state>
+    struct hash<ims::State>
     {
-        typedef ims::state argument_type;
+        typedef ims::State argument_type;
         typedef std::size_t result_type;
         result_type operator()(const argument_type& s) const;
     };
     inline
-    auto hash<ims::state>::operator()(const argument_type& s) const -> result_type
+    auto hash<ims::State>::operator()(const argument_type& s) const -> result_type
     {
         size_t seed = 0;
         boost::hash_combine(seed, boost::hash_range(s.getState().begin(), s.getState().end()));

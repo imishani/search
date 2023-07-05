@@ -27,70 +27,47 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   AStar.hpp
+ * \file   planner.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
 */
 
 
-#ifndef SEARCH_ASTAR_HPP
-#define SEARCH_ASTAR_HPP
+#ifndef SEARCH_DIJKSTRA_HPP
+#define SEARCH_DIJKSTRA_HPP
 
-// standard includes
-#include <functional>
-// Standard includes
-#include <utility>
-#include <algorithm>
-
-// project includes
-#include <planners/BestFirstSearch.hpp>
+#include <search/planners/astar.hpp>
+#include <search/heuristics/standard_heuristics.hpp>
 
 namespace ims{
 
-    /// @class AStarParams class.
-    /// @brief The parameters for the AStar algorithm
-    struct AStarParams : public BestFirstSearchParams{
+    struct dijkstraParams : public AStarParams{
 
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit AStarParams(baseHeuristic* heuristic) : BestFirstSearchParams(heuristic) {}
+        dijkstraParams(ZeroHeuristic* heuristic) : AStarParams(heuristic) {
+        }
 
         /// @brief Destructor
-        ~AStarParams() override = default;
+        ~dijkstraParams() override = default;
 
     };
 
 
-    /// @class AStar class.
-    /// @brief A* is a best first search algorithm that uses admissible heuristics and g values to find the optimal path
-    class AStar : public BestFirstSearch{
+    class dijkstra : public AStar{
     public:
         /// @brief Constructor
         /// @param params The parameters
-        explicit AStar(const AStarParams &params);
+        explicit dijkstra(const dijkstraParams &params);
 
         /// @brief Destructor
-        ~AStar() override = default;
+        ~dijkstra() override = default;
 
-        /// @brief Initialize the planner
-        /// @param actionSpacePtr The action space
-        /// @param start The start state
-        /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<actionSpace>& actionSpacePtr,
-                               const stateType& start, const stateType& goal) override;
-
-
-    protected:
-
-        void setStateVals(state* state_, state* parent, double cost) override;
-
-        void expand(state* state_) override;
-
-//        Heuristic m_heuristicFunction;
+        bool exhaustPlan();
 
     };
 
 }
 
 
-#endif //SEARCH_ASTAR_HPP
+#endif //SEARCH_DIJKSTRA_HPP

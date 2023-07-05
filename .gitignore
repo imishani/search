@@ -4,3 +4,4 @@ cmake-build-release/
 cmake-build-relwithdebinfo/
 cmake-build-rosrelwithdebinfo/
 build/
+.vscode/

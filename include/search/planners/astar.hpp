@@ -27,30 +27,70 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   SceneInterface.hpp
+ * \file   astar.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
 */
 
 
-#ifndef SEARCH_SCENEINTERFACE_HPP
-#define SEARCH_SCENEINTERFACE_HPP
+#ifndef SEARCH_ASTAR_HPP
+#define SEARCH_ASTAR_HPP
 
-namespace ims {
-class SceneInterface {
-    public:
+// standard includes
+#include <functional>
+// Standard includes
+#include <utility>
+#include <algorithm>
+
+// project includes
+#include <search/planners/best_first_search.hpp>
+
+namespace ims{
+
+    /// @class AStarParams class.
+    /// @brief The parameters for the AStar algorithm
+    struct AStarParams : public BestFirstSearchParams{
 
         /// @brief Constructor
-        SceneInterface() = default;
+        /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
+        explicit AStarParams(BaseHeuristic* heuristic) : BestFirstSearchParams(heuristic) {}
 
         /// @brief Destructor
-        virtual ~SceneInterface() = default;
+        ~AStarParams() override = default;
 
-//        /// @brief Initialize the scene
-//        virtual void initializeScene() = 0;
+    };
 
-};
+
+    /// @class AStar class.
+    /// @brief A* is a best first search algorithm that uses admissible heuristics and g values to find the optimal path
+    class AStar : public BestFirstSearch{
+    public:
+        /// @brief Constructor
+        /// @param params The parameters
+        explicit AStar(const AStarParams &params);
+
+        /// @brief Destructor
+        ~AStar() override = default;
+
+        /// @brief Initialize the planner
+        /// @param actionSpacePtr The action space
+        /// @param start The start state
+        /// @param goal The goal state
+        void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+                               const StateType& start, const StateType& goal) override;
+
+
+    protected:
+
+        void setStateVals(State* state_, State* parent, double cost) override;
+
+        void expand(State* state_) override;
+
+//        Heuristic m_heuristicFunction;
+
+    };
 
 }
 
-#endif //SEARCH_SCENEINTERFACE_HPP
+
+#endif //SEARCH_ASTAR_HPP

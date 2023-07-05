@@ -6,8 +6,8 @@
 #define SEARCH_STANDARDHEU_HPP
 
 
-#include <common/baseHeuristic.hpp>
-#include <common/types.hpp>
+#include <search/common/base_heuristic.hpp>
+#include <search/common/types.hpp>
 
 #include <eigen3/Eigen/Dense>
 
@@ -15,9 +15,9 @@
 namespace ims {
 
     /// @brief The Euclidean distance heuristic
-    struct euclideanHeuristic : public baseHeuristic {
+    struct EuclideanHeuristic : public BaseHeuristic {
 
-        bool getHeuristic(state* s1, state* s2,
+        bool getHeuristic(State* s1, State* s2,
                           double& dist) override {
             // check id the states are the same size
             if (s1->getState().size() != s2->getState().size()) {
@@ -34,9 +34,9 @@ namespace ims {
     };
 
     /// @brief The Manhattan distance heuristic
-    struct manhattanHeuristic : public baseHeuristic {
+    struct ManhattanHeuristic : public BaseHeuristic {
 
-        bool getHeuristic(state* s1, state* s2,
+        bool getHeuristic(State* s1, State* s2,
                           double& dist) override {
             // check id the states are the same size
             if (s1->getState().size() != s2->getState().size()) {
@@ -52,9 +52,9 @@ namespace ims {
     };
 
     /// @brief The Chebyshev distance heuristic
-    struct chebyshevHeuristic : public baseHeuristic {
+    struct ChebyshevHeuristic : public BaseHeuristic {
 
-        bool getHeuristic(state* s1, state* s2,
+        bool getHeuristic(State* s1, State* s2,
                           double& dist) override {
             // check id the states are the same size
             if (s1->getState().size() != s2->getState().size()) {
@@ -71,9 +71,9 @@ namespace ims {
     };
 
     /// @brief The Minkowski distance heuristic
-    struct minkowskiHeuristic : public baseHeuristic {
+    struct MinkowskiHeuristic : public BaseHeuristic {
 
-        bool getHeuristic(state* s1, state* s2,
+        bool getHeuristic(State* s1, State* s2,
                           double& dist) override {
             // check id the states are the same size
             if (s1->getState().size() != s2->getState().size()) {
@@ -90,9 +90,9 @@ namespace ims {
     };
 
     /// @brief The Octile distance heuristic
-    struct octileHeuristic : public baseHeuristic {
+    struct OctileHeuristic : public BaseHeuristic {
 
-        bool getHeuristic(state* s1, state* s2,
+        bool getHeuristic(State* s1, State* s2,
                           double& dist) override {
             // check id the states are the same size
             if (s1->getState().size() != s2->getState().size()) {
@@ -109,9 +109,9 @@ namespace ims {
     };
 
     /// @brief The Zero distance heuristic
-    struct zeroHeuristic : public baseHeuristic {
+    struct ZeroHeuristic : public BaseHeuristic {
 
-        bool getHeuristic(state* s1, state* s2,
+        bool getHeuristic(State* s1, State* s2,
                           double& dist) override {
             // check id the states are the same size
             if (s1->getState().size() != s2->getState().size()) {
@@ -123,7 +123,7 @@ namespace ims {
             }
         }
 
-        bool getHeuristic(state* s, double& dist) override{
+        bool getHeuristic(State* s, double& dist) override{
             // check id the states are the same size
             dist = 0;
             return true;
@@ -131,9 +131,9 @@ namespace ims {
     };
 
     /// @brief Robot joint angles distance heuristic
-    struct jointAnglesHeuristic : public baseHeuristic {
+    struct JointAnglesHeuristic : public BaseHeuristic {
 
-        bool getHeuristic(state* s1, state* s2,
+        bool getHeuristic(State* s1, State* s2,
                           double& dist) override {
             // check id the states are the same size
             if (s1->getState().size() != s2->getState().size()) {
@@ -154,9 +154,9 @@ namespace ims {
     };
 
     /// @brief SE(3) distance heuristic
-    struct SE3HeuristicRPY : public baseHeuristic {
+    struct SE3HeuristicRPY : public BaseHeuristic {
     
-        bool getHeuristic(state* s1, state* s2,
+        bool getHeuristic(State* s1, State* s2,
                           double& dist) override {
             // check id the states are the same size
             if (s1->getState().size() != s2->getState().size()) {
@@ -184,8 +184,8 @@ namespace ims {
     };
 
     /// @brief SE(3) distance heuristic
-    struct SE3HeuristicQuat : public baseHeuristic {
-        bool getHeuristic(state* s1, state* s2,
+    struct SE3HeuristicQuat : public BaseHeuristic {
+        bool getHeuristic(State* s1, State* s2,
                           double& dist) override {
             // check id the states are the same size
             if (s1->getState().size() != s2->getState().size()) {

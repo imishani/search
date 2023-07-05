@@ -40,18 +40,18 @@
 #include <memory>
 #include <chrono>
 // project includes
-#include "common/state.hpp"
-#include "common/actionSpace.hpp"
+#include <search/common/state.hpp>
+#include <search/common/action_space.hpp>
 
 // Always initialize the static member variable
-//int ims::state::id_counter = 0;
+//int ims::State::id_counter = 0;
 
 namespace ims{
 
     /// @class Planner Parameters abstract class
     struct PlannerParams{
         /// @brief Constructor
-        PlannerParams() : m_timeLimit(1000.0) {}
+        PlannerParams() : time_limit_(1000.0) {}
 
         /// @brief Destructor
         virtual ~PlannerParams() = default;
@@ -63,7 +63,7 @@ namespace ims{
 //        void addParam(const T& param) {
 //        }
 
-        double m_timeLimit; // seconds
+        double time_limit_; // seconds
     };
 
     ///@brief Pure virtual base class planner interface
@@ -75,9 +75,9 @@ namespace ims{
 
         ///@brief Constructor
         ///@param params The planner parameters based on PlannerParams struct
-        explicit Planner(const PlannerParams& params): m_params(params) {
-            m_start = nullptr;
-            m_goal = nullptr;
+        explicit Planner(const PlannerParams& params): params_(params) {
+            start_ = nullptr;
+            goal_ = nullptr;
         };
 
         ///@brief Destructor
@@ -87,26 +87,26 @@ namespace ims{
         /// @param actionSpacePtr The action space
         /// @param start The start state
         /// @param goal The goal state
-        virtual void initializePlanner(const std::shared_ptr<actionSpace>& actionSpacePtr,
-                                       const stateType& start, const stateType& goal) = 0;
+        virtual void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+                                       const StateType& start, const StateType& goal) = 0;
 
         /// Setters
         /// @brief Set the start state
         /// @param start The start state
-        virtual void setStartState(state& start) {
-            m_start = &start;
-            m_start->setParent(-1);
-            m_actionSpacePtr->m_states.push_back(m_start);
-            m_actionSpacePtr->m_state_to_id[m_start] = m_start->getStateId();
+        virtual void setStartState(State& start) {
+            start_ = &start;
+            start_->setParent(-1);
+            action_space_ptr_->states_.push_back(start_);
+            action_space_ptr_->state_to_id_[start_] = start_->getStateId();
         }
 
         /// @brief Set the goal state
         /// @param goal The goal state
-        virtual void setGoalState(state& goal) {
-            m_goal = &goal;
-            m_goal->setParent(-2);
-            m_actionSpacePtr->m_states.push_back(m_goal);
-            m_actionSpacePtr->m_state_to_id[m_goal] = m_goal->getStateId();
+        virtual void setGoalState(State& goal) {
+            goal_ = &goal;
+            goal_->setParent(-2);
+            action_space_ptr_->states_.push_back(goal_);
+            action_space_ptr_->state_to_id_[goal_] = goal_->getStateId();
         }
 
         /// @brief start the timer
@@ -122,40 +122,40 @@ namespace ims{
         bool isTimeOut() {
             double elapsed_time;
             getTimeFromStart(elapsed_time);
-            return elapsed_time > m_params.m_timeLimit;
+            return elapsed_time > params_.time_limit_;
         }
 
-        plannerStats reportStats () {
-            return m_stats;
+        PlannerStats reportStats () {
+            return stats_;
         }
 
         /// @brief plan
         /// @param path The path
         /// @return if the plan was successful or not
-        virtual bool plan(std::vector<state*>& path) = 0;
+        virtual bool plan(std::vector<State*>& path) = 0;
 
 
     protected:
 
         /// @brief Expand the current state
-        virtual void expand(state* state_) = 0;
+        virtual void expand(State* state_) = 0;
 
         /// @brief Reconstruct the path
-        virtual void reconstructPath(std::vector<state*>& path) = 0;
+        virtual void reconstructPath(std::vector<State*>& path) = 0;
 
         /// @brief Check if the current state is the goal state
         /// @return if the current state is the goal state or not
-        virtual bool isGoalState(const state& s) = 0;
+        virtual bool isGoalState(const State& s) = 0;
 
-        state* m_start;
-        state* m_goal;
-        PlannerParams m_params;
+        State* start_;
+        State* goal_;
+        PlannerParams params_;
         std::chrono::time_point<std::chrono::steady_clock> t_start_;
-        plannerStats m_stats;
-        std::shared_ptr<actionSpace> m_actionSpacePtr;
+        PlannerStats stats_;
+        std::shared_ptr<ActionSpace> action_space_ptr_;
 
-        using openList =  smpl::intrusive_heap<state, stateCompare>;
-        openList m_open;
+        using openList =  smpl::IntrusiveHeap<State, stateCompare>;
+        openList open_;
 
     };
 }

@@ -27,47 +27,30 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   planner.hpp
+ * \file   scene_interface.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
 */
 
 
-#ifndef SEARCH_DIJKSTRA_HPP
-#define SEARCH_DIJKSTRA_HPP
+#ifndef SEARCH_SCENEINTERFACE_HPP
+#define SEARCH_SCENEINTERFACE_HPP
 
-#include <planners/AStar.hpp>
-#include <heuristics/standardHeu.hpp>
-
-namespace ims{
-
-    struct dijkstraParams : public AStarParams{
-
-        /// @brief Constructor
-        /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        dijkstraParams(zeroHeuristic* heuristic) : AStarParams(heuristic) {
-        }
-
-        /// @brief Destructor
-        ~dijkstraParams() override = default;
-
-    };
-
-
-    class dijkstra : public AStar{
+namespace ims {
+class SceneInterface {
     public:
+
         /// @brief Constructor
-        /// @param params The parameters
-        explicit dijkstra(const dijkstraParams &params);
+        SceneInterface() = default;
 
         /// @brief Destructor
-        ~dijkstra() override = default;
+        virtual ~SceneInterface() = default;
 
-        bool exhaustPlan();
+//        /// @brief Initialize the scene
+//        virtual void initializeScene() = 0;
 
-    };
+};
 
 }
 
-
-#endif //SEARCH_DIJKSTRA_HPP
+#endif //SEARCH_SCENEINTERFACE_HPP

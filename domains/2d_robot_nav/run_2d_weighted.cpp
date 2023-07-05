@@ -46,9 +46,9 @@
 #include <opencv2/imgproc.hpp>
 
 // project includes
-#include <planners/wAStar.hpp>
-#include <heuristics/standardHeu.hpp>
-#include "ActionScene2dRob.hpp"
+#include <search/planners/wastar.hpp>
+#include <search/heuristics/standard_heuristics.hpp>
+#include "action_space_2d_rob.hpp"
 
 
 double to_degrees(double rads)
@@ -191,7 +191,7 @@ int main(int argc, char** argv) {
     // construct the planner
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
-    auto* heuristic = new ims::euclideanHeuristic();
+    auto* heuristic = new ims::EuclideanHeuristic();
     double epsilon = 10.0;
     ims::wAStarParams params (heuristic, epsilon);
     // construct the scene and the action space
@@ -225,20 +225,20 @@ int main(int argc, char** argv) {
         }
         // plan
         std::cout << "Planning..." << std::endl;
-        std::vector<ims::state*> path_;
+        std::vector<ims::State*> path_;
         if (!planner.plan(path_)) {
             std::cout << "No path found!" << std::endl;
 //            return 0;
         }
         else
             std::cout << "Path found!" << std::endl;
-        plannerStats stats = planner.reportStats();
+        PlannerStats stats = planner.reportStats();
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
         std::cout << "cost: " << stats.cost << std::endl;
         std::cout << "Path length: " << path_.size() << std::endl;
-        std::cout << "Number of nodes expanded: " << stats.numExpanded << std::endl;
-        std::cout << "Number of nodes generated: " << stats.numGenerated << std::endl;
-        std::cout << "Suboptimality: " << stats.subOptimality << RESET << std::endl;
+        std::cout << "Number of nodes expanded: " << stats.num_expanded << std::endl;
+        std::cout << "Number of nodes generated: " << stats.num_generated << std::endl;
+        std::cout << "suboptimality: " << stats.suboptimality << RESET << std::endl;
 
         // draw the start in red and goal in green
         img.at<cv::Vec3b>((int)starts[i][1], (int)starts[i][0]) = cv::Vec3b(0,0,255);

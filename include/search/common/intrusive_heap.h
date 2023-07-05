@@ -38,23 +38,23 @@
 namespace smpl {
 
     template <class T, class Compare>
-    class intrusive_heap;
+    class IntrusiveHeap;
 
-    struct heap_element
+    struct HeapElement
     {
 
-        heap_element() : m_heap_index(0) { }
+        HeapElement() : heap_index_(0) { }
 
     private:
 
-        std::size_t m_heap_index;
+        std::size_t heap_index_;
 
         template <class T, class Compare>
-        friend class intrusive_heap;
+        friend class IntrusiveHeap;
     };
 
 /// Provides an intrusive binary heap implementation. Objects inserted into the
-/// heap must derive from the \p heap_element class to implement efficient
+/// heap must derive from the \p HeapElement class to implement efficient
 /// mutability. The implementation stores pointers to inserted objects, which
 /// must remain valid throughout the lifetime of the heap.
 ///
@@ -70,11 +70,11 @@ namespace smpl {
 /// modification of the function object), the heap may be reordered in-place
 /// in linear time by calling the make() member function.
     template <class T, class Compare>
-    class intrusive_heap
+    class IntrusiveHeap
     {
     public:
 
-        static_assert(std::is_base_of<heap_element, T>::value, "T must extend heap_element");
+        static_assert(std::is_base_of<HeapElement, T>::value, "T must extend HeapElement");
 
         typedef Compare compare;
 
@@ -84,20 +84,20 @@ namespace smpl {
         typedef typename container_type::iterator iterator;
         typedef typename container_type::const_iterator const_iterator;
 
-        intrusive_heap(const compare& comp = compare());
+        IntrusiveHeap(const compare& comp = compare());
 
         template <class InputIt>
-        intrusive_heap(InputIt first, InputIt last);
+        IntrusiveHeap(InputIt first, InputIt last);
 
         template <class InputIt>
-        intrusive_heap(const compare& comp, InputIt first, InputIt last);
+        IntrusiveHeap(const compare& comp, InputIt first, InputIt last);
 
-        intrusive_heap(const intrusive_heap&) = delete;
+        IntrusiveHeap(const IntrusiveHeap&) = delete;
 
-        intrusive_heap(intrusive_heap&& o);
+        IntrusiveHeap(IntrusiveHeap&& o);
 
-        intrusive_heap& operator=(const intrusive_heap&) = delete;
-        intrusive_heap& operator=(intrusive_heap&& rhs);
+        IntrusiveHeap& operator=(const IntrusiveHeap&) = delete;
+        IntrusiveHeap& operator=(IntrusiveHeap&& rhs);
 
         T* min() const;
 
@@ -120,12 +120,12 @@ namespace smpl {
 
         void make();
 
-        void swap(intrusive_heap& o);
+        void swap(IntrusiveHeap& o);
 
     private:
 
-        container_type m_data;
-        Compare m_comp;
+        container_type data_;
+        Compare comp_;
 
         size_type ipow2(size_type i);
         size_type ilog2(size_type i);
@@ -154,10 +154,10 @@ namespace smpl {
     };
 
     template <class T, class Compare>
-    void swap(intrusive_heap<T, Compare>& lhs, intrusive_heap<T, Compare>& rhs);
+    void swap(IntrusiveHeap<T, Compare>& lhs, IntrusiveHeap<T, Compare>& rhs);
 
 } // namespace smpl
 
-#include "intrusive_heap.hpp"
+#include <search/common/intrusive_heap.hpp>
 
 #endif
