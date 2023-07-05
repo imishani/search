@@ -27,13 +27,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   wastar.hpp
+ * \file   planner.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
 */
 
-#ifndef SEARCH_WASTAR_HPP
-#define SEARCH_WASTAR_HPP
+
+#ifndef SEARCH_BESTFIRSTSEARCH_HPP
+#define SEARCH_BESTFIRSTSEARCH_HPP
 
 // standard includes
 #include <functional>
@@ -42,41 +43,35 @@
 #include <algorithm>
 
 // project includes
-#include <planners/best_first_search.hpp>
+#include <search/planners/planner.hpp>
+#include <search/common/base_heuristic.hpp>
 
 namespace ims{
 
-    /// @class AStarParams class.
-    /// @brief The parameters for the AStar algorithm
-    struct wAStarParams : public BestFirstSearchParams{
-
+    /// @class BestFirstSearch Parameters
+    /// @note Before initializing the planner, the heuristic function must be set
+    /// So you define a heuristic function and then pass it to the constructor of the BestFirstSearchParams
+    /// @note Since this is general BestFS, the heuristic function returns an f value!
+    struct BestFirstSearchParams : public PlannerParams{
         /// @brief Constructor
-        /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit wAStarParams(BaseHeuristic* heuristic,
-                              double &epsilon) : BestFirstSearchParams(heuristic) {
-            this->epsilon = epsilon;
-        }
+        explicit BestFirstSearchParams(BaseHeuristic* heuristic) : PlannerParams(), heuristic_(heuristic) {}
 
         /// @brief Destructor
-        ~wAStarParams() override = default;
+        ~BestFirstSearchParams() override = default;
 
-        double epsilon;
-
+        BaseHeuristic* heuristic_ = nullptr;
     };
 
-
-    /// @class wAStar class. Weighted A* algorithm
-    /// @brief A weighted A* algorithm implementation. This algorithm is a modification of the A* algorithm that
-    /// uses inflation of the heuristic function to find a solution with a cost that is within a factor of epsilon
-    /// of the optimal solution (epsilon-suboptimality).
-    class wAStar : public BestFirstSearch{
+    /// @class BestFirstSearch class.
+    /// @brief A general search algorithm that uses heuristics and g values to find the optimal path
+    class BestFirstSearch : public Planner{
     public:
         /// @brief Constructor
         /// @param params The parameters
-        explicit wAStar(const wAStarParams &params);
+        explicit BestFirstSearch(const BestFirstSearchParams &params);
 
         /// @brief Destructor
-        ~wAStar() override = default;
+        ~BestFirstSearch() override = default;
 
         /// @brief Initialize the planner
         /// @param actionSpacePtr The action space
@@ -85,18 +80,43 @@ namespace ims{
         void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
                                const StateType& start, const StateType& goal) override;
 
+        /// TODO: Do I need this function?
+        /// @brief Get the state by id
+        /// @param state_id The id of the state
+        /// @return The state
+        virtual State* getState(size_t state_id);
+
+        /// @brief Compute the heuristic value of from state s to the goal state
+        /// @param s The state
+        virtual double computeHeuristic(State* s);
+
+        /// @brief Compute the heuristic value from state s1 to state s2
+        /// @param s1 The state
+        /// @param s2 The state
+        virtual double computeHeuristic(State* s1, State* s2);
+
+        /// @brief plan
+        /// @param path The path
+        /// @return if the plan was successful or not
+        bool plan(std::vector<State*>& path) override;
 
     protected:
 
-        void setStateVals(State* state_, State* parent, double cost) override;
+        virtual void setStateVals(State* state_, State* parent, double cost);
 
         void expand(State* state_) override;
 
-        wAStarParams params_;
+        void reconstructPath(std::vector<State*>& path) override;
+
+        bool isGoalState(const State& s) override;
+
+        BaseHeuristic* heuristic_ = nullptr;
 
     };
 
 }
 
 
-#endif //SEARCH_WASTAR_HPP
+
+
+#endif //SEARCH_BESTFIRSTSEARCH_HPP

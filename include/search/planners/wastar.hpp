@@ -27,47 +27,76 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   planner.hpp
+ * \file   wastar.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
 */
 
+#ifndef SEARCH_WASTAR_HPP
+#define SEARCH_WASTAR_HPP
 
-#ifndef SEARCH_DIJKSTRA_HPP
-#define SEARCH_DIJKSTRA_HPP
+// standard includes
+#include <functional>
+// Standard includes
+#include <utility>
+#include <algorithm>
 
-#include <planners/astar.hpp>
-#include <heuristics/standard_heuristics.hpp>
+// project includes
+#include <search/planners/best_first_search.hpp>
 
 namespace ims{
 
-    struct dijkstraParams : public AStarParams{
+    /// @class AStarParams class.
+    /// @brief The parameters for the AStar algorithm
+    struct wAStarParams : public BestFirstSearchParams{
 
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        dijkstraParams(ZeroHeuristic* heuristic) : AStarParams(heuristic) {
+        explicit wAStarParams(BaseHeuristic* heuristic,
+                              double &epsilon) : BestFirstSearchParams(heuristic) {
+            this->epsilon = epsilon;
         }
 
         /// @brief Destructor
-        ~dijkstraParams() override = default;
+        ~wAStarParams() override = default;
+
+        double epsilon;
 
     };
 
 
-    class dijkstra : public AStar{
+    /// @class wAStar class. Weighted A* algorithm
+    /// @brief A weighted A* algorithm implementation. This algorithm is a modification of the A* algorithm that
+    /// uses inflation of the heuristic function to find a solution with a cost that is within a factor of epsilon
+    /// of the optimal solution (epsilon-suboptimality).
+    class wAStar : public BestFirstSearch{
     public:
         /// @brief Constructor
         /// @param params The parameters
-        explicit dijkstra(const dijkstraParams &params);
+        explicit wAStar(const wAStarParams &params);
 
         /// @brief Destructor
-        ~dijkstra() override = default;
+        ~wAStar() override = default;
 
-        bool exhaustPlan();
+        /// @brief Initialize the planner
+        /// @param actionSpacePtr The action space
+        /// @param start The start state
+        /// @param goal The goal state
+        void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+                               const StateType& start, const StateType& goal) override;
+
+
+    protected:
+
+        void setStateVals(State* state_, State* parent, double cost) override;
+
+        void expand(State* state_) override;
+
+        wAStarParams params_;
 
     };
 
 }
 
 
-#endif //SEARCH_DIJKSTRA_HPP
+#endif //SEARCH_WASTAR_HPP

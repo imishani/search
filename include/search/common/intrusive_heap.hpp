@@ -32,7 +32,7 @@
 #ifndef SMPL_INTRUSIVE_HEAP_HPP
 #define SMPL_INTRUSIVE_HEAP_HPP
 
-#include <common/instrusive_heap.h>
+#include <search/common/intrusive_heap.h>
 #include <cassert>
 #include <cstdio>
 

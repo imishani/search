@@ -158,6 +158,6 @@ namespace smpl {
 
 } // namespace smpl
 
-#include "intrusive_heap.hpp"
+#include <search/common/intrusive_heap.hpp>
 
 #endif

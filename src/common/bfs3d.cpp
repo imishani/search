@@ -30,7 +30,7 @@
 /// \author Harsh Pandey
 /// \author Andrew Dornbush
 
-#include "planners/bfs3d.h"
+#include <search/planners/bfs3d.h>
 
 
 namespace smpl {

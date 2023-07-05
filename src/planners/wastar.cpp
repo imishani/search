@@ -2,7 +2,7 @@
 // Created by itamar on 4/4/23.
 //
 
-#include "planners/wastar.hpp"
+#include <search/planners/wastar.hpp>
 
 ims::wAStar::wAStar(const ims::wAStarParams &params) : params_(params), BestFirstSearch(params) {}
 

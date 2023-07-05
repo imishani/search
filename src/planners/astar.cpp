@@ -2,7 +2,7 @@
 // Created by itamar on 3/30/23.
 //
 
-#include "planners/astar.hpp"
+#include <search/planners/astar.hpp>
 
 
 ims::AStar::AStar(const ims::AStarParams &params) : BestFirstSearch(params) {}

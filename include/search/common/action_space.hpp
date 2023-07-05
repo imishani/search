@@ -40,8 +40,8 @@
 #include <memory>
 
 // project includes
-#include <common/state.hpp>
-#include <common/scene_interface.hpp>
+#include <search/common/state.hpp>
+#include <search/common/scene_interface.hpp>
 
 //auto std::hash<ims::State>::operator()(
 //        const argument_type& s) const -> result_type

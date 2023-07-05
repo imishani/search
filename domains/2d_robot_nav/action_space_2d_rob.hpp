@@ -5,8 +5,8 @@
 #ifndef SEARCH_ACTIONSCENE2DROB_HPP
 #define SEARCH_ACTIONSCENE2DROB_HPP
 
-#include <common/action_space.hpp>
-#include <common/scene_interface.hpp>
+#include <search/common/action_space.hpp>
+#include <search/common/scene_interface.hpp>
 
 
 class scene2DRob : public ims::SceneInterface {

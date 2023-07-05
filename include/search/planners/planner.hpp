@@ -40,8 +40,8 @@
 #include <memory>
 #include <chrono>
 // project includes
-#include "common/state.hpp"
-#include "common/action_space.hpp"
+#include <search/common/state.hpp>
+#include <search/common/action_space.hpp>
 
 // Always initialize the static member variable
 //int ims::State::id_counter = 0;

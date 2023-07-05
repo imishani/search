@@ -46,8 +46,10 @@
 #include <opencv2/imgproc.hpp>
 
 // project includes
-#include <planners/astar.hpp>
-#include <heuristics/standard_heuristics.hpp>
+#include <search/planners/astar.hpp>
+#include <search/heuristics/standard_heuristics.hpp>
+
+// Note(yoraish): Leaving quotation marks include since it is a local file for the example.
 #include "action_space_2d_rob.hpp"
 
 

@@ -5,7 +5,7 @@
 #ifndef SEARCH_BASEHEURISTIC_HPP
 #define SEARCH_BASEHEURISTIC_HPP
 
-#include <common/state.hpp>
+#include <search/common/state.hpp>
 
 namespace ims{
     /// @brief The base heuristic class

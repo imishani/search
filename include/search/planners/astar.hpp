@@ -43,7 +43,7 @@
 #include <algorithm>
 
 // project includes
-#include <planners/best_first_search.hpp>
+#include <search/planners/best_first_search.hpp>
 
 namespace ims{
 

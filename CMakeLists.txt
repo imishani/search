@@ -33,7 +33,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake DESTINATIO
 # support for cmake-target files
 message(STATUS "CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
 #install(TARGETS search DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include
         FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
 install(TARGETS search
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
@@ -45,6 +45,3 @@ target_link_libraries(run_2d_rob_nav search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 add_executable(run_2d_rob_nav_weighted domains/2d_robot_nav/run_2d_weighted.cpp)
 
 target_link_libraries(run_2d_rob_nav_weighted search ${OpenCV_LIBS} ${Boost_LIBRARIES})
-
-
-

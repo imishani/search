@@ -41,8 +41,8 @@
 #include <iostream>
 
 // project includes
-#include "common/instrusive_heap.h"
-#include "common/types.hpp"
+#include <search/common/intrusive_heap.h>
+#include <search/common/types.hpp>
 
 namespace ims{
     /// @class State class for the search problem
