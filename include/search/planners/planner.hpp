@@ -76,7 +76,7 @@ namespace ims{
         ///@brief Constructor
         ///@param params The planner parameters based on PlannerParams struct
         explicit Planner(const PlannerParams& params): params_(params) {
-            start_ = nullptr;
+//            start_ = nullptr;
             goal_ = nullptr;
         };
 
@@ -85,29 +85,25 @@ namespace ims{
 
         /// @brief Initialize the planner
         /// @param actionSpacePtr The action space
+        /// @param starts Vector of start states
+        /// @param goals Vector of goal states
+        virtual void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+                                       const std::vector<StateType>& starts,
+                                       const std::vector<StateType>& goals){
+          if (starts.size() != 1 || goals.size() != 1){
+              throw std::invalid_argument("Planner::initializePlanner: Currently, Planner only supports one start and one goal state");
+          }
+          else {
+              initializePlanner(actionSpacePtr, starts[0], goals[0]);
+          }
+        }
+
+        /// @brief Initialize the planner
+        /// @param actionSpacePtr The action space
         /// @param start The start state
         /// @param goal The goal state
         virtual void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
                                        const StateType& start, const StateType& goal) = 0;
-
-        /// Setters
-        /// @brief Set the start state
-        /// @param start The start state
-        virtual void setStartState(State& start) {
-            start_ = &start;
-            start_->setParent(-1);
-            action_space_ptr_->states_.push_back(start_);
-            action_space_ptr_->state_to_id_[start_] = start_->getStateId();
-        }
-
-        /// @brief Set the goal state
-        /// @param goal The goal state
-        virtual void setGoalState(State& goal) {
-            goal_ = &goal;
-            goal_->setParent(-2);
-            action_space_ptr_->states_.push_back(goal_);
-            action_space_ptr_->state_to_id_[goal_] = goal_->getStateId();
-        }
 
         /// @brief start the timer
         void startTimer() { t_start_ = std::chrono::steady_clock::now(); }
@@ -137,9 +133,6 @@ namespace ims{
 
     protected:
 
-        /// @brief Expand the current state
-        virtual void expand(State* state_) = 0;
-
         /// @brief Reconstruct the path
         virtual void reconstructPath(std::vector<State*>& path) = 0;
 
@@ -147,15 +140,13 @@ namespace ims{
         /// @return if the current state is the goal state or not
         virtual bool isGoalState(const State& s) = 0;
 
-        State* start_;
         State* goal_;
+        std::vector<int> goals_;
         PlannerParams params_;
         std::chrono::time_point<std::chrono::steady_clock> t_start_;
         PlannerStats stats_;
         std::shared_ptr<ActionSpace> action_space_ptr_;
 
-        using openList =  smpl::IntrusiveHeap<State, stateCompare>;
-        openList open_;
 
     };
 }

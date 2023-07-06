@@ -21,10 +21,11 @@ void ims::AStar::initializePlanner(const std::shared_ptr<ActionSpace>& actionSpa
     }
     int start_ind_ = action_space_ptr_->getOrCreateState(start);
     printf("start ind: %d \n", start_ind_);
-    start_ = action_space_ptr_->getState(start_ind_);
+    auto start_ = action_space_ptr_->getState(start_ind_);
     start_->setParent(START);
     int goal_ind_ = action_space_ptr_->getOrCreateState(goal);
-    goal_ = action_space_ptr_->getState(goal_ind_);
+    goals_.push_back(goal_ind_);
+    auto goal_ = action_space_ptr_->getState(goal_ind_);
     goal_->setParent(GOAL);
     heuristic_->setGoal(goal_);
     // Evaluate the start state
@@ -44,7 +45,7 @@ void ims::AStar::expand(ims::State* state_){
     std::vector<double> costs;
     action_space_ptr_->getSuccessors(state_->getStateId(), successors, costs);
     for (size_t i {0} ; i < successors.size() ; ++i){
-       State* successor = successors[i];
+        State* successor = successors[i];
         double cost = costs[i];
         if (successor->isClosed()){
             continue;

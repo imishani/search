@@ -79,14 +79,11 @@ namespace ims{
         void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
                                const StateType& start, const StateType& goal) override;
 
-
     protected:
 
         void setStateVals(State* state_, State* parent, double cost) override;
 
         void expand(State* state_) override;
-
-//        Heuristic m_heuristicFunction;
 
     };
 

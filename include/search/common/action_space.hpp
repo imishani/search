@@ -96,7 +96,7 @@ namespace ims{
         /// @param id The id of the state
         /// @return The state
         /// @note The id is assumed to be valid - meaning that the state exists in states_
-        virtual State* getState(size_t id){
+        virtual auto getState(size_t id) -> State*{
             assert(id < states_.size() && id >= 0);
             return states_[id];
         }
