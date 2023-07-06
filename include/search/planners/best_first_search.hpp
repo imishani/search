@@ -104,13 +104,17 @@ namespace ims{
 
         virtual void setStateVals(State* state_, State* parent, double cost);
 
-        void expand(State* state_) override;
+        /// @brief Expand the current state
+        virtual void expand(State* state_);
 
         void reconstructPath(std::vector<State*>& path) override;
 
         bool isGoalState(const State& s) override;
 
         BaseHeuristic* heuristic_ = nullptr;
+
+        using openList =  smpl::IntrusiveHeap<State, stateCompare>;
+        openList open_;
 
     };
 

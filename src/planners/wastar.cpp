@@ -19,25 +19,24 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& actionSp
         throw std::runtime_error("Goal state is not valid");
     }
     int start_ind_ = action_space_ptr_->getOrCreateState(start);
-    start_ = action_space_ptr_->getState(start_ind_);
+    auto start_ = action_space_ptr_->getState(start_ind_);
     start_->setParent(START);
     int goal_ind_ = action_space_ptr_->getOrCreateState(goal);
-    goal_ = action_space_ptr_->getState(goal_ind_);
+    goals_.push_back(goal_ind_);
+    auto goal_ = action_space_ptr_->getState(goal_ind_);
     goal_->setParent(GOAL);
-
+    // Evaluate the goal state
+    goal_->h = 0;
     heuristic_->setGoal(goal_);
 
     // Evaluate the start state
     start_->g = 0;
     start_->h = computeHeuristic(start_);
     start_->f = start_->g + params_.epsilon*start_->h;
-    open_.push(start_);
     start_->setOpen();
-    // Evaluate the goal state
-    goal_->h = 0;
+    open_.push(start_);
     // update stats suboptimality
     stats_.suboptimality = params_.epsilon;
-
 }
 
 
