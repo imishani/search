@@ -4,7 +4,7 @@
 
 #include <search/planners/wastar.hpp>
 
-ims::wAStar::wAStar(const ims::BFSParams &params) : params_(params), BestFirstSearch(params) {}
+ims::wAStar::wAStar(const ims::wAStartParams &params) : params_(params), BestFirstSearch(params) {}
 
 void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
                                    const StateType& start, const StateType& goal) {

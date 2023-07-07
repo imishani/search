@@ -50,11 +50,11 @@ namespace ims{
 
     /// @class AStarParams class.
     /// @brief The parameters for the AStar algorithm
-    struct AStarParams : public BFSParams{
+    struct AStarParams : public wAStartParams{
 
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit AStarParams(BaseHeuristic* heuristic) : BFSParams(heuristic, 1.0) {
+        explicit AStarParams(BaseHeuristic* heuristic) : wAStartParams(heuristic, 1.0) {
         }
 
         /// @brief Destructor

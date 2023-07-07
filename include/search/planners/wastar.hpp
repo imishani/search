@@ -48,17 +48,17 @@ namespace ims{
 
     /// @class AStarParams class.
     /// @brief The parameters for the AStar algorithm
-    struct BFSParams : public BestFirstSearchParams{
+    struct wAStartParams : public BestFirstSearchParams{
 
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit BFSParams(BaseHeuristic* heuristic,
+        explicit wAStartParams(BaseHeuristic* heuristic,
                               double epsilon) : BestFirstSearchParams(heuristic) {
             this->epsilon = epsilon;
         }
 
         /// @brief Destructor
-        ~BFSParams() override = default;
+        ~wAStartParams() override = default;
 
         double epsilon;
 
@@ -100,7 +100,7 @@ namespace ims{
     public:
         /// @brief Constructor
         /// @param params The parameters
-        explicit wAStar(const BFSParams &params);
+        explicit wAStar(const wAStartParams &params);
 
         /// @brief Destructor
         ~wAStar() override = default;
@@ -126,7 +126,7 @@ namespace ims{
 
         void reconstructPath(std::vector<StateType>& path) override;
 
-        BFSParams params_;
+        wAStartParams params_;
 
     };
 
