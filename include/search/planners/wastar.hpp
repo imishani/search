@@ -48,17 +48,17 @@ namespace ims{
 
     /// @class AStarParams class.
     /// @brief The parameters for the AStar algorithm
-    struct wAStarParams : public BestFirstSearchParams{
+    struct BFSParams : public BestFirstSearchParams{
 
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit wAStarParams(BaseHeuristic* heuristic,
-                              double &epsilon) : BestFirstSearchParams(heuristic) {
+        explicit BFSParams(BaseHeuristic* heuristic,
+                              double epsilon) : BestFirstSearchParams(heuristic) {
             this->epsilon = epsilon;
         }
 
         /// @brief Destructor
-        ~wAStarParams() override = default;
+        ~BFSParams() override = default;
 
         double epsilon;
 
@@ -70,10 +70,37 @@ namespace ims{
     /// uses inflation of the heuristic function to find a solution with a cost that is within a factor of epsilon
     /// of the optimal solution (epsilon-suboptimality).
     class wAStar : public BestFirstSearch{
+
+    private:
+
+        friend class AStar;
+        /// @brief The search state.
+        struct SearchState: public ims::BestFirstSearch::SearchState{
+            /// @brief The heuristic value
+            double h = -1;
+        };
+
+        /// @brief The open list.
+        using OpenList =  smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+        OpenList open_;
+
+        std::vector<SearchState*> states_;
+
+        /// @brief Get the state by id
+        /// @param state_id The id of the state
+        /// @return The state
+        /// @note Use this function only if you are sure that the state exists
+        auto getSearchState(int state_id) -> SearchState*;
+
+        /// @brief Get the state by id or create a new one if it does not exist
+        /// @param state_id The id of the state
+        /// @return The state
+        auto getOrCreateSearchState(int state_id) -> SearchState*;
+
     public:
         /// @brief Constructor
         /// @param params The parameters
-        explicit wAStar(const wAStarParams &params);
+        explicit wAStar(const BFSParams &params);
 
         /// @brief Destructor
         ~wAStar() override = default;
@@ -85,14 +112,21 @@ namespace ims{
         void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
                                const StateType& start, const StateType& goal) override;
 
+        /// @brief plan a path
+        /// @param path The path
+        /// @return if the plan was successful or not
+        bool plan(std::vector<StateType> &path) override;
+
 
     protected:
 
-        void setStateVals(State* state_, State* parent, double cost) override;
+        void setStateVals(int state_id, int parent_id, double cost) override;
 
-        void expand(State* state_) override;
+        void expand(int state_id) override;
 
-        wAStarParams params_;
+        void reconstructPath(std::vector<StateType>& path) override;
+
+        BFSParams params_;
 
     };
 

@@ -82,8 +82,8 @@ struct PointerValueHash
     result_type operator()(argument_type s) const { return std::hash<T>()(*s); }
 };
 
-/// helper struct to test for equality between two pointers by testing for
-/// equality between the objects they point to
+/// Helper struct to test for equality between two pointers by testing for
+/// equality between the objects they point to.
 template <typename T>
 struct PointerValueEqual
 {
@@ -109,12 +109,11 @@ using StateType = std::vector<double>;
 using PathType = std::vector<StateType>;
 using Action = std::vector<double>;
 using ParamsType = std::unordered_map<std::string, double>;
-//using Heuristic = std::function<bool(const StateType&, const StateType&, double&)>;
 
 enum PARENT_TYPE {
     START = -1,
     GOAL = -2,
-    INVALID = -3};
+    UNSET = -3};
 
 // Structs
 struct PlannerStats{
@@ -127,7 +126,6 @@ struct PlannerStats{
     int num_reopened {0};
 
     double suboptimality {1};  // AKA: epsilon
-
 };
 
 

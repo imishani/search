@@ -62,10 +62,10 @@ public:
     }
 
     bool isStateValid(const StateType& state_val) override{
-        if (state_val[0] < 0 || state_val[0] >= env_->map_size[0] || state_val[1] < 0 || state_val[1] >= env_->map_size[1]){
+        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
             return false;
         }
-        auto map_val = env_->map->at(state_val[0]).at(state_val[1]);
+        auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
         if (map_val == 100){
             return false;
         }
@@ -77,19 +77,17 @@ public:
     }
 
     bool getSuccessors(int curr_state_ind,
-                       std::vector<ims::State*>& successors,
+                       std::vector<int>& successors,
                        std::vector<double>& costs) override{
-        auto curr_state = this->getState(curr_state_ind);
-        auto curr_state_val = curr_state->getState();
+        auto curr_state = this->getRobotState(curr_state_ind);
         auto actions = actions_->getActions();
         for (int i {0} ; i < actions_->num_actions ; i++){
             auto action = actions[i];
-            auto next_state_val = StateType(curr_state_val.size());
-            std::transform(curr_state_val.begin(), curr_state_val.end(), action.begin(), next_state_val.begin(), std::plus<double>());
+            auto next_state_val = StateType(curr_state->state.size());
+            std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
             if (isStateValid(next_state_val)){
-                int next_state_ind = getOrCreateState(next_state_val);
-                auto next_state = this->getState(next_state_ind);
-                successors.push_back(next_state);
+                int next_state_ind = getOrCreateRobotState(next_state_val);
+                successors.push_back(next_state_ind);
                 costs.push_back(actions_->action_costs[i]);
             }
         }

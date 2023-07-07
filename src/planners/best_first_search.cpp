@@ -13,48 +13,64 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace>&
                                              const StateType& start, const StateType& goal) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
-    int start_ind_ = action_space_ptr_->getOrCreateState(start);
-    auto start_ = action_space_ptr_->getState(start_ind_);
+    int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
+    auto start_ = getOrCreateSearchState(start_ind_);
 
-    int goal_ind_ = action_space_ptr_->getOrCreateState(start);
+    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
+    auto goal_ = getOrCreateSearchState(goal_ind_);
     goals_.push_back(goal_ind_);
-    auto goal_ = action_space_ptr_->getState(goal_ind_);
+
     // Evaluate the start state
-    start_->setParent(PARENT_TYPE(START));
-    start_->setState(start);
+    start_->parent_id = PARENT_TYPE(START);
     // Evaluate the goal state
-    goal_->setParent(PARENT_TYPE(GOAL));
-    goal_->setState(goal);
-    heuristic_->setGoal(goal_);
+    goal_->parent_id = PARENT_TYPE(GOAL);
+    heuristic_->setGoal(const_cast<StateType &>(goal));
     // Evaluate the start state
     start_->g = 0;
-    start_->f = computeHeuristic(start_);
+    start_->f = computeHeuristic(start_ind_);
     open_.push(start_);
     start_->setOpen();
 }
 
-ims::State *ims::BestFirstSearch::getState(size_t state_id) {
-    return action_space_ptr_->getState(state_id);
+auto ims::BestFirstSearch::getSearchState(int state_id) -> ims::BestFirstSearch::SearchState*{
+    assert(state_id < states_.size() && state_id >= 0);
+    return states_[state_id];
 }
 
-double ims::BestFirstSearch::computeHeuristic(ims::State* s) {
+auto ims::BestFirstSearch::getOrCreateSearchState(int state_id) -> ims::BestFirstSearch::SearchState * {
+    if (state_id >= states_.size()){
+        states_.resize(state_id + 1, nullptr);
+    }
+    if (states_[state_id] == nullptr){
+        assert(state_id < states_.size() && state_id >= 0);
+        states_[state_id] = new SearchState;
+        states_[state_id]->state_id = state_id;
+    }
+    return states_[state_id];
+}
+
+
+double ims::BestFirstSearch::computeHeuristic(int state_id) {
     double dist;
-    if (!heuristic_->getHeuristic(s, dist))
+    auto s = action_space_ptr_->getRobotState(state_id);
+    if (!heuristic_->getHeuristic(s->state, dist))
         throw std::runtime_error("Heuristic function failed");
     else
         return dist;
 }
 
-double ims::BestFirstSearch::computeHeuristic(ims::State* s1, ims::State* s2) {
+double ims::BestFirstSearch::computeHeuristic(int s1_id, int s2_id) {
     double dist;
-    if (!heuristic_->getHeuristic(s1, s2, dist))
+    auto s1 = action_space_ptr_->getRobotState(s1_id);
+    auto s2 = action_space_ptr_->getRobotState(s2_id);
+    if (!heuristic_->getHeuristic(s1->state, s2->state, dist))
         throw std::runtime_error("Heuristic function failed");
     else
         return dist;
 }
 
 
-bool ims::BestFirstSearch::plan(std::vector<State*>& path) {
+bool ims::BestFirstSearch::plan(std::vector<StateType>& path) {
     startTimer();
     int iter {0};
     while (!open_.empty() && !isTimeOut()){
@@ -65,8 +81,8 @@ bool ims::BestFirstSearch::plan(std::vector<State*>& path) {
         auto state  = open_.min();
         open_.pop();
         state->setClosed();
-        if (isGoalState(*state)){
-            goal_ = state;
+        if (isGoalState(state->state_id)){
+            goal_ = state->state_id;
             getTimeFromStart(stats_.time);
             reconstructPath(path);
             stats_.cost = state->g;
@@ -74,31 +90,33 @@ bool ims::BestFirstSearch::plan(std::vector<State*>& path) {
             stats_.num_generated = (int)action_space_ptr_->states_.size();
             return true;
         }
-        expand(state);
+        expand(state->state_id);
         ++iter;
     }
     getTimeFromStart(stats_.time);
     return false;
 }
 
-void ims::BestFirstSearch::expand(ims::State* state_){
-    std::vector<State*> successors;
+void ims::BestFirstSearch::expand(int state_id){
+    auto state = getSearchState(state_id);
+    std::vector<int> successors;
     std::vector<double> costs; // In this case we use the "cost" as the new f value
-    action_space_ptr_->getSuccessors(state_->getStateId(), successors, costs);
+    action_space_ptr_->getSuccessors(state->state_id, successors, costs);
     for (size_t i {0} ; i < successors.size() ; ++i){
-        State* successor = successors[i];
+        int successor_id = successors[i];
         double cost = costs[i];
-        if (successor->isClosed()){
+        auto successor = getOrCreateSearchState(successor_id);
+        if (successor->in_closed){
             continue;
         }
-        if (successor->isOpen()){
+        if (successor->in_open){
             if (successor->f > cost){
-                successor->setParent(state_->getStateId());
+                successor->parent_id = state->state_id;
                 successor->f = cost;
                 open_.update(successor);
             }
         } else {
-            setStateVals(successor, state_, cost);
+            setStateVals(successor->state_id, state->state_id, cost);
             open_.push(successor);
             successor->setOpen();
         }
@@ -106,24 +124,26 @@ void ims::BestFirstSearch::expand(ims::State* state_){
     stats_.num_expanded++;
 }
 
-void ims::BestFirstSearch::reconstructPath(std::vector<State*>& path) {
-    State* state_ = goal_;
-    while (state_->getParentInd() != -1){
-        path.push_back(state_);
-        state_ = getState(state_->getParentInd());
+
+void ims::BestFirstSearch::setStateVals(int state_id, int parent_id, double cost) {
+    auto state_ = getSearchState(state_id);
+    state_->parent_id = parent_id;
+    state_->f = cost;
+}
+
+
+void ims::BestFirstSearch::reconstructPath(std::vector<StateType>& path) {
+    SearchState* state = getSearchState(goal_);
+    while (state->parent_id != -1){
+        path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
+        state = getSearchState(state->parent_id);
     }
-    path.push_back(state_);
+    path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
     std::reverse(path.begin(), path.end());
 }
 
-bool ims::BestFirstSearch::isGoalState(const ims::State &s) {
-    return std::any_of(goals_.begin(), goals_.end(), [&s](int goal_ind) {return s.getStateId() == goal_ind;});
-}
-
-void ims::BestFirstSearch::setStateVals(State* state_, State* parent, double cost)
-{
-    state_->setParent(parent->getStateId());
-    state_->f = cost;
+bool ims::BestFirstSearch::isGoalState(int s_id) {
+    return std::any_of(goals_.begin(), goals_.end(), [&s_id](int goal_ind) {return s_id == goal_ind;});
 }
 
 

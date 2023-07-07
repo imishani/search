@@ -39,11 +39,11 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <utility>
+//#include <utility>
 #include <cmath>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
+//#include <opencv2/imgproc.hpp>
 
 // project includes
 #include <search/planners/astar.hpp>
@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
         }
         // plan
         std::cout << "Planning..." << std::endl;
-        std::vector<ims::State*> path_;
+        std::vector<StateType> path_;
         if (!planner.plan(path_)) {
             std::cout << "No path found!" << std::endl;
 //            return 0;
@@ -248,9 +248,8 @@ int main(int argc, char** argv) {
         img.at<cv::Vec3b>((int)goals[i][1], (int)goals[i][0]) = cv::Vec3b(0,255,0);
 
         // draw the path in blue but skip the start and goal
-        for (auto& state : path_) {
-            if (state->getStateId() != path_.front()->getStateId() && state->getStateId() != path_.back()->getStateId())
-                img.at<cv::Vec3b>((int)state->getState()[1], (int)state->getState()[0]) = cv::Vec3b(255,0,0);
+        for (int j {1}; j < path_.size()-1; j++){
+            img.at<cv::Vec3b>((int)path_[j][1], (int)path_[j][0]) = cv::Vec3b(255,0,0);
         }
     }
 

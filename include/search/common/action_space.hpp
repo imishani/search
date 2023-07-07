@@ -38,20 +38,43 @@
 
 // standard includes
 #include <memory>
+#include <iostream>
 
 // project includes
-#include <search/common/state.hpp>
 #include <search/common/scene_interface.hpp>
+#include <search/common/types.hpp>
 
-//auto std::hash<ims::State>::operator()(
-//        const argument_type& s) const -> result_type
-//{
-//    size_t seed = 0;
-//    boost::hash_combine(seed, boost::hash_range(s.getState().begin(), s.getState().end()));
-//    return seed;
-//}
+namespace ims {
 
-namespace ims{
+    ///@brief RobotState base class
+    struct RobotState {
+        StateType state_mapped;
+        StateType state;
+    };
+
+    /// @brief equality operator for RobotState
+    inline bool operator==(const RobotState &lhs, const RobotState &rhs) {
+        return lhs.state == rhs.state;
+    }
+}
+
+namespace std {
+    template<>
+    struct hash<ims::RobotState> {
+        using argument_type = ims::RobotState;
+        using result_type = std::size_t;
+
+        result_type operator()(const argument_type& s) const {
+            size_t seed = 0;
+            boost::hash_combine(seed, boost::hash_range(s.state.begin(), s.state.end()));
+            return seed;
+        }
+    };
+}
+
+
+namespace ims {
+
     /// @brief Action type abstract struct. This struct should be inherited by the action type
     /// Make sure to implement the getActions() function
     struct ActionType{
@@ -75,15 +98,16 @@ namespace ims{
 
     /// @class Action class for the search problem
     class ActionSpace{
+
     public:
 
         // Members
-        /// @brief The states
-        std::vector<State*> states_;
-        using StateKey = State;
+        using StateKey = RobotState;
         using StateHash = PointerValueHash<StateKey>;
         using StateEqual = PointerValueEqual<StateKey>;
         hash_map<StateKey*, int, StateHash, StateEqual> state_to_id_;
+        /// @brief The states
+        std::vector<RobotState*> states_;
 
         /// Methods
         /// @brief Constructor
@@ -96,7 +120,7 @@ namespace ims{
         /// @param id The id of the state
         /// @return The state
         /// @note The id is assumed to be valid - meaning that the state exists in states_
-        virtual auto getState(size_t id) -> State*{
+        virtual auto getRobotState(size_t id) -> RobotState*{
             assert(id < states_.size() && id >= 0);
             return states_[id];
         }
@@ -104,18 +128,19 @@ namespace ims{
         /// @brief Get or create state by state value
         /// @param state_val The state value
         /// @return The state id
-        virtual int getOrCreateState(const StateType& state_val){
+        virtual int getOrCreateRobotState(const StateType& state_val){
             // check if the state exists
-            auto* curr_state = new State(state_val);
+            auto* curr_state = new RobotState;
+            curr_state->state = state_val;
             auto it = state_to_id_.find(curr_state);
             if(it != state_to_id_.end()){
                 delete curr_state;
                 return it->second;
             }
-            curr_state->setStateId((int)states_.size());
             states_.push_back(curr_state);
-            state_to_id_[curr_state] = curr_state->getStateId();
-            return curr_state->getStateId();
+            int state_id = (int)states_.size() - 1;
+            state_to_id_[curr_state] = state_id;
+            return state_id;
         }
 
 
@@ -124,11 +149,11 @@ namespace ims{
         /// @param successors The successor state
         /// @return Success bool
         /// @note Beware the you should make sure that the state is discretized! (see ActionType::Discretization)
-        /// If you are using an implicit graph where the state space is not discrete the define the discretization
+        /// If you are using an implicit graph where the state space is not discrete then define the discretization
         /// based on the tolerance for comparison between states.
-        /// @attention You should use getOrCreateState() and getState() when generating the successors!
+        /// @attention You should use getOrCreateRobotState() and getRobotState() when generating the successors!
         virtual bool getSuccessors(int curr_state_ind,
-                                   std::vector<State*>& successors,
+                                   std::vector<int>& successors,
                                    std::vector<double>& costs) = 0;
 
         /// @brief check if the state is valid

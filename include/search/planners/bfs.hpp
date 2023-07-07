@@ -1,13 +1,5 @@
-//
-// Created by itamar on 4/13/23.
-//
-
-#ifndef SEARCH_BFS_HPP
-#define SEARCH_BFS_HPP
-
-
 /*
- * Copyright (C) 2023, Itamar Mishani
+ * Copyright (C) 2023, Yorai Shaoul
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,91 +27,100 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   planner.hpp
- * \author Itamar Mishani (imishani@cmu.edu)
- * \date   3/28/23
-*/
+ * \file   bfs.hpp
+ * \author Yorai Shaoul (yorai@cmu.edu)
+ * \date   07/07/23
+ */
 
-
-#ifndef SEARCH_BESTFIRSTSEARCH_HPP
-#define SEARCH_BESTFIRSTSEARCH_HPP
+#ifndef SEARCH_BFS_HPP
+#define SEARCH_BFS_HPP
 
 // standard includes
 #include <functional>
 // Standard includes
-#include <utility>
 #include <algorithm>
+#include <utility>
 
 // project includes
-#include <planners/planner.hpp>
+#include <search/planners/best_first_search.hpp>
 
-namespace ims{
+namespace ims {
 
-    /// @class BestFirstSearch Parameters
-    /// @note Before initializing the planner, the heuristic function must be set
-    /// So you define a heuristic function and then pass it to the constructor of the BestFirstSearchParams
-    /// @note Since this is general BestFS, the heuristic function returns an f value!
-    struct BFSParams : public PlannerParams{
-        /// @brief Constructor
-        explicit BFSParams(bool exhaustive = true) : PlannerParams(), mExhaustive(exhaustive){}
+/// @class AStarParams class.
+/// @brief The parameters for the BFS algorithm
+struct BFSParams : public BestFirstSearchParams {
+    /// @brief Constructor
+    /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
+    explicit BFSParams(BaseHeuristic* heuristic) : BestFirstSearchParams(heuristic){
+    }
 
-        /// @brief Destructor
-        ~BFSParams() override = default;
+    /// @brief Destructor
+    ~BFSParams() override = default;
 
-        bool mExhaustive;
+    /// @brief Exhaustive search flag. If true, the algorithm will continue to search until the goal is found or the open list is empty.
+    bool exhaustive = false;
 
+};
+
+/// @class BFS class. Weighted A* algorithm
+/// @brief A weighted A* algorithm implementation. This algorithm is a modification of the A* algorithm that
+class BFS : public BestFirstSearch {
+private:
+    friend class AStar;
+    /// @brief The search state.
+    struct SearchState : public ims::BestFirstSearch::SearchState {
+        /// @brief The heuristic value
     };
 
-    /// @class BFS class.
-    /// @brief A general search algorithm that uses heuristics and g values to find the optimal path
-    class BFS : public Planner{
-    public:
-        /// @brief Constructor
-        /// @param params The parameters
-        explicit BFS(const BFSParams &params);
+    /// @brief The open list.
+    using OpenList = smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+    OpenList open_;
 
-        /// @brief Destructor
-        ~BFS() override = default;
+    std::vector<SearchState*> states_;
 
-        /// @brief Initialize the planner
-        /// @param actionSpacePtr The action space
-        /// @param start The start state
-        /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
-                               const StateType& start, const StateType& goal) override;
+    /// @brief Get the state by id
+    /// @param state_id The id of the state
+    /// @return The state
+    /// @note Use this function only if you are sure that the state exists
+    auto getSearchState(int state_id) -> SearchState*;
 
-        /// TODO: Do I need this function?
-        /// @brief Get the state by id
-        /// @param state_id The id of the state
-        /// @return The state
-       State* getState(size_t state_id);
+    /// @brief Get the state by id or create a new one if it does not exist
+    /// @param state_id The id of the state
+    /// @return The state
+    auto getOrCreateSearchState(int state_id) -> SearchState*;
 
-        /// @brief plan
-        /// @param path The path
-        /// @return if the plan was successful or not
-        bool plan(std::vector<State*>& path) override;
+public:
+    /// @brief Constructor
+    /// @param params The parameters
+    explicit BFS(const BFSParams& params);
 
-    protected:
+    /// @brief Destructor
+    ~BFS() override = default;
 
-        virtual void setStateVals(State* state_, State* parent, double cost);
+    /// @brief Initialize the planner
+    /// @param actionSpacePtr The action space
+    /// @param start The start state
+    /// @param goal The goal state
+    void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+                           const StateType& start, const StateType& goal) override;
 
-        void expand(State* state_) override;
+    /// @brief plan a path
+    /// @param path The path
+    /// @return if the plan was successful or not
+    bool plan(std::vector<StateType>& path) override;
 
-        void reconstructPath(std::vector<State*>& path) override;
+protected:
+    void setStateVals(int state_id, int parent_id, double cost) override;
 
-        bool isGoalState(const State& s) override;
+    void expand(int state_id) override;
 
-        bool exhaustive;
+    void reconstructPath(std::vector<StateType>& path) override;
 
-    };
+    BFSParams params_;
 
-}
+    bool exhaustive_;
+};
 
+}  // namespace ims
 
-
-
-#endif //SEARCH_BESTFIRSTSEARCH_HPP
-
-
-
-#endif //SEARCH_BFS_HPP
+#endif  // SEARCH_BFS_HPP
