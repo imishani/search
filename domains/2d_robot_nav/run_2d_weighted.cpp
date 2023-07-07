@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
     // construct planner params
     auto* heuristic = new ims::EuclideanHeuristic();
     double epsilon = 10.0;
-    ims::wAStartParams params (heuristic, epsilon);
+    ims::wAStarParams params (heuristic, epsilon);
     // construct the scene and the action space
     scene2DRob scene (map);
     actionType2dRob action_type;
