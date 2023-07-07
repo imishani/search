@@ -43,17 +43,19 @@
 #include <algorithm>
 
 // project includes
-#include <search/planners/best_first_search.hpp>
+#include <search/planners/wastar.hpp>
+#include "search/common/base_heuristic.hpp"
 
 namespace ims{
 
     /// @class AStarParams class.
     /// @brief The parameters for the AStar algorithm
-    struct AStarParams : public BestFirstSearchParams{
+    struct AStarParams : public BFSParams{
 
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit AStarParams(BaseHeuristic* heuristic) : BestFirstSearchParams(heuristic) {}
+        explicit AStarParams(BaseHeuristic* heuristic) : BFSParams(heuristic, 1.0) {
+        }
 
         /// @brief Destructor
         ~AStarParams() override = default;
@@ -63,30 +65,13 @@ namespace ims{
 
     /// @class AStar class.
     /// @brief A* is a best first search algorithm that uses admissible heuristics and g values to find the optimal path
-    class AStar : public BestFirstSearch{
+    class AStar : public wAStar{
+
     public:
         /// @brief Constructor
         /// @param params The parameters
         explicit AStar(const AStarParams &params);
-
-        /// @brief Destructor
-        ~AStar() override = default;
-
-        /// @brief Initialize the planner
-        /// @param actionSpacePtr The action space
-        /// @param start The start state
-        /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
-                               const StateType& start, const StateType& goal) override;
-
-    protected:
-
-        void setStateVals(State* state_, State* parent, double cost) override;
-
-        void expand(State* state_) override;
-
     };
-
 }
 
 

@@ -65,6 +65,66 @@ namespace ims{
     /// @class BestFirstSearch class.
     /// @brief A general search algorithm that uses heuristics and g values to find the optimal path
     class BestFirstSearch : public Planner{
+    private:
+
+        friend class AStar; friend class wAStar; friend class Dijkstra; friend class BFS;
+
+        /// @brief The search state.
+        struct SearchState: public ims::SearchState{
+
+            /// @brief The parent state
+            int parent_id = UNSET;
+            /// @brief The cost to come
+            double g = INF;
+            /// @brief The f value
+            double f = INF;
+            /// @brief open list boolean
+            bool in_open = false;
+            /// @brief closed list boolean
+            bool in_closed = false;
+
+            /// @brief set the state to open list (make sure it is not in closed list and if it is, update it)
+            void setOpen(){
+                in_open = true;
+                in_closed = false;
+            }
+
+            /// @brief set the state to closed list (make sure it is not in open list and if it is, update it)
+            void setClosed(){
+                in_closed = true;
+                in_open = false;
+            }
+
+            void print() override{
+                std::cout << "State: " << state_id << " Parent: " << parent_id << " g: " << g << " f: " << f << std::endl;
+            }
+
+        };
+
+        /// @brief The search state compare struct.
+        struct SearchStateCompare{
+            bool operator()(const SearchState& s1, const SearchState& s2) const{
+                return s1.f < s2.f;
+            }
+        };
+
+        /// @brief The open list.
+        using OpenList =  smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+        OpenList open_;
+
+        std::vector<SearchState*> states_;
+
+        /// @brief Get the state by id
+        /// @param state_id The id of the state
+        /// @return The state
+        /// @note Use this function only if you are sure that the state exists.
+        auto getSearchState(int state_id) -> SearchState*;
+
+        /// @brief Get the state by id or create a new one if it does not exist. If a search state does not exist yet and a new one is created, it's ID will be set, and all other member fields will initialize to default values.
+        /// @param state_id The id of the state
+        /// @return The state
+        auto getOrCreateSearchState(int state_id) -> SearchState*;
+
     public:
         /// @brief Constructor
         /// @param params The parameters
@@ -80,43 +140,39 @@ namespace ims{
         void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
                                const StateType& start, const StateType& goal) override;
 
-        /// TODO: Do I need this function?
-        /// @brief Get the state by id
-        /// @param state_id The id of the state
-        /// @return The state
-        virtual State* getState(size_t state_id);
+        /// @brief plan a path
+        /// @param path The path
+        /// @return if the plan was successful or not
+        bool plan(std::vector<StateType>& path) override;
+
+    protected:
+
+        /// @brief 
+        /// @param state_id The id of the state.
+        /// @param parent_id The id of the parent state.
+        /// @param cost The cost associated with the search state. For example, in A*, this would be the f value.
+        virtual void setStateVals(int state_id, int parent_id, double cost);
 
         /// @brief Compute the heuristic value of from state s to the goal state
         /// @param s The state
-        virtual double computeHeuristic(State* s);
+        virtual double computeHeuristic(int state_id);
 
         /// @brief Compute the heuristic value from state s1 to state s2
         /// @param s1 The state
         /// @param s2 The state
-        virtual double computeHeuristic(State* s1, State* s2);
-
-        /// @brief plan
-        /// @param path The path
-        /// @return if the plan was successful or not
-        bool plan(std::vector<State*>& path) override;
-
-    protected:
-
-        virtual void setStateVals(State* state_, State* parent, double cost);
+        virtual double computeHeuristic(int s1_id, int s2_id);
 
         /// @brief Expand the current state
-        virtual void expand(State* state_);
+        virtual void expand(int state_id);
 
-        void reconstructPath(std::vector<State*>& path) override;
+        void reconstructPath(std::vector<StateType>& path) override;
 
-        bool isGoalState(const State& s) override;
+        bool isGoalState(int state_id) override;
 
         BaseHeuristic* heuristic_ = nullptr;
 
-        using openList =  smpl::IntrusiveHeap<State, stateCompare>;
-        openList open_;
 
-    };
+    }; // class BestFirstSearch
 
 }
 

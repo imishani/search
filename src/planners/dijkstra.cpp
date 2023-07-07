@@ -7,6 +7,11 @@
 
 ims::dijkstra::dijkstra(const dijkstraParams &params) : AStar(params) {}
 
+auto ims::dijkstra::getSearchState(size_t state_id) -> ims::dijkstra::SearchState * {
+    assert(state_id < states_.size() && state_id >= 0);
+    return states_[state_id];
+}
+
 bool ims::dijkstra::exhaustPlan() {
     startTimer();
     int iter {0};
@@ -15,9 +20,9 @@ bool ims::dijkstra::exhaustPlan() {
 //        if (iter % 50000 == 0){
 //            std::cout << "open size: " << open_.size() << std::endl;
 //        }
-       State* state  = open_.min();
+        auto state  = open_.min();
         open_.pop();
-        expand(state);
+        expand(state->state_id);
         iter++;
     }
     if (isTimeOut()){
@@ -32,4 +37,4 @@ bool ims::dijkstra::exhaustPlan() {
         return true;
     }
 
-};
+}
