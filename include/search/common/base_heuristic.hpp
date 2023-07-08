@@ -2,6 +2,9 @@
 // Created by itamar on 4/13/23.
 //
 
+// Project includes.
+#include <search/common/types.hpp>
+
 #ifndef SEARCH_BASEHEURISTIC_HPP
 #define SEARCH_BASEHEURISTIC_HPP
 
