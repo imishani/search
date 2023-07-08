@@ -35,23 +35,22 @@
 #ifndef SEARCH_BFS_HPP
 #define SEARCH_BFS_HPP
 
-// standard includes
+// Standard includes.
 #include <functional>
-// Standard includes
 #include <algorithm>
 #include <utility>
 
-// project includes
+// Project includes.
 #include <search/planners/best_first_search.hpp>
+#include <search/heuristics/standard_heuristics.hpp>
 
 namespace ims {
 
-/// @class AStarParams class.
+/// @class BFSParams class.
 /// @brief The parameters for the BFS algorithm
 struct BFSParams : public BestFirstSearchParams {
     /// @brief Constructor
-    /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-    explicit BFSParams(BaseHeuristic* heuristic) : BestFirstSearchParams(heuristic){
+    explicit BFSParams() : BestFirstSearchParams(new ims::ZeroHeuristic()){
     }
 
     /// @brief Destructor
@@ -62,31 +61,34 @@ struct BFSParams : public BestFirstSearchParams {
 
 };
 
-/// @class BFS class. Weighted A* algorithm
-/// @brief A weighted A* algorithm implementation. This algorithm is a modification of the A* algorithm that
+/// @class BFS class.
+/// @brief The BFS algorithm.
 class BFS : public BestFirstSearch {
 private:
-    friend class AStar;
+    // Make wAStar a friend class for getting access to the search state.
+    friend class wAStar;
+
     /// @brief The search state.
     struct SearchState : public ims::BestFirstSearch::SearchState {
-        /// @brief The heuristic value
+        // No additional members.
     };
 
-    /// @brief The open list.
-    using OpenList = smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+    /// @brief The open list. We set it to a deque for fast pop_front().
+    using OpenList = std::deque<SearchState*>;
     OpenList open_;
 
+    // The states that have been created.
     std::vector<SearchState*> states_;
 
     /// @brief Get the state by id
     /// @param state_id The id of the state
-    /// @return The state
-    /// @note Use this function only if you are sure that the state exists
+    /// @return The search state
+    /// @note Use this function to get search states that are already created.
     auto getSearchState(int state_id) -> SearchState*;
 
     /// @brief Get the state by id or create a new one if it does not exist
     /// @param state_id The id of the state
-    /// @return The state
+    /// @return The search state
     auto getOrCreateSearchState(int state_id) -> SearchState*;
 
 public:
@@ -106,14 +108,23 @@ public:
 
     /// @brief plan a path
     /// @param path The path
-    /// @return if the plan was successful or not
+    /// @return whether the plan was successful or not
     bool plan(std::vector<StateType>& path) override;
 
 protected:
+
+    /// @brief Set the search state struct values.
+    /// @param state_id 
+    /// @param parent_id 
+    /// @param cost 
     void setStateVals(int state_id, int parent_id, double cost) override;
 
+    /// @brief Generate descendents of a state, a key method in most search algorithms.
+    /// @param state_id 
     void expand(int state_id) override;
 
+    /// @brief Reconstruct the path from the goal state to the start state.
+    /// @param path 
     void reconstructPath(std::vector<StateType>& path) override;
 
     BFSParams params_;
