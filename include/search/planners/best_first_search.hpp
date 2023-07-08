@@ -67,7 +67,8 @@ namespace ims{
     class BestFirstSearch : public Planner{
     private:
 
-        friend class AStar; friend class wAStar; friend class Dijkstra; friend class BFS;
+        friend class AStar; friend class wAStar; friend class Dijkstra;
+        friend class BFS; friend class plannerZero;
 
         /// @brief The search state.
         struct SearchState: public ims::SearchState{
@@ -104,7 +105,12 @@ namespace ims{
         /// @brief The search state compare struct.
         struct SearchStateCompare{
             bool operator()(const SearchState& s1, const SearchState& s2) const{
-                return s1.f < s2.f;
+                if ((s1.f == s2.f) && (s1.g == s2.g))
+                    return (s1.state_id < s2.state_id);
+                else if (s1.f == s2.f)
+                    return s1.g < s2.g;
+                else
+                    return s1.f < s2.f;
             }
         };
 
