@@ -74,7 +74,15 @@ namespace ims{
             mGoal = goal;
         }
 
+        /// @brief Set the start state
+        /// @param start The start state
+        /// @note You have to set the start state if you want to use bfs heuristic
+        virtual void setStart(StateType& start) {
+            mGoal = start;
+        }
+
         StateType mGoal;
+        StateType mStart;
 
     };
 

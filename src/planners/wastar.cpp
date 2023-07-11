@@ -57,6 +57,7 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& actionSp
     goals_.push_back(goal_ind_);
 
     start_->parent_id = PARENT_TYPE(START);
+    heuristic_->setStart(const_cast<StateType &>(start));
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
     heuristic_->setGoal(const_cast<StateType &>(goal));

@@ -52,6 +52,7 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace>&
 
     // Evaluate the start state
     start_->parent_id = PARENT_TYPE(START);
+    heuristic_->setStart(const_cast<StateType &>(start));
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
     heuristic_->setGoal(const_cast<StateType &>(goal));
