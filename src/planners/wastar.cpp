@@ -132,11 +132,15 @@ void ims::wAStar::expand(int state_id){
         if (successor->in_closed){
             continue;
         }
+        if (isGoalState(successor_id)){
+            std::cout << "Added Goal to open list" << std::endl;
+        }
         if (successor->in_open){
             if (successor->g > state_->g + cost){
                 successor->parent_id = state_->state_id;
                 successor->g = state_->g + cost;
                 successor->f = successor->g + params_.epsilon*successor->h;
+//                std::cout << "Heuristic: " << successor->h << std::endl;
                 open_.update(successor);
             }
         } else {

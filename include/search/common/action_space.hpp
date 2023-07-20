@@ -50,6 +50,9 @@ namespace ims {
     struct RobotState {
         StateType state_mapped;
         StateType state;
+
+        enum VALID {valid, invalid, unknown};
+        VALID validity = unknown;
     };
 
     /// @brief equality operator for RobotState
@@ -136,11 +139,12 @@ namespace ims {
             if(it != state_to_id_.end()){
                 delete curr_state;
                 return it->second;
+            } else {
+                states_.push_back(curr_state);
+                int state_id = (int)states_.size() - 1;
+                state_to_id_[curr_state] = state_id;
+                return state_id;
             }
-            states_.push_back(curr_state);
-            int state_id = (int)states_.size() - 1;
-            state_to_id_[curr_state] = state_id;
-            return state_id;
         }
 
 
