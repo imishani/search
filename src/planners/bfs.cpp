@@ -36,10 +36,59 @@
 
 ims::BFS::BFS(const ims::BFSParams &params) : params_(params), BestFirstSearch(params) {}
 
-void ims::BFS::initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+ims::BFS::~BFS() {
+    for (auto &state : states_) {
+        delete state;
+    }
+}
+
+
+void ims::BFS::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+                                    const std::vector<StateType> &starts,
+                                    const std::vector<StateType> &goals) {
+    // space pointer
+    action_space_ptr_ = action_space_ptr;
+
+    if (goals.empty() || starts.empty()) {
+        throw std::runtime_error("Starts or goals are empty");
+    }
+
+    if (goals.size() > 1) {
+        throw std::runtime_error("Currently, only one goal is supported");
+    }
+    // check if goal is valid
+    if (!action_space_ptr_->isStateValid(goals[0])){
+        throw std::runtime_error("Goal state is not valid");
+    }
+    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
+    auto goal_ = getOrCreateSearchState(goal_ind_);
+    goals_.push_back(goal_ind_);
+
+    // Evaluate the goal state
+    goal_->parent_id = PARENT_TYPE(GOAL);
+    heuristic_->setGoal(const_cast<StateType &>(goals[0]));
+
+    for (auto &start : starts) {
+        // check if start is valid
+        if (!action_space_ptr_->isStateValid(start)){
+            throw std::runtime_error("Start state is not valid");
+        }
+        // Evaluate the start state
+        int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
+        auto start_ = getOrCreateSearchState(start_ind_);
+        start_->parent_id = PARENT_TYPE(START);
+        heuristic_->setStart(const_cast<StateType &>(start));
+        start_->g = 0;
+        start_->f = 0;
+        open_.push_back(start_);
+        start_->setOpen();
+    }
+}
+
+void ims::BFS::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                    const StateType& start, const StateType& goal) {
     // Create an action space pointer.
-    action_space_ptr_ = actionSpacePtr;
+    action_space_ptr_ = action_space_ptr;
 
     // Check if the start state vector is valid.
     if (!action_space_ptr_->isStateValid(start)){
@@ -147,7 +196,6 @@ void ims::BFS::expand(int state_id){
 void ims::BFS::setStateVals(int state_id, int parent_id, double cost)
 {
     auto state = getSearchState(state_id);
-    auto parent = getSearchState(parent_id);
     state->parent_id = parent_id;
 }
 
@@ -161,3 +209,4 @@ void ims::BFS::reconstructPath(std::vector<StateType>& path) {
     path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
     std::reverse(path.begin(), path.end());
 }
+

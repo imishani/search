@@ -36,10 +36,61 @@
 
 ims::wAStar::wAStar(const ims::wAStarParams &params) : params_(params), BestFirstSearch(params) {}
 
-void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+ims::wAStar::~wAStar() {
+    for (auto &state : states_) {
+        delete state;
+    }
+}
+
+void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+                                    const std::vector<StateType> &starts,
+                                    const std::vector<StateType> &goals) {
+    // space pointer
+    action_space_ptr_ = action_space_ptr;
+
+    if (goals.empty() || starts.empty()) {
+        throw std::runtime_error("Starts or goals are empty");
+    }
+
+    if (goals.size() > 1) {
+        throw std::runtime_error("Currently, only one goal is supported");
+    }
+    // check if goal is valid
+    if (!action_space_ptr_->isStateValid(goals[0])){
+        throw std::runtime_error("Goal state is not valid");
+    }
+    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
+    auto goal_ = getOrCreateSearchState(goal_ind_);
+    goals_.push_back(goal_ind_);
+
+    // Evaluate the goal state
+    goal_->parent_id = PARENT_TYPE(GOAL);
+    heuristic_->setGoal(const_cast<StateType &>(goals[0]));
+    goal_->h = 0;
+
+    for (auto &start : starts) {
+        // check if start is valid
+        if (!action_space_ptr_->isStateValid(start)){
+            throw std::runtime_error("Start state is not valid");
+        }
+        // Evaluate the start state
+        int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
+        auto start_ = getOrCreateSearchState(start_ind_);
+        start_->parent_id = PARENT_TYPE(START);
+        heuristic_->setStart(const_cast<StateType &>(start));
+        start_->g = 0;
+        start_->h = computeHeuristic(start_ind_);
+        start_->f = start_->g + params_.epsilon*start_->h;
+        open_.push(start_);
+        start_->setOpen();
+    }
+    stats_.suboptimality = params_.epsilon;
+}
+
+void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                    const StateType& start, const StateType& goal) {
     // space pointer
-    action_space_ptr_ = actionSpacePtr;
+    action_space_ptr_ = action_space_ptr;
     // check if start is valid
     if (!action_space_ptr_->isStateValid(start)){
         throw std::runtime_error("Start state is not valid");

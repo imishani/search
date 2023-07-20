@@ -84,6 +84,10 @@ namespace ims{
                 in_closed = true;
                 in_open = false;
             }
+
+            void print() override{
+                std::cout << "State: " << state_id << " Parent: " << parent_id << " g: " << g << " f: " << f << std::endl;
+            }
         };
 
         /// @brief The search state compare struct.
@@ -111,7 +115,7 @@ namespace ims{
         explicit dijkstra(const dijkstraParams &params);
 
         /// @brief Destructor
-        ~dijkstra() override = default;
+        ~dijkstra() override;
 
         bool exhaustPlan();
 

@@ -137,13 +137,21 @@ namespace ims{
         explicit BestFirstSearch(const BestFirstSearchParams &params);
 
         /// @brief Destructor
-        ~BestFirstSearch() override = default;
+        ~BestFirstSearch() override;
 
         /// @brief Initialize the planner
-        /// @param actionSpacePtr The action space
+        /// @param action_space_ptr The action space
+        /// @param starts Vector of start states
+        /// @param goals Vector of goal states
+        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                                       const std::vector<StateType>& starts,
+                                       const std::vector<StateType>& goals) override;
+
+        /// @brief Initialize the planner
+        /// @param action_space_ptr The action space
         /// @param start The start state
         /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                const StateType& start, const StateType& goal) override;
 
         /// @brief plan a path
