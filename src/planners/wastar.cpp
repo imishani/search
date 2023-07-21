@@ -150,7 +150,7 @@ bool ims::wAStar::plan(std::vector<StateType>& path) {
     while (!open_.empty() && !isTimeOut()){
         // report progress every 1000 iterations
         if (iter % 100000 == 0){
-            std::cout << "open size: " << open_.size() << std::endl;
+            std::cout << "Open size: " << open_.size() << std::endl;
         }
         auto state  = open_.min();
         open_.pop();
@@ -191,7 +191,6 @@ void ims::wAStar::expand(int state_id){
                 successor->parent_id = state_->state_id;
                 successor->g = state_->g + cost;
                 successor->f = successor->g + params_.epsilon*successor->h;
-//                std::cout << "Heuristic: " << successor->h << std::endl;
                 open_.update(successor);
             }
         } else {

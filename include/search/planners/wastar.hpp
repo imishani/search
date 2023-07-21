@@ -73,7 +73,7 @@ namespace ims{
 
     private:
 
-        friend class AStar;
+        friend class AStar; friend class ExperienceWAstar;
         /// @brief The search state.
         struct SearchState: public ims::BestFirstSearch::SearchState{
             /// @brief The heuristic value
