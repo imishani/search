@@ -156,8 +156,4 @@ namespace ims{
     };
 }
 
-
-
-
-
 #endif //SEARCH_PLANNER_HPP

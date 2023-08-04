@@ -118,8 +118,8 @@ enum PARENT_TYPE {
 // Structs
 struct PlannerStats{
     double time {0};
-    double cost {0};
-    int path_length {0};
+    double cost {INF};
+    int path_length {Infinity};
 
     int num_expanded {0};
     int num_generated {0};

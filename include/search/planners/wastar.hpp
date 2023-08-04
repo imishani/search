@@ -40,7 +40,6 @@
 // Standard includes
 #include <utility>
 #include <algorithm>
-
 // project includes
 #include <search/planners/best_first_search.hpp>
 
@@ -64,7 +63,6 @@ namespace ims{
 
     };
 
-
     /// @class wAStar class. Weighted A* algorithm
     /// @brief A weighted A* algorithm implementation. This algorithm is a modification of the A* algorithm that
     /// uses inflation of the heuristic function to find a solution with a cost that is within a factor of epsilon
@@ -73,11 +71,13 @@ namespace ims{
 
     private:
 
-        friend class AStar; friend class ExperienceWAstar;
+        friend class AStar;
+        friend class ExperienceWAstar;
+
         /// @brief The search state.
         struct SearchState: public ims::BestFirstSearch::SearchState{
             /// @brief The heuristic value
-            double h = -1;
+            double h {-1};
         };
 
         /// @brief The open list.

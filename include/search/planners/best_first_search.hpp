@@ -68,7 +68,7 @@ namespace ims{
     private:
 
         friend class AStar; friend class wAStar; friend class Dijkstra;
-        friend class BFS; friend class plannerZero;
+        friend class BFS; friend class ARAStar; friend class plannerZero;
 
         /// @brief The search state.
         struct SearchState: public ims::SearchState{
