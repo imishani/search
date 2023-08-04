@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   planner.hpp
+ * \file   best_first_search.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
 */

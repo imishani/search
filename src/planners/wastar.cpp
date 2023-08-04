@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   astar.cpp
+ * \file   wastar.cpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   4/4/23
 */

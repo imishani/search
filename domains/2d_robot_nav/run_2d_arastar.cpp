@@ -150,7 +150,7 @@ void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, std::vect
 int main(int argc, char** argv) {
 
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <path>" << std::endl;
+        std::cout << RED << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <path>" << RESET << std::endl;
         return 0;
     }
     std::vector<std::string> maps;
@@ -192,7 +192,7 @@ int main(int argc, char** argv) {
     auto* heuristic = new ims::EuclideanHeuristic();
     double init_epsilon = 100.0;
     ims::ARAStarParams params (heuristic, init_epsilon, 10.0);
-    params.ara_time_limit_ = 0.005;
+    params.ara_time_limit_ = 0.0005;
     // construct the scene and the action space
     scene2DRob scene (map);
     actionType2dRob action_type;
