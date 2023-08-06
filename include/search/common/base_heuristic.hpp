@@ -33,7 +33,8 @@
 */
 
 // Project includes.
-#include <search/common/types.hpp>
+#include "search/common/types.hpp"
+
 
 #ifndef SEARCH_BASEHEURISTIC_HPP
 #define SEARCH_BASEHEURISTIC_HPP
@@ -83,6 +84,23 @@ namespace ims{
 
         StateType mGoal;
         StateType mStart;
+
+    };
+
+    /// @class ExperienceHeuristicBase
+    /// @brief The base class for the experience heuristic
+    class EGraphHeuristicBase : public BaseHeuristic {
+    public:
+
+        /// @brief get all state ids on the E-graph that has the same heuristic value as the given state
+        /// @param s_id The state id
+        /// @param state_ids The state ids (output, pass by reference)
+        virtual void getEquivalentStates(int s_id, std::vector<int>& state_ids) = 0;
+
+        /// @brief get all state ids of the shortcut states on the E-graph which are available from input state
+        /// @param s_id The state id
+        /// @param state_ids The state ids (output, pass by reference)
+        virtual void getShortcutSuccessors(int s_id, std::vector<int>& state_ids) = 0;
 
     };
 

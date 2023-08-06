@@ -49,7 +49,7 @@ namespace ims{
     /// @brief A super class for representing a state in a search algorithm. These states are abstracted away from the robot world, and do not include any information about the robot's configuration. The only interaction between the search states and the robot states happens via the action space, and specifically the action space's successor function. This function may take in a search state index, and return a vector of successor state indices, along with the cost of the action that takes the robot from the search state to the successor state. The action space and the planner are responsible for maintaining the mapping between the search states and the robot states. This is nominally done via two vectors of pointers to robot/search states, which are maintained by the planner and the action space. The indices should by synchronized between the two vectors.
     /// Each planner and each action space specialize the search state class and the robot state class to include information relevant to the domain and planning algorithm.
     /// NOTE(yoraish): in any algorithm implementation, the SearchState will be a private member of the planner class.
-    struct SearchState : public smpl::HeapElement {
+struct SearchState : public ::smpl::HeapElement {
         int state_id = UNSET; // The id of the search state. If applicable, the search state would be mapped to a robot state with the same id.
 
         /// @brief Pure virtual method to print state values
@@ -116,7 +116,7 @@ namespace ims{
 
         void getTimeFromStart(double &elapsed_time) {
             auto t_end = std::chrono::steady_clock::now();
-            double scaler = 10e9;
+            double scaler = 1e9;
             elapsed_time = (double)std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_start_).count();
             elapsed_time /= scaler;
         }

@@ -41,8 +41,9 @@
 #include <iostream>
 
 // project includes
-#include <search/common/scene_interface.hpp>
-#include <search/common/types.hpp>
+#include "scene_interface.hpp"
+#include "experience_graph.hpp"
+#include "types.hpp"
 
 namespace ims {
 
@@ -81,6 +82,7 @@ namespace ims {
     /// @brief Action type abstract struct. This struct should be inherited by the action type
     /// Make sure to implement the getActions() function
     struct ActionType{
+
         /// @brief Constructor
         ActionType() = default;
 
@@ -147,7 +149,6 @@ namespace ims {
             }
         }
 
-
         /// @brief Get Successor
         /// @param curr_state_ind The current state index
         /// @param successors The successor state
@@ -170,5 +171,42 @@ namespace ims {
         /// @return Validity bool
         virtual bool isPathValid(const PathType& path) = 0;
     };
+
+    /// @class ExperienceGraphActionSpace class
+    /// @brief This class is used to define the action space for the experience graph
+    class ExperienceGraphActionSpace {
+    public:
+
+        /// @brief Load the experience graph from a file
+        /// @param path The path to the file
+        virtual bool loadEGraph(const std::string &path) = 0;
+
+        /// @brief Get the E-graph nodes
+        /// @param nodes The vector to store the nodes in
+        virtual void getEGraphNodes(int state_id,
+                                    std::vector<smpl::ExperienceGraph::node_id> &nodes) = 0;
+
+        /// @brief Definition of the shortcut function
+        /// @param first_id The first node id
+        /// @param second_id The second node id
+        /// @param cost The cost of the shortcut
+        virtual bool shortcut(int first_id, int second_id, int& cost) = 0;
+
+        /// @brief Definition of the snap function
+        /// @param first_id The first node id
+        /// @param second_id The second node id
+        /// @param cost The cost of the snap
+        virtual bool snap(int first_id, int second_id, int& cost) = 0;
+
+        /// @brief Get the experience graph as a const pointer
+        virtual const std::shared_ptr<smpl::ExperienceGraph> getExperienceGraph() const = 0;
+
+        /// @brief Get the experience graph as a pointer
+        virtual std::shared_ptr<smpl::ExperienceGraph> getExperienceGraph() = 0;
+
+        /// @brief Get the state id of a node
+        virtual int getStateID(smpl::ExperienceGraph::node_id n) const = 0;
+    };
+
 }
 #endif //SEARCH_ACTIONSPACE_HPP

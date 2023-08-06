@@ -192,7 +192,7 @@ int main(int argc, char** argv) {
     auto* heuristic = new ims::EuclideanHeuristic();
     double init_epsilon = 100.0;
     ims::ARAStarParams params (heuristic, init_epsilon, 10.0);
-    params.ara_time_limit_ = 0.0005;
+    params.ara_time_limit_ = 10e-3;
     // construct the scene and the action space
     scene2DRob scene (map);
     actionType2dRob action_type;

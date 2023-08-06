@@ -71,7 +71,7 @@ namespace ims{
         friend class BFS; friend class ARAStar; friend class plannerZero;
 
         /// @brief The search state.
-        struct SearchState: public ims::SearchState{
+        struct SearchState: public ims::SearchState {
 
             /// @brief The parent state
             int parent_id = UNSET;
@@ -115,7 +115,7 @@ namespace ims{
         };
 
         /// @brief The open list.
-        using OpenList =  smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+        using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
         OpenList open_;
 
         std::vector<SearchState*> states_;

@@ -36,8 +36,9 @@
 #define SEARCH_STANDARDHEU_HPP
 
 
-#include <search/common/base_heuristic.hpp>
-#include <search/common/types.hpp>
+#include "search/common/base_heuristic.hpp"
+#include "search/heuristics/experience_heuristics.hpp"
+#include "search/common/types.hpp"
 
 #include <eigen3/Eigen/Dense>
 
@@ -182,6 +183,7 @@ namespace ims {
             }
         }
     };
+
 
     /// @brief SE(3) distance heuristic
     struct SE3HeuristicRPY : public BaseHeuristic {
