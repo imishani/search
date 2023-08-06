@@ -36,10 +36,10 @@
 
 ims::wAStar::wAStar(const ims::wAStarParams &params) : params_(params), BestFirstSearch(params) {}
 
-void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                    const StateType& start, const StateType& goal) {
     // Space pointer.
-    action_space_ptr_ = actionSpacePtr;
+    action_space_ptr_ = action_space_ptr;
 
     // Clear both.
     action_space_ptr_->resetPlanningData();

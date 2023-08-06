@@ -36,10 +36,13 @@
 
 ims::BFS::BFS(const ims::BFSParams &params) : params_(params), BestFirstSearch(params) {}
 
-void ims::BFS::initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+void ims::BFS::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                    const StateType& start, const StateType& goal) {
     // Create an action space pointer.
-    action_space_ptr_ = actionSpacePtr;
+    action_space_ptr_ = action_space_ptr;
+    // Reset the search algorithm and the action space.
+    action_space_ptr_->resetPlanningData();
+    this->resetPlanningData();
 
     // Check if the start state vector is valid.
     if (!action_space_ptr_->isStateValid(start)){

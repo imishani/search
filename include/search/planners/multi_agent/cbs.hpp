@@ -107,7 +107,7 @@ struct VertexConstraint : public Constraint {
     }
 
     /// @brief The time interval of the constraint.
-    std::pair<int, int> getTimeInterval() const {
+    std::pair<int, int> getTimeInterval() const override {
         return std::make_pair(state.back(), state.back());
     }
 };
@@ -132,7 +132,7 @@ struct EdgeConstraint : public Constraint {
     }
 
     /// @brief The time interval of the constraint.
-    std::pair<int, int> getTimeInterval() const {
+    std::pair<int, int> getTimeInterval() const override {
         return std::make_pair(from_state.back(), to_state.back());
     }
 };
