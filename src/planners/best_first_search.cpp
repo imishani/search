@@ -84,6 +84,12 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace>&
                                              const StateType& start, const StateType& goal) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
+
+    // Reset the search algorithm and the action space.
+    action_space_ptr_->resetPlanningData();
+    this->resetPlanningData();
+
+    // Check if start is valid and add it to the action space.
     int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
     auto start_ = getOrCreateSearchState(start_ind_);
 
@@ -219,4 +225,14 @@ bool ims::BestFirstSearch::isGoalState(int s_id) {
 }
 
 
+void ims::BestFirstSearch::resetPlanningData() {
+    for (auto state : states_){
+        delete state;
+    }
+    states_ = std::vector<SearchState*>();
+    open_.clear();
 
+    goals_.clear();
+    goal_ = -1;
+    stats_ = PlannerStats();
+}

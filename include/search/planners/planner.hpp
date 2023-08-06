@@ -72,6 +72,7 @@ namespace ims{
 //        }
 
         double time_limit_; // seconds
+        bool verbose = false;
     };
 
     ///@brief Pure virtual base class planner interface
@@ -116,7 +117,7 @@ namespace ims{
 
         void getTimeFromStart(double &elapsed_time) {
             auto t_end = std::chrono::steady_clock::now();
-            double scaler = 10e9;
+            double scaler = 1e9;
             elapsed_time = (double)std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_start_).count();
             elapsed_time /= scaler;
         }
@@ -135,7 +136,9 @@ namespace ims{
         /// @param path The path
         /// @return if the plan was successful or not
         virtual bool plan(std::vector<StateType>& path) = 0;
-
+        
+        /// @brief Reset all the member variables in the planner.
+        virtual void resetPlanningData() = 0;
 
     protected:
 

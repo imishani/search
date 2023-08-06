@@ -109,6 +109,7 @@ using StateType = std::vector<double>;
 using PathType = std::vector<StateType>;
 using Action = std::vector<double>;
 using ParamsType = std::unordered_map<std::string, double>;
+using TimeType = int;
 
 enum PARENT_TYPE {
     START = -1,

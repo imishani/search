@@ -15,3 +15,10 @@ where:
 - `map_ix` is the index of the map to use (0-4). Each map is a different layout. (see `domains/data`.
 - `num_runs` is the number of runs to perform. Each with a different random start and goal state.
 - `scale` is a scaling factor applied to the map -- making each cell larger or smaller. (1 < integer.)
+
+
+## Example 2: 2D Conflict-Based Search (CBS)
+From your `build` directory, run the following command:
+```
+./run_2d_mapf_cbs 6 4 1 && python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 2 && open paths.gif
+```
