@@ -117,6 +117,9 @@ namespace ims{
         /// @return if the plan was successful or not
         bool plan(std::vector<StateType> &path) override;
 
+        /// @brief Reset the planner
+        void resetPlanningData() override;
+
 
     protected:
 

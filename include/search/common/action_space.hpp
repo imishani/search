@@ -30,15 +30,14 @@
  * \file   action_space.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
-*/
-
+ */
 
 #ifndef SEARCH_ACTIONSPACE_HPP
 #define SEARCH_ACTIONSPACE_HPP
 
 // standard includes
-#include <memory>
 #include <iostream>
+#include <memory>
 
 // project includes
 #include <search/common/scene_interface.hpp>
@@ -55,78 +54,75 @@ namespace ims {
         VALID validity = unknown;
     };
 
-    /// @brief equality operator for RobotState
-    inline bool operator==(const RobotState &lhs, const RobotState &rhs) {
-        return lhs.state == rhs.state;
-    }
+/// @brief equality operator for RobotState
+inline bool operator==(const RobotState& lhs, const RobotState& rhs) {
+    return lhs.state == rhs.state;
 }
+}  // namespace ims
 
 namespace std {
-    template<>
-    struct hash<ims::RobotState> {
-        using argument_type = ims::RobotState;
-        using result_type = std::size_t;
+template <>
+struct hash<ims::RobotState> {
+    using argument_type = ims::RobotState;
+    using result_type = std::size_t;
 
-        result_type operator()(const argument_type& s) const {
-            size_t seed = 0;
-            boost::hash_combine(seed, boost::hash_range(s.state.begin(), s.state.end()));
-            return seed;
-        }
-    };
-}
-
+    result_type operator()(const argument_type& s) const {
+        size_t seed = 0;
+        boost::hash_combine(seed, boost::hash_range(s.state.begin(), s.state.end()));
+        return seed;
+    }
+};
+}  // namespace std
 
 namespace ims {
 
-    /// @brief Action type abstract struct. This struct should be inherited by the action type
-    /// Make sure to implement the getActions() function
-    struct ActionType{
-        /// @brief Constructor
-        ActionType() = default;
+/// @brief Action type abstract struct. This struct should be inherited by the action type
+/// Make sure to implement the getActions() function
+struct ActionType {
+    /// @brief Constructor
+    ActionType() = default;
 
-        /// @brief Destructor
-        virtual ~ActionType() = default;
+    /// @brief Destructor
+    virtual ~ActionType() = default;
 
-        /// @brief Get the possible actions
-        /// @return The possible actions
-        virtual std::vector<Action> getActions() = 0;
+    /// @brief Get the possible actions
+    /// @return The possible actions
+    virtual std::vector<Action> getActions() = 0;
 
-        /// @brief Get the resolution of the state space (for discretization)
-        /// @param state_des The state discretization
-        virtual void Discretization(StateType& state_des) = 0;
+    /// @brief Get the resolution of the state space (for discretization)
+    /// @param state_des The state discretization
+    virtual void Discretization(StateType& state_des) = 0;
 
-        // The discretization steps for each dimension in the state vector.
-        StateType state_discretization_;
-    };
+    // The discretization steps for each dimension in the state vector.
+    StateType state_discretization_;
+};
 
-    /// @class Action class for the search problem
-    class ActionSpace{
+/// @class Action class for the search problem
+class ActionSpace {
+public:
+    // Members
+    using StateKey = RobotState;
+    using StateHash = PointerValueHash<StateKey>;
+    using StateEqual = PointerValueEqual<StateKey>;
+    hash_map<StateKey*, int, StateHash, StateEqual> state_to_id_;
+    /// @brief The states
+    std::vector<RobotState*> states_;
 
-    public:
+    /// Methods
+    /// @brief Constructor
+    explicit ActionSpace() = default;
 
-        // Members
-        using StateKey = RobotState;
-        using StateHash = PointerValueHash<StateKey>;
-        using StateEqual = PointerValueEqual<StateKey>;
-        hash_map<StateKey*, int, StateHash, StateEqual> state_to_id_;
-        /// @brief The states
-        std::vector<RobotState*> states_;
+    /// @brief Destructor
+    ~ActionSpace() = default;
 
-        /// Methods
-        /// @brief Constructor
-        explicit ActionSpace() = default;
-
-        /// @brief Destructor
-        ~ActionSpace() = default;
-
-        /// @brief Get a state by id
-        /// @param id The id of the state
-        /// @return The state
-        /// @note The id is assumed to be valid - meaning that the state exists in states_
-        virtual auto getRobotState(size_t id) -> RobotState*{
-            assert(id < states_.size() && id >= 0);
-            return states_[id];
-        }
+    /// @brief Get a state by id
+    /// @param id The id of the state
+    /// @return The state
+    /// @note The id is assumed to be valid - meaning that the state exists in states_
+    virtual auto getRobotState(size_t id) -> RobotState* {
+        assert(id < states_.size() && id >= 0);
+        return states_[id];
+    }
 
         /// @brief Get or create state by state value
         /// @param state_val The state value
@@ -145,30 +141,38 @@ namespace ims {
                 state_to_id_[curr_state] = state_id;
                 return state_id;
             }
+    }
+
+    /// @brief Get Successor
+    /// @param curr_state_ind The current state index
+    /// @param successors The successor state
+    /// @return Success bool
+    /// @note Beware the you should make sure that the state is discretized! (see ActionType::Discretization)
+    /// If you are using an implicit graph where the state space is not discrete then define the discretization
+    /// based on the tolerance for comparison between states.
+    /// @attention You should use getOrCreateRobotState() and getRobotState() when generating the successors!
+    virtual bool getSuccessors(int curr_state_ind,
+                               std::vector<int>& successors,
+                               std::vector<double>& costs) = 0;
+
+    /// @brief check if the state is valid
+    /// @param state_val The values if the state
+    /// @return Validity bool
+    virtual bool isStateValid(const StateType& state_val) = 0;
+
+    /// @brief check if the path is valid
+    /// @param path The path
+    /// @return Validity bool
+    virtual bool isPathValid(const PathType& path) = 0;
+
+    /// @brief Clear all the cached states data in the action space.
+    virtual void resetPlanningData() {
+        for (auto& state : states_) {
+            delete state;
         }
-
-
-        /// @brief Get Successor
-        /// @param curr_state_ind The current state index
-        /// @param successors The successor state
-        /// @return Success bool
-        /// @note Beware the you should make sure that the state is discretized! (see ActionType::Discretization)
-        /// If you are using an implicit graph where the state space is not discrete then define the discretization
-        /// based on the tolerance for comparison between states.
-        /// @attention You should use getOrCreateRobotState() and getRobotState() when generating the successors!
-        virtual bool getSuccessors(int curr_state_ind,
-                                   std::vector<int>& successors,
-                                   std::vector<double>& costs) = 0;
-
-        /// @brief check if the state is valid
-        /// @param state_val The values if the state
-        /// @return Validity bool
-        virtual bool isStateValid(const StateType& state_val) = 0;
-
-        /// @brief check if the path is valid
-        /// @param path The path
-        /// @return Validity bool
-        virtual bool isPathValid(const PathType& path) = 0;
-    };
-}
-#endif //SEARCH_ACTIONSPACE_HPP
+        states_.clear();
+        state_to_id_.clear();
+    } 
+};
+}  // namespace ims
+#endif  // SEARCH_ACTIONSPACE_HPP
