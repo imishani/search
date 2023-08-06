@@ -20,8 +20,8 @@ add_library(search SHARED
         src/planners/astar.cpp
         src/planners/wastar.cpp
         src/planners/bfs.cpp
+        src/planners/multi_agent/cbs.cpp
         src/common/bfs3d.cpp)
-
 
 set($(PROJECT_NAME)_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
 #set($(PROJECT_NAME)_INCLUDE_DIR include)
@@ -42,7 +42,10 @@ install(TARGETS search
 add_executable(run_2d_rob_nav domains/2d_robot_nav/run_2d.cpp)
 add_executable(run_2d_rob_nav_bfs domains/2d_robot_nav/run_2d_bfs.cpp)
 add_executable(run_2d_rob_nav_weighted domains/2d_robot_nav/run_2d_weighted.cpp)
+add_executable(run_2d_mapf_cbs domains/2d_mapf/run_2d_cbs.cpp)
+
 
 target_link_libraries(run_2d_rob_nav search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 target_link_libraries(run_2d_rob_nav_bfs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 target_link_libraries(run_2d_rob_nav_weighted search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_mapf_cbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})

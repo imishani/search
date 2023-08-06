@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   astar.hpp
+ * \file   wastar.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   4/4/23
 */
@@ -38,8 +38,13 @@ ims::wAStar::wAStar(const ims::wAStarParams &params) : params_(params), BestFirs
 
 void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
                                    const StateType& start, const StateType& goal) {
-    // space pointer
+    // Space pointer.
     action_space_ptr_ = actionSpacePtr;
+
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
+
     // check if start is valid
     if (!action_space_ptr_->isStateValid(start)){
         throw std::runtime_error("Start state is not valid");
@@ -49,7 +54,6 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& actionSp
         throw std::runtime_error("Goal state is not valid");
     }
     int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-    printf("start ind: %d \n", start_ind_);
     auto start_ = getOrCreateSearchState(start_ind_);
 
     int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
@@ -98,8 +102,8 @@ bool ims::wAStar::plan(std::vector<StateType>& path) {
     int iter {0};
     while (!open_.empty() && !isTimeOut()){
         // report progress every 1000 iterations
-        if (iter % 100000 == 0){
-            std::cout << "open size: " << open_.size() << std::endl;
+        if (iter % 100000 == 0 && params_.verbose){
+            std::cout << "Iter: " << iter << " open size: " << open_.size() << std::endl;
         }
         auto state  = open_.min();
         open_.pop();
@@ -132,7 +136,7 @@ void ims::wAStar::expand(int state_id){
         if (successor->in_closed){
             continue;
         }
-        if (isGoalState(successor_id)){
+        if (isGoalState(successor_id && params_.verbose )){
             std::cout << "Added Goal to open list" << std::endl;
         }
         if (successor->in_open){
@@ -170,4 +174,15 @@ void ims::wAStar::reconstructPath(std::vector<StateType>& path) {
     }
     path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
     std::reverse(path.begin(), path.end());
+}
+
+void ims::wAStar::resetPlanningData(){
+    for (auto state_ : states_){
+        delete state_;
+    }
+    states_.clear();
+    open_.clear();
+    goals_.clear();
+    goal_ = -1;
+    stats_ = PlannerStats();
 }
