@@ -47,6 +47,9 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_s
                                     const std::vector<StateType> &goals) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
 
     if (goals.empty() || starts.empty()) {
         throw std::runtime_error("Starts or goals are empty");
@@ -90,7 +93,7 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_s
 void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                    const StateType& start, const StateType& goal) {
     // Space pointer.
-    action_space_ptr_ = actionSpacePtr;
+    action_space_ptr_ = action_space_ptr;
 
     // Clear both.
     action_space_ptr_->resetPlanningData();

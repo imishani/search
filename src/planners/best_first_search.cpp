@@ -50,6 +50,9 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> 
                                              const std::vector<StateType> &goals) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
 
     if (goals.empty() || starts.empty()) {
         throw std::runtime_error("Starts or goals are empty");
@@ -84,6 +87,9 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace>&
                                              const StateType& start, const StateType& goal) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
 
     // Reset the search algorithm and the action space.
     action_space_ptr_->resetPlanningData();

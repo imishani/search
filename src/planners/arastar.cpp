@@ -50,6 +50,9 @@ void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_
                                     const std::vector<StateType> &goals) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
 
     if (goals.empty() || starts.empty()) {
         throw std::runtime_error("Starts or goals are empty");
@@ -94,6 +97,10 @@ void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_
                                     const StateType& start, const StateType& goal) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
+
     // check if start is valid
     if (!action_space_ptr_->isStateValid(start)){
         throw std::runtime_error("Start state is not valid");
