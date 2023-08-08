@@ -32,7 +32,6 @@
  * \date   13/07/2023
 */"""
 
-
 """
 A script to visualize a set of paths on a map.
 The inputs are a json file with the paths (format x y time), and a map image.
@@ -49,8 +48,11 @@ import argparse
 
 import yaml
 
+
 def get_map_np(map_path):
-    # The map is a .map file. The first line is "type octile", the second line is "height <height>", the third line is "width <width>", the fourth line is "map", and the rest of the lines are the map. The map data looks like this: @@@@@@@@@@@@TTTT@@@@@, with T being traversable and @ being not traversable.
+    # The map is a .map file. The first line is "type octile", the second line is "height <height>", the third line
+    # is "width <width>", the fourth line is "map", and the rest of the lines are the map. The map data looks like
+    # this: @@@@@@@@@@@@TTTT@@@@@, with T being traversable and @ being not traversable.
 
     # Parse the map file.
     map_file = open(map_path, "r")
@@ -70,6 +72,7 @@ def get_map_np(map_path):
                 map_np[i, j] = 255
 
     return map_np
+
 
 def get_paths_np(paths):
     # Get the paths as a numpy array. The output shape is (num_paths, num_steps, 3), where the last dimension is (x, y, time).
@@ -95,7 +98,7 @@ def get_paths_np(paths):
     for path in paths:
         if len(path) > max_path_length:
             max_path_length = len(path)
-            
+
     # Pad the paths.
     for path in paths:
         if len(path) < max_path_length:
@@ -109,7 +112,8 @@ def get_paths_np(paths):
 
     return paths_np
 
-def create_xy_time_animation(map_np, paths_np, fps=20, inflate=0):
+
+def create_xy_time_animation(map_np, paths_np, duration=(100 * 1/20), inflate=0):
     # Create an animation of the paths on the map.
     # Create a color for each robot. This is a color and a diluted color.
     colors = [
@@ -118,14 +122,13 @@ def create_xy_time_animation(map_np, paths_np, fps=20, inflate=0):
         [255, 0, 0],
         [255, 0, 255],
         [0, 255, 255]]
-    
+
     tail_colors = [
         [200, 200, 255],
         [200, 255, 200],
         [255, 200, 200],
         [255, 200, 255],
         [200, 255, 255]]
-
 
     # Get the map height and width.
     map_height = map_np.shape[0]
@@ -171,7 +174,7 @@ def create_xy_time_animation(map_np, paths_np, fps=20, inflate=0):
             # Mark around the dot.
             for i in range(-inflate, inflate + 1):
                 for j in range(-inflate, inflate + 1):
-                    if x + i >= 0 and x + i < map_width and y + j >= 0 and y + j < map_height:
+                    if 0 <= x + i < map_width and 0 <= y + j < map_height:
                         # if frame_current[y + j, x + i] == np.array(path_color):
                         if np.all(frame_current[y + j, x + i] == np.array(path_color)):
                             frame_current[y + j, x + i] = [255, 255, 255]
@@ -183,7 +186,7 @@ def create_xy_time_animation(map_np, paths_np, fps=20, inflate=0):
         frames[i] = cv2.resize(frames[i], (new_width, new_height), interpolation=cv2.INTER_NEAREST)
 
     # Save the frames as a video using imageio.
-    imageio.mimsave("paths.gif", frames, fps=fps)
+    imageio.mimsave("paths.gif", frames, duration=duration)
 
 
 def main():
@@ -196,7 +199,7 @@ def main():
     args = parser.parse_args()
 
     # Convert the yaml to a dictionary.
-    with open (args.paths_yaml, "r") as f:
+    with open(args.paths_yaml, "r") as f:
         paths_dict = yaml.load(f, Loader=yaml.FullLoader)
 
     # Load paths
@@ -206,7 +209,8 @@ def main():
     map_np = get_map_np(paths_dict['map_path'])
 
     # Draw paths on map.
-    create_xy_time_animation(map_np, paths, fps=args.fps, inflate=0)
+    create_xy_time_animation(map_np, paths, duration=(1000 * 1/args.fps), inflate=0)
+
 
 if __name__ == '__main__':
     main()

@@ -55,7 +55,7 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
     goals_ = goals;
 
     // Set the number of agents.
-    num_agents_ = starts.size();
+    num_agents_ = (int)starts.size();
 
     // Create all the low-level planners.
     for (size_t i{0}; i < starts.size(); ++i) {
@@ -101,7 +101,7 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
 
     // Show the initial paths.
     std::cout << "Initial paths:" << std::endl;
-    for (auto path : start_->paths) {
+    for (auto& path : start_->paths) {
         std::cout << "Agent " << path.first << ": ";
         for (auto state : path.second) {
             std::cout << "[" << state[0] << ", " << state[1] << ", " << state[2] << "], ";
@@ -148,7 +148,7 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
         ++iter;
 
         // Check if the state was set to the goal state.
-        if (found_goal_search_state_ids_.size() > 0) {
+        if (!found_goal_search_state_ids_.empty()) {
             // Get the goal state.
             auto goal_search_state = getSearchState(found_goal_search_state_ids_.back());
             std::cout << "Found goal state " << goal_search_state->state_id << std::endl;
@@ -189,7 +189,7 @@ void ims::CBS::expand(int state_id) {
     // Second, iterate through the constraints, and for each one, create a new search state. The new search state is a copy of the previous search state, with the constraint added to the constraints collective of the agent.
     // For each constraint, split the state into branches. Each branch will be a new state in the search tree.
     // For each conflict, create two branches. One for each agent in the conflict. In CBS the conflicts list would be at most of a length 1.
-    for (auto agent_id_constraint : constraints){
+    for (auto& agent_id_constraint : constraints){
 
         // The first element is the agent ID.
         int agent_id = agent_id_constraint.first;
@@ -199,7 +199,7 @@ void ims::CBS::expand(int state_id) {
 
         // Create a new search state. In this implementation ther is no check for whether the search state already exists (same starts, goals, and constraints), so we always create a new search state and push(...) it to the open list. Otherwise, we would check if the search state already exists, and if so, we would update(...) the open list heap.
         // NOTE(yoraish): lock below for parallelization. Think of copying action-spaces and planners as well for each thread?
-        int new_state_id = states_.size();
+        int new_state_id = (int)states_.size();
         auto new_state = getOrCreateSearchState(new_state_id);
         // NOTE(yoraish): lock above for parallelization.
 
@@ -246,12 +246,12 @@ void ims::CBS::expand(int state_id) {
 
 void ims::CBS::padPathsToMaxLength(MultiAgentPaths& paths) {
     // Pad all paths to the same length. Do this by adding the last state of the path to the end of the path (the state is identical, so time may be repeated).
-    int max_path_length = std::max_element(paths.begin(), paths.end(), [](const std::pair<int, std::vector<StateType>>& a, const std::pair<int, std::vector<StateType>>& b) { return a.second.size() < b.second.size(); })->second.size();
+    int max_path_length = (int)std::max_element(paths.begin(), paths.end(), [](const std::pair<int, std::vector<StateType>>& a, const std::pair<int, std::vector<StateType>>& b) { return a.second.size() < b.second.size(); })->second.size();
 
     // Pad all paths to the same length.
     for (auto& path : paths) {
         int agent_id = path.first;
-        int path_length = path.second.size();
+        int path_length = (int)path.second.size();
         for (int i{0}; i < max_path_length - path_length; ++i) {
             // The last state.
             StateType last_state = path.second.back();
@@ -275,7 +275,7 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBS::conflict
     for (auto& conflict_ptr : conflicts) {
         // Create a new constraint given the conflict.
         if (conflict_ptr->type == VERTEX_CONFLICT) {
-            VertexConflict* vertex_conflict_ptr = dynamic_cast<VertexConflict*>(conflict_ptr.get());
+            auto* vertex_conflict_ptr = dynamic_cast<VertexConflict*>(conflict_ptr.get());
             // std::cout << "Conflict is a vertex conflict. At state: " << vertex_conflict_ptr->state[0] << ", " << vertex_conflict_ptr->state[1] << ", " << vertex_conflict_ptr->state[2] << std::endl;
             // Check if the conversion succeeded.
             if (vertex_conflict_ptr == nullptr) {
@@ -289,13 +289,13 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBS::conflict
                 VertexConstraint constraint = VertexConstraint(vertex_conflict_ptr->state);
 
                 // Update the constraints collective to also include the new constraint.
-                agent_constraints.push_back(std::make_pair(agent_id, std::make_shared<VertexConstraint>(constraint)));
+                agent_constraints.emplace_back(agent_id, std::make_shared<VertexConstraint>(constraint));
             }
         }
 
         // Otherwise, if the conflict is an edge conflict, add an edge constraint to each of the two affected agents.
         else if (conflict_ptr->type == EDGE_CONFLICT) {
-            EdgeConflict* edge_conflict_ptr = dynamic_cast<EdgeConflict*>(conflict_ptr.get());
+            auto* edge_conflict_ptr = dynamic_cast<EdgeConflict*>(conflict_ptr.get());
 
             // Check if the conversion succeeded.
             if (edge_conflict_ptr == nullptr) {
@@ -307,8 +307,8 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBS::conflict
             int agent_b = edge_conflict_ptr->agent_id_to;
 
             // Create a new search state.
-            int new_state_id_a = states_.size();
-            int new_state_id_b = states_.size() + 1;
+            int new_state_id_a = (int)states_.size();
+            int new_state_id_b = (int)states_.size() + 1;
             auto new_state_a = getOrCreateSearchState(new_state_id_a);
             auto new_state_b = getOrCreateSearchState(new_state_id_b);
 
@@ -322,8 +322,8 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBS::conflict
             EdgeConstraint constraint_b = EdgeConstraint(from_state_b, to_state_b);
 
             // Add to the constraints object.
-            agent_constraints.push_back(std::make_pair(agent_a, std::make_shared<EdgeConstraint>(constraint_a)));
-            agent_constraints.push_back(std::make_pair(agent_b, std::make_shared<EdgeConstraint>(constraint_b)));
+            agent_constraints.emplace_back(agent_a, std::make_shared<EdgeConstraint>(constraint_a));
+            agent_constraints.emplace_back(agent_b, std::make_shared<EdgeConstraint>(constraint_b));
         }
     }
 

@@ -22,3 +22,7 @@ From your `build` directory, run the following command:
 ```
 ./run_2d_mapf_cbs 6 4 1 && python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 2 && open paths.gif
 ```
+OR
+```
+./run_2d_mapf_cbs 6 4 1 && python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 2 && xdg-open paths.gif
+```
