@@ -156,7 +156,6 @@ auto ims::ARAStar::getOrCreateSearchState(int state_id) -> ims::ARAStar::SearchS
 bool ims::ARAStar::plan(std::vector<StateType> &path) {
     startTimer();
     params_.call_number_ = 0;
-    double solution_suboptimality = INF;
     // outer loop of ARA*
     while (params_.epsilon >= params_.final_epsilon_){
         std::cout << MAGENTA << "Replanning with epsilon: " << params_.epsilon << RESET << std::endl;
