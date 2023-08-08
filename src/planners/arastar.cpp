@@ -156,7 +156,7 @@ auto ims::ARAStar::getOrCreateSearchState(int state_id) -> ims::ARAStar::SearchS
 bool ims::ARAStar::plan(std::vector<StateType> &path) {
     startTimer();
     params_.call_number_ = 0;
-    double solution_suboptimality = stats_.suboptimality;
+    double solution_suboptimality = INF;
     // outer loop of ARA*
     while (params_.epsilon >= params_.final_epsilon_){
         std::cout << MAGENTA << "Replanning with epsilon: " << params_.epsilon << RESET << std::endl;
@@ -165,9 +165,9 @@ bool ims::ARAStar::plan(std::vector<StateType> &path) {
                 return false;
             } else {
                 params_.call_number_++;
-                if (params_.epsilon == params_.final_epsilon_)
-                    break;
                 updateBounds();
+                if (stats_.suboptimality == params_.final_epsilon_)
+                    break;
             }
             continue;
         }
@@ -182,13 +182,12 @@ bool ims::ARAStar::plan(std::vector<StateType> &path) {
         // inner loop of ARA*
         bool success = improvePath(path);
         if (!success){ // could not improve the solution
-            stats_.suboptimality = solution_suboptimality;
             return true; // return true because we have a solution from previous iteration
         }
-        params_.call_number_++; solution_suboptimality = stats_.suboptimality;
-        if (params_.epsilon == params_.final_epsilon_)
-            break;
+        params_.call_number_++;
         updateBounds();
+        if (stats_.suboptimality == params_.final_epsilon_)
+            break;
 
     }
     if (!path.empty()) {
@@ -245,7 +244,7 @@ void ims::ARAStar::expand(int state_id) {
                 successor->h = computeHeuristic(successor_id);
                 successor->f = successor->g + params_.epsilon*successor->h;
                 if (successor->in_open){
-                    open_.update(successor); // TODO: should I use decrease?
+                    open_.update(successor);
                 } else {
                     setStateVals(successor->state_id, state_->state_id, cost);
                     open_.push(successor);
@@ -287,16 +286,16 @@ void ims::ARAStar::reorderOpen() {
     for (auto state : open_){
         state->f = state->g + params_.epsilon * state->h;
     }
-    open_.make();
+    open_.make(); // reorder intrusive heap
 }
 
 void ims::ARAStar::updateBounds() {
+    // update stats to current suboptimality
+    stats_.suboptimality = params_.epsilon;
     // update epsilon
     params_.epsilon -= params_.epsilon_delta_;
-    if (params_.epsilon < params_.final_epsilon_){
+    if (params_.epsilon < params_.final_epsilon_)
         params_.epsilon = params_.final_epsilon_;
-    }
-    stats_.suboptimality = params_.epsilon;
 }
 
 void ims::ARAStar::reinitSearchState(ims::ARAStar::SearchState *state) const {
