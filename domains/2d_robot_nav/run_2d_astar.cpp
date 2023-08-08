@@ -232,8 +232,19 @@ int main(int argc, char** argv) {
             std::cout << "No path found!" << std::endl;
 //            return 0;
         }
-        else
+        else {
             std::cout << "Path found!" << std::endl;
+            // Save the path to a file as csv
+            std::string path_file = path + "experiences/" + "path_" + std::to_string(i) + ".csv";
+            std::ofstream file(path_file);
+            // header line
+            file << "Experience," << path_.size() << "," << 2 << std::endl;
+            // write the path
+            for (int j {0}; j < path_.size(); j++){
+                file << path_[j][0] << "," << path_[j][1] << std::endl;
+            }
+            file.close();
+        }
 
         PlannerStats stats = planner.reportStats();
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;

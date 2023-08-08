@@ -76,6 +76,12 @@ public:
         return eg_epsilon_;
     }
 
+    /// @brief Get the experience graph action space
+    /// @return pointer to the experience graph action space
+    std::shared_ptr<ExperienceGraphActionSpace> getEGraphActionSpace() const {
+        return eg_action_space_;
+    }
+
     /// @{ overrides
 
     void getEquivalentStates(int s_id, std::vector<int>& state_ids) override{
@@ -83,7 +89,7 @@ public:
         // get s_id node
         auto s_state = eg->state(s_id);
         auto nodes = eg->nodes();
-        const double equiv_thresh = 100; // TODO: 100? why?
+        const double equiv_thresh = 1; // TODO: 1? why? should I leave it as is (cost of 1)?
         for (auto nit = nodes.first; nit != nodes.second; ++nit) {
             int egraph_state_id = eg_action_space_->getStateID(*nit);
             auto e_state = eg->state(*nit);
@@ -239,20 +245,21 @@ public:
     }
 
     bool getHeuristic(StateType& s, double& dist) override {
-        std::shared_ptr<smpl::ExperienceGraph> eg = eg_action_space_->getExperienceGraph();
-
-        if (!eg) {
+        if (eg_ == nullptr) {
+            eg_ = eg_action_space_->getExperienceGraph();
+        }
+        if (!eg_) {
             dist = 0; // should I return 0?
             return false;
         }
 
         double best_h; origin_heuristic_->getHeuristic(s, best_h);
         best_h *= eg_epsilon_;
-        auto nodes = eg->nodes();
+        auto nodes = eg_->nodes();
         for (auto nit = nodes.first; nit != nodes.second; ++nit) {
             const smpl::ExperienceGraph::node_id n = *nit;
             const int state_id = eg_action_space_->getStateID(n);
-            StateType& state = eg->state(state_id);
+            StateType& state = eg_->state(state_id);
             double h;
             if (!origin_heuristic_->getHeuristic(s, state, h))
                 h = INF;
@@ -276,6 +283,8 @@ private:
     std::shared_ptr<BaseHeuristic> origin_heuristic_{nullptr};
 
     std::shared_ptr<ExperienceGraphActionSpace> eg_action_space_ {nullptr};
+
+    std::shared_ptr<smpl::ExperienceGraph> eg_ {nullptr};
 
     double eg_epsilon_ {1.0};
 

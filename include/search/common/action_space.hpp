@@ -121,6 +121,16 @@ namespace ims {
         /// @brief Destructor
         ~ActionSpace() = default;
 
+        /// @brief Get hash entry for a state. If doesnt exist return nullptr
+        /// @param state_id The state id
+        /// @return The state pointer
+        virtual auto getRobotHashEntry(int state_id) -> RobotState*{
+            if(state_id < 0 || state_id >= states_.size()){
+                return nullptr;
+            }
+            return states_[state_id];
+        }
+
         /// @brief Get a state by id
         /// @param id The id of the state
         /// @return The state
