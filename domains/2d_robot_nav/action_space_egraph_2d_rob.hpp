@@ -227,11 +227,13 @@ class ActionSpaceEGraph2DRob : public actionSpace2dRob,
     }
 
     const std::shared_ptr<ims::smpl::ExperienceGraph> getExperienceGraph() const override {
-        return std::make_shared<ims::smpl::ExperienceGraph>(egraph_);
+        std::shared_ptr<ims::smpl::ExperienceGraph> egraph_ptr = std::make_shared<ims::smpl::ExperienceGraph>(egraph_);
+        return egraph_ptr;
     }
 
     std::shared_ptr<ims::smpl::ExperienceGraph> getExperienceGraph() override {
-        return std::make_shared<ims::smpl::ExperienceGraph>(egraph_);
+        std::shared_ptr<ims::smpl::ExperienceGraph> egraph_ptr = std::make_shared<ims::smpl::ExperienceGraph>(egraph_);
+        return egraph_ptr;
     }
 
     int getStateID(ims::smpl::ExperienceGraph::node_id n) const override {

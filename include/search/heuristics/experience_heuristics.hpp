@@ -117,11 +117,12 @@ public:
 
     void setGoal(StateType& goal_state) override {
         origin_heuristic_->setGoal(goal_state);
-        std::shared_ptr<smpl::ExperienceGraph> eg = eg_action_space_->getExperienceGraph();
+        std::shared_ptr<ims::smpl::ExperienceGraph> eg = eg_action_space_->getExperienceGraph();
         if (!eg) {
             std::cout << BOLDRED << "[ERROR] Experience graph is not initialized!" << RESET << std::endl;
             return;
         }
+
         // compute connected components in the experience graph
         int comp_count {0};
         component_ids_.assign(eg->num_nodes(), -1);
@@ -172,7 +173,7 @@ public:
                 }
             }
         }
-
+//
         /* Compute Heuristic distance for Experience Graph nodes */
 
         h_nodes_.assign(eg->num_nodes(), INF_DOUBLE);
@@ -237,6 +238,7 @@ public:
                 }
             }
         }
+        eg_ = eg;
     }
 
     bool getHeuristic(StateType& s1, StateType& s2, double& dist) override {

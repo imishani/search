@@ -200,6 +200,7 @@ int main(int argc, char** argv) {
     std::shared_ptr<ActionSpaceEGraph2DRob> action_space_egraph = std::make_shared<ActionSpaceEGraph2DRob>(scene, action_type);
     action_space_egraph->loadEGraph(experience_path);
     auto* heuristic = new ims::GenericEGraphHeuristic(origin_heuristic, action_space_egraph);
+    // test
     for (int i {0}; i < starts.size(); i++){
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
@@ -227,7 +228,7 @@ int main(int argc, char** argv) {
             planner.initializePlanner(action_space_egraph, starts[i], goals[i]);
         }
         catch (std::exception& e) {
-            std::cout << "Start or goal is not valid!" << std::endl;
+            std::cout << RED << "Start or goal is not valid!" << RESET << std::endl;
             continue;
         }
         // plan
@@ -235,10 +236,12 @@ int main(int argc, char** argv) {
         std::vector<StateType> path_;
         if (!planner.plan(path_)) {
             std::cout << "No path found!" << std::endl;
+            continue;
 //            return 0;
         }
         else
             std::cout << "Path found!" << std::endl;
+
         PlannerStats stats = planner.reportStats();
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
         std::cout << "cost: " << stats.cost << std::endl;

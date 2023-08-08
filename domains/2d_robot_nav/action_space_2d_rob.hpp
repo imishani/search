@@ -42,8 +42,8 @@
 class scene2DRob : public ims::SceneInterface {
 public:
     explicit scene2DRob(std::vector<std::vector<int>> &map_) : ims::SceneInterface(){
-        this->map = &map_;
-        this->map_size = {map->size(), map[0].size()};
+        map = &map_;
+        map_size = {map->size(), map[0].size()};
     }
 
     std::vector<std::vector<int>>* map;
@@ -53,17 +53,16 @@ public:
 struct actionType2dRob : public ims::ActionType {
 
     actionType2dRob() : ims::ActionType() {
-        this->name = "actionType2dRob";
-        this->num_actions = 8;
-        this->action_names = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
-        this->action_costs = {1, 1.414, 1, 1.414, 1, 1.414, 1, 1.414};
-        this->action_prims = {{0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}, {-1, 1}};
-        this->state_discretization_ = {1, 1};
+        name = "actionType2dRob";
+        num_actions = 8;
+        action_names = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
+        action_costs = {1, 1.414, 1, 1.414, 1, 1.414, 1, 1.414};
+        action_prims = {{0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}, {-1, 1}};
+        state_discretization_ = {1, 1};
     }
 
     std::vector<Action> getPrimActions() override{
-        std::vector<Action> actions;
-        return this->action_prims;
+        return action_prims;
     }
 
     void Discretization(StateType& state_des) override{
@@ -74,7 +73,7 @@ struct actionType2dRob : public ims::ActionType {
     int num_actions;
     std::vector<std::string> action_names;
     std::vector<double> action_costs;
-    std::vector<std::vector<double>> action_prims;
+    std::vector<Action> action_prims;
 
 };
 

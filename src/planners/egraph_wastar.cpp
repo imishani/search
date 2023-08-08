@@ -37,6 +37,10 @@ bool ims::ExperienceWAstar::plan(std::vector<StateType> &path) {
             goal_ = state->state_id;
             getTimeFromStart(stats_.time);
             reconstructPath(path);
+            if (path.empty()){
+                std::cout << RED << "[ERROR]: Path size is 0. Something is wrong" << RESET << std::endl;
+                return false;
+            }
             stats_.cost = state->g;
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();
@@ -222,7 +226,11 @@ void ims::ExperienceWAstar::extractPath(const std::vector<int> &search_path, Pat
             prev_s_id = curr_id;
             continue;
         }
-        std::cout << RED << "[ERROR]: Could not find transition from " << prev_s_id << " to " << curr_id << RESET << std::endl;
+        std::cout << RED << "[ERROR]: Could not find transition from " << prev_s_id << " to " << curr_id << std::endl;
+        for (size_t ind {0}; ind < prev_s->state.size() ; ++ind){
+            std::cout << prev_s->state[ind] << "    " << curr_state->state[ind] << std::endl;
+        }
+        std::cout << RESET << std::endl;
         return;
     }
 
