@@ -39,10 +39,57 @@ ims::BestFirstSearch::BestFirstSearch(const BestFirstSearchParams &params) : Pla
     heuristic_ = params.heuristic_;
 }
 
+ims::BestFirstSearch::~BestFirstSearch() {
+    for (auto &state : states_) {
+        delete state;
+    }
+}
+
+void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+                                             const std::vector<StateType> &starts,
+                                             const std::vector<StateType> &goals) {
+    // space pointer
+    action_space_ptr_ = action_space_ptr;
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
+
+    if (goals.empty() || starts.empty()) {
+        throw std::runtime_error("Starts or goals are empty");
+    }
+
+    if (goals.size() > 1) {
+        throw std::runtime_error("Currently, only one goal is supported");
+    }
+
+    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
+    auto goal_ = getOrCreateSearchState(goal_ind_);
+    goals_.push_back(goal_ind_);
+
+    // Evaluate the goal state
+    goal_->parent_id = PARENT_TYPE(GOAL);
+    heuristic_->setGoal(const_cast<StateType &>(goals[0]));
+
+    for (auto &start : starts) {
+        // Evaluate the start state
+        int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
+        auto start_ = getOrCreateSearchState(start_ind_);
+        start_->parent_id = PARENT_TYPE(START);
+        heuristic_->setStart(const_cast<StateType &>(start));
+        start_->g = 0;
+        start_->f = computeHeuristic(start_ind_);
+        open_.push(start_);
+        start_->setOpen();
+    }
+}
+
 void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                              const StateType& start, const StateType& goal) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
 
     // Reset the search algorithm and the action space.
     action_space_ptr_->resetPlanningData();

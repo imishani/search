@@ -27,22 +27,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   wastar.cpp
+ * \file   arastar.cpp
  * \author Itamar Mishani (imishani@cmu.edu)
- * \date   4/4/23
+ * \date   7/21/23
 */
 
-#include <search/planners/wastar.hpp>
+#include "search/planners/arastar.hpp"
 
-ims::wAStar::wAStar(const ims::wAStarParams &params) : params_(params), BestFirstSearch(params) {}
 
-ims::wAStar::~wAStar() {
-    for (auto &state : states_) {
+ims::ARAStar::ARAStar(const ims::ARAStarParams &params) : wAStar(params), params_(params) {
+}
+
+ims::ARAStar::~ARAStar() {
+    for (SearchState *state : states_) {
         delete state;
     }
 }
 
-void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+
+void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                     const std::vector<StateType> &starts,
                                     const std::vector<StateType> &goals) {
     // space pointer
@@ -90,11 +93,10 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_s
     stats_.suboptimality = params_.epsilon;
 }
 
-void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                   const StateType& start, const StateType& goal) {
-    // Space pointer.
+void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                                    const StateType& start, const StateType& goal) {
+    // space pointer
     action_space_ptr_ = action_space_ptr;
-
     // Clear both.
     action_space_ptr_->resetPlanningData();
     resetPlanningData();
@@ -108,6 +110,7 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_s
         throw std::runtime_error("Goal state is not valid");
     }
     int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
+    printf("start ind: %d \n", start_ind_);
     auto start_ = getOrCreateSearchState(start_ind_);
 
     int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
@@ -132,13 +135,12 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_s
 
 }
 
-
-auto ims::wAStar::getSearchState(int state_id) -> ims::wAStar::SearchState * {
+auto ims::ARAStar::getSearchState(int state_id) -> ims::ARAStar::SearchState * {
     assert(state_id < states_.size() && state_id >= 0);
     return states_[state_id];
 }
 
-auto ims::wAStar::getOrCreateSearchState(int state_id) -> ims::wAStar::SearchState * {
+auto ims::ARAStar::getOrCreateSearchState(int state_id) -> ims::ARAStar::SearchState * {
     if (state_id >= states_.size()){
         states_.resize(state_id + 1, nullptr);
     }
@@ -146,22 +148,63 @@ auto ims::wAStar::getOrCreateSearchState(int state_id) -> ims::wAStar::SearchSta
         assert(state_id < states_.size() && state_id >= 0);
         states_[state_id] = new SearchState;
         states_[state_id]->state_id = state_id;
+        states_[state_id]->call_number = params_.call_number;
     }
     return states_[state_id];
 }
 
-
-bool ims::wAStar::plan(std::vector<StateType>& path) {
+bool ims::ARAStar::plan(std::vector<StateType> &path) {
     startTimer();
-    int iter {0};
-    while (!open_.empty() && !isTimeOut()){
-        // report progress every 1000 iterations
-        if (iter % 100000 == 0 && params_.verbose){
-            std::cout << "Iter: " << iter << " open size: " << open_.size() << std::endl;
+    params_.call_number = 0;
+    // outer loop of ARA*
+    while (params_.epsilon >= params_.final_epsilon){
+        std::cout << MAGENTA << "Replanning with epsilon: " << params_.epsilon << RESET << std::endl;
+        if (params_.call_number == 0){
+            if (!improvePath(path)){
+                return false;
+            } else {
+                params_.call_number++;
+                updateBounds();
+                if (stats_.suboptimality == params_.final_epsilon)
+                    break;
+            }
+            continue;
         }
+        // move states from incons to open
+        for (SearchState *state : incons_){
+            state->in_incons = false;
+            open_.push(state);
+            state->in_open = true;
+        }
+        reorderOpen();
+        incons_.clear();
+        // inner loop of ARA*
+        bool success = improvePath(path);
+        if (!success){ // could not improve the solution
+            return true; // return true because we have a solution from previous iteration
+        }
+        params_.call_number++;
+        updateBounds();
+        if (stats_.suboptimality == params_.final_epsilon)
+            break;
+
+    }
+    if (!path.empty()) {
+        getTimeFromStart(stats_.time);
+        std::cout << GREEN << "Found the optimal solution with cost: " << stats_.cost << RESET << std::endl;
+        return true;
+    } else
+        return false;
+}
+
+bool ims::ARAStar::improvePath(std::vector<StateType> &path) {
+    while (!open_.empty()){
         auto state  = open_.min();
+        if (state->f > stats_.cost){
+            return true;
+        }
         open_.pop();
-        state->setClosed();
+        state->setClosed(); state->v = state->g; //state->call_number = params_.call_number;
         if (isGoalState(state->state_id)){
             goal_ = state->state_id;
             getTimeFromStart(stats_.time);
@@ -171,14 +214,18 @@ bool ims::wAStar::plan(std::vector<StateType>& path) {
             stats_.num_generated = (int)action_space_ptr_->states_.size();
             return true;
         }
+        if (timedOut()){
+            std::cout << RED << "Timeout in improve path" << RESET << std::endl;
+            return false;
+        }
         expand(state->state_id);
-        ++iter;
     }
     getTimeFromStart(stats_.time);
+    std::cout << RED << "Open list is empty" << RESET << std::endl;
     return false;
 }
 
-void ims::wAStar::expand(int state_id){
+void ims::ARAStar::expand(int state_id) {
     auto state_ = getSearchState(state_id);
     std::vector<int> successors;
     std::vector<double> costs;
@@ -187,29 +234,33 @@ void ims::wAStar::expand(int state_id){
         int successor_id = successors[i];
         double cost = costs[i];
         auto successor = getOrCreateSearchState(successor_id);
-        if (successor->in_closed){
-            continue;
-        }
-        if (isGoalState(successor_id && params_.verbose )){
-            std::cout << "Added Goal to open list" << std::endl;
-        }
-        if (successor->in_open){
-            if (successor->g > state_->g + cost){
-                successor->parent_id = state_->state_id;
-                successor->g = state_->g + cost;
+        reinitSearchState(successor);
+
+        if (successor->g > state_->g + cost) {
+            successor->g = state_->g + cost;
+            successor->parent_id = state_->state_id;
+            if (!successor->in_closed){
+                successor->h = computeHeuristic(successor_id);
                 successor->f = successor->g + params_.epsilon*successor->h;
-                open_.update(successor);
+                if (successor->in_open){
+                    open_.update(successor);
+                } else {
+                    setStateVals(successor->state_id, state_->state_id, cost);
+                    open_.push(successor);
+                    successor->setOpen();
+                }
             }
-        } else {
-            setStateVals(successor->state_id, state_->state_id, cost);
-            open_.push(successor);
-            successor->setOpen();
+            else if (!successor->in_incons) {
+                successor->in_incons = true;
+                incons_.push_back(successor);
+            }
         }
     }
     stats_.num_expanded++;
 }
 
-void ims::wAStar::setStateVals(int state_id, int parent_id, double cost)
+
+void ims::ARAStar::setStateVals(int state_id, int parent_id, double cost)
 {
     auto state_ = getSearchState(state_id);
     auto parent = getSearchState(parent_id);
@@ -219,7 +270,8 @@ void ims::wAStar::setStateVals(int state_id, int parent_id, double cost)
     state_->f = state_->g + params_.epsilon*state_->h;
 }
 
-void ims::wAStar::reconstructPath(std::vector<StateType>& path) {
+void ims::ARAStar::reconstructPath(std::vector<StateType>& path) {
+    path.clear();
     SearchState* state_ = getSearchState(goal_);
     while (state_->parent_id != -1){
         path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
@@ -229,13 +281,52 @@ void ims::wAStar::reconstructPath(std::vector<StateType>& path) {
     std::reverse(path.begin(), path.end());
 }
 
-void ims::wAStar::resetPlanningData(){
-    for (auto state_ : states_){
-        delete state_;
+void ims::ARAStar::reorderOpen() {
+    for (auto state : open_){
+        state->f = state->g + params_.epsilon * state->h;
     }
-    states_.clear();
-    open_.clear();
-    goals_.clear();
-    goal_ = -1;
-    stats_ = PlannerStats();
+    open_.make(); // reorder intrusive heap
 }
+
+void ims::ARAStar::updateBounds() {
+    // update stats to current suboptimality
+    stats_.suboptimality = params_.epsilon;
+    // update epsilon
+    params_.epsilon -= params_.epsilon_delta;
+    if (params_.epsilon < params_.final_epsilon)
+        params_.epsilon = params_.final_epsilon;
+}
+
+void ims::ARAStar::reinitSearchState(ims::ARAStar::SearchState *state) const {
+    if (state->call_number != params_.call_number){
+        state->in_open = false;
+        state->in_closed = false;
+        state->in_incons = false;
+        state->call_number = params_.call_number;
+    }
+}
+
+bool ims::ARAStar::timedOut() {
+    switch (params_.type) {
+        case ARAStarParams::TIME:
+            if (params_.ara_time_limit == INF_DOUBLE){
+                return false;
+            }
+            // get the time elapsed
+            double time_elapsed;
+            getTimeFromStart(time_elapsed);
+            return time_elapsed > params_.ara_time_limit;
+        case ARAStarParams::EXPANSIONS:
+            if (params_.expansions_limit == INF_DOUBLE){
+                return false;
+            } else
+                return stats_.num_expanded >= params_.expansions_limit;
+        case ARAStarParams::USER:
+            return params_.timed_out_fun();
+        default:
+            // throw error Unknown type
+            std::cout << RED << "Timed out: Unknown type of ARA* timeout" << RESET << std::endl;
+            return true;
+    }
+}
+

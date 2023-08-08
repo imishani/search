@@ -37,6 +37,12 @@
 
 ims::dijkstra::dijkstra(const dijkstraParams &params) : AStar(params) {}
 
+ims::dijkstra::~dijkstra() {
+    for (auto state : states_){
+        delete state;
+    }
+}
+
 auto ims::dijkstra::getSearchState(size_t state_id) -> ims::dijkstra::SearchState * {
     assert(state_id < states_.size() && state_id >= 0);
     return states_[state_id];
@@ -68,3 +74,4 @@ bool ims::dijkstra::exhaustPlan() {
     }
 
 }
+

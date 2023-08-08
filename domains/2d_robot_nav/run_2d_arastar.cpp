@@ -27,9 +27,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   planner.hpp
+ * \file   run_2d_arastar.cpp
  * \author Itamar Mishani (imishani@cmu.edu)
- * \date   3/28/23
+ * \date   8/3/23
 */
 
 
@@ -39,122 +39,21 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-//#include <utility>
 #include <cmath>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
-//#include <opencv2/imgproc.hpp>
 
 // project includes
-#include <search/planners/astar.hpp>
+#include <search/planners/arastar.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
-
-// Note(yoraish): Leaving quotation marks include since it is a local file for the example.
 #include "action_space_2d_rob.hpp"
-
-
-double to_degrees(double rads)
-{
-    return rads * 180.0 / M_PI;
-}
-
-double roundOff(double value, unsigned char prec)
-{
-    double pow_10 = pow(10.0, (double)prec);
-    return round(value * pow_10) / pow_10;
-}
-
-
-std::vector<std::vector<int>> loadMap(const char *fname, cv::Mat& img,
-                                      std::string& type, int& width,
-                                      int& height, int scale=1) {
-
-    std::vector<std::vector<int>> map;
-    FILE *f;
-    f = fopen(fname, "r");
-
-    if (f)
-    {
-        if (fscanf(f, "type octile\nheight %d\nwidth %d\nmap\n", &height, &width))
-        {
-            map.resize(width, std::vector<int>(height));
-
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    char c;
-                    do {
-                        fscanf(f, "%c", &c);
-                    } while (isspace(c));
-
-                    map[x][y] = (c == '.' || c == 'G' || c == 'S' || c == 'T') ? 0 : 100;
-                }
-            }
-        }
-
-        fclose(f);
-    }
-
-    std::vector<std::vector<int>> scaled_map;
-    int scaled_height = scale*height;
-    int scaled_width = scale*width;
-    scaled_map.resize(scaled_width, std::vector<int>(scaled_height));
-
-    for (int y = 0; y < scaled_height; y++)
-    {
-        for (int x = 0; x < scaled_width; x++)
-        {
-            scaled_map[x][y] = map[x/scale][y/scale];
-        }
-    }
-
-    img = cv::Mat(scaled_height, scaled_width, CV_8UC3);
-
-    for (int y = 0; y < scaled_height; y++)
-    {
-        for (int x = 0; x < scaled_width; x++)
-        {
-            img.at<cv::Vec3b>(y,x) = (scaled_map[x][y] > 0) ? cv::Vec3b(0,0,0) : cv::Vec3b(255,255,255);
-        }
-    }
-
-    return scaled_map;
-}
-
-void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, std::vector<std::vector<double>>& goals, int scale, int num_runs, const std::string& path)
-{
-    std::ifstream starts_fin(path + "nav2d_starts.txt");
-    std::ifstream goals_fin(path + "nav2d_goals.txt");
-
-    for (int j = 0; j < num_runs; ++j)
-    {
-        std::vector<double> start, goal;
-        double val_start, val_goal;
-        for (int i = 0; i < 2; ++i)
-        {
-            starts_fin >> val_start;
-            goals_fin >> val_goal;
-            start.push_back(scale*val_start);
-            goal.push_back(scale*val_goal);
-        }
-        start[2] = to_degrees(start[2]);
-        goal[2] = to_degrees(goal[2]);
-        starts.emplace_back(start);
-        goals.emplace_back(goal);
-
-        double cost, length;
-        starts_fin >> cost;
-        starts_fin >> length;
-    }
-}
-
+#include "utils.hpp"
 
 
 int main(int argc, char** argv) {
 
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <path>" << std::endl;
+        std::cout << RED << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <path>" << RESET << std::endl;
         return 0;
     }
     std::vector<std::string> maps;
@@ -169,10 +68,10 @@ int main(int argc, char** argv) {
     maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/brc203d/brc203d.map");
 
     std::vector<std::string> starts_goals_path = {full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/",
-                                        full_path.string() + "/../domains/2d_robot_nav/data/den501d/",
-                                        full_path.string() + "/../domains/2d_robot_nav/data/den520d/",
-                                        full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/",
-                                        full_path.string() + "/../domains/2d_robot_nav/data/brc203d/",
+                                                  full_path.string() + "/../domains/2d_robot_nav/data/den501d/",
+                                                  full_path.string() + "/../domains/2d_robot_nav/data/den520d/",
+                                                  full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/",
+                                                  full_path.string() + "/../domains/2d_robot_nav/data/brc203d/",
     };
 
     int map_index = std::stoi(argv[1]);
@@ -194,8 +93,9 @@ int main(int argc, char** argv) {
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
     auto* heuristic = new ims::EuclideanHeuristic();
-    // initialize the heuristic
-    ims::AStarParams params (heuristic);
+    double init_epsilon = 100.0;
+    ims::ARAStarParams params (heuristic, init_epsilon, 10.0);
+    params.ara_time_limit = 0.0005;
     // construct the scene and the action space
     scene2DRob scene (map);
     actionType2dRob action_type;
@@ -216,7 +116,7 @@ int main(int argc, char** argv) {
 
         std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
         // construct planner
-        ims::AStar planner(params);
+        ims::ARAStar planner(params);
         // catch the exception if the start or goal is not valid
         try {
             planner.initializePlanner(ActionSpace, starts[i], goals[i]);
@@ -229,11 +129,12 @@ int main(int argc, char** argv) {
         std::cout << "Planning..." << std::endl;
         std::vector<StateType> path_;
         if (!planner.plan(path_)) {
-            std::cout << "No path found!" << std::endl;
+            std::cout << RED << "Couldn't find path!" << RESET << std::endl;
 //            return 0;
+            continue;
         }
         else
-            std::cout << "Path found!" << std::endl;
+            std::cout << CYAN << "Path found!" << RESET << std::endl;
 
         PlannerStats stats = planner.reportStats();
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
@@ -241,7 +142,7 @@ int main(int argc, char** argv) {
         std::cout << "Path length: " << path_.size() << std::endl;
         std::cout << "Number of nodes expanded: " << stats.num_expanded << std::endl;
         std::cout << "Number of nodes generated: " << stats.num_generated << std::endl;
-        std::cout << "suboptimality: " << stats.suboptimality << RESET << std::endl;
+        std::cout << "Suboptimality: " << stats.suboptimality << RESET << std::endl;
 
         // draw the start in red and goal in green
         img.at<cv::Vec3b>((int)starts[i][1], (int)starts[i][0]) = cv::Vec3b(0,0,255);
@@ -259,4 +160,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-

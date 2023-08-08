@@ -63,11 +63,11 @@ namespace ims{
             /// @brief The parent state
             int parent_id = UNSET;
             /// @brief The cost to come
-            double g = INF;
+            double g = INF_DOUBLE;
             /// @brief The heuristic value
             double h = -1;
             /// @brief The f value
-            double f = INF;
+            double f = INF_DOUBLE;
             /// @brief open list boolean
             bool in_open = false;
             /// @brief closed list boolean
@@ -83,6 +83,10 @@ namespace ims{
             void setClosed(){
                 in_closed = true;
                 in_open = false;
+            }
+
+            void print() override{
+                std::cout << "State: " << state_id << " Parent: " << parent_id << " g: " << g << " f: " << f << std::endl;
             }
         };
 
@@ -111,7 +115,7 @@ namespace ims{
         explicit dijkstra(const dijkstraParams &params);
 
         /// @brief Destructor
-        ~dijkstra() override = default;
+        ~dijkstra() override;
 
         bool exhaustPlan();
 

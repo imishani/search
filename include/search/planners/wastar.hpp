@@ -40,7 +40,6 @@
 // Standard includes
 #include <utility>
 #include <algorithm>
-
 // project includes
 #include <search/planners/best_first_search.hpp>
 
@@ -64,7 +63,6 @@ namespace ims{
 
     };
 
-
     /// @class wAStar class. Weighted A* algorithm
     /// @brief A weighted A* algorithm implementation. This algorithm is a modification of the A* algorithm that
     /// uses inflation of the heuristic function to find a solution with a cost that is within a factor of epsilon
@@ -74,10 +72,12 @@ namespace ims{
     private:
 
         friend class AStar;
+        friend class ExperienceWAstar;
+
         /// @brief The search state.
         struct SearchState: public ims::BestFirstSearch::SearchState{
             /// @brief The heuristic value
-            double h = -1;
+            double h {-1};
         };
 
         /// @brief The open list.
@@ -103,13 +103,21 @@ namespace ims{
         explicit wAStar(const wAStarParams &params);
 
         /// @brief Destructor
-        ~wAStar() override = default;
+        ~wAStar() override;
 
         /// @brief Initialize the planner
-        /// @param actionSpacePtr The action space
+        /// @param action_space_ptr The action space
+        /// @param starts Vector of start states
+        /// @param goals Vector of goal states
+        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                               const std::vector<StateType>& starts,
+                               const std::vector<StateType>& goals) override;
+
+        /// @brief Initialize the planner
+        /// @param action_space_ptr The action space
         /// @param start The start state
         /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                const StateType& start, const StateType& goal) override;
 
         /// @brief plan a path

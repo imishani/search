@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   planner.hpp
+ * \file   best_first_search.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
 */
@@ -68,7 +68,7 @@ namespace ims{
     private:
 
         friend class AStar; friend class wAStar; friend class Dijkstra;
-        friend class BFS; friend class plannerZero; friend class CBS;
+        friend class BFS; friend class ARAStar; friend class plannerZero; friend class CBS;
 
         /// @brief The search state.
         struct SearchState: public ims::SearchState{
@@ -76,9 +76,9 @@ namespace ims{
             /// @brief The parent state
             int parent_id = UNSET;
             /// @brief The cost to come
-            double g = INF;
+            double g = INF_DOUBLE;
             /// @brief The f value
-            double f = INF;
+            double f = INF_DOUBLE;
             /// @brief open list boolean
             bool in_open = false;
             /// @brief closed list boolean
@@ -135,13 +135,21 @@ namespace ims{
         explicit BestFirstSearch(const BestFirstSearchParams &params);
 
         /// @brief Destructor
-        ~BestFirstSearch() override = default;
+        ~BestFirstSearch() override;
 
         /// @brief Initialize the planner
-        /// @param actionSpacePtr The action space
+        /// @param action_space_ptr The action space
+        /// @param starts Vector of start states
+        /// @param goals Vector of goal states
+        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                                       const std::vector<StateType>& starts,
+                                       const std::vector<StateType>& goals) override;
+
+        /// @brief Initialize the planner
+        /// @param action_space_ptr The action space
         /// @param start The start state
         /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<ActionSpace>& actionSpacePtr,
+        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                const StateType& start, const StateType& goal) override;
 
         /// @brief plan a path
