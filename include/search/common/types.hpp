@@ -68,6 +68,7 @@ const double PI = 3.14159265358979323846;
 using StateType = std::vector<double>;
 using PathType = std::vector<StateType>;
 using Action = std::vector<double>;
+using ActionSequence = std::vector<Action>;
 using ParamsType = std::unordered_map<std::string, double>;
 
 

@@ -57,13 +57,13 @@ struct actionType2dRob : public ims::ActionType {
         this->num_actions = 8;
         this->action_names = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
         this->action_costs = {1, 1.414, 1, 1.414, 1, 1.414, 1, 1.414};
-        this->action_deltas = {{0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}, {-1, 1}};
+        this->action_prims = {{0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}, {-1, 1}};
         this->state_discretization_ = {1, 1};
     }
 
-    std::vector<Action> getActions() override{
+    std::vector<Action> getPrimActions() override{
         std::vector<Action> actions;
-        return this->action_deltas;
+        return this->action_prims;
     }
 
     void Discretization(StateType& state_des) override{
@@ -74,7 +74,7 @@ struct actionType2dRob : public ims::ActionType {
     int num_actions;
     std::vector<std::string> action_names;
     std::vector<double> action_costs;
-    std::vector<std::vector<double>> action_deltas;
+    std::vector<std::vector<double>> action_prims;
 
 };
 
@@ -91,13 +91,36 @@ public:
         this->actions_ = std::make_shared<actionType2dRob>(actions_ptr);
     }
 
+    void getActions(int state_id,
+                    std::vector<ActionSequence> &actions_seq,
+                    bool check_validity) override {
+        auto actions = actions_->getPrimActions();
+        for (int i {0} ; i < actions_->num_actions ; i++){
+            auto action = actions[i];
+            if (check_validity){
+                auto curr_state = this->getRobotState(state_id);
+                auto next_state_val = StateType(curr_state->state.size());
+                std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+                if (!isStateValid(next_state_val)){
+                    continue;
+                }
+            }
+            ActionSequence action_seq;
+            action_seq.push_back(action);
+            actions_seq.push_back(action_seq);
+        }
+    }
+
+
     bool getSuccessors(int curr_state_ind,
                        std::vector<int>& successors,
                        std::vector<double>& costs) override{
         auto curr_state = this->getRobotState(curr_state_ind);
-        auto actions = actions_->getActions();
-        for (int i {0} ; i < actions_->num_actions ; i++){
-            auto action = actions[i];
+        std::vector<ActionSequence> actions;
+        getActions(curr_state_ind, actions, false);
+
+        for (int i {0} ; i < actions.size() ; i++){
+            auto action = actions[i][0];
             auto next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
             if (isStateValid(next_state_val)){

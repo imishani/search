@@ -144,17 +144,18 @@ void ims::ExperienceWAstar::reconstructPath(std::vector<StateType> &path) {
         state_ = getSearchState(state_->parent_id);
     }
     search_path.push_back(state_->state_id);
-    std::reverse(path.begin(), path.end());
+    std::reverse(search_path.begin(), search_path.end());
     extractPath(search_path, path);
 }
 
 void ims::ExperienceWAstar::extractPath(const std::vector<int> &search_path, PathType &path) {
+    PathType temp_path;
     // check for edge cases
     if (search_path.empty()){
         return;
     }
     if (search_path.size() == 1){
-        path.push_back(action_space_ptr_->getRobotHashEntry(search_path[0])->state);
+        temp_path.push_back(action_space_ptr_->getRobotHashEntry(search_path[0])->state);
         std::cout << YELLOW << "[WARN]: Path has only one state" << RESET << std::endl;
         return;
     }
@@ -168,7 +169,7 @@ void ims::ExperienceWAstar::extractPath(const std::vector<int> &search_path, Pat
         std::cout << RED << "[ERROR]: State " << search_path[0] << " is not in the action space!" << RESET << std::endl;
         return;
     }
-    path.push_back(prev_s->state);
+    temp_path.push_back(prev_s->state);
     int prev_s_id = search_path[0];
     // loop through the path
     for (size_t i {1}; i < search_path.size(); ++i){
@@ -179,20 +180,52 @@ void ims::ExperienceWAstar::extractPath(const std::vector<int> &search_path, Pat
             std::cout << RED << "[ERROR]: State " << curr_id << " is not in the action space!" << RESET << std::endl;
             return;
         }
-        std::vector<int> succ_ids; std::vector<double> costs;
-
-        action_space_ptr_->getSuccessors(prev_s_id, succ_ids, costs);
-        /*
-         * TODO: currently we are only considering successors but we should consider
-         * all actions where an action can also be a trajectory, controller or whatever.
-        */
-        for (size_t j {0}; j < succ_ids.size(); ++j){
-            if (succ_ids[j] == curr_id){
-                path.push_back(curr_state->state);
-                break;
+        std::vector<ActionSequence> action_sequences;
+        action_space_ptr_->getActions(prev_s_id, action_sequences, true);
+        for (auto& action_sequence : action_sequences){
+            if (curr_id == goal_){
+                // check if the last point is the goal
+                if (action_sequence.back() == curr_state->state){
+                    temp_path.push_back(curr_state->state);
+                    path = temp_path;
+                    return;
+                }
+            } else {
+                // check if the last point is the goal
+                if (action_sequence.back() == curr_state->state){
+                    temp_path.push_back(curr_state->state);
+                    prev_s_id = curr_id;
+                    break;
+                }
             }
         }
+        if (prev_s_id == curr_id){
+            continue;
+        }
 
+        PathType shortcut_path;
+        bool found_shortcut = egraph_action_space_ptr_->checkShortcutTransition(prev_s_id, curr_id, shortcut_path);
+        if (found_shortcut){
+            for (auto& state : shortcut_path){
+                temp_path.push_back(state);
+            }
+            prev_s_id = curr_id;
+            continue;
+        }
 
+        PathType snap_path;
+        bool found_snap = egraph_action_space_ptr_->checkSnapTransition(prev_s_id, curr_id, snap_path);
+        if (found_snap){
+            for (auto& state : snap_path){
+                temp_path.push_back(state);
+            }
+            prev_s_id = curr_id;
+            continue;
+        }
+        std::cout << RED << "[ERROR]: Could not find transition from " << prev_s_id << " to " << curr_id << RESET << std::endl;
+        return;
     }
+
+    // Awesome! We have a path!
+    path = temp_path;
 }

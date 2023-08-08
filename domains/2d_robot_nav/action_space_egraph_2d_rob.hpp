@@ -169,6 +169,33 @@ class ActionSpaceEGraph2DRob : public actionSpace2dRob,
         return true;
     }
 
+    bool checkShortcutTransition(int first_id,
+                                 int second_id,
+                                 PathType& trans_path) override {
+        auto prev_nit = std::find(egraph_state_ids_.begin(), egraph_state_ids_.end(), first_id);
+        auto curr_nit = std::find(egraph_state_ids_.begin(), egraph_state_ids_.end(), second_id);
+        if (prev_nit != egraph_state_ids_.end() &&
+            curr_nit != egraph_state_ids_.end()) {
+            ims::smpl::ExperienceGraph::node_id prev_nid = std::distance(egraph_state_ids_.begin(), prev_nit);
+            ims::smpl::ExperienceGraph::node_id curr_nid = std::distance(egraph_state_ids_.begin(), curr_nit);
+            std::vector<ims::smpl::ExperienceGraph::node_id> node_path;
+            bool found = findShortestExperienceGraphPath(prev_nid, curr_nid, node_path);
+            if (found){
+                for (ims::smpl::ExperienceGraph::node_id n : node_path){
+                    int s_id = egraph_state_ids_[n];
+                    auto* entry = getRobotHashEntry(s_id);
+                    assert(entry);
+                    trans_path.push_back(entry->state);
+                }
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
     bool snap(int first_id, int second_id, int& cost) override {
         auto* state_1 = getRobotHashEntry(first_id);
         auto* state_2 = getRobotHashEntry(second_id);
@@ -179,6 +206,20 @@ class ActionSpaceEGraph2DRob : public actionSpace2dRob,
 
         if (isStateToStateValid(state_1->state, state_2->state)) {
             cost = 1;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    bool checkSnapTransition(int first_id,
+                             int second_id,
+                             PathType& trans_path) override {
+        int cost;
+        if (snap(first_id, second_id, cost)){
+            auto* entry = getRobotHashEntry(second_id);
+            assert(entry);
+            trans_path.push_back(entry->state);
             return true;
         } else {
             return false;

@@ -80,7 +80,7 @@ namespace std {
 namespace ims {
 
     /// @brief Action type abstract struct. This struct should be inherited by the action type
-    /// Make sure to implement the getActions() function
+    /// Make sure to implement the getPrimActions() function
     struct ActionType{
 
         /// @brief Constructor
@@ -91,7 +91,7 @@ namespace ims {
 
         /// @brief Get the possible actions
         /// @return The possible actions
-        virtual std::vector<Action> getActions() = 0;
+        virtual std::vector<Action> getPrimActions() = 0;
 
         /// @brief Get the resolution of the state space (for discretization)
         /// @param state_des The state discretization
@@ -159,6 +159,14 @@ namespace ims {
             }
         }
 
+        /// @brief Get actions
+        /// @param state_id The state id
+        /// @param actions The action sequences
+        /// @param check_validity Check if the actions are valid
+        virtual void getActions(int state_id,
+                                std::vector<ActionSequence> &actions_seq,
+                                bool check_validity) = 0;
+
         /// @brief Get Successor
         /// @param curr_state_ind The current state index
         /// @param successors The successor state
@@ -202,11 +210,29 @@ namespace ims {
         /// @param cost The cost of the shortcut
         virtual bool shortcut(int first_id, int second_id, int& cost) = 0;
 
+        /// @brief Check for shortcut transition
+        /// @param first_id The first state id
+        /// @param second_id The second state id
+        /// @param trans_path The transition path
+        /// @return True if shortcut transition exists false otherwise
+        virtual bool checkShortcutTransition(int first_id,
+                                             int second_id,
+                                             PathType& trans_path) = 0;
+
         /// @brief Definition of the snap function
         /// @param first_id The first node id
         /// @param second_id The second node id
         /// @param cost The cost of the snap
         virtual bool snap(int first_id, int second_id, int& cost) = 0;
+
+        /// @brief Check for snap transition
+        /// @param first_id The first state id
+        /// @param second_id The second state id
+        /// @param trans_path The transition path
+        /// @return True if snap transition exists false otherwise
+        virtual bool checkSnapTransition(int first_id,
+                                         int second_id,
+                                         PathType& trans_path) = 0;
 
         /// @brief Get the experience graph as a const pointer
         virtual const std::shared_ptr<smpl::ExperienceGraph> getExperienceGraph() const = 0;
@@ -216,6 +242,8 @@ namespace ims {
 
         /// @brief Get the state id of a node
         virtual int getStateID(smpl::ExperienceGraph::node_id n) const = 0;
+
+
     };
 
 }
