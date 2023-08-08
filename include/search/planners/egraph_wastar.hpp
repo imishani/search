@@ -75,9 +75,6 @@ public:
     /// @param params The parameters
     explicit ExperienceWAstar(const ExperienceWAStarParams &params);
 
-    /// @brief Destructor
-//    ~ExperienceWAstar() override;
-
     /// @brief Initialize the planner
     /// @param action_space_ptr The action space
     /// @param starts Vector of start states
@@ -101,7 +98,9 @@ public:
 
 protected:
 
-//    void setStateVals(int state_id, int parent_id, double cost) override;
+    void extractPath(const std::vector<int> &search_path, PathType &path);
+
+    void reconstructPath(std::vector<StateType> &path) override;
 
     void expand(int state_id) override;
 

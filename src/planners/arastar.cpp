@@ -304,7 +304,7 @@ void ims::ARAStar::reinitSearchState(ims::ARAStar::SearchState *state) const {
 bool ims::ARAStar::timedOut() {
     switch (params_.type_) {
         case ARAStarParams::TIME:
-            if (params_.ara_time_limit_ == INF){
+            if (params_.ara_time_limit_ == INF_DOUBLE){
                 return false;
             }
             // get the time elapsed
@@ -312,7 +312,7 @@ bool ims::ARAStar::timedOut() {
             getTimeFromStart(time_elapsed);
             return time_elapsed > params_.ara_time_limit_;
         case ARAStarParams::EXPANSIONS:
-            if (params_.expansions_limit_ == INF){
+            if (params_.expansions_limit_ == INF_DOUBLE){
                 return false;
             } else
                 return stats_.num_expanded >= params_.expansions_limit_;

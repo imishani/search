@@ -95,7 +95,7 @@ public:
             auto e_state = eg->state(*nit);
             double h;
             if (!origin_heuristic_->getHeuristic(s_state, e_state, h))
-                h = INF;
+                h = INF_DOUBLE;
             if (h <= equiv_thresh) {
                 state_ids.push_back(egraph_state_id);
             }
@@ -157,7 +157,7 @@ public:
             StateType state = eg->state(n);
             double h;
             if (!origin_heuristic_->getHeuristic(state, h))
-                h = INF;
+                h = INF_DOUBLE;
             if (shortcut_nodes_[comp_id].empty()) {
                 shortcut_nodes_[comp_id].push_back(n);
                 shortcut_heuristics[comp_id] = h;
@@ -175,7 +175,7 @@ public:
 
         /* Compute Heuristic distance for Experience Graph nodes */
 
-        h_nodes_.assign(eg->num_nodes(), INF);
+        h_nodes_.assign(eg->num_nodes(), INF_DOUBLE);
         open_.clear();
         h_nodes_[0].dist = 0;
         open_.push(&h_nodes_[0]);
@@ -194,7 +194,7 @@ public:
                     StateType& state = eg->state(state_id);
                     double h;
                     if (!origin_heuristic_->getHeuristic(state, h))
-                        h = INF;
+                        h = INF_DOUBLE;
                     n->dist = eg_epsilon_ * h;
                     open_.push(n);
                 }
@@ -223,7 +223,7 @@ public:
                         StateType& state = eg->state(nstate_id);
                         double h;
                         if (!origin_heuristic_->getHeuristic(state, h))
-                            h = INF;
+                            h = INF_DOUBLE;
                         const double new_cost = s->dist + eg_epsilon_ * h;
                         if (new_cost < n->dist) {
                             n->dist = new_cost;
@@ -262,7 +262,7 @@ public:
             StateType& state = eg_->state(state_id);
             double h;
             if (!origin_heuristic_->getHeuristic(s, state, h))
-                h = INF;
+                h = INF_DOUBLE;
             const double distance = h_nodes_[n + 1].dist;
             const double new_h = distance + eg_epsilon_ * h;
             if (new_h < best_h) {

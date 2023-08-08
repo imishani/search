@@ -76,9 +76,9 @@ namespace ims{
             /// @brief The parent state
             int parent_id = UNSET;
             /// @brief The cost to come
-            double g = INF;
+            double g = INF_DOUBLE;
             /// @brief The f value
-            double f = INF;
+            double f = INF_DOUBLE;
             /// @brief open list boolean
             bool in_open = false;
             /// @brief closed list boolean

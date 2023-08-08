@@ -7,12 +7,6 @@
 ims::ExperienceWAstar::ExperienceWAstar(const ims::ExperienceWAStarParams &params) : wAStar(params), params_(params) {
 }
 
-//ims::ExperienceWAstar::~ExperienceWAstar() {
-//    for (auto &state : states_) {
-//        delete state;
-//    }
-//}
-
 void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                               const std::vector<StateType> &starts,
                                               const std::vector<StateType> &goals) {
@@ -140,4 +134,65 @@ void ims::ExperienceWAstar::expand(int state_id) {
         }
     }
     stats_.num_expanded++;
+}
+
+void ims::ExperienceWAstar::reconstructPath(std::vector<StateType> &path) {
+    std::vector<int> search_path;
+    SearchState* state_ = getSearchState(goal_);
+    while (state_->parent_id != -1){
+        search_path.push_back(state_->state_id);
+        state_ = getSearchState(state_->parent_id);
+    }
+    search_path.push_back(state_->state_id);
+    std::reverse(path.begin(), path.end());
+    extractPath(search_path, path);
+}
+
+void ims::ExperienceWAstar::extractPath(const std::vector<int> &search_path, PathType &path) {
+    // check for edge cases
+    if (search_path.empty()){
+        return;
+    }
+    if (search_path.size() == 1){
+        path.push_back(action_space_ptr_->getRobotHashEntry(search_path[0])->state);
+        std::cout << YELLOW << "[WARN]: Path has only one state" << RESET << std::endl;
+        return;
+    }
+    if (search_path[0] == goal_){
+        std::cout << RED << "[ERROR]: Goal is the first state in the path!" << RESET << std::endl;
+        return;
+    }
+
+    auto prev_s = action_space_ptr_->getRobotHashEntry(search_path[0]);
+    if (!prev_s){
+        std::cout << RED << "[ERROR]: State " << search_path[0] << " is not in the action space!" << RESET << std::endl;
+        return;
+    }
+    path.push_back(prev_s->state);
+    int prev_s_id = search_path[0];
+    // loop through the path
+    for (size_t i {1}; i < search_path.size(); ++i){
+        int curr_id = search_path[i];
+
+        auto curr_state = action_space_ptr_->getRobotHashEntry(curr_id);
+        if (!curr_state){
+            std::cout << RED << "[ERROR]: State " << curr_id << " is not in the action space!" << RESET << std::endl;
+            return;
+        }
+        std::vector<int> succ_ids; std::vector<double> costs;
+
+        action_space_ptr_->getSuccessors(prev_s_id, succ_ids, costs);
+        /*
+         * TODO: currently we are only considering successors but we should consider
+         * all actions where an action can also be a trajectory, controller or whatever.
+        */
+        for (size_t j {0}; j < succ_ids.size(); ++j){
+            if (succ_ids[j] == curr_id){
+                path.push_back(curr_state->state);
+                break;
+            }
+        }
+
+
+    }
 }

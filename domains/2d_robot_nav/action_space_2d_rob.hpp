@@ -91,21 +91,6 @@ public:
         this->actions_ = std::make_shared<actionType2dRob>(actions_ptr);
     }
 
-    bool isStateValid(const StateType& state_val) override{
-        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
-            return false;
-        }
-        auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
-        if (map_val == 100){
-            return false;
-        }
-        return true;
-    }
-
-    bool isPathValid(const PathType& path) override{
-         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
-    }
-
     bool getSuccessors(int curr_state_ind,
                        std::vector<int>& successors,
                        std::vector<double>& costs) override{
@@ -122,6 +107,21 @@ public:
             }
         }
         return true;
+    }
+
+    bool isStateValid(const StateType& state_val) override{
+        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
+            return false;
+        }
+        auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
+        if (map_val == 100){
+            return false;
+        }
+        return true;
+    }
+
+    bool isPathValid(const PathType& path) override{
+        return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
     }
 };
 

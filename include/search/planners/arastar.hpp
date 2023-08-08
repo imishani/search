@@ -58,8 +58,8 @@ namespace ims {
                                                            epsilon_delta_(delta_epsilon),
                                                            final_epsilon_(final_epsilon){
             call_number_ = 0;
-            ara_time_limit_ = INF; // default: no time limit
-            expansions_limit_ = Infinity; // default: no expansion limit
+            ara_time_limit_ = INF_DOUBLE; // default: no time limit
+            expansions_limit_ = INF_INT; // default: no expansion limit
         }
 
         /// @brief Destructor
@@ -86,7 +86,7 @@ namespace ims {
     private:
     struct SearchState : public BestFirstSearch::SearchState {
         double h {-1} ;
-        double v {INF};
+        double v {INF_DOUBLE};
         unsigned short call_number {};
         bool in_incons {false};
     };
