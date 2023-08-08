@@ -148,24 +148,24 @@ auto ims::ARAStar::getOrCreateSearchState(int state_id) -> ims::ARAStar::SearchS
         assert(state_id < states_.size() && state_id >= 0);
         states_[state_id] = new SearchState;
         states_[state_id]->state_id = state_id;
-        states_[state_id]->call_number = params_.call_number_;
+        states_[state_id]->call_number = params_.call_number;
     }
     return states_[state_id];
 }
 
 bool ims::ARAStar::plan(std::vector<StateType> &path) {
     startTimer();
-    params_.call_number_ = 0;
+    params_.call_number = 0;
     // outer loop of ARA*
-    while (params_.epsilon >= params_.final_epsilon_){
+    while (params_.epsilon >= params_.final_epsilon){
         std::cout << MAGENTA << "Replanning with epsilon: " << params_.epsilon << RESET << std::endl;
-        if (params_.call_number_ == 0){
+        if (params_.call_number == 0){
             if (!improvePath(path)){
                 return false;
             } else {
-                params_.call_number_++;
+                params_.call_number++;
                 updateBounds();
-                if (stats_.suboptimality == params_.final_epsilon_)
+                if (stats_.suboptimality == params_.final_epsilon)
                     break;
             }
             continue;
@@ -183,9 +183,9 @@ bool ims::ARAStar::plan(std::vector<StateType> &path) {
         if (!success){ // could not improve the solution
             return true; // return true because we have a solution from previous iteration
         }
-        params_.call_number_++;
+        params_.call_number++;
         updateBounds();
-        if (stats_.suboptimality == params_.final_epsilon_)
+        if (stats_.suboptimality == params_.final_epsilon)
             break;
 
     }
@@ -204,7 +204,7 @@ bool ims::ARAStar::improvePath(std::vector<StateType> &path) {
             return true;
         }
         open_.pop();
-        state->setClosed(); state->v = state->g; //state->call_number = params_.call_number_;
+        state->setClosed(); state->v = state->g; //state->call_number = params_.call_number;
         if (isGoalState(state->state_id)){
             goal_ = state->state_id;
             getTimeFromStart(stats_.time);
@@ -292,35 +292,35 @@ void ims::ARAStar::updateBounds() {
     // update stats to current suboptimality
     stats_.suboptimality = params_.epsilon;
     // update epsilon
-    params_.epsilon -= params_.epsilon_delta_;
-    if (params_.epsilon < params_.final_epsilon_)
-        params_.epsilon = params_.final_epsilon_;
+    params_.epsilon -= params_.epsilon_delta;
+    if (params_.epsilon < params_.final_epsilon)
+        params_.epsilon = params_.final_epsilon;
 }
 
 void ims::ARAStar::reinitSearchState(ims::ARAStar::SearchState *state) const {
-    if (state->call_number != params_.call_number_){
+    if (state->call_number != params_.call_number){
         state->in_open = false;
         state->in_closed = false;
         state->in_incons = false;
-        state->call_number = params_.call_number_;
+        state->call_number = params_.call_number;
     }
 }
 
 bool ims::ARAStar::timedOut() {
-    switch (params_.type_) {
+    switch (params_.type) {
         case ARAStarParams::TIME:
-            if (params_.ara_time_limit_ == INF){
+            if (params_.ara_time_limit == INF_DOUBLE){
                 return false;
             }
             // get the time elapsed
             double time_elapsed;
             getTimeFromStart(time_elapsed);
-            return time_elapsed > params_.ara_time_limit_;
+            return time_elapsed > params_.ara_time_limit;
         case ARAStarParams::EXPANSIONS:
-            if (params_.expansions_limit_ == INF){
+            if (params_.expansions_limit == INF_DOUBLE){
                 return false;
             } else
-                return stats_.num_expanded >= params_.expansions_limit_;
+                return stats_.num_expanded >= params_.expansions_limit;
         case ARAStarParams::USER:
             return params_.timed_out_fun();
         default:

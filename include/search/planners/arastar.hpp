@@ -55,22 +55,22 @@ namespace ims {
                                double initial_epsilon,
                                double delta_epsilon,
                                double final_epsilon = 1) : wAStarParams(heuristic, initial_epsilon),
-                                                           epsilon_delta_(delta_epsilon),
-                                                           final_epsilon_(final_epsilon){
-            call_number_ = 0;
-            ara_time_limit_ = INF; // default: no time limit
-            expansions_limit_ = Infinity; // default: no expansion limit
+                                                           epsilon_delta(delta_epsilon),
+                                                           final_epsilon(final_epsilon){
+            call_number = 0;
+            ara_time_limit = INF_DOUBLE; // default: no time limit
+            expansions_limit = INF_INT; // default: no expansion limit
         }
 
         /// @brief Destructor
         ~ARAStarParams() override = default;
 
-        int call_number_;
-        double final_epsilon_, epsilon_delta_;
+        int call_number;
+        double final_epsilon, epsilon_delta;
 
-        enum timing_types {TIME, EXPANSIONS, USER} type_ = TIME;
-        double ara_time_limit_; // TIME: time limit for the search
-        int expansions_limit_; // EXPANSIONS: limit on the number of expansions
+        enum timing_types {TIME, EXPANSIONS, USER} type = TIME;
+        double ara_time_limit; // TIME: time limit for the search
+        int expansions_limit; // EXPANSIONS: limit on the number of expansions
         std::function<bool()> timed_out_fun; // USER: function to check if the search timed out
 
     };
@@ -86,7 +86,7 @@ namespace ims {
     private:
     struct SearchState : public BestFirstSearch::SearchState {
         double h {-1} ;
-        double v {INF};
+        double v {INF_DOUBLE};
         unsigned short call_number {};
         bool in_incons {false};
     };

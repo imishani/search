@@ -42,8 +42,8 @@
 #include <boost/functional/hash.hpp>
 
 // Constants
-const double INF = std::numeric_limits<double>::infinity();
-const int Infinity = std::numeric_limits<int16_t>::max();
+const double INF_DOUBLE = std::numeric_limits<double>::infinity();
+const int INF_INT = std::numeric_limits<int16_t>::max();
 const double PI = 3.14159265358979323846;
 // Colors for printing
 #define RESET   "\033[0m"
@@ -119,8 +119,8 @@ enum PARENT_TYPE {
 // Structs
 struct PlannerStats{
     double time {0};
-    double cost {INF};
-    int path_length {Infinity};
+    double cost {INF_DOUBLE};
+    int path_length {INF_INT};
 
     int num_expanded {0};
     int num_generated {0};
