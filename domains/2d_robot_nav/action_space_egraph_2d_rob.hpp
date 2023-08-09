@@ -56,7 +56,7 @@ class ActionSpaceEGraph2DRob : public actionSpace2dRob,
     /// @param env - scene interface
     /// @param actions_ptr - pointer to action type
     ActionSpaceEGraph2DRob(const scene2DRob& env, const actionType2dRob& actions_ptr) :
-            actionSpace2dRob(env, actions_ptr) {}
+            actionSpace2dRob(env, actions_ptr), ims::ExperienceGraphActionSpace() {}
 
     /// @brief interpolate between two states
     /// @param state_1 - first state

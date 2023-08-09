@@ -195,6 +195,12 @@ namespace ims {
     class ExperienceGraphActionSpace {
     public:
 
+        /// @brief Constructor
+        ExperienceGraphActionSpace() = default;
+
+        /// @brief Destructor
+        virtual ~ExperienceGraphActionSpace() = default;
+
         /// @brief Load the experience graph from a file
         /// @param path The path to the file
         virtual bool loadEGraph(const std::string &path) = 0;

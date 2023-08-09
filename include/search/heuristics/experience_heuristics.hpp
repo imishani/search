@@ -173,11 +173,11 @@ public:
                 }
             }
         }
-//
         /* Compute Heuristic distance for Experience Graph nodes */
 
         h_nodes_.assign(eg->num_nodes(), INF_DOUBLE);
         open_.clear();
+        // avoid malloc(): invalid size (unsorted)
         h_nodes_[0].dist = 0;
         open_.push(&h_nodes_[0]);
         while (!open_.empty()) {
@@ -238,7 +238,7 @@ public:
                 }
             }
         }
-        eg_ = eg;
+//        eg_ = eg;
     }
 
     bool getHeuristic(StateType& s1, StateType& s2, double& dist) override {
@@ -247,21 +247,19 @@ public:
     }
 
     bool getHeuristic(StateType& s, double& dist) override {
-        if (eg_ == nullptr) {
-            eg_ = eg_action_space_->getExperienceGraph();
-        }
-        if (!eg_) {
+        auto eg = eg_action_space_->getExperienceGraph();
+        if (!eg) {
             dist = 0; // should I return 0?
             return false;
         }
 
         double best_h; origin_heuristic_->getHeuristic(s, best_h);
         best_h *= eg_epsilon_;
-        auto nodes = eg_->nodes();
+        auto nodes = eg->nodes();
         for (auto nit = nodes.first; nit != nodes.second; ++nit) {
             const smpl::ExperienceGraph::node_id n = *nit;
             const int state_id = eg_action_space_->getStateID(n);
-            StateType& state = eg_->state(state_id);
+            StateType& state = eg->state(state_id);
             double h;
             if (!origin_heuristic_->getHeuristic(s, state, h))
                 h = INF_DOUBLE;
@@ -282,11 +280,11 @@ public:
 private:
 
 //    std::shared_ptr<SceneInterface> scene_interface_ {nullptr};
-    std::shared_ptr<BaseHeuristic> origin_heuristic_{nullptr};
+    std::shared_ptr<BaseHeuristic> origin_heuristic_;
 
-    std::shared_ptr<ExperienceGraphActionSpace> eg_action_space_ {nullptr};
+    std::shared_ptr<ExperienceGraphActionSpace> eg_action_space_ ;
 
-    std::shared_ptr<smpl::ExperienceGraph> eg_ {nullptr};
+//    std::shared_ptr<smpl::ExperienceGraph> eg_ {nullptr};
 
     double eg_epsilon_ {1.0};
 
@@ -311,7 +309,6 @@ private:
 
     std::vector<HeuristicNode> h_nodes_;
     ::smpl::IntrusiveHeap<HeuristicNode, NodeCompare> open_;
-
 };
 
 }

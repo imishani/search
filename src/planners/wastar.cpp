@@ -113,8 +113,8 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_s
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
     heuristic_->setGoal(const_cast<StateType &>(goal));
-    std::vector<ActionSequence> action_seq ;
-    action_space_ptr->getActions(0, action_seq, false);
+//    std::vector<ActionSequence> action_seq ;
+//    action_space_ptr->getActions(0, action_seq, false);
     goal_->h = 0;
     // Evaluate the start state
     start_->g = 0;

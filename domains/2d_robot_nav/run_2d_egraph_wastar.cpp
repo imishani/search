@@ -196,11 +196,7 @@ int main(int argc, char** argv) {
     std::shared_ptr<ims::EuclideanHeuristic> origin_heuristic = std::make_shared<ims::EuclideanHeuristic>();
     // construct the scene and the action space
     scene2DRob scene (map);
-    actionType2dRob action_type;
-    std::shared_ptr<ActionSpaceEGraph2DRob> action_space_egraph = std::make_shared<ActionSpaceEGraph2DRob>(scene, action_type);
-    action_space_egraph->loadEGraph(experience_path);
-    auto* heuristic = new ims::GenericEGraphHeuristic(origin_heuristic, action_space_egraph);
-    // test
+
     for (int i {0}; i < starts.size(); i++){
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
@@ -215,7 +211,11 @@ int main(int argc, char** argv) {
         // print the value in the map
         std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
-
+        actionType2dRob action_type;
+        std::shared_ptr<ActionSpaceEGraph2DRob> action_space_egraph = std::make_shared<ActionSpaceEGraph2DRob>(scene,
+                                                                                                               action_type);
+        auto* heuristic = new ims::GenericEGraphHeuristic(origin_heuristic, action_space_egraph);
+        action_space_egraph->loadEGraph(experience_path);
 
         double epsilon = 10.0;
         double epsilon_egraph = 5.0;
