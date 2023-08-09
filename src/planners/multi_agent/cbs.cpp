@@ -145,9 +145,7 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
 
         // Expand the state. This requires a check for conflicts (done right below), a branch if there are conflicts (converted to constraints, done in expand()), and a replan for each branch in light of the new constraints (also done in expand()). If no conflicts were found, then the state is a goal state, is set in goals_, and we return.
         // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the CBS class, and then passed to the action_space.
-        std::vector<std::shared_ptr<Conflict>> conflicts_ptrs;
-        agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), conflicts_ptrs, 1);
-        state->conflicts = conflicts_ptrs;
+        agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), state->conflicts, 1);
 
         // Before we actually expand the state, we check if there is even a need to do so. If there are no conflicts, then this is a goal state. Set the goal state and return.
         if (state->conflicts.empty()) {
