@@ -190,7 +190,7 @@ void ims::wAStar::expand(int state_id){
         if (successor->in_closed){
             continue;
         }
-        if (isGoalState(successor_id && params_.verbose )){
+        if (isGoalState(successor_id) && params_.verbose ){
             std::cout << "Added Goal to open list" << std::endl;
         }
         if (successor->in_open){
