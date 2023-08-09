@@ -193,14 +193,18 @@ private:
     // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
     /// @brief The search state.
     struct SearchState : public ims::BestFirstSearch::SearchState {
-        // Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
-        MultiAgentConstraintsCollective constraints_collectives;
 
         // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
         MultiAgentPaths paths;
 
         // The path costs.
         std::unordered_map<int, double> paths_costs;
+
+        // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
+        std::vector<std::shared_ptr<Conflict>> conflicts = {};
+        
+        // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
+        MultiAgentConstraintsCollective constraints_collectives;
     };
 
     /// @brief The open list. We set it to a deque for fast pop_front().

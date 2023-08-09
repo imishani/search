@@ -143,22 +143,27 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
         // Set the state to closed.
         state->setClosed();
 
-        // Expand the state. This requires a check for conflicts, a branch if there are conflicts (now constraints), and a replan for each branch in light of the new constraints. If no constraints found, the state is a goal state, is set in goals_.
-        expand(state->state_id);
-        ++iter;
+        // Expand the state. This requires a check for conflicts (done right below), a branch if there are conflicts (converted to constraints, done in expand()), and a replan for each branch in light of the new constraints (also done in expand()). If no conflicts were found, then the state is a goal state, is set in goals_, and we return.
+        // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the CBS class, and then passed to the action_space.
+        std::vector<std::shared_ptr<Conflict>> conflicts_ptrs;
+        agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), conflicts_ptrs, 1);
+        state->conflicts = conflicts_ptrs;
 
-        // Check if the state was set to the goal state.
-        if (!found_goal_search_state_ids_.empty()) {
-            // Get the goal state.
-            auto goal_search_state = getSearchState(found_goal_search_state_ids_.back());
-            std::cout << "Found goal state " << goal_search_state->state_id << std::endl;
-            goal_ = goal_search_state->state_id;
+        // Before we actually expand the state, we check if there is even a need to do so. If there are no conflicts, then this is a goal state. Set the goal state and return.
+        if (state->conflicts.empty()) {
+            std::cout << "No conflicts found. This is a goal state." << std::endl;
+            goal_ = state->state_id;
             getTimeFromStart(stats_.time);
-            stats_.cost = goal_search_state->f;
-            paths = goal_search_state->paths;
+            stats_.cost = state->f;
+            paths = state->paths;
             stats_.num_expanded = iter;
             return true;
         }
+
+        // Otherwise, expand the state.
+        expand(state->state_id);
+        ++iter;
+
     }
     getTimeFromStart(stats_.time);
     return false;
@@ -169,26 +174,11 @@ void ims::CBS::expand(int state_id) {
     std::vector<int> successors;
     std::vector<double> costs;
 
-    // Find the first conflict in the paths of the previous CBS State. Do it with:
-    // std::vector<Constraint> action_space_ptrs_[agent_id]->checkPathCollisions(std::make_shared<...>paths, conflicts);
-    // NOTE(yoraish): Instead of calling action_space_ptr_->getSuccessors(state->state_id, successors, costs); we'll generate successors here. This is because CBS does not interface with a CBS Action Space -- the SearchState in the search algorithm encodes the state too (collection of paths and constraints).
-    // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the CBS class, and then passed to the action_space.
-    std::vector<std::shared_ptr<Conflict>> conflicts_ptrs;
-    agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), conflicts_ptrs, 1);
-
-    // If there are no conflicts, then this is a goal state. Set the goal state and return.
-    if (conflicts_ptrs.empty()) {
-        std::cout << "No conflicts found. This is a goal state." << std::endl;
-        found_goal_search_state_ids_.emplace_back(state->state_id);
-        return;
-    }
-
-    // First, convert all conflicts to pairs of (agent_id, constraint). In vanilla CBS, there is only one conflict found, and that would yield two constraints. To allow for more flexibility, we do not restrict the datastore to only two constraints per conflict.
-    std::vector<std::pair<int, std::shared_ptr<Constraint>>> constraints = conflictsToConstraints(conflicts_ptrs);
+    // First, convert all conflicts to pairs of (agent_id, constraint). In vanilla CBS, there is only one conflict found from a set of paths (the first/random one), and that would yield two constraints. To allow for more flexibility, we do not restrict the data structure to only two constraints per conflict.
+    std::vector<std::pair<int, std::shared_ptr<Constraint>>> constraints = conflictsToConstraints(state->conflicts);
 
     // Second, iterate through the constraints, and for each one, create a new search state. The new search state is a copy of the previous search state, with the constraint added to the constraints collective of the agent.
     // For each constraint, split the state into branches. Each branch will be a new state in the search tree.
-    // For each conflict, create two branches. One for each agent in the conflict. In CBS the conflicts list would be at most of a length 1.
     for (auto& agent_id_constraint : constraints){
 
         // The first element is the agent ID.
@@ -209,6 +199,7 @@ void ims::CBS::expand(int state_id) {
         new_state->paths_costs = state->paths_costs;
         new_state->f = state->f;
         new_state->constraints_collectives = state->constraints_collectives;
+        // NOTE(yoraish): we do not copy over the conflicts, since they will be recomputed in the new state. We could consider keeping a history of conflicts in the search state, with new conflicts being marked as such.
 
         // Update the constraints collective to also include the new constraint.
         new_state->constraints_collectives[agent_id].addConstraint(constraint_ptr);
