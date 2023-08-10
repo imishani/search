@@ -29,11 +29,11 @@
 /*!
  * \file   constrained_search.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
- * \date   July 10 2023
+ * \date   August 10 2023
  */
 
-#ifndef SEARCH_CONSTRAINEDSEARCH_HPP
-#define SEARCH_CONSTRAINEDSEARCH_HPP
+#ifndef SEARCH_ACTIONSPACECONSTRAINABLEMIXIN_HPP
+#define SEARCH_ACTIONSPACECONSTRAINABLEMIXIN_HPP
 
 // standard includes
 #include <functional>
@@ -46,25 +46,46 @@
 #include <search/planners/planner.hpp>
 #include <search/common/constraints.hpp>
 #include <search/common/conflicts.hpp>
-#include <search/common/action_space_constrainable_mixin.hpp>
 
 namespace ims {
 
-/// @brief Base class for ActionSpaces with constraints.
-/// @details This is an actions space extended to be "Constrainable" using a mixin.
-class ConstrainedActionSpace : public ActionSpace, public ActionSpaceConstrainableMixin{
+/// @brief A trait class (mixin) for allowing an ActionSpace to be constrained.
+/// @details This class is used extend an ActionSpace with constraints. The pure virtual isConstrainedStateValid method is added, and must be implemented by the user if they want to use constraint-based search algorithms. In these algorithms, this method wil replace the familiar isStateValid method of Action Spaces. This new method is used to check if a given state is valid with respect to the constraints.
+class ActionSpaceConstrainableMixin {
 public:
     /// @brief Constructor
-    explicit ConstrainedActionSpace(): ActionSpace(), ActionSpaceConstrainableMixin() {
-        std::cout << "ConstrainedActionSpace: Constructor" << std::endl;
+    explicit ActionSpaceConstrainableMixin(){
         constraints_collective_ptr_ = std::make_shared<ConstraintsCollective>();
     }
 
     /// @brief Destructor
-    ~ConstrainedActionSpace() = default;
+    ~ActionSpaceConstrainableMixin() = default;
 
+    /// @brief Set the constraints. The ConstraintsCollective object includes (at least) two objects, a set of constraints, and a context.
+    /// @param constraints The constraints to set.
+    void setConstraintsCollective(const std::shared_ptr<ConstraintsCollective>& constraints_collective) {
+        constraints_collective_ptr_ = constraints_collective;
+    }
+
+    /// @brief Clear the constraints.
+    void clearConstraints() { constraints_collective_ptr_->clear(); }
+
+    /// @brief Set the constraints context.
+    /// @param context The constraints context to set.
+    void setConstraintsContext(const std::shared_ptr<ConstraintsContext>& context) {
+        constraints_collective_ptr_->setContext(context);
+    }
+
+    /// @brief Find conflicts given a set of paths.
+    /// @param paths The paths to check for conflicts.
+    /// @return A vector of conflicts.
+    virtual void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths, std::vector<std::shared_ptr<Conflict>>& conflicts_ptrs, int max_conflicts = 1) = 0;
+
+    // Member variables.
+    /// @brief The constraints.
+    std::shared_ptr<ConstraintsCollective> constraints_collective_ptr_;
 };
 
 }  // namespace ims
 
-#endif  // SEARCH_CONSTRAINEDSEARCH_HPP
+#endif  // SEARCH_ACTIONSPACECONSTRAINABLEMIXIN_HPP
