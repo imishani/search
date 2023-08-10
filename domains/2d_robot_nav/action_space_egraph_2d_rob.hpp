@@ -42,21 +42,85 @@
 #include <boost/filesystem.hpp>
 // package includes
 #include "action_space_2d_rob.hpp"
+#include "search/action_space/egraph_action_space.hpp"
 #include "search/common/experience_graph.hpp"
 #include "search/common/intrusive_heap.h"
 
 /// @class ActionSpaceEGraph2DRob - actionSpace2DRob with ExperienceGraph
 /// @brief this class implements the ActionSpace2DRob interface with ExperienceGraph support for the 2D Robot Navigation domain
-/// using double inheritance of two classes: ActionSpace2DRob and ExperienceGraphActionSpace
-class ActionSpaceEGraph2DRob : public actionSpace2dRob,
-                               public ims::ExperienceGraphActionSpace {
+/// using double inheritance of two classes: ActionSpace2DRob and ActionSpaceEgraphMixin
+class ActionSpaceEGraph2DRob : public ims::EGraphActionSpace {
+
+protected:
+        std::shared_ptr<scene2DRob> env_;
+        std::shared_ptr<actionType2dRob> actions_;
+
     public:
 
     /// @brief constructor
     /// @param env - scene interface
     /// @param actions_ptr - pointer to action type
-    ActionSpaceEGraph2DRob(const scene2DRob& env, const actionType2dRob& actions_ptr) :
-            actionSpace2dRob(env, actions_ptr), ims::ExperienceGraphActionSpace() {}
+    ActionSpaceEGraph2DRob(scene2DRob env,
+                           actionType2dRob actions) {
+        env_ = std::make_shared<scene2DRob>(std::move(env));
+        actions_ = std::make_shared<actionType2dRob>(std::move(actions));
+    }
+
+    void getActions(int state_id,
+                    std::vector<ActionSequence> &actions_seq,
+                    bool check_validity) override {
+        auto actions = actions_->getPrimActions();
+        for (int i {0} ; i < actions_->num_actions ; i++){
+            auto action = actions[i];
+            if (check_validity){
+                auto curr_state = this->getRobotState(state_id);
+                auto next_state_val = StateType(curr_state->state.size());
+                std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+                if (!isStateValid(next_state_val)){
+                    continue;
+                }
+            }
+            ActionSequence action_seq;
+            action_seq.push_back(action);
+            actions_seq.push_back(action_seq);
+        }
+    }
+
+
+    bool getSuccessors(int curr_state_ind,
+                       std::vector<int>& successors,
+                       std::vector<double>& costs) override{
+        auto curr_state = this->getRobotState(curr_state_ind);
+        std::vector<ActionSequence> actions;
+        getActions(curr_state_ind, actions, false);
+
+        for (int i {0} ; i < actions.size() ; i++){
+            auto action = actions[i][0];
+            auto next_state_val = StateType(curr_state->state.size());
+            std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+            if (isStateValid(next_state_val)){
+                int next_state_ind = getOrCreateRobotState(next_state_val);
+                successors.push_back(next_state_ind);
+                costs.push_back(actions_->action_costs[i]);
+            }
+        }
+        return true;
+    }
+
+    bool isStateValid(const StateType& state_val) override{
+        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
+            return false;
+        }
+        auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
+        if (map_val == 100){
+            return false;
+        }
+        return true;
+    }
+
+    bool isPathValid(const PathType& path) override{
+        return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
+    }
 
     /// @brief interpolate between two states
     /// @param state_1 - first state
@@ -90,11 +154,11 @@ class ActionSpaceEGraph2DRob : public actionSpace2dRob,
     bool isStateToStateValid(const StateType& state_1, const StateType& state_2) {
         std::vector<StateType> path;
         interpolatePath(state_1, state_2, path);
-        return actionSpace2dRob::isPathValid(path);
+        return isPathValid(path);
     }
 
 
-    /// @{ override functions from ExperienceGraphActionSpace
+    /// @{ override functions from ActionSpaceEgraphMixin
     bool loadEGraph(const std::string& path) override {
         // The path needs to be a directory containing the experience files
         // check if path is a directory
@@ -350,7 +414,7 @@ private:
     /// @param filepath - path to experience graph file
     /// @param egraph_states - vector of states in the experience graph
     /// @return true if parsing was successful, false otherwise
-    bool parseEGraphFile(const std::string& filepath,
+    static bool parseEGraphFile(const std::string& filepath,
                          PathType& egraph_states) {
         std::ifstream egraph_file(filepath);
         if (!egraph_file.is_open()) {

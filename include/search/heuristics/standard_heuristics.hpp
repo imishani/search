@@ -36,7 +36,7 @@
 #define SEARCH_STANDARDHEU_HPP
 
 
-#include "search/common/base_heuristic.hpp"
+#include "base_heuristic.hpp"
 #include "search/heuristics/experience_heuristics.hpp"
 #include "search/common/types.hpp"
 

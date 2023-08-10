@@ -27,52 +27,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   astar.hpp
+ * \file   egraph_action_space.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
- * \date   3/28/23
+ * \date   8/10/23
 */
 
+#ifndef SEARCH_SEARCH_INCLUDE_SEARCH_ACTION_SPACE_EGRAPH_ACTION_SPACE_HPP_
+#define SEARCH_SEARCH_INCLUDE_SEARCH_ACTION_SPACE_EGRAPH_ACTION_SPACE_HPP_
 
-#ifndef SEARCH_ASTAR_HPP
-#define SEARCH_ASTAR_HPP
+#include "action_space.hpp"
+#include "action_space_mixin.hpp"
 
-// standard includes
-#include <functional>
-// Standard includes
-#include <utility>
-#include <algorithm>
+namespace ims {
 
-// project includes
-#include <search/planners/wastar.hpp>
-#include "search/heuristics/base_heuristic.hpp"
+///@brief Action space for E-graph search
+class EGraphActionSpace : public ActionSpace,
+                          public ActionSpaceEgraphMixin {
 
-namespace ims{
-
-    /// @class AStarParams class.
-    /// @brief The parameters for the AStar algorithm
-    struct AStarParams : public wAStarParams{
-
-        /// @brief Constructor
-        /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit AStarParams(BaseHeuristic* heuristic) : wAStarParams(heuristic, 1.0) {
-        }
-
-        /// @brief Destructor
-        ~AStarParams() override = default;
-
-    };
-
-
-    /// @class AStar class.
-    /// @brief A* is a best first search algorithm that uses admissible heuristics and g values to find the optimal path
-    class AStar : public wAStar{
-
-    public:
-        /// @brief Constructor
-        /// @param params The parameters
-        explicit AStar(const AStarParams &params);
-    };
+};
 }
 
-
-#endif //SEARCH_ASTAR_HPP
+#endif //SEARCH_SEARCH_INCLUDE_SEARCH_ACTION_SPACE_EGRAPH_ACTION_SPACE_HPP_

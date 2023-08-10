@@ -41,9 +41,8 @@
 #include <iostream>
 
 // project includes
-#include "scene_interface.hpp"
-#include "experience_graph.hpp"
-#include "types.hpp"
+#include "search/common/scene_interface.hpp"
+#include "search/common/types.hpp"
 
 namespace ims {
 
@@ -189,68 +188,5 @@ namespace ims {
         /// @return Validity bool
         virtual bool isPathValid(const PathType& path) = 0;
     };
-
-    /// @class ExperienceGraphActionSpace class
-    /// @brief This class is used to define the action space for the experience graph
-    class ExperienceGraphActionSpace {
-    public:
-
-        /// @brief Constructor
-        ExperienceGraphActionSpace() = default;
-
-        /// @brief Destructor
-        virtual ~ExperienceGraphActionSpace() = default;
-
-        /// @brief Load the experience graph from a file
-        /// @param path The path to the file
-        virtual bool loadEGraph(const std::string &path) = 0;
-
-        /// @brief Get the E-graph nodes
-        /// @param nodes The vector to store the nodes in
-        virtual void getEGraphNodes(int state_id,
-                                    std::vector<smpl::ExperienceGraph::node_id> &nodes) = 0;
-
-        /// @brief Definition of the shortcut function
-        /// @param first_id The first node id
-        /// @param second_id The second node id
-        /// @param cost The cost of the shortcut
-        virtual bool shortcut(int first_id, int second_id, int& cost) = 0;
-
-        /// @brief Check for shortcut transition
-        /// @param first_id The first state id
-        /// @param second_id The second state id
-        /// @param trans_path The transition path
-        /// @return True if shortcut transition exists false otherwise
-        virtual bool checkShortcutTransition(int first_id,
-                                             int second_id,
-                                             PathType& trans_path) = 0;
-
-        /// @brief Definition of the snap function
-        /// @param first_id The first node id
-        /// @param second_id The second node id
-        /// @param cost The cost of the snap
-        virtual bool snap(int first_id, int second_id, int& cost) = 0;
-
-        /// @brief Check for snap transition
-        /// @param first_id The first state id
-        /// @param second_id The second state id
-        /// @param trans_path The transition path
-        /// @return True if snap transition exists false otherwise
-        virtual bool checkSnapTransition(int first_id,
-                                         int second_id,
-                                         PathType& trans_path) = 0;
-
-        /// @brief Get the experience graph as a const pointer
-        virtual const std::shared_ptr<smpl::ExperienceGraph> getExperienceGraph() const = 0;
-
-        /// @brief Get the experience graph as a pointer
-        virtual std::shared_ptr<smpl::ExperienceGraph> getExperienceGraph() = 0;
-
-        /// @brief Get the state id of a node
-        virtual int getStateID(smpl::ExperienceGraph::node_id n) const = 0;
-
-
-    };
-
 }
 #endif //SEARCH_ACTIONSPACE_HPP

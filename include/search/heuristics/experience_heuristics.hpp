@@ -38,10 +38,11 @@
 #include <iostream>
 #include <utility>
 
-#include "search/common/base_heuristic.hpp"
+#include "base_heuristic.hpp"
 #include "search/common/types.hpp"
 #include "search/common/scene_interface.hpp"
-#include "search/common/action_space.hpp"
+#include "search/action_space/action_space.hpp"
+#include "search/action_space/action_space_mixin.hpp"
 #include "search/common/intrusive_heap.h"
 
 namespace ims {
@@ -54,7 +55,7 @@ public:
     /// @param scene_interface pointer to the scene interface
     /// @param origin_heuristic pointer to the origin heuristic
     GenericEGraphHeuristic(const std::shared_ptr<BaseHeuristic>& origin_heuristic,
-                           const std::shared_ptr<ExperienceGraphActionSpace>& experience_graph_as) {
+                           const std::shared_ptr<ActionSpaceEgraphMixin>& experience_graph_as) {
 //        scene_interface_ = scene_interface;
         origin_heuristic_ = origin_heuristic;
         eg_action_space_ = experience_graph_as;
@@ -78,7 +79,7 @@ public:
 
     /// @brief Get the experience graph action space
     /// @return pointer to the experience graph action space
-    std::shared_ptr<ExperienceGraphActionSpace> getEGraphActionSpace() const {
+    std::shared_ptr<ActionSpaceEgraphMixin> getEGraphActionSpace() const {
         return eg_action_space_;
     }
 
@@ -175,6 +176,7 @@ public:
         }
         /* Compute Heuristic distance for Experience Graph nodes */
 
+        // here for some reason I get buffer overflow. fix it
         h_nodes_.assign(eg->num_nodes(), INF_DOUBLE);
         open_.clear();
         // avoid malloc(): invalid size (unsorted)
@@ -238,7 +240,7 @@ public:
                 }
             }
         }
-//        eg_ = eg;
+        int i = 0;
     }
 
     bool getHeuristic(StateType& s1, StateType& s2, double& dist) override {
@@ -282,7 +284,7 @@ private:
 //    std::shared_ptr<SceneInterface> scene_interface_ {nullptr};
     std::shared_ptr<BaseHeuristic> origin_heuristic_;
 
-    std::shared_ptr<ExperienceGraphActionSpace> eg_action_space_ ;
+    std::shared_ptr<ActionSpaceEgraphMixin> eg_action_space_ ;
 
 //    std::shared_ptr<smpl::ExperienceGraph> eg_ {nullptr};
 
@@ -306,9 +308,10 @@ private:
             return a.dist < b.dist;
         }
     };
-
-    std::vector<HeuristicNode> h_nodes_;
-    ::smpl::IntrusiveHeap<HeuristicNode, NodeCompare> open_;
+    // make sure you won't have buffer overflow
+    std::vector<HeuristicNode> h_nodes_{};
+    using OpenList_ = ::smpl::IntrusiveHeap<HeuristicNode, NodeCompare>;
+    OpenList_ open_;
 };
 
 }

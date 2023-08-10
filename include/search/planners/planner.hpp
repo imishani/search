@@ -40,7 +40,7 @@
 #include <memory>
 #include <chrono>
 // project includes
-#include <search/common/action_space.hpp>
+#include "search/action_space/action_space.hpp"
 #include <search/common/intrusive_heap.h>
 #include <search/common/types.hpp>
 

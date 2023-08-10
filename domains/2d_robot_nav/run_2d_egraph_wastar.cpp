@@ -258,6 +258,7 @@ int main(int argc, char** argv) {
         for (int j {1}; j < path_.size()-1; j++){
             img.at<cv::Vec3b>((int)path_[j][1], (int)path_[j][0]) = cv::Vec3b(255,0,0);
         }
+        delete heuristic;
     }
 
     cv::namedWindow("Map", cv::WINDOW_NORMAL);

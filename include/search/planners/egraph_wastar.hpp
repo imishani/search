@@ -41,6 +41,7 @@
 #include <algorithm>
 // project includes
 #include "search/planners/wastar.hpp"
+#include "search/action_space/egraph_action_space.hpp"
 
 namespace ims{
 
@@ -106,7 +107,7 @@ protected:
 
     ExperienceWAStarParams params_;
 
-    std::shared_ptr<ExperienceGraphActionSpace> egraph_action_space_ptr_ = nullptr;
+    std::shared_ptr<EGraphActionSpace> egraph_action_space_ptr_ = nullptr;
 
 };
 
