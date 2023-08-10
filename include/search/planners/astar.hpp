@@ -44,7 +44,7 @@
 
 // project includes
 #include <search/planners/wastar.hpp>
-#include "search/common/base_heuristic.hpp"
+#include "search/heuristics/base_heuristic.hpp"
 
 namespace ims{
 

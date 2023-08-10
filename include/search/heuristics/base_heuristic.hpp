@@ -33,7 +33,7 @@
 */
 
 // Project includes.
-#include <search/common/types.hpp>
+#include "search/common/types.hpp"
 
 #ifndef SEARCH_BASEHEURISTIC_HPP
 #define SEARCH_BASEHEURISTIC_HPP
