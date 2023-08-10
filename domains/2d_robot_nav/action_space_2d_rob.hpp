@@ -5,7 +5,7 @@
 #ifndef SEARCH_ACTIONSCENE2DROB_HPP
 #define SEARCH_ACTIONSCENE2DROB_HPP
 
-#include <search/common/action_space.hpp>
+#include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
 
 

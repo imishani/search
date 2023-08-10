@@ -36,7 +36,7 @@
 #define SEARCH_STANDARDHEU_HPP
 
 #include <eigen3/Eigen/Dense>
-#include <search/common/base_heuristic.hpp>
+#include "base_heuristic.hpp"
 #include <search/common/types.hpp>
 
 /// @brief The standard heuristic functions

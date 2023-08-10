@@ -45,7 +45,7 @@
 
 // Project includes.
 #include <search/common/conflicts.hpp>
-#include <search/common/constrained_action_space.hpp>
+#include "search/action_space/constrained_action_space.hpp"
 #include <search/common/constraints.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
 #include <search/planners/astar.hpp>

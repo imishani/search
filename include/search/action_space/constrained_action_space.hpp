@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023, Itamar Mishani
+ * Copyright (C) 2023, Yorai Shaoul
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,52 +27,44 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   astar.hpp
- * \author Itamar Mishani (imishani@cmu.edu)
- * \date   3/28/23
-*/
+ * \file   constrained_search.hpp
+ * \author Yorai Shaoul (yorai@cmu.edu)
+ * \date   July 10 2023
+ */
 
-
-#ifndef SEARCH_ASTAR_HPP
-#define SEARCH_ASTAR_HPP
+#ifndef SEARCH_CONSTRAINEDSEARCH_HPP
+#define SEARCH_CONSTRAINEDSEARCH_HPP
 
 // standard includes
 #include <functional>
-// Standard includes
-#include <utility>
 #include <algorithm>
+#include <utility>
 
 // project includes
-#include <search/planners/wastar.hpp>
+#include "action_space.hpp"
 #include "search/heuristics/base_heuristic.hpp"
+#include "search/planners/planner.hpp"
+#include "search/common/constraints.hpp"
+#include "search/common/conflicts.hpp"
+#include "action_space_constrainable_mixin.hpp"
 
-namespace ims{
+namespace ims {
 
-    /// @class AStarParams class.
-    /// @brief The parameters for the AStar algorithm
-    struct AStarParams : public wAStarParams{
+/// @brief Base class for ActionSpaces with constraints.
+/// @details This is an actions space extended to be "Constrainable" using a mixin.
+class ConstrainedActionSpace : public ActionSpace, public ActionSpaceConstrainableMixin{
+public:
+    /// @brief Constructor
+    explicit ConstrainedActionSpace(): ActionSpace(), ActionSpaceConstrainableMixin() {
+        std::cout << "ConstrainedActionSpace: Constructor" << std::endl;
+        constraints_collective_ptr_ = std::make_shared<ConstraintsCollective>();
+    }
 
-        /// @brief Constructor
-        /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit AStarParams(BaseHeuristic* heuristic) : wAStarParams(heuristic, 1.0) {
-        }
+    /// @brief Destructor
+    ~ConstrainedActionSpace() = default;
 
-        /// @brief Destructor
-        ~AStarParams() override = default;
+};
 
-    };
+}  // namespace ims
 
-
-    /// @class AStar class.
-    /// @brief A* is a best first search algorithm that uses admissible heuristics and g values to find the optimal path
-    class AStar : public wAStar{
-
-    public:
-        /// @brief Constructor
-        /// @param params The parameters
-        explicit AStar(const AStarParams &params);
-    };
-}
-
-
-#endif //SEARCH_ASTAR_HPP
+#endif  // SEARCH_CONSTRAINEDSEARCH_HPP

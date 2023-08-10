@@ -29,11 +29,11 @@
 /*!
  * \file   constrained_search.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
- * \date   July 10 2023
+ * \date   August 10 2023
  */
 
-#ifndef SEARCH_CONSTRAINEDSEARCH_HPP
-#define SEARCH_CONSTRAINEDSEARCH_HPP
+#ifndef SEARCH_ACTIONSPACECONSTRAINABLEMIXIN_HPP
+#define SEARCH_ACTIONSPACECONSTRAINABLEMIXIN_HPP
 
 // standard includes
 #include <functional>
@@ -41,32 +41,25 @@
 #include <utility>
 
 // project includes
-#include <search/common/action_space.hpp>
-#include <search/common/base_heuristic.hpp>
-#include <search/planners/planner.hpp>
-#include <search/common/constraints.hpp>
-#include <search/common/conflicts.hpp>
+#include "action_space.hpp"
+#include "search/heuristics/base_heuristic.hpp"
+#include "search/planners/planner.hpp"
+#include "search/common/constraints.hpp"
+#include "search/common/conflicts.hpp"
 
 namespace ims {
 
-/// @brief Base class for ActionSpaces with constraints.
+/// @brief A trait class (mixin) for allowing an ActionSpace to be constrained.
 /// @details This class is used extend an ActionSpace with constraints. The pure virtual isConstrainedStateValid method is added, and must be implemented by the user if they want to use constraint-based search algorithms. In these algorithms, this method wil replace the familiar isStateValid method of Action Spaces. This new method is used to check if a given state is valid with respect to the constraints.
-class ConstrainedActionSpace : public ActionSpace {
+class ActionSpaceConstrainableMixin {
 public:
     /// @brief Constructor
-    explicit ConstrainedActionSpace(){
-        std::cout << "ConstrainedActionSpace: Constructor" << std::endl;
+    explicit ActionSpaceConstrainableMixin(){
         constraints_collective_ptr_ = std::make_shared<ConstraintsCollective>();
     }
 
     /// @brief Destructor
-    ~ConstrainedActionSpace() = default;
-
-    // The additions to the ActionSpace class are the following:
-    // 1. A method to set the constraints.
-    // 2. A method to set the constraints context.
-    // 3. A method to find conflicts given a set of paths.
-    // 4. The implementation of isStateValid that takes in a state, and may use the stored constraints and paths to check if the state is valid.
+    ~ActionSpaceConstrainableMixin() = default;
 
     /// @brief Set the constraints. The ConstraintsCollective object includes (at least) two objects, a set of constraints, and a context.
     /// @param constraints The constraints to set.
@@ -83,12 +76,6 @@ public:
         constraints_collective_ptr_->setContext(context);
     }
 
-    /// @brief Reset the constrained action space.
-    void resetPlanningData() override {
-        ActionSpace::resetPlanningData();
-        // constraints_collective_ptr_->clear();
-    }
-
     /// @brief Find conflicts given a set of paths.
     /// @param paths The paths to check for conflicts.
     /// @return A vector of conflicts.
@@ -101,4 +88,4 @@ public:
 
 }  // namespace ims
 
-#endif  // SEARCH_CONSTRAINEDSEARCH_HPP
+#endif  // SEARCH_ACTIONSPACECONSTRAINABLEMIXIN_HPP

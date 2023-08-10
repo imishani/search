@@ -53,3 +53,13 @@ target_link_libraries(run_2d_rob_nav_wastar search ${OpenCV_LIBS} ${Boost_LIBRAR
 target_link_libraries(run_2d_rob_nav_arastar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
 target_link_libraries(run_2d_mapf_cbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+
+# Add an uninstall target.
+if(NOT TARGET uninstall)
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/uninstall.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake"
+        IMMEDIATE @ONLY)
+    add_custom_target(uninstall
+        COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake")
+endif()
