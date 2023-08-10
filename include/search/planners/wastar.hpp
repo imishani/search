@@ -71,7 +71,7 @@ namespace ims{
 
     private:
 
-        friend class AStar;
+        friend class AStar; friend class Dijkstra;
         friend class ExperienceWAstar;
 
         /// @brief The search state.

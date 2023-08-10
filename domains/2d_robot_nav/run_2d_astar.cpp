@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   planner.hpp
+ * \file   run_2d_astar.cpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
 */

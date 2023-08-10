@@ -41,81 +41,24 @@
 
 namespace ims{
 
-    struct dijkstraParams : public AStarParams{
+    struct DijkstraParams : public AStarParams{
 
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit dijkstraParams(ZeroHeuristic* heuristic) : AStarParams(heuristic) {
+        explicit DijkstraParams() : AStarParams(new ZeroHeuristic()) {
         }
 
         /// @brief Destructor
-        ~dijkstraParams() override = default;
+        ~DijkstraParams() override = default;
 
     };
 
 
-    class dijkstra : public AStar{
+    struct Dijkstra : public AStar{
 
-    private:
-        /// @brief The search state.
-        struct SearchState: public ims::SearchState{
-
-            /// @brief The parent state
-            int parent_id = UNSET;
-            /// @brief The cost to come
-            double g = INF_DOUBLE;
-            /// @brief The heuristic value
-            double h = -1;
-            /// @brief The f value
-            double f = INF_DOUBLE;
-            /// @brief open list boolean
-            bool in_open = false;
-            /// @brief closed list boolean
-            bool in_closed = false;
-
-            /// @brief set the state to open list (make sure it is not in closed list and if it is, update it)
-            void setOpen(){
-                in_open = true;
-                in_closed = false;
-            }
-
-            /// @brief set the state to closed list (make sure it is not in open list and if it is, update it)
-            void setClosed(){
-                in_closed = true;
-                in_open = false;
-            }
-
-            void print() override{
-                std::cout << "State: " << state_id << " Parent: " << parent_id << " g: " << g << " f: " << f << std::endl;
-            }
-        };
-
-        /// @brief The search state compare struct.
-        struct SearchStateCompare{
-            bool operator()(const SearchState& s1, const SearchState& s2) const{
-                return s1.f < s2.f;
-            }
-        };
-
-        /// @brief The open list.
-        using OpenList =  smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-        OpenList open_;
-
-        std::vector<SearchState*> states_;
-
-        /// TODO: Do I need this function?
-        /// @brief Get the state by id
-        /// @param state_id The id of the state
-        /// @return The state
-        auto getSearchState(size_t state_id) -> SearchState*;
-
-    public:
         /// @brief Constructor
         /// @param params The parameters
-        explicit dijkstra(const dijkstraParams &params);
-
-        /// @brief Destructor
-        ~dijkstra() override;
+        explicit Dijkstra(const DijkstraParams &params);
 
         bool exhaustPlan();
 
