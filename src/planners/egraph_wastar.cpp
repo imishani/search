@@ -10,6 +10,7 @@ ims::ExperienceWAstar::ExperienceWAstar(const ims::ExperienceWAStarParams &param
 void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                               const std::vector<StateType> &starts,
                                               const std::vector<StateType> &goals) {
+    // TODO: Check if its ok:
     egraph_action_space_ptr_ = std::dynamic_pointer_cast<EGraphActionSpace>(action_space_ptr);
     wAStar::initializePlanner(action_space_ptr, starts, goals);
 }
@@ -17,6 +18,7 @@ void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace>
 void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                               const StateType &start,
                                               const StateType &goal) {
+    // TODO: Check if its ok:
     egraph_action_space_ptr_ = std::dynamic_pointer_cast<EGraphActionSpace>(action_space_ptr);
     wAStar::initializePlanner(action_space_ptr, start, goal);
 }
