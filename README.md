@@ -8,7 +8,8 @@
 ### The following algorithms are implemented
 
 ---
-* **Breadth-First Search**
+* **Uninformed Search**
+  * _Breadth-First Search_
 * **Best-First Search**
   * _Dijkstra's algorithm_
   * _A* search_
