@@ -209,7 +209,7 @@ def main():
     map_np = get_map_np(paths_dict['map_path'])
 
     # Draw paths on map.
-    create_xy_time_animation(map_np, paths, duration=(1000 * 1/args.fps), inflate=0)
+    create_xy_time_animation(map_np, paths, duration=(1/args.fps), inflate=0)
 
 
 if __name__ == '__main__':
