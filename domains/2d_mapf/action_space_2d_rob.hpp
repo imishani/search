@@ -62,7 +62,7 @@ struct actionType2dRob : public ims::ActionType {
         this->state_discretization_ = {1, 1, 1};
     }
 
-    std::vector<Action> getActions() override {
+    std::vector<Action> getPrimActions() override {
         std::vector<Action> actions;
         return this->action_deltas;
     }
@@ -90,6 +90,26 @@ public:
         this->actions_ = std::make_shared<actionType2dRob>(actions_ptr);
     }
 
+    void getActions(int state_id,
+                    std::vector<ActionSequence> &actions_seq,
+                    bool check_validity) override {
+        auto actions = actions_->getPrimActions();
+        for (int i {0} ; i < actions_->num_actions ; i++){
+            auto action = actions[i];
+            if (check_validity){
+                auto curr_state = this->getRobotState(state_id);
+                auto next_state_val = StateType(curr_state->state.size());
+                std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+                if (!isStateValid(next_state_val)){
+                    continue;
+                }
+            }
+            ActionSequence action_seq;
+            action_seq.push_back(action);
+            actions_seq.push_back(action_seq);
+        }
+    }
+
     bool isStateValid(const StateType& state_val) override {
         if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]) {
             return false;
@@ -108,7 +128,7 @@ public:
 
         // Otherwise, check if the state is valid w.r.t the constraints.
         // Iterate over the constraints. Those are in the pointer to the constraints collective, within a set pointer called constraints_ptr_.
-        if (constraints_collective_ptr_->getConstraints().size() > 0) {
+        if (!constraints_collective_ptr_->getConstraints().empty()) {
             // Loop through the vector, and get a reference to each one of the elements.
             for (auto& constraint_ptr : constraints_collective_ptr_->getConstraints()) {
 
@@ -116,7 +136,7 @@ public:
                 switch (constraint_ptr->type) {
                     case ims::ConstraintType::VERTEX_CONSTRAINT: {
                         // Convert to a vertex constraint pointer to get access to its members.
-                        ims::VertexConstraint* vertex_constraint_ptr = dynamic_cast<ims::VertexConstraint*>(constraint_ptr.get());
+                        auto* vertex_constraint_ptr = dynamic_cast<ims::VertexConstraint*>(constraint_ptr.get());
                         if (vertex_constraint_ptr != nullptr) {
                             // If the constraint is a vertex constraint, check if the state is valid w.r.t the constraint.
                             if (vertex_constraint_ptr->state[0] == next_state_val[0] && vertex_constraint_ptr->state[1] == next_state_val[1] && vertex_constraint_ptr->state[2] == next_state_val[2]) {
@@ -128,7 +148,7 @@ public:
 
                     case ims::ConstraintType::EDGE_CONSTRAINT: {
                         // Convert to an edge constraint pointer to get access to its members.
-                        ims::EdgeConstraint* edge_constraint_ptr = dynamic_cast<ims::EdgeConstraint*>(constraint_ptr.get());
+                        auto* edge_constraint_ptr = dynamic_cast<ims::EdgeConstraint*>(constraint_ptr.get());
                         if (edge_constraint_ptr != nullptr) {
                             // If the constraint is an edge constraint, check if the state is valid w.r.t the constraint.
                             if (edge_constraint_ptr->from_state[0] == state_val[0] && edge_constraint_ptr->from_state[1] == state_val[1] && edge_constraint_ptr->from_state[2] == state_val[2] && edge_constraint_ptr->to_state[0] == next_state_val[0] && edge_constraint_ptr->to_state[1] == next_state_val[1] && edge_constraint_ptr->to_state[2] == next_state_val[2]) {
@@ -153,9 +173,10 @@ public:
                        std::vector<int>& successors,
                        std::vector<double>& costs) override {
         auto curr_state = this->getRobotState(curr_state_ind);
-        auto actions = actions_->getActions();
-        for (int i{0}; i < actions_->num_actions; i++) {
-            auto action = actions[i];
+        std::vector<ActionSequence> actions;
+        getActions(curr_state_ind, actions, false);
+        for (int i {0} ; i < actions.size() ; i++){
+            auto action = actions[i][0];
             auto next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
 
@@ -218,7 +239,7 @@ public:
         for (int i{0}; i < path.size() - 1; i++) {
             auto curr_state = path[i];
             auto next_state = path[i + 1];
-            auto action = actions_->getActions()[next_state[2]];
+            auto action = actions_->getPrimActions()[next_state[2]];
             cost += actions_->action_costs[next_state[2]];
         }
         return cost;
