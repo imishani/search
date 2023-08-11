@@ -48,6 +48,9 @@ void ims::BFS::initializePlanner(const std::shared_ptr<ActionSpace> &action_spac
                                     const std::vector<StateType> &goals) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
 
     if (goals.empty() || starts.empty()) {
         throw std::runtime_error("Starts or goals are empty");
@@ -89,6 +92,9 @@ void ims::BFS::initializePlanner(const std::shared_ptr<ActionSpace>& action_spac
                                    const StateType& start, const StateType& goal) {
     // Create an action space pointer.
     action_space_ptr_ = action_space_ptr;
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
 
     // Check if the start state vector is valid.
     if (!action_space_ptr_->isStateValid(start)){

@@ -70,7 +70,7 @@ using PathType = std::vector<StateType>;
 using Action = std::vector<double>;
 using ActionSequence = std::vector<Action>;
 using ParamsType = std::unordered_map<std::string, double>;
-
+using TimeType = int;
 
 enum PARENT_TYPE {
     START = -1,

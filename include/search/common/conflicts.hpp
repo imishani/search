@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023, Itamar Mishani
+ * Copyright (C) 2023, Yorai Shaoul
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,36 +27,44 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   astar.hpp
- * \author Itamar Mishani (imishani@cmu.edu)
- * \date   3/30/23
+ * \file   conflicts.hpp
+ * \author Yorai Shaoul (yorai@cmu.edu)
+ * \date   July 15 2023
 */
 
-#include <search/planners/dijkstra.hpp>
+#ifndef SEARCH_COMMON_CONFLICTS_HPP
+#define SEARCH_COMMON_CONFLICTS_HPP
 
+// standard includes
+#include <functional>
+#include <algorithm>
+#include <utility>
+#include <vector>
+#include <memory>
 
-ims::Dijkstra::Dijkstra(const DijkstraParams &params) : AStar(params) {}
+namespace ims {
 
-bool ims::Dijkstra::exhaustPlan() {
-    startTimer();
-    int iter {0};
-    while (!open_.empty()){
-        auto state  = open_.min();
-        open_.pop();
-        expand(state->state_id);
-        iter++;
-    }
-    if (isTimeOut()){
-        std::cout << "Time out!" << std::endl;
-        return false;
-    }
-    else{
-        std::cout << "Open got empty!" << std::endl;
-        // report stats
-        getTimeFromStart(stats_.time);
-        std::cout << "Time: " << stats_.time << std::endl;
-        return true;
-    }
+enum ConflictType {
+    UNSET_CONFLICT = -1,
+    VERTEX_CONFLICT = 0,
+    EDGE_CONFLICT = 1,
+};
 
-}
+/// @brief Base class for all search conflicts.
+struct Conflict {
+    /// @brief Constructor
+    explicit Conflict() = default;
 
+    /// @brief Virtual destructor.
+    virtual ~Conflict() = default;
+
+    /// @brief Getter method for all the member variables.
+    // virtual std::vector<int> getMemberVariables() const = 0;
+
+    /// @brief The type of the conflict.
+    ConflictType type;
+};
+
+}  // namespace ims
+
+#endif //SEARCH_COMMON_CONFLICTS_HPP

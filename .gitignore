@@ -5,5 +5,5 @@ cmake-build-relwithdebinfo/
 cmake-build-rosrelwithdebinfo/
 cmake-build-rosrelease/
 cmake-build-rosdebug/
-build/
+build*/
 .vscode/

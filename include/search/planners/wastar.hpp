@@ -71,7 +71,7 @@ namespace ims{
 
     private:
 
-        friend class AStar;
+        friend class AStar; friend class Dijkstra;
         friend class ExperienceWAstar;
 
         /// @brief The search state.
@@ -81,7 +81,7 @@ namespace ims{
         };
 
         /// @brief The open list.
-        using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+        using OpenList = smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
         OpenList open_;
 
         std::vector<SearchState*> states_;
@@ -124,6 +124,9 @@ namespace ims{
         /// @param path The path
         /// @return if the plan was successful or not
         bool plan(std::vector<StateType> &path) override;
+
+        /// @brief Reset the planner
+        void resetPlanningData() override;
 
 
     protected:

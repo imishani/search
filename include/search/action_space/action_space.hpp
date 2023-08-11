@@ -30,15 +30,14 @@
  * \file   action_space.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
-*/
-
+ */
 
 #ifndef SEARCH_ACTIONSPACE_HPP
 #define SEARCH_ACTIONSPACE_HPP
 
 // standard includes
-#include <memory>
 #include <iostream>
+#include <memory>
 
 // project includes
 #include "search/common/scene_interface.hpp"
@@ -187,6 +186,15 @@ namespace ims {
         /// @param path The path
         /// @return Validity bool
         virtual bool isPathValid(const PathType& path) = 0;
+
+        /// @brief Clear all the cached states data in the action space.
+        virtual void resetPlanningData() {
+            for (auto& state : states_) {
+                delete state;
+            }
+            states_.clear();
+            state_to_id_.clear();
+        }
     };
 }
 #endif //SEARCH_ACTIONSPACE_HPP

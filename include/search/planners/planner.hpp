@@ -72,6 +72,7 @@ struct SearchState : public ::smpl::HeapElement {
 //        }
 
         double time_limit_; // seconds
+        bool verbose = false;
     };
 
     ///@brief Pure virtual base class planner interface
@@ -135,7 +136,9 @@ struct SearchState : public ::smpl::HeapElement {
         /// @param path The path
         /// @return if the plan was successful or not
         virtual bool plan(std::vector<StateType>& path) = 0;
-
+        
+        /// @brief Reset all the member variables in the planner.
+        virtual void resetPlanningData() = 0;
 
     protected:
 
