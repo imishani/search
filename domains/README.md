@@ -3,12 +3,11 @@ Hello and good morning!
 
 To demonstrate the operation of Search Lib, we have prepared a number of examples for you.
 
-## Example 1: 2D A* Search
-This example demonstrates the use of the A* search algorithm in a 2D grid. The example is located in the `domains/run_2d.cpp` file. The executable is located in the `build` directory, and should be run like this:
+## Example 1: 2D Search
+These set of examples demonstrate the use of the 2D search algorithms. To run them, you will need to build the project. From the root directory, run the following commands (replace the planner-name by the specific planner you want to run):
 
 ```
-./build/run_2d <map_ix> <num_runs> <scale>
-
+./build/run_2d_rob_nav_<planner-name> <map_ix> <num_runs> <scale>
 ```
 
 where:

@@ -53,9 +53,11 @@ struct ExperienceWAStarParams : public wAStarParams{
     /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
     explicit ExperienceWAStarParams(EGraphHeuristicBase* heuristic,
                                     double epsilon,
-                                    double egraph_epsilon) : wAStarParams(heuristic, epsilon) {
+                                    double egraph_epsilon,
+                                    const std::string& experiences_dir) : wAStarParams(heuristic, epsilon) {
         this->egraph_epsilon = egraph_epsilon;
         this->egraph_heuristic = heuristic;
+        this->experiences_dir = experiences_dir;
     }
 
     /// @brief Destructor
@@ -63,6 +65,7 @@ struct ExperienceWAStarParams : public wAStarParams{
 
     double egraph_epsilon; // epsilon for the egraph
     EGraphHeuristicBase* egraph_heuristic;
+    std::string experiences_dir;
 };
 
 /// @class wAStar class. Weighted A* algorithm
@@ -104,6 +107,8 @@ protected:
     void reconstructPath(std::vector<StateType> &path) override;
 
     void expand(int state_id) override;
+
+    void syncStatesCreated();
 
     ExperienceWAStarParams params_;
 

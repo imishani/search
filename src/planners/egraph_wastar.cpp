@@ -10,9 +10,17 @@ ims::ExperienceWAstar::ExperienceWAstar(const ims::ExperienceWAStarParams &param
 void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                               const std::vector<StateType> &starts,
                                               const std::vector<StateType> &goals) {
-    // TODO: Check if its ok:
-    egraph_action_space_ptr_ = std::dynamic_pointer_cast<EGraphActionSpace>(action_space_ptr);
-    wAStar::initializePlanner(action_space_ptr, starts, goals);
+    if (goals.empty() || starts.empty()) {
+        throw std::runtime_error("Starts or goals are empty");
+    }
+
+    if (goals.size() > 1) {
+        throw std::runtime_error("Currently, only one goal is supported");
+    }
+
+    std::cout << RED << "[ERROR]: Experience planner with multiple starts is not implemented yet!" << std::endl;
+    std::cout << "      Assuming goal and start to be the first element is the vector " << RESET << std::endl;
+    initializePlanner(action_space_ptr, starts[0], goals[0]);
 }
 
 void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
@@ -20,7 +28,47 @@ void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace>
                                               const StateType &goal) {
     // TODO: Check if its ok:
     egraph_action_space_ptr_ = std::dynamic_pointer_cast<EGraphActionSpace>(action_space_ptr);
-    wAStar::initializePlanner(action_space_ptr, start, goal);
+    action_space_ptr_ = egraph_action_space_ptr_;
+    // Clear both.
+    egraph_action_space_ptr_->resetPlanningData();
+    resetPlanningData();
+
+    // check if start is valid
+    if (!egraph_action_space_ptr_->isStateValid(start)){
+        throw std::runtime_error("Start state is not valid");
+    }
+    // check if goal is valid
+    if (!egraph_action_space_ptr_->isStateValid(goal)){
+        throw std::runtime_error("Goal state is not valid");
+    }
+    int start_ind_ = egraph_action_space_ptr_->getOrCreateRobotState(start);
+    auto start_ = getOrCreateSearchState(start_ind_);
+
+    int goal_ind_ = egraph_action_space_ptr_->getOrCreateRobotState(goal);
+    auto goal_ = getOrCreateSearchState(goal_ind_);
+    goals_.push_back(goal_ind_);
+
+    // load the experience graph
+    egraph_action_space_ptr_->loadEGraph(params_.experiences_dir);
+
+    start_->parent_id = PARENT_TYPE(START);
+    goal_->parent_id = PARENT_TYPE(GOAL);
+
+    syncStatesCreated();
+
+    heuristic_->setStart(const_cast<StateType &>(start));
+    // Evaluate the goal state
+    heuristic_->setGoal(const_cast<StateType &>(goal));
+    goal_->h = 0;
+    // Evaluate the start state
+    start_->g = 0;
+    start_->h = computeHeuristic(start_ind_);
+    start_->f = start_->g + params_.epsilon*start_->h;
+    start_->setOpen();
+
+    open_.push(start_);
+    // update stats suboptimality
+    stats_.suboptimality = params_.epsilon;
 }
 
 
@@ -238,4 +286,11 @@ void ims::ExperienceWAstar::extractPath(const std::vector<int> &search_path, Pat
 
     // Awesome! We have a path!
     path = temp_path;
+}
+
+void ims::ExperienceWAstar::syncStatesCreated() {
+    // Loop through all the states in the action space and create a search state for each one
+    for (int ind {0}; ind < action_space_ptr_->states_.size(); ++ind){
+        getOrCreateSearchState(ind);
+    }
 }
