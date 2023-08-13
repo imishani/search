@@ -68,7 +68,7 @@ void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace>
 
     open_.push(start_);
     // update stats suboptimality
-    stats_.suboptimality = params_.epsilon;
+    stats_.suboptimality = params_.epsilon * params_.egraph_epsilon;
 }
 
 
