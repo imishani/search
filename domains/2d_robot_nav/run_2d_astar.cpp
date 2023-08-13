@@ -78,8 +78,16 @@ int main(int argc, char** argv) {
     int map_index = std::stoi(argv[1]);
     int num_runs = std::stoi(argv[2]);
     int scale = std::stoi(argv[3]);
-    std::string path = starts_goals_path[map_index];
+    // try to check argv[4] to check if the user wants to save the path for experience
+    bool cache = false;
+    try {
+        cache = std::stoi(argv[4]);
+    }
+    catch (std::exception& e) {
+        std::cout << YELLOW << "Didn't specify whether to save the path or not. Default is not to save." << RESET << std::endl;
+    }
 
+    std::string path = starts_goals_path[map_index];
     std::string map_file = maps[map_index];
 
     std::string type;
@@ -134,16 +142,18 @@ int main(int argc, char** argv) {
         }
         else {
             std::cout << "Path found!" << std::endl;
-            // Save the path to a file as csv
-            std::string path_file = path + "experiences/" + "path_" + std::to_string(i) + ".csv";
-            std::ofstream file(path_file);
-            // header line
-            file << "Experience," << path_.size() << "," << 2 << std::endl;
-            // write the path
-            for (int j {0}; j < path_.size(); j++){
-                file << path_[j][0] << "," << path_[j][1] << std::endl;
+            if (cache) {
+                // Save the path to a file as csv
+                std::string path_file = path + "experiences/" + "path_" + std::to_string(i) + ".csv";
+                std::ofstream file(path_file);
+                // header line
+                file << "Experience," << path_.size() << "," << 2 << std::endl;
+                // write the path
+                for (int j {0}; j < path_.size(); j++){
+                    file << path_[j][0] << "," << path_[j][1] << std::endl;
+                }
+                file.close();
             }
-            file.close();
         }
 
         PlannerStats stats = planner.reportStats();

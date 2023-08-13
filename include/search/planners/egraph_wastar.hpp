@@ -51,7 +51,7 @@ struct ExperienceWAStarParams : public wAStarParams{
 
     /// @brief Constructor
     /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-    explicit ExperienceWAStarParams(EGraphHeuristicBase* heuristic,
+    ExperienceWAStarParams(EGraphHeuristicBase* heuristic,
                                     double epsilon,
                                     double egraph_epsilon,
                                     const std::string& experiences_dir) : wAStarParams(heuristic, epsilon) {
