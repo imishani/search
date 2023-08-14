@@ -81,20 +81,20 @@ struct actionType2dRob : public ims::ActionType {
 class ConstrainedActionSpace2dRob : public ims::ConstrainedActionSpace {
 private:
     std::shared_ptr<scene2DRob> env_;
-    std::shared_ptr<actionType2dRob> action_type;
+    std::shared_ptr<actionType2dRob> action_type_;
 
 public:
     ConstrainedActionSpace2dRob(const scene2DRob& env,
                                 const actionType2dRob& actions_ptr) : ims::ConstrainedActionSpace() {
         this->env_ = std::make_shared<scene2DRob>(env);
-        this->action_type = std::make_shared<actionType2dRob>(actions_ptr);
+        this->action_type_ = std::make_shared<actionType2dRob>(actions_ptr);
     }
 
     void getActions(int state_id,
                     std::vector<ActionSequence> &action_seqs,
                     bool check_validity) override {
-        auto actions = action_type->getPrimActions();
-        for (int i {0} ; i < action_type->num_actions ; i++){
+        auto actions = action_type_->getPrimActions();
+        for (int i {0} ; i < action_type_->num_actions ; i++){
             auto action = actions[i];
             if (check_validity){
                 auto curr_state = this->getRobotState(state_id);
@@ -191,7 +191,7 @@ public:
             if (isStateValid(next_state_val)) {
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
-                costs.push_back(action_type->action_costs[i]);
+                costs.push_back(action_type_->action_costs[i]);
             }
         }
         return true;
@@ -241,8 +241,8 @@ public:
         for (int i{0}; i < path.size() - 1; i++) {
             auto curr_state = path[i];
             auto next_state = path[i + 1];
-            auto action = action_type->getPrimActions()[next_state[2]];
-            cost += action_type->action_costs[next_state[2]];
+            auto action = action_type_->getPrimActions()[next_state[2]];
+            cost += action_type_->action_costs[next_state[2]];
         }
         return cost;
     }
