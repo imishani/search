@@ -81,7 +81,7 @@ namespace ims{
         };
 
         /// @brief The open list.
-        using OpenList = smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+        using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
         OpenList open_;
 
         std::vector<SearchState*> states_;

@@ -22,7 +22,10 @@ add_library(search SHARED
         src/planners/arastar.cpp
         src/planners/bfs.cpp
         src/planners/multi_agent/cbs.cpp
-        src/common/bfs3d.cpp)
+        src/common/bfs3d.cpp
+        src/planners/egraph_wastar.cpp
+        src/common/experience_graph.cpp
+)
 
 set($(PROJECT_NAME)_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
 #set($(PROJECT_NAME)_INCLUDE_DIR include)

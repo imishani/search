@@ -37,11 +37,11 @@
 #include <vector>
 #include <memory>
 #include <iostream>
-#include <fstream>
 #include <string>
 #include <cmath>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp> // Get the cv circle.
 
 // project includes
 #include <search/planners/dijkstra.hpp>
@@ -143,6 +143,8 @@ int main(int argc, char** argv) {
         // draw the start in red and goal in green
         img.at<cv::Vec3b>((int)starts[i][1], (int)starts[i][0]) = cv::Vec3b(0,0,255);
         img.at<cv::Vec3b>((int)goals[i][1], (int)goals[i][0]) = cv::Vec3b(0,255,0);
+        cv::circle(img, cv::Point((int)starts[i][0], (int)starts[i][1]), 2, cv::Scalar(0,0,255), 1);
+        cv::circle(img, cv::Point((int)goals[i][0], (int)goals[i][1]), 2, cv::Scalar(0,255,0), 1);
 
         // draw the path in blue but skip the start and goal
         for (int j {1}; j < path_.size()-1; j++){

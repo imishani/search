@@ -42,6 +42,7 @@
 #include <cmath>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp> // Get the cv circle.
 
 // project includes
 #include <search/planners/astar.hpp>
@@ -78,8 +79,16 @@ int main(int argc, char** argv) {
     int map_index = std::stoi(argv[1]);
     int num_runs = std::stoi(argv[2]);
     int scale = std::stoi(argv[3]);
-    std::string path = starts_goals_path[map_index];
+    // try to check argv[4] to check if the user wants to save the path for experience
+    bool cache = false;
+    try {
+        cache = std::stoi(argv[4]);
+    }
+    catch (std::exception& e) {
+        std::cout << YELLOW << "Didn't specify whether to save the path or not. Default is not to save." << RESET << std::endl;
+    }
 
+    std::string path = starts_goals_path[map_index];
     std::string map_file = maps[map_index];
 
     std::string type;
@@ -132,8 +141,21 @@ int main(int argc, char** argv) {
             std::cout << "No path found!" << std::endl;
 //            return 0;
         }
-        else
+        else {
             std::cout << "Path found!" << std::endl;
+            if (cache) {
+                // Save the path to a file as csv
+                std::string path_file = path + "experiences/" + "path_" + std::to_string(i) + ".csv";
+                std::ofstream file(path_file);
+                // header line
+                file << "Experience," << path_.size() << "," << 2 << std::endl;
+                // write the path
+                for (int j {0}; j < path_.size(); j++){
+                    file << path_[j][0] << "," << path_[j][1] << std::endl;
+                }
+                file.close();
+            }
+        }
 
         PlannerStats stats = planner.reportStats();
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
@@ -146,6 +168,8 @@ int main(int argc, char** argv) {
         // draw the start in red and goal in green
         img.at<cv::Vec3b>((int)starts[i][1], (int)starts[i][0]) = cv::Vec3b(0,0,255);
         img.at<cv::Vec3b>((int)goals[i][1], (int)goals[i][0]) = cv::Vec3b(0,255,0);
+        cv::circle(img, cv::Point((int)starts[i][0], (int)starts[i][1]), 2, cv::Scalar(0,0,255), 1);
+        cv::circle(img, cv::Point((int)goals[i][0], (int)goals[i][1]), 2, cv::Scalar(0,255,0), 1);
 
         // draw the path in blue but skip the start and goal
         for (int j {1}; j < path_.size()-1; j++){

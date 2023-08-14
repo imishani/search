@@ -64,6 +64,31 @@ const double PI = 3.14159265358979323846;
 #define BOLDCYAN    "\033[1m\033[36m"      /* Bold Cyan */
 #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
 
+// Typedefs
+using StateType = std::vector<double>;
+using PathType = std::vector<StateType>;
+using Action = std::vector<double>;
+using ActionSequence = std::vector<Action>;
+using ParamsType = std::unordered_map<std::string, double>;
+using TimeType = int;
+
+enum PARENT_TYPE {
+    START = -1,
+    GOAL = -2,
+    UNSET = -3};
+
+// Structs
+struct PlannerStats{
+    double time {0};
+    double cost {INF_DOUBLE};
+    int path_length {INF_INT};
+
+    int num_expanded {0};
+    int num_generated {0};
+    int num_reopened {0};
+
+    double suboptimality {1};  // AKA: epsilon
+};
 
 template<class Key,
         class T,
@@ -104,29 +129,16 @@ struct VectorHash
     }
 };
 
-// Typedefs
-using StateType = std::vector<double>;
-using PathType = std::vector<StateType>;
-using Action = std::vector<double>;
-using ParamsType = std::unordered_map<std::string, double>;
-using TimeType = int;
 
-enum PARENT_TYPE {
-    START = -1,
-    GOAL = -2,
-    UNSET = -3};
+struct StateTypeHash {
+    typedef StateType argument_type;
+    typedef std::size_t result_type;
 
-// Structs
-struct PlannerStats{
-    double time {0};
-    double cost {INF_DOUBLE};
-    int path_length {INF_INT};
-
-    int num_expanded {0};
-    int num_generated {0};
-    int num_reopened {0};
-
-    double suboptimality {1};  // AKA: epsilon
+    result_type operator()(const argument_type& s) const {
+        auto seed = result_type(0);
+        boost::hash_combine(seed, boost::hash_range(begin(s), end(s)));
+        return seed;
+    }
 };
 
 
