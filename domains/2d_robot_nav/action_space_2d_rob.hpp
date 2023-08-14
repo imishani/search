@@ -81,20 +81,20 @@ class actionSpace2dRob : public ims::ActionSpace {
 
 protected:
     std::shared_ptr<scene2DRob> env_;
-    std::shared_ptr<actionType2dRob> actions_;
+    std::shared_ptr<actionType2dRob> action_type;
 
 public:
     actionSpace2dRob(const scene2DRob& env,
                      const actionType2dRob& actions_ptr) : ims::ActionSpace(){
         this->env_ = std::make_shared<scene2DRob>(env);
-        this->actions_ = std::make_shared<actionType2dRob>(actions_ptr);
+        this->action_type = std::make_shared<actionType2dRob>(actions_ptr);
     }
 
     void getActions(int state_id,
-                    std::vector<ActionSequence> &actions_seq,
+                    std::vector<ActionSequence> &action_seqs,
                     bool check_validity) override {
-        auto actions = actions_->getPrimActions();
-        for (int i {0} ; i < actions_->num_actions ; i++){
+        auto actions = action_type->getPrimActions();
+        for (int i {0} ; i < action_type->num_actions ; i++){
             auto action = actions[i];
             if (check_validity){
                 auto curr_state = this->getRobotState(state_id);
@@ -104,9 +104,11 @@ public:
                     continue;
                 }
             }
+            // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
+            // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
             ActionSequence action_seq;
             action_seq.push_back(action);
-            actions_seq.push_back(action_seq);
+            action_seqs.push_back(action_seq);
         }
     }
 
@@ -126,7 +128,7 @@ public:
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
-                costs.push_back(actions_->action_costs[i]);
+                costs.push_back(action_type->action_costs[i]);
             }
         }
         return true;
