@@ -224,7 +224,7 @@ public:
         return cost;
     }
 
-    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths, std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs, int max_conflicts) {
+    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths, std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs, int max_conflicts, const std::vector<std::string> & names) {
         // Loop through the paths and check for conflicts.
         // Length of the longest path.
         int max_path_length = 0;
