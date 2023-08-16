@@ -247,6 +247,17 @@ public:
     void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                            const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
+    /// @brief Initialize the planner and set the agent names.
+    /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
+    /// @param agent_names The names of the agents.
+    /// @param starts The start states for all agents.
+    /// @param goals The goal states for all agents.
+    inline void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names,
+                           const std::vector<StateType>& starts, const std::vector<StateType>& goals){
+                            agent_names_ = agent_names;
+                            initializePlanner(action_space_ptrs, starts, goals);
+                           }
+
     /// @brief plan a path
     /// @param path The path
     /// @return whether the plan was successful or not
@@ -292,6 +303,9 @@ protected:
 
     /// @brief The number of agents.
     int num_agents_;
+
+    /// @brief The names of the agents.
+    std::vector<std::string> agent_names_;
 };
 
 }  // namespace ims
