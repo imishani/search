@@ -41,10 +41,10 @@
 #include <search/planners/wastar.hpp>
 #include <utility>
 
-/// @brief The standard base_heuristic_ functions
+/// @brief The standard heuristic functions
 namespace ims {
 
-/// @brief The Euclidean distance_ base_heuristic_
+/// @brief The Euclidean distance heuristic
 struct EuclideanHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -63,12 +63,10 @@ struct EuclideanHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief The Euclidean distance_ base_heuristic_
+/// @brief The Euclidean distance heuristic
 struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
-        // Removes the time value from the state vector, and then calls the Euclidean base_heuristic_. Do this without copying the state vector.
-        // TODO(yoraish): this creates a copy of the state vectors, which may be inefficient. Find a way to do this without copying. A way to do this is to create a new state type that is a reference to the original state type.
         StateType s1_no_time = s1;
         StateType s2_no_time = s2;
         s1_no_time.pop_back();
@@ -88,7 +86,7 @@ struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
     }
 };
 
-/// @brief The Manhattan distance_ base_heuristic_
+/// @brief The Manhattan distance heuristic
 struct ManhattanHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -106,7 +104,7 @@ struct ManhattanHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief The Chebyshev distance_ base_heuristic_
+/// @brief The Chebyshev distance heuristic
 struct ChebyshevHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -125,7 +123,7 @@ struct ChebyshevHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief The Minkowski distance_ base_heuristic_
+/// @brief The Minkowski distance heuristic
 struct MinkowskiHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -144,7 +142,7 @@ struct MinkowskiHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief The Octile distance_ base_heuristic_
+/// @brief The Octile distance heuristic
 struct OctileHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -163,7 +161,7 @@ struct OctileHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief The Zero distance_ base_heuristic_
+/// @brief The Zero distance heuristic
 struct ZeroHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -185,7 +183,7 @@ struct ZeroHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief Robot joint angles distance_ base_heuristic_
+/// @brief Robot joint angles distance heuristic
 struct JointAnglesHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -208,7 +206,7 @@ struct JointAnglesHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief SE(3) distance_ base_heuristic_
+/// @brief SE(3) distance heuristic
 struct SE3HeuristicRPY : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -225,16 +223,16 @@ struct SE3HeuristicRPY : public BaseHeuristic {
             // Transform from RPY to quaternion
             Eigen::Quaterniond quat1 = Eigen::AngleAxisd(s1[5], Eigen::Vector3d::UnitZ()) * Eigen::AngleAxisd(s1[4], Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(s1[3], Eigen::Vector3d::UnitX());
             Eigen::Quaterniond quat2 = Eigen::AngleAxisd(s2[5], Eigen::Vector3d::UnitZ()) * Eigen::AngleAxisd(s2[4], Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(s2[3], Eigen::Vector3d::UnitX());
-            // get the distance_ between the positions
+            // get the distance between the positions
             dist = (pos1 - pos2).norm();
-            // get the distance_ between the orientations
+            // get the distance between the orientations
             dist += 2 * std::acos(std::min(1.0, std::abs(quat1.dot(quat2))));
             return true;
         }
     }
 };
 
-/// @brief SE(3) distance_ base_heuristic_
+/// @brief SE(3) distance heuristic
 struct SE3HeuristicQuat : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -251,9 +249,9 @@ struct SE3HeuristicQuat : public BaseHeuristic {
             // Transform from RPY to quaternion
             Eigen::Quaterniond quat1{s1[6], s1[3], s1[4], s1[5]};
             Eigen::Quaterniond quat2{s2[6], s2[3], s2[4], s2[5]};
-            // get the distance_ between the positions
+            // get the distance between the positions
             dist = (pos1 - pos2).norm();
-            // get the distance_ between the orientations
+            // get the distance between the orientations
             dist += 2 * std::acos(std::min(1.0, std::abs(quat1.dot(quat2))));
             return true;
         }

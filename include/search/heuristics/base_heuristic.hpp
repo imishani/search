@@ -40,7 +40,7 @@
 #define SEARCH_BASEHEURISTIC_HPP
 
 namespace ims{
-    /// @brief The base base_heuristic_ class
+    /// @brief The base heuristic class
     class BaseHeuristic {
     public:
         /// @brief Constructor
@@ -50,17 +50,17 @@ namespace ims{
         virtual ~BaseHeuristic()= default;
 
 
-        /// @brief This function should be implemented by the user and is the function that calculates the base_heuristic_
+        /// @brief This function should be implemented by the user and is the function that calculates the heuristic
         /// @param s1 The first state
         /// @param s2 The second state
-        /// @param dist The distance_ between the two states (output, pass by reference)
-        /// @return The base_heuristic_ value
+        /// @param dist The distance between the two states (output, pass by reference)
+        /// @return The heuristic value
         virtual bool getHeuristic(const StateType& s1, const StateType& s2, double& dist) = 0;
 
-        /// @brief An option to calculate the base_heuristic_ from a single state to the goal state
+        /// @brief An option to calculate the heuristic from a single state to the goal state
         /// @param s The state
-        /// @param dist The distance_ between the two states (output, pass by reference)
-        /// @return The base_heuristic_ value
+        /// @param dist The distance between the two states (output, pass by reference)
+        /// @return The heuristic value
         virtual bool getHeuristic(const StateType& s, double& dist) {
             if (mGoal.empty()) {
                 throw std::runtime_error("Goal state is not set");
@@ -77,7 +77,7 @@ namespace ims{
 
         /// @brief Set the start state
         /// @param start The start state
-        /// @note You have to set the start state if you want to use bfs base_heuristic_
+        /// @note You have to set the start state if you want to use bfs heuristic
         virtual void setStart(StateType& start) {
             mGoal = start;
         }
@@ -88,11 +88,11 @@ namespace ims{
     };
 
     /// @class ExperienceHeuristicBase
-    /// @brief The base class for the experience base_heuristic_
+    /// @brief The base class for the experience heuristic
     class EGraphHeuristicBase : public BaseHeuristic {
     public:
 
-        /// @brief get all state ids on the E-graph that has the same base_heuristic_ value as the given state
+        /// @brief get all state ids on the E-graph that has the same heuristic value as the given state
         /// @param s_id The state id
         /// @param state_ids The state ids (output, pass by reference)
         virtual void getEquivalentStates(int s_id, std::vector<int>& state_ids) = 0;

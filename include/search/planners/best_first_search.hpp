@@ -49,9 +49,9 @@
 namespace ims{
 
     /// @class BestFirstSearch Parameters
-    /// @note Before initializing the planner, the base_heuristic_ function must be set
-    /// So you define a base_heuristic_ function and then pass it to the constructor of the BestFirstSearchParams
-    /// @note Since this is general BestFS, the base_heuristic_ function returns an f value!
+    /// @note Before initializing the planner, the heuristic function must be set
+    /// So you define a heuristic function and then pass it to the constructor of the BestFirstSearchParams
+    /// @note Since this is general BestFS, the heuristic function returns an f value!
     struct BestFirstSearchParams : public PlannerParams{
         /// @brief Constructor
         explicit BestFirstSearchParams(BaseHeuristic* heuristic) : PlannerParams(), heuristic_(heuristic) {}
@@ -168,11 +168,11 @@ namespace ims{
         /// @param cost The cost associated with the search state. For example, in A*, this would be the f value.
         virtual void setStateVals(int state_id, int parent_id, double cost);
 
-        /// @brief Compute the base_heuristic_ value of from state s to the goal state
+        /// @brief Compute the heuristic value of from state s to the goal state
         /// @param s The state
         virtual double computeHeuristic(int state_id);
 
-        /// @brief Compute the base_heuristic_ value from state s1 to state s2
+        /// @brief Compute the heuristic value from state s1 to state s2
         /// @param s1 The state
         /// @param s2 The state
         virtual double computeHeuristic(int s1_id, int s2_id);
