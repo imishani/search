@@ -74,7 +74,7 @@ public:
 
     bool inBounds(int x, int y, int z) const;
 
-    /// \brief Return the distance_, in cells, to the nearest occupied cell.
+    /// \brief Return the distance, in cells, to the nearest occupied cell.
     ///
     /// This function is blocking if the BFS is running in parallel and a value
     /// has not yet been computed for this cell.

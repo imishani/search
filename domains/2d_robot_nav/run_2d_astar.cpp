@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
     auto* heuristic = new ims::EuclideanHeuristic();
-    // initialize the base_heuristic_
+    // initialize the heuristic
     ims::AStarParams params (heuristic);
     // construct the scene and the action space
     scene2DRob scene (map);
