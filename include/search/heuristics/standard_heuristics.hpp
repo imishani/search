@@ -38,6 +38,8 @@
 #include <eigen3/Eigen/Dense>
 #include "base_heuristic.hpp"
 #include <search/common/types.hpp>
+#include <search/planners/wastar.hpp>
+#include <utility>
 
 /// @brief The standard heuristic functions
 namespace ims {
@@ -65,8 +67,6 @@ struct EuclideanHeuristic : public BaseHeuristic {
 struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
-        // Removes the time value from the state vector, and then calls the Euclidean heuristic. Do this without copying the state vector.
-        // TODO(yoraish): this creates a copy of the state vectors, which may be inefficient. Find a way to do this without copying. A way to do this is to create a new state type that is a reference to the original state type.
         StateType s1_no_time = s1;
         StateType s2_no_time = s2;
         s1_no_time.pop_back();
@@ -256,6 +256,84 @@ struct SE3HeuristicQuat : public BaseHeuristic {
             return true;
         }
     }
+};
+
+/// @brief Local Heuristic using Dijkstra's Algorithm
+struct LocalHeuristic : public BaseHeuristic {
+
+    // Constructor
+    LocalHeuristic(std::shared_ptr<ActionSpace> action_space_ptr,
+                   BaseHeuristic* heuristic, double distance) : action_space_ptr_(std::move(action_space_ptr)),
+                                                                base_heuristic_(heuristic),
+                                                                distance_(distance) {}
+
+    //custom dijkstra class to handle escaping a local region
+    struct MyAStar : public wAStar {
+
+        double goal_distance;
+        StateType goal_center;
+
+        MyAStar(StateType goal,
+                const wAStarParams& params,
+                double distance) : goal_distance(distance),
+                                   goal_center(std::move(goal)),
+                                   wAStar(params) {}
+
+        bool isGoalState(int state_id) override {
+            StateType cur_state = action_space_ptr_->getRobotState(state_id)->state;
+            for (int i = 0; i < cur_state.size(); i++)
+            {
+                if (fabs(cur_state[i]-goal_center[i])>goal_distance)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    };
+
+    //base_heuristic_ that uses above dijkstra class
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        // check if the states are the same size
+        if (s1.size() != s2.size()) {
+            std::cout << "Error: The states are not the same size!" << std::endl;
+            return false;
+        } else {
+            wAStarParams params(base_heuristic_, 1.0);
+            // construct planner
+            MyAStar planner(s1, params, distance_);
+
+            planner.initializePlanner(action_space_ptr_, s1, s2);
+            for (int i = 0; i < s1.size(); i++)
+            {
+                if (fabs(s1[i]-s2[i])<planner.goal_distance)
+                {
+                    base_heuristic_->getHeuristic(s1, s2, dist);
+                    return true;
+                }
+            }
+            std::vector<StateType> path;
+            bool success = planner.plan(path);
+            if (success)
+            {
+                dist = planner.reportStats().cost;
+                double euclidDist = 0;
+                StateType temp_state = path[path.size()-1];
+                base_heuristic_->getHeuristic(temp_state, s2, euclidDist);
+                dist += euclidDist;
+                return true;
+            }
+            else
+            {
+                std::cout << "Error: Dijkstra's algorithm failed!" << std::endl;
+                return false;
+            }
+        }
+    }
+    std::shared_ptr<ActionSpace> action_space_ptr_;
+    BaseHeuristic* base_heuristic_;
+    double distance_;
 };
 
 }  // namespace ims

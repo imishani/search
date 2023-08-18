@@ -48,6 +48,7 @@ add_executable(run_2d_rob_nav_dijkstra domains/2d_robot_nav/run_2d_dijkstra.cpp)
 add_executable(run_2d_rob_nav_bfs domains/2d_robot_nav/run_2d_bfs.cpp)
 add_executable(run_2d_rob_nav_wastar domains/2d_robot_nav/run_2d_wastar.cpp)
 add_executable(run_2d_rob_nav_arastar domains/2d_robot_nav/run_2d_arastar.cpp)
+add_executable(run_2d_rob_nav_wastar_local_heu domains/2d_robot_nav/run_2d_wastar_local_heu.cpp)
 add_executable(run_2d_mapf_cbs domains/2d_mapf/run_2d_cbs.cpp)
 
 target_link_libraries(run_2d_rob_nav_astar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
@@ -56,6 +57,7 @@ target_link_libraries(run_2d_rob_nav_bfs search ${OpenCV_LIBS} ${Boost_LIBRARIES
 
 target_link_libraries(run_2d_rob_nav_wastar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 target_link_libraries(run_2d_rob_nav_arastar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_rob_nav_wastar_local_heu search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
 target_link_libraries(run_2d_mapf_cbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
