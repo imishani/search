@@ -188,49 +188,6 @@ struct EdgeConflict : public Conflict {
 /// @brief The CBS algorithm.
 class CBS : public BestFirstSearch {
 private:
-    // friend wAStar;
-
-    // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
-    /// @brief The search state.
-    struct SearchState : public ims::BestFirstSearch::SearchState {
-
-        // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
-        MultiAgentPaths paths;
-
-        // The path costs.
-        std::unordered_map<int, double> paths_costs;
-
-        // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
-        std::vector<std::shared_ptr<Conflict>> conflicts = {};
-        
-        // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
-        MultiAgentConstraintsCollective constraints_collectives;
-    };
-
-    /// @brief The open list. We set it to a deque for fast pop_front().
-    using OpenList = smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-    OpenList open_;
-
-    // The states that have been created.
-    std::vector<SearchState*> states_;
-
-    /// @brief Get the state by id
-    /// @param state_id The id of the state
-    /// @return The search state
-    /// @note Use this function to get search states that are already created.
-    auto getSearchState(int state_id) -> SearchState*;
-
-    /// @brief Get the state by id or create a new one if it does not exist
-    /// @param state_id The id of the state
-    /// @return The search state
-    auto getOrCreateSearchState(int state_id) -> SearchState*;
-
-    /// @brief Pad a set of paths such that they are all the maximum length.
-    /// @note The padding is done by repeating the last state and incrementing time accordingly.
-    /// @param paths The paths to pad.
-    void padPathsToMaxLength(MultiAgentPaths& paths);
-
-    std::vector<std::pair<int, std::shared_ptr<Constraint>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts);
 
 public:
     /// @brief Constructor
@@ -252,11 +209,7 @@ public:
     /// @param agent_names The names of the agents.
     /// @param starts The start states for all agents.
     /// @param goals The goal states for all agents.
-    inline void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names,
-                           const std::vector<StateType>& starts, const std::vector<StateType>& goals){
-                            agent_names_ = agent_names;
-                            initializePlanner(action_space_ptrs, starts, goals);
-                           }
+    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief plan a path
     /// @param path The path
@@ -264,6 +217,51 @@ public:
     bool plan(MultiAgentPaths& paths);
 
 protected:
+
+    // friend wAStar;
+
+    // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
+    /// @brief The search state.
+    struct SearchState : public ims::BestFirstSearch::SearchState {
+
+        // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
+        MultiAgentPaths paths;
+
+        // The path costs.
+        std::unordered_map<int, double> paths_costs;
+
+        // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
+        std::vector<std::shared_ptr<Conflict>> conflicts = {};
+        
+        // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
+        MultiAgentConstraintsCollective constraints_collectives;
+    };
+
+    /// @brief The open list. We set it to a deque for fast pop_front().
+    using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+    OpenList open_;
+
+    // The states that have been created.
+    std::vector<SearchState*> states_;
+
+    /// @brief Get the state by id
+    /// @param state_id The id of the state
+    /// @return The search state
+    /// @note Use this function to get search states that are already created.
+    auto getSearchState(int state_id) -> SearchState*;
+
+    /// @brief Get the state by id or create a new one if it does not exist
+    /// @param state_id The id of the state
+    /// @return The search state
+    auto getOrCreateSearchState(int state_id) -> SearchState*;
+
+    /// @brief Pad a set of paths such that they are all the maximum length.
+    /// @note The padding is done by repeating the last state and incrementing time accordingly.
+    /// @param paths The paths to pad.
+    void padPathsToMaxLength(MultiAgentPaths& paths);
+
+    virtual std::vector<std::pair<int, std::shared_ptr<Constraint>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts);
+
     /// @brief Set the search state struct values.
     /// @param state_id
     /// @param parent_id

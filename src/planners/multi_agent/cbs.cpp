@@ -102,13 +102,22 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
     // Show the initial paths.
     std::cout << "Initial paths:" << std::endl;
     for (auto& path : start_->paths) {
-        std::cout << "Agent " << path.first << ": ";
+        std::cout << "Agent " << path.first << ": \n";
         for (auto state : path.second) {
-            std::cout << "[" << state[0] << ", " << state[1] << ", " << state[2] << "], ";
+            std::cout << "    [";
+            for (auto val : state) {
+                std::cout << val << ", ";
+            }
+            std::cout << "], \n";
         }
         std::cout << std::endl;
     }
 }
+
+void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
+                        agent_names_ = agent_names;
+                        initializePlanner(action_space_ptrs, starts, goals);
+                        }
 
 auto ims::CBS::getSearchState(int state_id) -> ims::CBS::SearchState* {
     assert(state_id < states_.size() && state_id >= 0);
@@ -347,5 +356,6 @@ void ims::CBS::verifyStartAndGoalInputStates(const std::vector<StateType>& start
         }
     }
 
-    // TODO(yoraish): Check if the start and goal states are valid between agents. This should be done by constructing a single-step path for each agent (once all agents at start, and once all agents at goals) and checking for collisions with the to-be checkPathCollisions(all/some) that will be implemented in the ConstrainedActionSpace.
+    // TODO(yoraish): Check if the start and goal states are valid between agents. This should be done by constructing a single-step path for each agent (once all agents at start, and once all agents at goals) and checking for collisions with the to-be checkPathCollisions(all/some) that will be implemented in the ActionSpaceType.
+
 }

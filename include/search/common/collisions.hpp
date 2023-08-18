@@ -116,6 +116,11 @@ public:
     void mergeIn(const CollisionsCollective& other) {
         collisions.insert(collisions.end(), other.collisions.begin(), other.collisions.end());
     }
+
+    /// @brief Get the number of collisions.
+    int size() const {
+        return collisions.size();
+    }
 };
 
 } // namespace ims

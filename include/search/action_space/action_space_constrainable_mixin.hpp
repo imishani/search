@@ -41,11 +41,11 @@
 #include <utility>
 
 // project includes
-#include "action_space.hpp"
-#include "search/heuristics/base_heuristic.hpp"
-#include "search/planners/planner.hpp"
-#include "search/common/constraints.hpp"
-#include "search/common/conflicts.hpp"
+#include <search/action_space/action_space.hpp>
+#include <search/heuristics/base_heuristic.hpp>
+#include <search/planners/planner.hpp>
+#include <search/common/constraints.hpp>
+#include <search/common/conflicts.hpp>
 
 namespace ims {
 

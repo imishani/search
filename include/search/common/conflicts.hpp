@@ -48,6 +48,7 @@ enum ConflictType {
     UNSET_CONFLICT = -1,
     VERTEX_CONFLICT = 0,
     EDGE_CONFLICT = 1,
+    PRIVATE_GRIDS_VERTEX_CONFLICT = 2,
 };
 
 /// @brief Base class for all search conflicts.
