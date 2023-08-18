@@ -27,9 +27,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   run_2d_astar.cpp
+ * \file   run_2d_wastar_local_heu.cpp
  * \author Itamar Mishani (imishani@cmu.edu)
- * \date   3/28/23
+ * \date   8/17/23
 */
 
 
@@ -37,7 +37,6 @@
 #include <vector>
 #include <memory>
 #include <iostream>
-#include <fstream>
 #include <string>
 #include <cmath>
 #include <opencv2/core.hpp>
@@ -45,9 +44,8 @@
 #include <opencv2/imgproc.hpp> // Get the cv circle.
 
 // project includes
-#include <search/planners/astar.hpp>
+#include <search/planners/wastar.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
-
 #include "action_space_2d_rob.hpp"
 #include "utils.hpp"
 
@@ -70,25 +68,17 @@ int main(int argc, char** argv) {
     maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/brc203d/brc203d.map");
 
     std::vector<std::string> starts_goals_path = {full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/",
-                                        full_path.string() + "/../domains/2d_robot_nav/data/den501d/",
-                                        full_path.string() + "/../domains/2d_robot_nav/data/den520d/",
-                                        full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/",
-                                        full_path.string() + "/../domains/2d_robot_nav/data/brc203d/",
+                                                  full_path.string() + "/../domains/2d_robot_nav/data/den501d/",
+                                                  full_path.string() + "/../domains/2d_robot_nav/data/den520d/",
+                                                  full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/",
+                                                  full_path.string() + "/../domains/2d_robot_nav/data/brc203d/",
     };
 
     int map_index = std::stoi(argv[1]);
     int num_runs = std::stoi(argv[2]);
     int scale = std::stoi(argv[3]);
-    // try to check argv[4] to check if the user wants to save the path for experience
-    bool cache = false;
-    try {
-        cache = std::stoi(argv[4]);
-    }
-    catch (std::exception& e) {
-        std::cout << YELLOW << "Didn't specify whether to save the path or not. Default is not to save." << RESET << std::endl;
-    }
-
     std::string path = starts_goals_path[map_index];
+
     std::string map_file = maps[map_index];
 
     std::string type;
@@ -103,8 +93,9 @@ int main(int argc, char** argv) {
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
     auto* heuristic = new ims::EuclideanHeuristic();
-    // initialize the base_heuristic_
-    ims::AStarParams params (heuristic);
+
+    double epsilon = 10.0;
+
     // construct the scene and the action space
     scene2DRob scene (map);
     actionType2dRob action_type;
@@ -124,8 +115,11 @@ int main(int argc, char** argv) {
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
 
         std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
+        std::shared_ptr<actionSpace2dRob> ActionSpace2 = std::make_shared<actionSpace2dRob>(scene, action_type);
+        auto* local_heuristic = new ims::LocalHeuristic(ActionSpace2, heuristic, 4);
+        ims::wAStarParams params (local_heuristic, epsilon);
         // construct planner
-        ims::AStar planner(params);
+        ims::wAStar planner(params);
         // catch the exception if the start or goal is not valid
         try {
             planner.initializePlanner(ActionSpace, starts[i], goals[i]);
@@ -141,22 +135,8 @@ int main(int argc, char** argv) {
             std::cout << "No path found!" << std::endl;
 //            return 0;
         }
-        else {
+        else
             std::cout << "Path found!" << std::endl;
-            if (cache) {
-                // Save the path to a file as csv
-                std::string path_file = path + "experiences/" + "path_" + std::to_string(i) + ".csv";
-                std::ofstream file(path_file);
-                // header line
-                file << "Experience," << path_.size() << "," << 2 << std::endl;
-                // write the path
-                for (int j {0}; j < path_.size(); j++){
-                    file << path_[j][0] << "," << path_[j][1] << std::endl;
-                }
-                file.close();
-            }
-        }
-
         PlannerStats stats = planner.reportStats();
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
         std::cout << "cost: " << stats.cost << std::endl;
@@ -183,4 +163,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-

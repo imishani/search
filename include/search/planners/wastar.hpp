@@ -50,7 +50,7 @@ namespace ims{
     struct wAStarParams : public BestFirstSearchParams{
 
         /// @brief Constructor
-        /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
+        /// @param heuristic The base_heuristic_ function. Passing the default base_heuristic_ function will result in a uniform cost search
         explicit wAStarParams(BaseHeuristic* heuristic,
                               double epsilon) : BestFirstSearchParams(heuristic) {
             this->epsilon = epsilon;
@@ -65,7 +65,7 @@ namespace ims{
 
     /// @class wAStar class. Weighted A* algorithm
     /// @brief A weighted A* algorithm implementation. This algorithm is a modification of the A* algorithm that
-    /// uses inflation of the heuristic function to find a solution with a cost that is within a factor of epsilon
+    /// uses inflation of the base_heuristic_ function to find a solution with a cost that is within a factor of epsilon
     /// of the optimal solution (epsilon-suboptimality).
     class wAStar : public BestFirstSearch{
 
@@ -76,7 +76,7 @@ namespace ims{
 
         /// @brief The search state.
         struct SearchState: public ims::BestFirstSearch::SearchState{
-            /// @brief The heuristic value
+            /// @brief The base_heuristic_ value
             double h {-1};
         };
 

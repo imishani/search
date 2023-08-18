@@ -90,8 +90,7 @@ void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, std::vect
             start.push_back(scale*val_start);
             goal.push_back(scale*val_goal);
         }
-        start[2] = radsToDegs(start[2]);
-        goal[2] = radsToDegs(goal[2]);
+
         starts.emplace_back(start);
         goals.emplace_back(goal);
 

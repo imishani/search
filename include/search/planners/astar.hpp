@@ -53,7 +53,7 @@ namespace ims{
     struct AStarParams : public wAStarParams{
 
         /// @brief Constructor
-        /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
+        /// @param heuristic The base_heuristic_ function. Passing the default base_heuristic_ function will result in a uniform cost search
         explicit AStarParams(BaseHeuristic* heuristic) : wAStarParams(heuristic, 1.0) {
         }
 

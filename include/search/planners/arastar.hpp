@@ -50,7 +50,7 @@ namespace ims {
     struct ARAStarParams : public wAStarParams{
 
         /// @brief Constructor
-        /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
+        /// @param heuristic The base_heuristic_ function. Passing the default base_heuristic_ function will result in a uniform cost search
         explicit ARAStarParams(BaseHeuristic* heuristic,
                                double initial_epsilon,
                                double delta_epsilon,
@@ -76,7 +76,7 @@ namespace ims {
     };
 
     /// @class ARAStar class (ARA*: Anytime Repairing A*).
-    /// @brief The ARA* algorithm is an anytime heuristic search algorithm based on weighted A*.
+    /// @brief The ARA* algorithm is an anytime base_heuristic_ search algorithm based on weighted A*.
     /// The algorithm runs a series of weighted A* searches, starting with an (high) initial weight and
     /// decreasing it (decreasing bounds on the suboptimality) to return the best solution found
     /// within a given time bound. This algorithm reuses the search tree from the previous search to

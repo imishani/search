@@ -173,7 +173,7 @@ void BFS_3D::run(int x, int y, int z)
     m_queue_tail = 1;
     m_queue[0] = origin;
 
-    // initialize starting distance
+    // initialize starting distance_
     m_distance_grid[origin] = 0;
 
     m_running = true;
@@ -211,14 +211,14 @@ void BFS_3D::run_components(int gx, int gy, int gz)
         }
     }
 
-    // initialize the distance grid of the wall bfs
+    // initialize the distance_ grid of the wall bfs
     for (int i = 0; i < m_dim_xyz; ++i) {
         if (wall_bfs.m_distance_grid[i] != WALL) {
             wall_bfs.m_distance_grid[i] = UNDISCOVERED;
         }
     }
 
-    // initialize the distance grid queue
+    // initialize the distance_ grid queue
     wall_bfs.m_queue_head = 0;
     wall_bfs.m_queue_tail = 1;
 
@@ -267,7 +267,7 @@ void BFS_3D::run_components(int gx, int gy, int gz)
         ++num_iterations;
     }
 
-    // combine distance fields
+    // combine distance_ fields
     for (int i = 0; i < m_dim_xyz; ++i) {
         if (wall_bfs.m_distance_grid[i] != WALL) {
             m_distance_grid[i] = wall_bfs.m_distance_grid[i];

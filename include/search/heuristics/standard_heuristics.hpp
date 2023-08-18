@@ -38,11 +38,13 @@
 #include <eigen3/Eigen/Dense>
 #include "base_heuristic.hpp"
 #include <search/common/types.hpp>
+#include <search/planners/wastar.hpp>
+#include <utility>
 
-/// @brief The standard heuristic functions
+/// @brief The standard base_heuristic_ functions
 namespace ims {
 
-/// @brief The Euclidean distance heuristic
+/// @brief The Euclidean distance_ base_heuristic_
 struct EuclideanHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -61,11 +63,11 @@ struct EuclideanHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief The Euclidean distance heuristic
+/// @brief The Euclidean distance_ base_heuristic_
 struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
-        // Removes the time value from the state vector, and then calls the Euclidean heuristic. Do this without copying the state vector.
+        // Removes the time value from the state vector, and then calls the Euclidean base_heuristic_. Do this without copying the state vector.
         // TODO(yoraish): this creates a copy of the state vectors, which may be inefficient. Find a way to do this without copying. A way to do this is to create a new state type that is a reference to the original state type.
         StateType s1_no_time = s1;
         StateType s2_no_time = s2;
@@ -86,7 +88,7 @@ struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
     }
 };
 
-/// @brief The Manhattan distance heuristic
+/// @brief The Manhattan distance_ base_heuristic_
 struct ManhattanHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -104,7 +106,7 @@ struct ManhattanHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief The Chebyshev distance heuristic
+/// @brief The Chebyshev distance_ base_heuristic_
 struct ChebyshevHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -123,7 +125,7 @@ struct ChebyshevHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief The Minkowski distance heuristic
+/// @brief The Minkowski distance_ base_heuristic_
 struct MinkowskiHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -142,7 +144,7 @@ struct MinkowskiHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief The Octile distance heuristic
+/// @brief The Octile distance_ base_heuristic_
 struct OctileHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -161,7 +163,7 @@ struct OctileHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief The Zero distance heuristic
+/// @brief The Zero distance_ base_heuristic_
 struct ZeroHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -183,7 +185,7 @@ struct ZeroHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief Robot joint angles distance heuristic
+/// @brief Robot joint angles distance_ base_heuristic_
 struct JointAnglesHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -206,7 +208,7 @@ struct JointAnglesHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief SE(3) distance heuristic
+/// @brief SE(3) distance_ base_heuristic_
 struct SE3HeuristicRPY : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -223,16 +225,16 @@ struct SE3HeuristicRPY : public BaseHeuristic {
             // Transform from RPY to quaternion
             Eigen::Quaterniond quat1 = Eigen::AngleAxisd(s1[5], Eigen::Vector3d::UnitZ()) * Eigen::AngleAxisd(s1[4], Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(s1[3], Eigen::Vector3d::UnitX());
             Eigen::Quaterniond quat2 = Eigen::AngleAxisd(s2[5], Eigen::Vector3d::UnitZ()) * Eigen::AngleAxisd(s2[4], Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(s2[3], Eigen::Vector3d::UnitX());
-            // get the distance between the positions
+            // get the distance_ between the positions
             dist = (pos1 - pos2).norm();
-            // get the distance between the orientations
+            // get the distance_ between the orientations
             dist += 2 * std::acos(std::min(1.0, std::abs(quat1.dot(quat2))));
             return true;
         }
     }
 };
 
-/// @brief SE(3) distance heuristic
+/// @brief SE(3) distance_ base_heuristic_
 struct SE3HeuristicQuat : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -249,13 +251,91 @@ struct SE3HeuristicQuat : public BaseHeuristic {
             // Transform from RPY to quaternion
             Eigen::Quaterniond quat1{s1[6], s1[3], s1[4], s1[5]};
             Eigen::Quaterniond quat2{s2[6], s2[3], s2[4], s2[5]};
-            // get the distance between the positions
+            // get the distance_ between the positions
             dist = (pos1 - pos2).norm();
-            // get the distance between the orientations
+            // get the distance_ between the orientations
             dist += 2 * std::acos(std::min(1.0, std::abs(quat1.dot(quat2))));
             return true;
         }
     }
+};
+
+/// @brief Local Heuristic using Dijkstra's Algorithm
+struct LocalHeuristic : public BaseHeuristic {
+
+    // Constructor
+    LocalHeuristic(std::shared_ptr<ActionSpace> action_space_ptr,
+                   BaseHeuristic* heuristic, double distance) : action_space_ptr_(std::move(action_space_ptr)),
+                                                                base_heuristic_(heuristic),
+                                                                distance_(distance) {}
+
+    //custom dijkstra class to handle escaping a local region
+    struct MyAStar : public wAStar {
+
+        double goal_distance;
+        StateType goal_center;
+
+        MyAStar(StateType goal,
+                const wAStarParams& params,
+                double distance) : goal_distance(distance),
+                                   goal_center(std::move(goal)),
+                                   wAStar(params) {}
+
+        bool isGoalState(int state_id) override {
+            StateType cur_state = action_space_ptr_->getRobotState(state_id)->state;
+            for (int i = 0; i < cur_state.size(); i++)
+            {
+                if (fabs(cur_state[i]-goal_center[i])>goal_distance)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    };
+
+    //base_heuristic_ that uses above dijkstra class
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        // check if the states are the same size
+        if (s1.size() != s2.size()) {
+            std::cout << "Error: The states are not the same size!" << std::endl;
+            return false;
+        } else {
+            wAStarParams params(base_heuristic_, 1.0);
+            // construct planner
+            MyAStar planner(s1, params, distance_);
+
+            planner.initializePlanner(action_space_ptr_, s1, s2);
+            for (int i = 0; i < s1.size(); i++)
+            {
+                if (fabs(s1[i]-s2[i])<planner.goal_distance)
+                {
+                    base_heuristic_->getHeuristic(s1, s2, dist);
+                    return true;
+                }
+            }
+            std::vector<StateType> path;
+            bool success = planner.plan(path);
+            if (success)
+            {
+                dist = planner.reportStats().cost;
+                double euclidDist = 0;
+                StateType temp_state = path[path.size()-1];
+                base_heuristic_->getHeuristic(temp_state, s2, euclidDist);
+                dist += euclidDist;
+                return true;
+            }
+            else
+            {
+                std::cout << "Error: Dijkstra's algorithm failed!" << std::endl;
+                return false;
+            }
+        }
+    }
+    std::shared_ptr<ActionSpace> action_space_ptr_;
+    BaseHeuristic* base_heuristic_;
+    double distance_;
 };
 
 }  // namespace ims
