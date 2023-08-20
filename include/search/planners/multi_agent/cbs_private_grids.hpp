@@ -58,6 +58,7 @@ namespace ims {
 // ==========================
 // Related structs: Constraints
 // ==========================
+// None new ones, for now.
 
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
 using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
@@ -68,10 +69,9 @@ using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 // ==========================
 // Related structs: Conflicts
 // ==========================
-
+/// @brief A struct for storing a vertex conflict on private grids.
 struct PrivateGridsVertexConflict : public Conflict {
-    /// @brief The state vector for each agent. Could be a robot configuration.
-    /// @note Each state is within a private grid.
+    /// @brief The state vector. Could be a robot configuration.
     // We specify the states directly since their ID may change in future low-level plan iterations.
     std::vector<StateType> states;
 

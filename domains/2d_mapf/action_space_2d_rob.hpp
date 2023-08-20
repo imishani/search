@@ -39,6 +39,7 @@
 #include <search/common/conflicts.hpp>
 #include "search/action_space/constrained_action_space.hpp"
 #include <search/common/scene_interface.hpp>
+#include <search/planners/multi_agent/cbs.hpp>
 
 class scene2DRob : public ims::SceneInterface {
 public:
@@ -165,7 +166,6 @@ public:
         return true;
     }
 
-    // The error error: jump to case label is resolved by
 
     bool isPathValid(const PathType& path) override {
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val) { return isStateValid(state_val); });
@@ -208,7 +208,7 @@ public:
 
         // TODO(yoraish): currently this method runs two "find"s to check if (a) the passed state is already seen and if the current state is a goal state. The first check is done by finding the state in the state_to_id_ object, and the second by setting the last element of the state to -1 (convention for states) and searching the state_to_id_ object again. This is inefficient and it would be better to check for the state only within the goal states. Unfortunately, the goals are noo known to the action space.
         // Only check if this state is a goal state if there are no more outstanding constraints later in time.
-        if (state_time > last_constraint_time) {
+        if (state_time >= last_constraint_time) {
             // If the state is a goal state, then we should check if it exists at the current time.
             StateType state_val_wo_time = {state_val.begin(), state_val.end() - 1};
             state_val_wo_time.push_back(-1);

@@ -45,13 +45,12 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBSPrivateGri
         // Create a new constraint given the conflict.
         if (conflict_ptr->type == VERTEX_CONFLICT) {
             auto* vertex_conflict_ptr = dynamic_cast<VertexConflict*>(conflict_ptr.get());
-            // std::cout << "Conflict is a vertex conflict. At state: " << vertex_conflict_ptr->state[0] << ", " << vertex_conflict_ptr->state[1] << ", " << vertex_conflict_ptr->state[2] << std::endl;
             // Check if the conversion succeeded.
             if (vertex_conflict_ptr == nullptr) {
                 throw std::runtime_error("Conflict is a vertex conflict, but could not be converted to a VertexConflict.");
             }
 
-            // For each affected agent (2, in CBSPrivateGrids), create a new constraint, and a search state for each as well.
+            // For each affected agent (2, in CBS), create a new constraint, and down the line a search state for each as well.
             for (int agent_id : vertex_conflict_ptr->agent_ids) {
 
                 // Create a new vertex constraint.
@@ -94,7 +93,26 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBSPrivateGri
             agent_constraints.emplace_back(agent_a, std::make_shared<EdgeConstraint>(constraint_a));
             agent_constraints.emplace_back(agent_b, std::make_shared<EdgeConstraint>(constraint_b));
         }
-    }
 
+        else if (conflict_ptr->type == PRIVATE_GRIDS_VERTEX_CONFLICT) {
+            // Get the location of each of the agents. Each one is specified in its own grid.
+            auto* private_grids_vertex_conflict_ptr = dynamic_cast<PrivateGridsVertexConflict*>(conflict_ptr.get());
+            // Check if the conversion succeeded.
+            if (private_grids_vertex_conflict_ptr == nullptr) {
+                throw std::runtime_error("Conflict is a private grids vertex conflict, but could not be converted to a PrivateGridsVertexConflict.");
+            }
+
+            // For each affected agent (2, in CBS), create a new constraint, and down the line a search state for each as well.
+            for (int i = 0; i < private_grids_vertex_conflict_ptr->agent_ids.size(); i++) {
+                int agent_id = private_grids_vertex_conflict_ptr->agent_ids[i];
+
+                // Create a new vertex constraint.
+                VertexConstraint constraint = VertexConstraint(private_grids_vertex_conflict_ptr->states[i]);
+
+                // Update the constraints collective to also include the new constraint.
+                agent_constraints.emplace_back(agent_id, std::make_shared<VertexConstraint>(constraint));
+            }
+        }
+    }
     return agent_constraints;
 }

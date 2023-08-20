@@ -41,6 +41,10 @@
 #include <utility>
 #include <vector>
 #include <memory>
+#include <unordered_map>
+
+// Project includes.
+#include <search/common/types.hpp>
 
 namespace ims {
 
