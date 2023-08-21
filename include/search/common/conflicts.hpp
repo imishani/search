@@ -42,6 +42,9 @@
 #include <vector>
 #include <memory>
 
+// Project includes.
+#include <search/common/types.hpp>
+
 namespace ims {
 
 enum ConflictType {
@@ -64,6 +67,46 @@ struct Conflict {
 
     /// @brief The type of the conflict.
     ConflictType type;
+};
+
+// ==========================
+// Conflicts for CBS.
+// ==========================
+
+struct VertexConflict : public Conflict {
+    /// @brief The state vector. Could be a robot configuration.
+    // We specify the states directly since their ID may change in future low-level plan iterations.
+    StateType state;
+
+    // The agent IDs.
+    std::vector<int> agent_ids;
+
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param state The state vector.
+    explicit VertexConflict(StateType state, std::vector<int> agent_ids) : state(std::move(state)), agent_ids(std::move(agent_ids)) {
+        /// @brief The type of the Conflict.
+        type = ConflictType::VERTEX_CONFLICT;
+    }
+};
+
+// ==========================
+// Conflicts for CBS-Private-Grids
+// ==========================
+/// @brief A struct for storing a vertex conflict on private grids.
+struct PrivateGridsVertexConflict : public Conflict {
+    /// @brief The state vector. Could be a robot configuration.
+    // We specify the states directly since their ID may change in future low-level plan iterations.
+    std::vector<StateType> states;
+
+    // The agent IDs.
+    std::vector<int> agent_ids;
+
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param state The state vector.
+    explicit PrivateGridsVertexConflict(std::vector<StateType> states, std::vector<int> agent_ids) : states(std::move(states)), agent_ids(std::move(agent_ids)) {
+        /// @brief The type of the Conflict.
+        type = ConflictType::PRIVATE_GRIDS_VERTEX_CONFLICT;
+    }
 };
 
 }  // namespace ims

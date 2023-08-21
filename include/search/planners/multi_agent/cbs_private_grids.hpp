@@ -55,36 +55,11 @@
 
 namespace ims {
 
-// ==========================
-// Related structs: Constraints
-// ==========================
-// None new ones, for now.
-
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
 using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
 
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
-
-// ==========================
-// Related structs: Conflicts
-// ==========================
-/// @brief A struct for storing a vertex conflict on private grids.
-struct PrivateGridsVertexConflict : public Conflict {
-    /// @brief The state vector. Could be a robot configuration.
-    // We specify the states directly since their ID may change in future low-level plan iterations.
-    std::vector<StateType> states;
-
-    // The agent IDs.
-    std::vector<int> agent_ids;
-
-    /// @brief Constructor, allowing to set the state, time, and type.
-    /// @param state The state vector.
-    explicit PrivateGridsVertexConflict(std::vector<StateType> states, std::vector<int> agent_ids) : states(std::move(states)), agent_ids(std::move(agent_ids)) {
-        /// @brief The type of the Conflict.
-        type = ConflictType::PRIVATE_GRIDS_VERTEX_CONFLICT;
-    }
-};
 
 // ==========================
 // CBS Private Grids Algorithm.

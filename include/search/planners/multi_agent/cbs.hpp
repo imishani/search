@@ -81,99 +81,11 @@ struct CBSParams : public BestFirstSearchParams {
     bool exhaustive = false;
 };
 
-// ==========================
-// Related structs: Constraints
-// ==========================
-
-struct VertexConstraint : public Constraint {
-    /// @brief The state vector. Could be a robot configuration.
-    // We specify the states directly since their ID may change in future low-level plan iterations.
-    StateType state;
-
-    /// @brief Constructor, allowing to set the state, time, and type.
-    /// @param state The state vector.
-    explicit VertexConstraint(StateType state) : state(std::move(state)) {
-        /// @brief The type of the constraint.
-        type = ConstraintType::VERTEX_CONSTRAINT;
-    }
-
-    /// @brief String representation of the constraint.
-    /// @return The string representation.
-    std::string toString() const override {
-        std::stringstream ss;
-        ss << "VertexConstraint: "
-           << " (" ;
-        for (int i = 0; i < state.size() - 1; i++) {
-            ss << state[i] << ", ";
-        }
-        ss << state.back() << ")";
-        return ss.str();
-    }
-
-    /// @brief The time interval of the constraint.
-    std::pair<int, int> getTimeInterval() const override {
-        return std::make_pair(state.back(), state.back());
-    }
-};
-
-struct EdgeConstraint : public Constraint {
-    /// @brief The state vector. Could be a robot configuration.
-    // We specify the states directly since their ID may change in future low-level plan iterations.
-    StateType from_state;
-    StateType to_state;
-
-    /// @brief Constructor, allowing to set the state, time, and type.
-    /// @param state The state vector.
-    explicit EdgeConstraint(StateType from_state, StateType to_state) : from_state(std::move(from_state)), to_state(std::move(to_state)) {
-        /// @brief The type of the constraint.
-        type = ConstraintType::EDGE_CONSTRAINT;
-    }
-    
-    std::string toString() const override {
-        std::stringstream ss;
-        ss << "EdgeConstraint. From: (";
-        for (int i = 0; i < from_state.size() - 1; i++) {
-            ss << from_state[i] << ", ";
-        }
-        ss << from_state.back() << ") To: (";
-        for (int i = 0; i < to_state.size() - 1; i++) {
-            ss << to_state[i] << ", ";
-        }
-        ss << to_state.back() << ")";
-        return ss.str();
-    }
-
-    /// @brief The time interval of the constraint.
-    std::pair<int, int> getTimeInterval() const override {
-        return std::make_pair(from_state.back(), to_state.back());
-    }
-};
-
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
 using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
 
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
-
-// ==========================
-// Related structs: Conflicts
-// ==========================
-
-struct VertexConflict : public Conflict {
-    /// @brief The state vector. Could be a robot configuration.
-    // We specify the states directly since their ID may change in future low-level plan iterations.
-    StateType state;
-
-    // The agent IDs.
-    std::vector<int> agent_ids;
-
-    /// @brief Constructor, allowing to set the state, time, and type.
-    /// @param state The state vector.
-    explicit VertexConflict(StateType state, std::vector<int> agent_ids) : state(std::move(state)), agent_ids(std::move(agent_ids)) {
-        /// @brief The type of the Conflict.
-        type = ConflictType::VERTEX_CONFLICT;
-    }
-};
 
 struct EdgeConflict : public Conflict {
     /// @brief The state vector. Could be a robot configuration.
