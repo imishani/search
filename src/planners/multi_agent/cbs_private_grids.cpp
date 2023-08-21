@@ -43,7 +43,7 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBSPrivateGri
     // Iterate through the conflicts and convert them to constraints.
     for (auto& conflict_ptr : conflicts) {
         // Create a new constraint given the conflict.
-        if (conflict_ptr->type == VERTEX_CONFLICT) {
+        if (conflict_ptr->type == ConflictType::VERTEX) {
             auto* vertex_conflict_ptr = dynamic_cast<VertexConflict*>(conflict_ptr.get());
             // Check if the conversion succeeded.
             if (vertex_conflict_ptr == nullptr) {
@@ -62,7 +62,7 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBSPrivateGri
         }
 
         // Otherwise, if the conflict is an edge conflict, add an edge constraint to each of the two affected agents.
-        else if (conflict_ptr->type == EDGE_CONFLICT) {
+        else if (conflict_ptr->type == ConflictType::EDGE) {
             auto* edge_conflict_ptr = dynamic_cast<EdgeConflict*>(conflict_ptr.get());
 
             // Check if the conversion succeeded.
@@ -94,7 +94,7 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBSPrivateGri
             agent_constraints.emplace_back(agent_b, std::make_shared<EdgeConstraint>(constraint_b));
         }
 
-        else if (conflict_ptr->type == PRIVATE_GRIDS_VERTEX_CONFLICT) {
+        else if (conflict_ptr->type == ConflictType::PRIVATE_GRIDS_VERTEX) {
             // Get the location of each of the agents. Each one is specified in its own grid.
             auto* private_grids_vertex_conflict_ptr = dynamic_cast<PrivateGridsVertexConflict*>(conflict_ptr.get());
             // Check if the conversion succeeded.

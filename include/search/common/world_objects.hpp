@@ -46,6 +46,8 @@ struct WorldObject{};
 struct SphereWorldObject : public WorldObject{
     double radius;
     Eigen::Vector3d origin;
+
+    SphereWorldObject(Eigen::Vector3d origin, double radius) : origin(origin), radius(radius) {}
 };
 
 

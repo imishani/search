@@ -141,7 +141,7 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
     int iter{0};
     while (!open_.empty() && !isTimeOut()) {
         // Report progress every 100 iterations
-        if (iter % 10000 == 0) {
+        if (iter % 10 == 0) {
             std::cout << "CBS CT open size: " << open_.size() << std::endl;
         }
 
@@ -154,7 +154,11 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
 
         // Expand the state. This requires a check for conflicts (done right below), a branch if there are conflicts (converted to constraints, done in expand()), and a replan for each branch in light of the new constraints (also done in expand()). If no conflicts were found, then the state is a goal state, is set in goals_, and we return.
         // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the CBS class, and then passed to the action_space.
-        agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), state->conflicts, 1, agent_names_);
+        agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), 
+                                                       state->conflicts, 
+                                                       conflict_types_,
+                                                       1, 
+                                                       agent_names_);
 
         // Before we actually expand the state, we check if there is even a need to do so. If there are no conflicts, then this is a goal state. Set the goal state and return.
         if (state->conflicts.empty()) {
@@ -271,7 +275,7 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBS::conflict
     // Iterate through the conflicts and convert them to constraints.
     for (auto& conflict_ptr : conflicts) {
         // Create a new constraint given the conflict.
-        if (conflict_ptr->type == VERTEX_CONFLICT) {
+        if (conflict_ptr->type == ConflictType::VERTEX) {
             auto* vertex_conflict_ptr = dynamic_cast<VertexConflict*>(conflict_ptr.get());
             // std::cout << "Conflict is a vertex conflict. At state: " << vertex_conflict_ptr->state[0] << ", " << vertex_conflict_ptr->state[1] << ", " << vertex_conflict_ptr->state[2] << std::endl;
             // Check if the conversion succeeded.
@@ -291,7 +295,7 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBS::conflict
         }
 
         // Otherwise, if the conflict is an edge conflict, add an edge constraint to each of the two affected agents.
-        else if (conflict_ptr->type == EDGE_CONFLICT) {
+        else if (conflict_ptr->type == ConflictType::EDGE) {
             auto* edge_conflict_ptr = dynamic_cast<EdgeConflict*>(conflict_ptr.get());
 
             // Check if the conversion succeeded.

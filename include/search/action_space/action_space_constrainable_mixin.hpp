@@ -79,7 +79,17 @@ public:
     /// @brief Find conflicts given a set of paths.
     /// @param paths The paths to check for conflicts.
     /// @return A vector of conflicts.
-    virtual void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths, std::vector<std::shared_ptr<Conflict>>& conflicts_ptrs, int max_conflicts = 1, const std::vector<std::string>& names = {}) = 0;
+    /// @brief Ask for conflicts between paths.
+    /// @param paths The paths to be looked at.
+    /// @param conflicts_ptrs The conflicts that were found. This is populated by the function.
+    /// @param conflict_types The types of conflicts that are requested.
+    /// @param max_conflicts The maximum number of conflicts to return.
+    /// @param names The names of the agents.
+    virtual void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths, 
+                           std::vector<std::shared_ptr<Conflict>> &conflicts_ptrs, 
+                           const std::vector<ConflictType> &conflict_types,
+                           int max_conflicts, 
+                           const std::vector<std::string> &names) = 0;
 
     // Member variables.
     /// @brief The constraints.

@@ -101,7 +101,7 @@ struct EdgeConflict : public Conflict {
     /// @param state The state vector.
     explicit EdgeConflict(StateType from_state, StateType to_state, int agent_id_from, int agent_id_to) : from_state(std::move(from_state)), to_state(std::move(to_state)), agent_id_from(agent_id_from), agent_id_to(agent_id_to) {
         /// @brief The type of the Conflict.
-        type = ConflictType::EDGE_CONFLICT;
+        type = ConflictType::EDGE;
     }
 };
 
@@ -112,6 +112,8 @@ struct EdgeConflict : public Conflict {
 /// @brief The CBS algorithm.
 class CBS : public BestFirstSearch {
 private:
+
+    std::vector<ConflictType> conflict_types_{ConflictType::VERTEX, ConflictType::EDGE};
 
 public:
     /// @brief Constructor
