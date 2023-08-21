@@ -102,7 +102,11 @@ struct VertexConstraint : public Constraint {
     std::string toString() const override {
         std::stringstream ss;
         ss << "VertexConstraint: "
-           << " (" << state[0] << ", " << state[1] << ", " << state[2] << ")";
+           << " (" ;
+        for (int i = 0; i < state.size() - 1; i++) {
+            ss << state[i] << ", ";
+        }
+        ss << state.back() << ")";
         return ss.str();
     }
 
@@ -127,7 +131,15 @@ struct EdgeConstraint : public Constraint {
     
     std::string toString() const override {
         std::stringstream ss;
-        ss << "EdgeConstraint. From: (" << from_state[0] << ", " << from_state[1] << ", " << from_state[2] << ") To: (" << to_state[0] << ", " << to_state[1] << ", " << to_state[2] << ")";
+        ss << "EdgeConstraint. From: (";
+        for (int i = 0; i < from_state.size() - 1; i++) {
+            ss << from_state[i] << ", ";
+        }
+        ss << from_state.back() << ") To: (";
+        for (int i = 0; i < to_state.size() - 1; i++) {
+            ss << to_state[i] << ", ";
+        }
+        ss << to_state.back() << ")";
         return ss.str();
     }
 
