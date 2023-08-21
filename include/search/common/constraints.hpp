@@ -48,10 +48,11 @@
 
 namespace ims {
 
-enum ConstraintType {
-    UNSET_CONSTRAINT = -1,
-    VERTEX_CONSTRAINT = 0,
-    EDGE_CONSTRAINT = 1,
+enum class ConstraintType {
+    UNSET = -1,
+    VERTEX = 0,
+    EDGE = 1,
+    SPHERE3D = 2,
 };
 
 /// @brief Base class for all search constraints.
@@ -71,6 +72,107 @@ struct Constraint {
 
     /// @brief The type of the constraint.
     ConstraintType type;
+};
+
+
+// ==========================
+// Constraints used by CBS.
+// ==========================
+
+struct VertexConstraint : public Constraint {
+    /// @brief The state vector. Could be a robot configuration.
+    // We specify the states directly since their ID may change in future low-level plan iterations.
+    StateType state;
+
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param state The state vector.
+    explicit VertexConstraint(StateType state) : state(std::move(state)) {
+        /// @brief The type of the constraint.
+        type = ConstraintType::VERTEX;
+    }
+
+    /// @brief String representation of the constraint.
+    /// @return The string representation.
+    std::string toString() const override {
+        std::stringstream ss;
+        ss << "VertexConstraint: "
+           << " (" ;
+        for (int i = 0; i < state.size() - 1; i++) {
+            ss << state[i] << ", ";
+        }
+        ss << state.back() << ")";
+        return ss.str();
+    }
+
+    /// @brief The time interval of the constraint.
+    std::pair<int, int> getTimeInterval() const override {
+        return std::make_pair(state.back(), state.back());
+    }
+};
+
+struct EdgeConstraint : public Constraint {
+    /// @brief The state vector. Could be a robot configuration.
+    // We specify the states directly since their ID may change in future low-level plan iterations.
+    StateType from_state;
+    StateType to_state;
+
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param state The state vector.
+    explicit EdgeConstraint(StateType from_state, StateType to_state) : from_state(std::move(from_state)), to_state(std::move(to_state)) {
+        /// @brief The type of the constraint.
+        type = ConstraintType::EDGE;
+    }
+    
+    std::string toString() const override {
+        std::stringstream ss;
+        ss << "EdgeConstraint. From: (";
+        for (int i = 0; i < from_state.size() - 1; i++) {
+            ss << from_state[i] << ", ";
+        }
+        ss << from_state.back() << ") To: (";
+        for (int i = 0; i < to_state.size() - 1; i++) {
+            ss << to_state[i] << ", ";
+        }
+        ss << to_state.back() << ")";
+        return ss.str();
+    }
+
+    /// @brief The time interval of the constraint.
+    std::pair<int, int> getTimeInterval() const override {
+        return std::make_pair(from_state.back(), to_state.back());
+    }
+};
+
+// ==========================
+// Constraints used by CBS-MRAMP.
+// ==========================
+struct Sphere3dConstraint : public Constraint {
+    /// @brief The center of the constrained sphere.
+    Eigen::Vector3d center;
+
+    /// @brief The radius of the sphere.
+    double radius;
+
+    /// @brief The time of the constraint.
+    TimeType time;
+
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param state The state vector.
+    explicit Sphere3dConstraint(Eigen::Vector3d center, double radius, TimeType time) : center(center), radius(radius), time(time) {
+        /// @brief The type of the constraint.
+        type = ConstraintType::SPHERE3D;
+    }
+    
+    std::string toString() const override {
+        std::stringstream ss;
+        ss << "Sphere3dConstraint. Center: (" << center.x() << ", " << center.y() << ", " << center.z() << ") Radius: " << radius << " Time: " << time;
+        return ss.str();
+    }
+
+    /// @brief The time interval of the constraint.
+    std::pair<int, int> getTimeInterval() const override {
+        return std::make_pair(time, time);
+    }
 };
 
 /// @brief Base class for all search constraint contexts.
@@ -190,75 +292,6 @@ using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsColle
 
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
-
-
-// ==========================
-// Constraints used by CBS.
-// ==========================
-
-struct VertexConstraint : public Constraint {
-    /// @brief The state vector. Could be a robot configuration.
-    // We specify the states directly since their ID may change in future low-level plan iterations.
-    StateType state;
-
-    /// @brief Constructor, allowing to set the state, time, and type.
-    /// @param state The state vector.
-    explicit VertexConstraint(StateType state) : state(std::move(state)) {
-        /// @brief The type of the constraint.
-        type = ConstraintType::VERTEX_CONSTRAINT;
-    }
-
-    /// @brief String representation of the constraint.
-    /// @return The string representation.
-    std::string toString() const override {
-        std::stringstream ss;
-        ss << "VertexConstraint: "
-           << " (" ;
-        for (int i = 0; i < state.size() - 1; i++) {
-            ss << state[i] << ", ";
-        }
-        ss << state.back() << ")";
-        return ss.str();
-    }
-
-    /// @brief The time interval of the constraint.
-    std::pair<int, int> getTimeInterval() const override {
-        return std::make_pair(state.back(), state.back());
-    }
-};
-
-struct EdgeConstraint : public Constraint {
-    /// @brief The state vector. Could be a robot configuration.
-    // We specify the states directly since their ID may change in future low-level plan iterations.
-    StateType from_state;
-    StateType to_state;
-
-    /// @brief Constructor, allowing to set the state, time, and type.
-    /// @param state The state vector.
-    explicit EdgeConstraint(StateType from_state, StateType to_state) : from_state(std::move(from_state)), to_state(std::move(to_state)) {
-        /// @brief The type of the constraint.
-        type = ConstraintType::EDGE_CONSTRAINT;
-    }
-    
-    std::string toString() const override {
-        std::stringstream ss;
-        ss << "EdgeConstraint. From: (";
-        for (int i = 0; i < from_state.size() - 1; i++) {
-            ss << from_state[i] << ", ";
-        }
-        ss << from_state.back() << ") To: (";
-        for (int i = 0; i < to_state.size() - 1; i++) {
-            ss << to_state[i] << ", ";
-        }
-        ss << to_state.back() << ")";
-        return ss.str();
-    }
-
-    /// @brief The time interval of the constraint.
-    std::pair<int, int> getTimeInterval() const override {
-        return std::make_pair(from_state.back(), to_state.back());
-    }
-};
 
 }  // namespace ims
 

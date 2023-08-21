@@ -137,7 +137,7 @@ public:
 
                 // Check if the constraint is a vertex constraint or an edge constraint.
                 switch (constraint_ptr->type) {
-                    case ims::ConstraintType::VERTEX_CONSTRAINT: {
+                    case ims::ConstraintType::VERTEX: {
                         // Convert to a vertex constraint pointer to get access to its members.
                         auto* vertex_constraint_ptr = dynamic_cast<ims::VertexConstraint*>(constraint_ptr.get());
                         if (vertex_constraint_ptr != nullptr) {
@@ -149,7 +149,7 @@ public:
                         break;
                     }
 
-                    case ims::ConstraintType::EDGE_CONSTRAINT: {
+                    case ims::ConstraintType::EDGE: {
                         // Convert to an edge constraint pointer to get access to its members.
                         auto* edge_constraint_ptr = dynamic_cast<ims::EdgeConstraint*>(constraint_ptr.get());
                         if (edge_constraint_ptr != nullptr) {
@@ -247,7 +247,7 @@ public:
         return cost;
     }
 
-    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths, std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs, int max_conflicts, const std::vector<std::string> & names) {
+    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths, std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs, const std::vector<ims::ConflictType>& conflict_types, int max_conflicts, const std::vector<std::string> & names) {
         // Loop through the paths and check for conflicts.
         // Length of the longest path.
         int max_path_length = 0;

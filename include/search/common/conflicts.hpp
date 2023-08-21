@@ -41,17 +41,19 @@
 #include <utility>
 #include <vector>
 #include <memory>
+#include <eigen3/Eigen/Dense>   
 
 // Project includes.
 #include <search/common/types.hpp>
 
 namespace ims {
 
-enum ConflictType {
-    UNSET_CONFLICT = -1,
-    VERTEX_CONFLICT = 0,
-    EDGE_CONFLICT = 1,
-    PRIVATE_GRIDS_VERTEX_CONFLICT = 2,
+enum class ConflictType {
+    UNSET = -1,
+    VERTEX = 0,
+    EDGE = 1,
+    PRIVATE_GRIDS_VERTEX = 2,
+    POINT3D = 3,
 };
 
 /// @brief Base class for all search conflicts.
@@ -85,7 +87,7 @@ struct VertexConflict : public Conflict {
     /// @param state The state vector.
     explicit VertexConflict(StateType state, std::vector<int> agent_ids) : state(std::move(state)), agent_ids(std::move(agent_ids)) {
         /// @brief The type of the Conflict.
-        type = ConflictType::VERTEX_CONFLICT;
+        type = ConflictType::VERTEX;
     }
 };
 
@@ -105,7 +107,35 @@ struct PrivateGridsVertexConflict : public Conflict {
     /// @param state The state vector.
     explicit PrivateGridsVertexConflict(std::vector<StateType> states, std::vector<int> agent_ids) : states(std::move(states)), agent_ids(std::move(agent_ids)) {
         /// @brief The type of the Conflict.
-        type = ConflictType::PRIVATE_GRIDS_VERTEX_CONFLICT;
+        type = ConflictType::PRIVATE_GRIDS_VERTEX;
+    }
+};
+
+// ==========================
+// Conflicts for MRAMP.
+// ==========================
+/// @brief A struct for storing a vertex conflict on private grids.
+struct Point3dConflict : public Conflict {
+    /// @brief The state vector. Could be a robot configuration.
+    // We specify the states directly since their ID may change in future low-level plan iterations.
+    std::vector<StateType> states;
+
+    // The agent IDs.
+    std::vector<int> agent_ids;
+
+    // The point of conflict.
+    Eigen::Vector3d point;
+
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param state The state vector.
+    explicit Point3dConflict(const std::vector<StateType>& states, 
+                             const std::vector<int> & agent_ids,
+                             const Eigen::Vector3d& point) : 
+                                states(states), 
+                                agent_ids(agent_ids),
+                                point(point) {
+        /// @brief The type of the Conflict.
+        type = ConflictType::PRIVATE_GRIDS_VERTEX;
     }
 };
 
