@@ -142,6 +142,7 @@ public:
                         auto* vertex_constraint_ptr = dynamic_cast<ims::VertexConstraint*>(constraint_ptr.get());
                         if (vertex_constraint_ptr != nullptr) {
                             // If the constraint is a vertex constraint, check if the state is valid w.r.t the constraint.
+                            // note(yoraish): the state includes time so the check for equality in time is the element at position 2.
                             if (vertex_constraint_ptr->state[0] == next_state_val[0] && vertex_constraint_ptr->state[1] == next_state_val[1] && vertex_constraint_ptr->state[2] == next_state_val[2]) {
                                 return false;
                             }
