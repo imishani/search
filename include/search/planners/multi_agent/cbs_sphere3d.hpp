@@ -68,11 +68,10 @@ using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 /// @brief The CBS algorithm for private grids. Perhaps obviously.
 class CBSSphere3d : public CBS {
 private:
-    /// @brief The conflict types that this algorithm asks for from the action space.
-    std::vector<ConflictType> conflict_types_{ConflictType::POINT3D};
 
     /// @brief The radius of the sphere3d constraint.
-    double sphere3d_constraint_radius_ = 0.1;
+    // double sphere3d_constraint_radius_ = 0.001;
+    double sphere3d_constraint_radius_ = 0.05;
 
 public:
     /// @brief Constructor
@@ -82,6 +81,10 @@ public:
     /// @brief Destructor
     ~CBSSphere3d() override = default;
 
+    /// @brief Get the conflict types.
+    /// @return The conflict types.
+    inline std::vector<ConflictType> getConflictTypes() override { return conflict_types_; }
+
 protected:
     /// @brief  Convert conflicts to constraints. This is one of the main differentiators between CBS and CBSSphere3d. CBS can handle vertex and edge constraints in its original formulation. Now we would like it to instead handle Sphere3d constraints. To enable that, this method converts conflicts (most likely Point3d conflicts) to Sphere3d constraints.
     /// @param conflicts
@@ -90,6 +93,9 @@ protected:
 
     // Parameters.
     CBSParams params_;
+
+    /// @brief The conflict types that this algorithm asks for from the action space. Shadow the value in the parent class.
+    std::vector<ConflictType> conflict_types_{ConflictType::POINT3D};
 };
 
 }  // namespace ims

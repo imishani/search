@@ -156,7 +156,7 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
         // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the CBS class, and then passed to the action_space.
         agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), 
                                                        state->conflicts, 
-                                                       conflict_types_,
+                                                       getConflictTypes()   ,
                                                        1, 
                                                        agent_names_);
 

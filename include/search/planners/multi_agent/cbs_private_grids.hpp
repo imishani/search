@@ -76,6 +76,10 @@ public:
     /// @brief Destructor
     ~CBSPrivateGrids() override = default;
 
+    /// @brief Get the required conflict types.
+    /// @return The required conflict types.
+    inline std::vector<ConflictType> getConflictTypes() override { return conflict_types_; }
+
 protected:
     /// @brief  Convert conflicts to constraints. This is a main differentiator between CBS and CBSPrivateGrids. CBS can handle vertex and edge constraints, so CBSPrivateGrids converts conflicts to these types of constraints.
     /// @param conflicts
@@ -84,6 +88,9 @@ protected:
 
     // Parameters.
     CBSParams params_;
+
+    // The required conflict types.
+    std::vector<ConflictType> conflict_types_ = {ConflictType::PRIVATE_GRIDS_VERTEX};
 };
 
 }  // namespace ims

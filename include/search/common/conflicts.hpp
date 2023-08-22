@@ -134,8 +134,9 @@ struct Point3dConflict : public Conflict {
                                 states(states), 
                                 agent_ids(agent_ids),
                                 point(point) {
-        /// @brief The type of the Conflict.
-        type = ConflictType::PRIVATE_GRIDS_VERTEX;
+    
+    /// @brief The type of the Conflict.
+    type = ConflictType::POINT3D;
     }
 };
 
