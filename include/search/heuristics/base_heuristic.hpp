@@ -71,14 +71,14 @@ namespace ims{
         /// @brief Set the goal state
         /// @param goal The goal state
         /// @note You have to set the goal state if you want to use the getHeuristic(const std::shared_ptr<state> s) function
-        virtual void setGoal(StateType& goal) {
+        virtual void setGoal(const StateType& goal) {
             mGoal = goal;
         }
 
         /// @brief Set the start state
         /// @param start The start state
         /// @note You have to set the start state if you want to use bfs heuristic
-        virtual void setStart(StateType& start) {
+        virtual void setStart(const StateType& start) {
             mGoal = start;
         }
 

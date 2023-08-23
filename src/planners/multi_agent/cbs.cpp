@@ -102,13 +102,22 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
     // Show the initial paths.
     std::cout << "Initial paths:" << std::endl;
     for (auto& path : start_->paths) {
-        std::cout << "Agent " << path.first << ": ";
+        std::cout << "Agent " << path.first << ": \n";
         for (auto state : path.second) {
-            std::cout << "[" << state[0] << ", " << state[1] << ", " << state[2] << "], ";
+            std::cout << "    [";
+            for (auto val : state) {
+                std::cout << val << ", ";
+            }
+            std::cout << "], \n";
         }
         std::cout << std::endl;
     }
 }
+
+void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
+                        agent_names_ = agent_names;
+                        initializePlanner(action_space_ptrs, starts, goals);
+                        }
 
 auto ims::CBS::getSearchState(int state_id) -> ims::CBS::SearchState* {
     assert(state_id < states_.size() && state_id >= 0);
@@ -145,7 +154,7 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
 
         // Expand the state. This requires a check for conflicts (done right below), a branch if there are conflicts (converted to constraints, done in expand()), and a replan for each branch in light of the new constraints (also done in expand()). If no conflicts were found, then the state is a goal state, is set in goals_, and we return.
         // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the CBS class, and then passed to the action_space.
-        agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), state->conflicts, 1);
+        agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), state->conflicts, 1, agent_names_);
 
         // Before we actually expand the state, we check if there is even a need to do so. If there are no conflicts, then this is a goal state. Set the goal state and return.
         if (state->conflicts.empty()) {
@@ -222,7 +231,6 @@ void ims::CBS::expand(int state_id) {
 
         // The goal state returned is at time -1. We need to fix that.
         new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
-
 
         // Push the new state to the open list.
         open_.push(new_state);
@@ -347,5 +355,6 @@ void ims::CBS::verifyStartAndGoalInputStates(const std::vector<StateType>& start
         }
     }
 
-    // TODO(yoraish): Check if the start and goal states are valid between agents. This should be done by constructing a single-step path for each agent (once all agents at start, and once all agents at goals) and checking for collisions with the to-be checkPathCollisions(all/some) that will be implemented in the ConstrainedActionSpace.
+    // TODO(yoraish): Check if the start and goal states are valid between agents. This should be done by constructing a single-step path for each agent (once all agents at start, and once all agents at goals) and checking for collisions with the to-be checkPathCollisions(all/some) that will be implemented in the ActionSpaceType.
+
 }

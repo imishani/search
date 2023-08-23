@@ -185,6 +185,8 @@ struct ZeroHeuristic : public BaseHeuristic {
 
 /// @brief Robot joint angles distance heuristic
 struct JointAnglesHeuristic : public BaseHeuristic {
+    JointAnglesHeuristic(const std::vector<bool>& valid_mask = std::vector<bool>()): valid_mask_(valid_mask) {} 
+
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
         // check id the states are the same size
@@ -197,6 +199,12 @@ struct JointAnglesHeuristic : public BaseHeuristic {
             for (int i{0}; i < s1.size(); i++) {
                 //                    dist += std::min(std::abs(s1[i] - s2[i]),
                 //                                     2*M_PI - std::abs(s1[i] - s2[i]));
+                if (!valid_mask_.empty()) {
+                    if (!valid_mask_[i]){
+                        continue;
+                    }
+                }
+                
                 double dj = (s1[i] - s2[i]);
                 dist += dj * dj;
             }
@@ -204,6 +212,10 @@ struct JointAnglesHeuristic : public BaseHeuristic {
             return true;
         }
     }
+
+private:
+    /// @brief The mask of valid joints, any indices marked false will not be used in the computation.
+    std::vector<bool> valid_mask_;
 };
 
 /// @brief SE(3) distance heuristic

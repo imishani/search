@@ -41,11 +41,11 @@
 #include <utility>
 
 // project includes
-#include "action_space.hpp"
-#include "search/heuristics/base_heuristic.hpp"
-#include "search/planners/planner.hpp"
-#include "search/common/constraints.hpp"
-#include "search/common/conflicts.hpp"
+#include <search/action_space/action_space.hpp>
+#include <search/heuristics/base_heuristic.hpp>
+#include <search/planners/planner.hpp>
+#include <search/common/constraints.hpp>
+#include <search/common/conflicts.hpp>
 
 namespace ims {
 
@@ -79,7 +79,7 @@ public:
     /// @brief Find conflicts given a set of paths.
     /// @param paths The paths to check for conflicts.
     /// @return A vector of conflicts.
-    virtual void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths, std::vector<std::shared_ptr<Conflict>>& conflicts_ptrs, int max_conflicts = 1) = 0;
+    virtual void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths, std::vector<std::shared_ptr<Conflict>>& conflicts_ptrs, int max_conflicts = 1, const std::vector<std::string>& names = {}) = 0;
 
     // Member variables.
     /// @brief The constraints.

@@ -81,87 +81,11 @@ struct CBSParams : public BestFirstSearchParams {
     bool exhaustive = false;
 };
 
-// ==========================
-// Related structs: Constraints
-// ==========================
-
-struct VertexConstraint : public Constraint {
-    /// @brief The state vector. Could be a robot configuration.
-    // We specify the states directly since their ID may change in future low-level plan iterations.
-    StateType state;
-
-    /// @brief Constructor, allowing to set the state, time, and type.
-    /// @param state The state vector.
-    explicit VertexConstraint(StateType state) : state(std::move(state)) {
-        /// @brief The type of the constraint.
-        type = ConstraintType::VERTEX_CONSTRAINT;
-    }
-
-    /// @brief String representation of the constraint.
-    /// @return The string representation.
-    std::string toString() const override {
-        std::stringstream ss;
-        ss << "VertexConstraint: "
-           << " (" << state[0] << ", " << state[1] << ", " << state[2] << ")";
-        return ss.str();
-    }
-
-    /// @brief The time interval of the constraint.
-    std::pair<int, int> getTimeInterval() const override {
-        return std::make_pair(state.back(), state.back());
-    }
-};
-
-struct EdgeConstraint : public Constraint {
-    /// @brief The state vector. Could be a robot configuration.
-    // We specify the states directly since their ID may change in future low-level plan iterations.
-    StateType from_state;
-    StateType to_state;
-
-    /// @brief Constructor, allowing to set the state, time, and type.
-    /// @param state The state vector.
-    explicit EdgeConstraint(StateType from_state, StateType to_state) : from_state(std::move(from_state)), to_state(std::move(to_state)) {
-        /// @brief The type of the constraint.
-        type = ConstraintType::EDGE_CONSTRAINT;
-    }
-    
-    std::string toString() const override {
-        std::stringstream ss;
-        ss << "EdgeConstraint. From: (" << from_state[0] << ", " << from_state[1] << ", " << from_state[2] << ") To: (" << to_state[0] << ", " << to_state[1] << ", " << to_state[2] << ")";
-        return ss.str();
-    }
-
-    /// @brief The time interval of the constraint.
-    std::pair<int, int> getTimeInterval() const override {
-        return std::make_pair(from_state.back(), to_state.back());
-    }
-};
-
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
 using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
 
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
-
-// ==========================
-// Related structs: Conflicts
-// ==========================
-
-struct VertexConflict : public Conflict {
-    /// @brief The state vector. Could be a robot configuration.
-    // We specify the states directly since their ID may change in future low-level plan iterations.
-    StateType state;
-
-    // The agent IDs.
-    std::vector<int> agent_ids;
-
-    /// @brief Constructor, allowing to set the state, time, and type.
-    /// @param state The state vector.
-    explicit VertexConflict(StateType state, std::vector<int> agent_ids) : state(std::move(state)), agent_ids(std::move(agent_ids)) {
-        /// @brief The type of the Conflict.
-        type = ConflictType::VERTEX_CONFLICT;
-    }
-};
 
 struct EdgeConflict : public Conflict {
     /// @brief The state vector. Could be a robot configuration.
@@ -188,6 +112,36 @@ struct EdgeConflict : public Conflict {
 /// @brief The CBS algorithm.
 class CBS : public BestFirstSearch {
 private:
+
+public:
+    /// @brief Constructor
+    /// @param params The parameters
+    explicit CBS(const CBSParams& params);
+
+    /// @brief Destructor
+    ~CBS() override = default;
+
+    /// @brief Initialize the planner.
+    /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
+    /// @param starts The start states for all agents.
+    /// @param goals The goal states for all agents.
+    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
+                           const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+
+    /// @brief Initialize the planner and set the agent names.
+    /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
+    /// @param agent_names The names of the agents.
+    /// @param starts The start states for all agents.
+    /// @param goals The goal states for all agents.
+    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+
+    /// @brief plan a path
+    /// @param path The path
+    /// @return whether the plan was successful or not
+    bool plan(MultiAgentPaths& paths);
+
+protected:
+
     // friend wAStar;
 
     // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
@@ -208,7 +162,7 @@ private:
     };
 
     /// @brief The open list. We set it to a deque for fast pop_front().
-    using OpenList = smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+    using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
     OpenList open_;
 
     // The states that have been created.
@@ -230,29 +184,8 @@ private:
     /// @param paths The paths to pad.
     void padPathsToMaxLength(MultiAgentPaths& paths);
 
-    std::vector<std::pair<int, std::shared_ptr<Constraint>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts);
+    virtual std::vector<std::pair<int, std::shared_ptr<Constraint>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts);
 
-public:
-    /// @brief Constructor
-    /// @param params The parameters
-    explicit CBS(const CBSParams& params);
-
-    /// @brief Destructor
-    ~CBS() override = default;
-
-    /// @brief Initialize the planner.
-    /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
-    /// @param starts The start states for all agents.
-    /// @param goals The goal states for all agents.
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
-                           const std::vector<StateType>& starts, const std::vector<StateType>& goals);
-
-    /// @brief plan a path
-    /// @param path The path
-    /// @return whether the plan was successful or not
-    bool plan(MultiAgentPaths& paths);
-
-protected:
     /// @brief Set the search state struct values.
     /// @param state_id
     /// @param parent_id
@@ -292,6 +225,9 @@ protected:
 
     /// @brief The number of agents.
     int num_agents_;
+
+    /// @brief The names of the agents.
+    std::vector<std::string> agent_names_;
 };
 
 }  // namespace ims
