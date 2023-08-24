@@ -62,6 +62,26 @@ using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsColle
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
 // ==========================
+// Related structs: CBSSphere3dParams
+// ==========================
+
+/// @class CBSParams class.
+/// @brief The parameters for the CBS algorithm
+struct CBSSphere3dParams : public CBSParams {
+    /// @brief Constructor
+    explicit CBSSphere3dParams() : CBSParams() {}
+
+    /// @brief Destructor
+    ~CBSSphere3dParams() override = default;
+
+    /// @brief Exhaustive search flag. If true, the algorithm will continue to search until the goal is found or the open list is empty.
+    bool exhaustive = false;
+
+    /// @brief The radius of the sphere3d constraint.
+    double sphere3d_constraint_radius = 0.001;
+};
+
+// ==========================
 // CBS Sphere-3D Algorithm.
 // ==========================
 /// @class CBS for private grids class.
@@ -70,13 +90,12 @@ class CBSSphere3d : public CBS {
 private:
 
     /// @brief The radius of the sphere3d constraint.
-    // double sphere3d_constraint_radius_ = 0.001;
     double sphere3d_constraint_radius_ = 0.05;
 
 public:
     /// @brief Constructor
     /// @param params The parameters
-    explicit CBSSphere3d(const CBSParams& params);
+    explicit CBSSphere3d(const CBSSphere3dParams& params);
 
     /// @brief Destructor
     ~CBSSphere3d() override = default;
@@ -92,7 +111,7 @@ protected:
     std::vector<std::pair<int, std::shared_ptr<Constraint>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
     // Parameters.
-    CBSParams params_;
+    CBSSphere3dParams params_;
 
     /// @brief The conflict types that this algorithm asks for from the action space. Shadow the value in the parent class.
     std::vector<ConflictType> conflict_types_{ConflictType::POINT3D};

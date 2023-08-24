@@ -88,23 +88,6 @@ using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsColle
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
-struct EdgeConflict : public Conflict {
-    /// @brief The state vector. Could be a robot configuration.
-    // We specify the states directly since their ID may change in future low-level plan iterations.
-    StateType from_state;
-    StateType to_state;
-
-    // The agent IDs.
-    int agent_id_from;
-    int agent_id_to;
-
-    /// @brief Constructor, allowing to set the state, time, and type.
-    /// @param state The state vector.
-    explicit EdgeConflict(StateType from_state, StateType to_state, int agent_id_from, int agent_id_to) : from_state(std::move(from_state)), to_state(std::move(to_state)), agent_id_from(agent_id_from), agent_id_to(agent_id_to) {
-        /// @brief The type of the Conflict.
-        type = ConflictType::EDGE;
-    }
-};
 /// @brief Base class for all CBS variants. Defines some required methods.
 class CBSBase {
 protected:
@@ -161,7 +144,7 @@ protected:
         std::unordered_map<int, double> paths_costs;
 
         // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
-        std::vector<std::shared_ptr<Conflict>> conflicts = {};
+        std::vector<std::shared_ptr<Conflict>> unresolved_conflicts = {};
 
         // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
         MultiAgentConstraintsCollective constraints_collectives;
