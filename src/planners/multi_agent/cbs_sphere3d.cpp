@@ -35,7 +35,10 @@
 #include <search/planners/astar.hpp>
 #include <search/planners/multi_agent/cbs_sphere3d.hpp>
 
-ims::CBSSphere3d::CBSSphere3d(const ims::CBSParams& params) : params_(params), ims::CBS(params) {}
+ims::CBSSphere3d::CBSSphere3d(const ims::CBSSphere3dParams & params) : params_(params), ims::CBS(params) {
+    // Initialize the sphere3d constraint radius.
+    sphere3d_constraint_radius_ = params_.sphere3d_constraint_radius;
+}
 
 std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBSSphere3d::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
     std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> agent_constraints;

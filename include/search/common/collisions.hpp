@@ -44,24 +44,26 @@
 #include <eigen3/Eigen/Dense>
 
 namespace ims {
-
-enum CollisionType {
-    UNSET_COLLISION = -1,
-    POINT_COLLISION = 0
+    
+// TODO(yoraish): change to enum class.
+enum class CollisionType {
+    UNSET = -1,
+    POINT = 0
 };
 
-enum BodyType {
-    UNSET_BODY = -1,
-    ROBOT_BODY = 0,
-    ROBOT_ATTACHED_BODY = 1,
-    WORLD_OBJECT_BODY = 2
+// TODO(yoraish): change to enum class.
+enum class BodyType {
+    UNSET = -1,
+    ROBOT = 0,
+    ROBOT_ATTACHED = 1,
+    WORLD_OBJECT = 2
 };
 
 /// @brief A struct to hold the information about a contact. Its location, the bodies that are in contact, their types, and the normal.
 struct Contact{
     // The bodies that are in contact.
-    int body_type_0 = UNSET_BODY;
-    int body_type_1 = UNSET_BODY;
+    BodyType body_type_0 = BodyType::UNSET;
+    BodyType body_type_1 = BodyType::UNSET;
     std::string body_name_0;
     std::string body_name_1;
 
@@ -70,17 +72,20 @@ struct Contact{
     Eigen::Vector3d normal;
 
     // Constructor.
-    Contact(std::string body_name_0, std::string body_name_1, int body_type_0, int body_type_1, const Eigen::Vector3d& point, const Eigen::Vector3d& normal) : body_name_0(body_name_0), body_name_1(body_name_1), body_type_0(body_type_0), body_type_1(body_type_1), point(point), normal(normal) {}
+    Contact(std::string body_name_0, std::string body_name_1, BodyType body_type_0, BodyType body_type_1, const Eigen::Vector3d& point, const Eigen::Vector3d& normal) : body_name_0(body_name_0), body_name_1(body_name_1), body_type_0(body_type_0), body_type_1(body_type_1), point(point), normal(normal) {}
+
+    // Another constructor that allows input of the bodies as ints.
+    Contact(std::string body_name_0, std::string body_name_1, int body_type_0, int body_type_1, const Eigen::Vector3d& point, const Eigen::Vector3d& normal) : body_name_0(body_name_0), body_name_1(body_name_1), body_type_0(static_cast<BodyType>(body_type_0)), body_type_1(static_cast<BodyType>(body_type_1)), point(point), normal(normal) {}
 };
 
 /// @brief A struct to hold the information about a collision. This object, as well as much of this file, is similar in spirit to a MoveIt! Contact object that is within a MoveIt! collision results object.
 struct Collision {
     // The type of the collision. 
-    int type = UNSET_COLLISION;
+    CollisionType type = CollisionType::UNSET;
 
     // The bodies that are in collision.
-    int body_type_0 = UNSET_BODY;
-    int body_type_1 = UNSET_BODY;
+    BodyType body_type_0 = BodyType::UNSET;
+    BodyType body_type_1 = BodyType::UNSET;
     std::string body_name_0;
     std::string body_name_1;
 

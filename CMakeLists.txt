@@ -24,6 +24,7 @@ add_library(search SHARED
         src/planners/multi_agent/cbs.cpp
         src/planners/multi_agent/cbs_sphere3d.cpp
         src/planners/multi_agent/cbs_private_grids.cpp
+        src/planners/multi_agent/ecbs.cpp
         src/common/bfs3d.cpp
         src/planners/egraph_wastar.cpp
         src/common/experience_graph.cpp
@@ -46,22 +47,28 @@ install(TARGETS search
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 add_executable(run_2d_rob_nav_astar domains/2d_robot_nav/run_2d_astar.cpp)
-add_executable(run_2d_rob_nav_dijkstra domains/2d_robot_nav/run_2d_dijkstra.cpp)
-add_executable(run_2d_rob_nav_bfs domains/2d_robot_nav/run_2d_bfs.cpp)
-add_executable(run_2d_rob_nav_wastar domains/2d_robot_nav/run_2d_wastar.cpp)
-add_executable(run_2d_rob_nav_arastar domains/2d_robot_nav/run_2d_arastar.cpp)
-add_executable(run_2d_rob_nav_wastar_local_heu domains/2d_robot_nav/run_2d_wastar_local_heu.cpp)
-add_executable(run_2d_mapf_cbs domains/2d_mapf/run_2d_cbs.cpp)
-
 target_link_libraries(run_2d_rob_nav_astar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+
+add_executable(run_2d_rob_nav_dijkstra domains/2d_robot_nav/run_2d_dijkstra.cpp)
 target_link_libraries(run_2d_rob_nav_dijkstra search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+
+add_executable(run_2d_rob_nav_bfs domains/2d_robot_nav/run_2d_bfs.cpp)
 target_link_libraries(run_2d_rob_nav_bfs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
+add_executable(run_2d_rob_nav_wastar domains/2d_robot_nav/run_2d_wastar.cpp)
 target_link_libraries(run_2d_rob_nav_wastar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+
+add_executable(run_2d_rob_nav_arastar domains/2d_robot_nav/run_2d_arastar.cpp)
 target_link_libraries(run_2d_rob_nav_arastar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+
+add_executable(run_2d_rob_nav_wastar_local_heu domains/2d_robot_nav/run_2d_wastar_local_heu.cpp)
 target_link_libraries(run_2d_rob_nav_wastar_local_heu search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
+add_executable(run_2d_mapf_cbs domains/2d_mapf/run_2d_cbs.cpp)
 target_link_libraries(run_2d_mapf_cbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+
+add_executable(run_2d_mapf_ecbs domains/2d_mapf/run_2d_ecbs.cpp)
+target_link_libraries(run_2d_mapf_ecbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
 # Add an uninstall target.
 if(NOT TARGET uninstall)
