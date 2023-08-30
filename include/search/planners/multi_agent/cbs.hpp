@@ -47,7 +47,7 @@
 #include <search/common/conflicts.hpp>
 #include <search/common/constraints.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
-#include <search/planners/astar.hpp>
+#include <search/planners/wastar.hpp>
 #include <search/planners/best_first_search.hpp>
 
 #include "search/action_space/constrained_action_space.hpp"
@@ -80,6 +80,9 @@ struct CBSParams : public BestFirstSearchParams {
 
     /// @brief Exhaustive search flag. If true, the algorithm will continue to search until the goal is found or the open list is empty.
     bool exhaustive = false;
+
+    /// @brief The weight to use in the low level planner heuristic.
+    double weight_low_level_heuristic = 1.0;
 };
 
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
@@ -205,11 +208,11 @@ protected:
     std::vector<std::shared_ptr<ConstrainedActionSpace>> agent_action_space_ptrs_;
 
     // The low-level planners.
-    std::vector<std::shared_ptr<AStar>> agent_planner_ptrs_;
+    std::vector<std::shared_ptr<wAStar>> agent_planner_ptrs_;
 
     // The low-level planners parameters.
     EuclideanRemoveTimeHeuristic* low_level_planner_heuristic_ptr_ = new ims::EuclideanRemoveTimeHeuristic();
-    AStarParams astar_params_ = AStarParams(low_level_planner_heuristic_ptr_);
+    wAStarParams wastar_params_ = wAStarParams(low_level_planner_heuristic_ptr_, params_.weight_low_level_heuristic);
 
     /// @brief The start and goal states of the single agents. Remember that these have a time dimension in them.
     std::vector<StateType> starts_;

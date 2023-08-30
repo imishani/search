@@ -32,11 +32,11 @@
  * \date   August 24 2023
  */
 
-#include <search/planners/multi_agent/cbs_private_grids.hpp>
+#include <search/planners/multi_agent/ecbs_private_grids.hpp>
 
-ims::CBSPrivateGrids::CBSPrivateGrids(const ims::CBSParams& params) : params_(params), ims::CBS(params) {}
+ims::ECBSPrivateGrids::ECBSPrivateGrids(const ims::ECBSParams& params) : params_(params), ims::ECBS(params) {}
 
-std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBSPrivateGrids::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
+std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::ECBSPrivateGrids::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
     std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> agent_constraints;
     // TODO(yoraish): this is WIP.
     // Iterate through the conflicts and convert them to constraints.
@@ -49,7 +49,7 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBSPrivateGri
                 throw std::runtime_error("Conflict is a vertex conflict, but could not be converted to a VertexConflict.");
             }
 
-            // For each affected agent (2, in CBS), create a new constraint, and down the line a search state for each as well.
+            // For each affected agent (2, in ECBS), create a new constraint, and down the line a search state for each as well.
             for (int agent_id : vertex_conflict_ptr->agent_ids) {
 
                 // Create a new vertex constraint.
@@ -101,7 +101,7 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBSPrivateGri
                 throw std::runtime_error("Conflict is a private grids vertex conflict, but could not be converted to a PrivateGridsVertexConflict.");
             }
 
-            // For each affected agent (2, in CBS), create a new constraint, and down the line a search state for each as well.
+            // For each affected agent (2, in ECBS), create a new constraint, and down the line a search state for each as well.
             for (int i = 0; i < private_grids_vertex_conflict_ptr->agent_ids.size(); i++) {
                 int agent_id = private_grids_vertex_conflict_ptr->agent_ids[i];
 

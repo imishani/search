@@ -105,6 +105,8 @@ int main(int argc, char** argv) {
 
     // Construct the parameters.
     ims::CBSParams params;
+    params.weight_low_level_heuristic = 1.0;
+
 
     // Construct the scene and the action space.
     scene2DRob scene (map);
