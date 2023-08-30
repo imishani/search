@@ -59,7 +59,7 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
 
     // Create all the low-level planners.
     for (size_t i{0}; i < starts.size(); ++i) {
-        agent_planner_ptrs_.push_back(std::make_shared<ims::AStar>(astar_params_));
+        agent_planner_ptrs_.push_back(std::make_shared<ims::wAStar>(wastar_params_));
     }
 
     // Generate a plan for each of the agents.
@@ -358,7 +358,4 @@ void ims::CBS::verifyStartAndGoalInputStates(const std::vector<StateType>& start
             throw std::runtime_error("Goal state for agent " + std::to_string(i) + " is not valid");
         }
     }
-
-    // TODO(yoraish): Check if the start and goal states are valid between agents. This should be done by constructing a single-step path for each agent (once all agents at start, and once all agents at goals) and checking for collisions with the to-be checkPathCollisions(all/some) that will be implemented in the ActionSpaceType.
-
 }

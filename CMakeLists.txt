@@ -24,6 +24,7 @@ add_library(search SHARED
         src/planners/multi_agent/cbs.cpp
         src/planners/multi_agent/cbs_sphere3d.cpp
         src/planners/multi_agent/cbs_private_grids.cpp
+        src/planners/multi_agent/ecbs_private_grids.cpp
         src/planners/multi_agent/ecbs.cpp
         src/common/bfs3d.cpp
         src/planners/egraph_wastar.cpp

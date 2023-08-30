@@ -32,7 +32,7 @@
  * \date   07/08/22
  */
 
-#include <search/planners/astar.hpp>
+#include <search/planners/wastar.hpp>
 #include <search/planners/multi_agent/ecbs.hpp>
 
 ims::ECBS::ECBS(const ims::ECBSParams& params) : params_(params), CBS(params) {}
@@ -60,7 +60,7 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
 
     // Create all the low-level planners.
     for (size_t i{0}; i < starts.size(); ++i) {
-        agent_planner_ptrs_.push_back(std::make_shared<ims::AStar>(astar_params_));
+        agent_planner_ptrs_.push_back(std::make_shared<ims::wAStar>(wastar_params_));
     }
 
     // Generate a plan for each of the agents.

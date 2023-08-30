@@ -47,7 +47,7 @@
 #include <search/common/conflicts.hpp>
 #include <search/common/constraints.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
-#include <search/planners/astar.hpp>
+#include <search/planners/wastar.hpp>
 #include <search/planners/best_first_search.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
 
