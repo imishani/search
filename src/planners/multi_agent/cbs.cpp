@@ -186,7 +186,7 @@ void ims::CBS::expand(int state_id) {
     std::vector<double> costs;
 
     // First, convert all conflicts to pairs of (agent_id, constraint). In vanilla CBS, there is only one conflict found from a set of paths (the first/random one), and that would yield two constraints. To allow for more flexibility, we do not restrict the data structure to only two constraints per conflict.
-    std::vector<std::pair<int, std::shared_ptr<Constraint>>> constraints = conflictsToConstraints(state->unresolved_conflicts);
+    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> constraints = conflictsToConstraints(state->unresolved_conflicts);
 
     // Second, iterate through the constraints, and for each one, create a new search state. The new search state is a copy of the previous search state, with the constraint added to the constraints collective of the agent.
     // For each constraint, split the state into branches. Each branch will be a new state in the search tree.
@@ -213,7 +213,7 @@ void ims::CBS::expand(int state_id) {
         // NOTE(yoraish): we do not copy over the conflicts, since they will be recomputed in the new state. We could consider keeping a history of conflicts in the search state, with new conflicts being marked as such.
 
         // Update the constraints collective to also include the new constraint.
-        new_state->constraints_collectives[agent_id].addConstraint(constraint_ptr);
+        new_state->constraints_collectives[agent_id].addConstraints(constraint_ptr);
 
         // update the action-space.
         agent_action_space_ptrs_[agent_id]->setConstraintsCollective(std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]));
@@ -269,29 +269,21 @@ void ims::CBS::setStateVals(int state_id, int parent_id, double cost) {
     state->parent_id = parent_id;
 }
 
-std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBS::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
-    std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> agent_constraints;
+std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::CBS::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
+    std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> agent_constraints;
 
     // Iterate through the conflicts and convert them to constraints.
     for (auto& conflict_ptr : conflicts) {
         // Create a new constraint given the conflict.
         if (conflict_ptr->type == ConflictType::VERTEX) {
             auto* vertex_conflict_ptr = dynamic_cast<VertexConflict*>(conflict_ptr.get());
-            // std::cout << "Conflict is a vertex conflict. At state: " << vertex_conflict_ptr->state[0] << ", " << vertex_conflict_ptr->state[1] << ", " << vertex_conflict_ptr->state[2] << std::endl;
             // Check if the conversion succeeded.
             if (vertex_conflict_ptr == nullptr) {
                 throw std::runtime_error("Conflict is a vertex conflict, but could not be converted to a VertexConflict.");
             }
 
             // For each affected agent (2, in CBS), create a new constraint, and a search state for each as well.
-            for (int agent_id : vertex_conflict_ptr->agent_ids) {
-
-                // Create a new vertex constraint.
-                VertexConstraint constraint = VertexConstraint(vertex_conflict_ptr->state);
-
-                // Update the constraints collective to also include the new constraint.
-                agent_constraints.emplace_back(agent_id, std::make_shared<VertexConstraint>(constraint));
-            }
+            ims::conflict_conversions::vertexConflictToVertexConstraints(vertex_conflict_ptr, agent_constraints);
         }
 
         // Otherwise, if the conflict is an edge conflict, add an edge constraint to each of the two affected agents.
@@ -302,29 +294,7 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBS::conflict
             if (edge_conflict_ptr == nullptr) {
                 throw std::runtime_error("Conflict is an edge conflict, but could not be converted to an EdgeConflict.");
             }
-
-            // We have exactly two affected agents. Call them agent_a and agent_b. The conflict is 'a' moving 'from_state' to 'to_state' and 'b' moving 'to_state' to 'from_state', with time decremented and incremented by 1, respectively.
-            int agent_a = edge_conflict_ptr->agent_id_from;
-            int agent_b = edge_conflict_ptr->agent_id_to;
-
-            // Create a new search state.
-            int new_state_id_a = (int)states_.size();
-            int new_state_id_b = (int)states_.size() + 1;
-            auto new_state_a = getOrCreateSearchState(new_state_id_a);
-            auto new_state_b = getOrCreateSearchState(new_state_id_b);
-
-
-            // Create a new edge constraint.
-            EdgeConstraint constraint_a = EdgeConstraint(edge_conflict_ptr->from_state, edge_conflict_ptr->to_state);
-            StateType from_state_b = edge_conflict_ptr->to_state;
-            from_state_b.back() -= 1;
-            StateType to_state_b = edge_conflict_ptr->from_state;
-            to_state_b.back() += 1;
-            EdgeConstraint constraint_b = EdgeConstraint(from_state_b, to_state_b);
-
-            // Add to the constraints object.
-            agent_constraints.emplace_back(agent_a, std::make_shared<EdgeConstraint>(constraint_a));
-            agent_constraints.emplace_back(agent_b, std::make_shared<EdgeConstraint>(constraint_b));
+            ims::conflict_conversions::edgeConflictToEdgeConstraints(edge_conflict_ptr, agent_constraints);
         }
     }
 

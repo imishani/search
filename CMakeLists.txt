@@ -29,6 +29,7 @@ add_library(search SHARED
         src/common/bfs3d.cpp
         src/planners/egraph_wastar.cpp
         src/common/experience_graph.cpp
+        src/common/conflict_conversions.cpp
 )
 
 set($(PROJECT_NAME)_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")

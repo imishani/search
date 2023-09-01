@@ -81,16 +81,16 @@ public:
     inline std::vector<ConflictType> getConflictTypes() override { return conflict_types_; }
 
 protected:
-    /// @brief  Convert conflicts to constraints. This is a main differentiator between CBS and CBSPrivateGrids. CBS can handle vertex and edge constraints, so CBSPrivateGrids converts conflicts to these types of constraints.
+    /// @brief  Convert conflicts to constraints. This is a main differentiator between CBS and CBSPrivateGrids. CBS can handle vertex and edge constraints, so CBSPrivateGrids converts conflicts to these types of constraints. Each conflict is converted to a collection of constraints. Traditionally, CBS would convert each conflict to a single constraint, but other algorithms may do it differently. The constraint collection that is outputted form this method is used as an addition to a new CT search state.
     /// @param conflicts
-    /// @return mapping from agent id to constraints.
-    std::vector<std::pair<int, std::shared_ptr<Constraint>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
+    /// @return mapping from agent id to constraint sets.
+    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
     // Parameters.
     CBSParams params_;
 
     // The required conflict types.
-    std::vector<ConflictType> conflict_types_ = {ConflictType::PRIVATE_GRIDS_VERTEX};
+    std::vector<ConflictType> conflict_types_ = {ConflictType::PRIVATE_GRIDS_VERTEX, ConflictType::PRIVATE_GRIDS_EDGE};
 };
 
 }  // namespace ims

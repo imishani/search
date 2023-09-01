@@ -49,6 +49,7 @@
 #include <search/heuristics/standard_heuristics.hpp>
 #include <search/planners/wastar.hpp>
 #include <search/planners/best_first_search.hpp>
+#include <search/common/conflict_conversions.hpp>
 
 #include "search/action_space/constrained_action_space.hpp"
 
@@ -176,7 +177,7 @@ protected:
     /// @param paths The paths to pad.
     void padPathsToMaxLength(MultiAgentPaths& paths);
 
-    virtual std::vector<std::pair<int, std::shared_ptr<Constraint>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts);
+    virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts);
 
     /// @brief Set the search state struct values.
     /// @param state_id

@@ -35,18 +35,18 @@
 #include <search/planners/astar.hpp>
 #include <search/planners/multi_agent/cbs_sphere3d.hpp>
 
-ims::CBSSphere3d::CBSSphere3d(const ims::CBSSphere3dParams & params) : params_(params), ims::CBS(params) {
+ims::CBSSphere3d::CBSSphere3d(const ims::CBSSphere3dParams& params) : params_(params), ims::CBS(params) {
     // Initialize the sphere3d constraint radius.
     sphere3d_constraint_radius_ = params_.sphere3d_constraint_radius;
 }
 
-std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBSSphere3d::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
-    std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> agent_constraints;
+std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::CBSSphere3d::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
+    std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> agent_constraints;
     // TODO(yoraish): this is WIP.
     // Iterate through the conflicts and convert them to constraints.
     for (auto& conflict_ptr : conflicts) {
         // Create a new constraint given the conflict.
-        switch (conflict_ptr->type){
+        switch (conflict_ptr->type) {
             case ConflictType::POINT3D: {
                 // Get the location of each of the agents. Each one is specified in its own grid.
                 auto* point3d_conflict_ptr = dynamic_cast<Point3dConflict*>(conflict_ptr.get());
@@ -54,19 +54,11 @@ std::vector<std::pair<int, std::shared_ptr<ims::Constraint>>> ims::CBSSphere3d::
                 if (point3d_conflict_ptr == nullptr) {
                     throw std::runtime_error("Conflict is a point3d conflict, but could not be converted to a Point3dConflict.");
                 }
-
-                // For each affected agent (2, in CBS), create a new constraint, and down the line a search state for each as well.
-                for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
-                    int agent_id = point3d_conflict_ptr->agent_ids[i];
-                    TimeType time = point3d_conflict_ptr->states.front().back();
-
-                    // Create a new vertex constraint.
-                    Sphere3dConstraint constraint = Sphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius_, time);
-
-                    // Update the constraints collective to also include the new constraint.
-                    agent_constraints.emplace_back(agent_id, std::make_shared<Sphere3dConstraint>(constraint));
-                }
+                ims::conflict_conversions::point3dConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, sphere3d_constraint_radius_);
+                break;
             }
+            default:
+                throw std::runtime_error("Conflict type " + std::to_string(static_cast<int>(conflict_ptr->type)) + " is not supported by CBSSphere3d.");
         }
     }
     return agent_constraints;

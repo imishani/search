@@ -53,7 +53,8 @@ enum class ConflictType {
     VERTEX = 0,
     EDGE = 1,
     PRIVATE_GRIDS_VERTEX = 2,
-    POINT3D = 3,
+    PRIVATE_GRIDS_EDGE = 3,
+    POINT3D = 4,
 };
 
 /// @brief Base class for all search conflicts.
@@ -128,14 +129,33 @@ struct PrivateGridsVertexConflict : public Conflict {
     }
 };
 
+/// @brief A struct for storing an edge conflict on private grids.
+struct PrivateGridsEdgeConflict : public Conflict {
+    /// @brief The state vector. Could be a robot configuration.
+    // We specify the states directly since their ID may change in future low-level plan iterations.
+    std::vector<StateType> from_states;
+    std::vector<StateType> to_states;
+
+    // The agent IDs.
+    std::vector<int> agent_ids;
+
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param state The state vector.
+    explicit PrivateGridsEdgeConflict(std::vector<StateType> from_states, std::vector<StateType> to_states, std::vector<int> agent_ids) : from_states(std::move(from_states)), to_states(std::move(to_states)), agent_ids(std::move(agent_ids)) {
+        /// @brief The type of the Conflict.
+        type = ConflictType::PRIVATE_GRIDS_EDGE;
+    }
+};
+
 // ==========================
 // Conflicts for MRAMP.
 // ==========================
 /// @brief A struct for storing a vertex conflict on private grids.
 struct Point3dConflict : public Conflict {
     /// @brief The state vector. Could be a robot configuration.
-    // We specify the states directly since their ID may change in future low-level plan iterations.
-    std::vector<StateType> states;
+    // We specify the states directly since their ID may change in future low-level plan iterations. The collision either happened in a transition between states or in a state itself. If a conflict is specified for a transition, then we specify both the from and to states. If a conflict is specified for a state, then those are going to be the same.
+    std::vector<StateType> from_states;
+    std::vector<StateType> to_states;
 
     // The agent IDs.
     std::vector<int> agent_ids;
@@ -143,17 +163,35 @@ struct Point3dConflict : public Conflict {
     // The point of conflict.
     Eigen::Vector3d point;
 
-    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @brief Constructor, allowing to set the from_state, to_state, ids, and point.
     /// @param state The state vector.
-    explicit Point3dConflict(const std::vector<StateType>& states, 
+    explicit Point3dConflict(const std::vector<StateType>& from_states,
+                             const std::vector<StateType>& to_states, 
                              const std::vector<int> & agent_ids,
                              const Eigen::Vector3d& point) : 
-                                states(states), 
+                                from_states(from_states),
+                                to_states(to_states), 
                                 agent_ids(agent_ids),
                                 point(point) {
     
     /// @brief The type of the Conflict.
     type = ConflictType::POINT3D;
+    }
+
+    /// @brief Constructor, allowing to set the from state, ids, and point.
+    /// @param state The state vector.
+    explicit Point3dConflict(const std::vector<StateType>& from_states,
+                             const std::vector<int> & agent_ids,
+                             const Eigen::Vector3d& point) : 
+                                from_states(from_states),
+                                agent_ids(agent_ids),
+                                point(point) {
+    
+    /// @brief The type of the Conflict.
+    type = ConflictType::POINT3D;
+
+    // Set the to states to be empty.
+    to_states = {};
     }
 };
 
