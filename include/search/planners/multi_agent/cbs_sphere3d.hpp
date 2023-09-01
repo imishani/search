@@ -108,7 +108,7 @@ protected:
     /// @brief  Convert conflicts to constraints. This is one of the main differentiators between CBS and CBSSphere3d. CBS can handle vertex and edge constraints in its original formulation. Now we would like it to instead handle Sphere3d constraints. To enable that, this method converts conflicts (most likely Point3d conflicts) to Sphere3d constraints.
     /// @param conflicts
     /// @return mapping from agent id to constraints.
-    std::vector<std::pair<int, std::shared_ptr<Constraint>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
+    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
     // Parameters.
     CBSSphere3dParams params_;

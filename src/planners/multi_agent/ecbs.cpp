@@ -178,8 +178,8 @@ void ims::ECBS::expand(int state_id) {
     // Despite asking for many conflicts, we only convert the first one to constraints.
     std::vector<std::shared_ptr<Conflict>> conflicts_to_convert{state->unresolved_conflicts.begin(), state->unresolved_conflicts.begin() + 1};
 
-    // std::vector<std::pair<int, std::shared_ptr<Constraint>>> constraints = conflictsToConstraints(state->conflicts);
-    std::vector<std::pair<int, std::shared_ptr<Constraint>>> constraints = conflictsToConstraints(conflicts_to_convert);
+    // std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> constraints = conflictsToConstraints(state->conflicts);
+    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> constraints = conflictsToConstraints(conflicts_to_convert);
 
     // Second, iterate through the constraints, and for each one, create a new search state. The new search state is a copy of the previous search state, with the constraint added to the constraints collective of the agent.
     // For each constraint, split the state into branches. Each branch will be a new state in the search tree.
@@ -206,7 +206,7 @@ void ims::ECBS::expand(int state_id) {
         // NOTE(yoraish): we do not copy over the conflicts, since they will be recomputed in the new state. We could consider keeping a history of conflicts in the search state, with new conflicts being marked as such.
 
         // Update the constraints collective to also include the new constraint.
-        new_state->constraints_collectives[agent_id].addConstraint(constraint_ptr);
+        new_state->constraints_collectives[agent_id].addConstraints(constraint_ptr);
 
         // update the action-space.
         agent_action_space_ptrs_[agent_id]->setConstraintsCollective(std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]));

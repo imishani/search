@@ -84,13 +84,13 @@ protected:
     /// @brief  Convert conflicts to constraints. This is a main differentiator between ECBS and ECBSPrivateGrids. ECBS can handle vertex and edge constraints, so ECBSPrivateGrids converts conflicts to these types of constraints.
     /// @param conflicts
     /// @return mapping from agent id to constraints.
-    std::vector<std::pair<int, std::shared_ptr<Constraint>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
+    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
     // Parameters.
     ECBSParams params_;
 
     // The required conflict types.
-    std::vector<ConflictType> conflict_types_ = {ConflictType::PRIVATE_GRIDS_VERTEX};
+    std::vector<ConflictType> conflict_types_ = {ConflictType::PRIVATE_GRIDS_VERTEX, ConflictType::PRIVATE_GRIDS_EDGE};
 };
 
 }  // namespace ims

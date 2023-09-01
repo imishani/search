@@ -227,6 +227,12 @@ struct ConstraintsCollective {
         }
     }
 
+    void addConstraints(const std::vector<std::shared_ptr<Constraint>>& constraints) {
+        for (const auto& constraint_ptr : constraints) {
+            addConstraint(constraint_ptr);
+        }
+    }
+
     /// @brief Set the constraints context.
     /// @param context The constraints context to set.
     void setContext(const std::shared_ptr<ConstraintsContext>& context) {
