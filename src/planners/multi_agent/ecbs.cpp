@@ -60,6 +60,10 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
 
     // Create all the low-level planners.
     for (size_t i{0}; i < starts.size(); ++i) {
+        if (params_.low_level_heuristic_ptrs.size() != starts.size()) {
+            throw std::runtime_error("Number of low-level heuristics (" + std::to_string(params_.low_level_heuristic_ptrs.size()) + ") does not match the number of agents (" + std::to_string(starts.size()) + ")");
+        }
+        ims::wAStarParams wastar_params_(params_.low_level_heuristic_ptrs[i], params_.weight_low_level_heuristic);
         agent_planner_ptrs_.push_back(std::make_shared<ims::wAStar>(wastar_params_));
     }
 

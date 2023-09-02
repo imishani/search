@@ -105,6 +105,10 @@ int main(int argc, char** argv) {
 
     // Construct the parameters.
     ims::ECBSParams params;
+    params.low_level_heuristic_ptrs;
+    for (int i {0}; i < num_agents; i++){
+        params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
+    }
 
     // Construct the scene and the action space.
     scene2DRob scene (map);

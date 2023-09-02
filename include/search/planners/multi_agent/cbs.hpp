@@ -81,6 +81,9 @@ struct CBSParams : public BestFirstSearchParams {
 
     /// @brief Exhaustive search flag. If true, the algorithm will continue to search until the goal is found or the open list is empty.
     bool exhaustive = false;
+    
+    /// @brief The heuristics to be used by the low level planners.
+    std::vector<ims::BaseHeuristic*> low_level_heuristic_ptrs;
 
     /// @brief The weight to use in the low level planner heuristic.
     double weight_low_level_heuristic = 1.0;
@@ -212,8 +215,8 @@ protected:
     std::vector<std::shared_ptr<wAStar>> agent_planner_ptrs_;
 
     // The low-level planners parameters.
-    EuclideanRemoveTimeHeuristic* low_level_planner_heuristic_ptr_ = new ims::EuclideanRemoveTimeHeuristic();
-    wAStarParams wastar_params_ = wAStarParams(low_level_planner_heuristic_ptr_, params_.weight_low_level_heuristic);
+    // EuclideanRemoveTimeHeuristic* low_level_planner_heuristic_ptr_ = new ims::EuclideanRemoveTimeHeuristic();
+    // wAStarParams wastar_params_ = wAStarParams(low_level_planner_heuristic_ptr_, params_.weight_low_level_heuristic);
 
     /// @brief The start and goal states of the single agents. Remember that these have a time dimension in them.
     std::vector<StateType> starts_;
