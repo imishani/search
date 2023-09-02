@@ -59,6 +59,8 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
 
     // Create all the low-level planners.
     for (size_t i{0}; i < starts.size(); ++i) {
+        ims::wAStarParams wastar_params_(params_.low_level_heuristic_ptrs[i], params_.weight_low_level_heuristic);
+        
         agent_planner_ptrs_.push_back(std::make_shared<ims::wAStar>(wastar_params_));
     }
 
