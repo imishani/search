@@ -45,11 +45,13 @@
 
 // Project includes.
 #include <search/common/conflicts.hpp>
-#include "search/action_space/constrained_action_space.hpp"
 #include <search/common/constraints.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
-#include <search/planners/astar.hpp>
+#include <search/planners/wastar.hpp>
 #include <search/planners/best_first_search.hpp>
+#include <search/common/conflict_conversions.hpp>
+
+#include "search/action_space/constrained_action_space.hpp"
 
 /*
 Some things that need to be done:
@@ -79,6 +81,12 @@ struct CBSParams : public BestFirstSearchParams {
 
     /// @brief Exhaustive search flag. If true, the algorithm will continue to search until the goal is found or the open list is empty.
     bool exhaustive = false;
+    
+    /// @brief The heuristics to be used by the low level planners.
+    std::vector<ims::BaseHeuristic*> low_level_heuristic_ptrs;
+
+    /// @brief The weight to use in the low level planner heuristic.
+    double weight_low_level_heuristic = 1.0;
 };
 
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
@@ -87,22 +95,15 @@ using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsColle
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
-struct EdgeConflict : public Conflict {
-    /// @brief The state vector. Could be a robot configuration.
-    // We specify the states directly since their ID may change in future low-level plan iterations.
-    StateType from_state;
-    StateType to_state;
-
-    // The agent IDs.
-    int agent_id_from;
-    int agent_id_to;
-
-    /// @brief Constructor, allowing to set the state, time, and type.
-    /// @param state The state vector.
-    explicit EdgeConflict(StateType from_state, StateType to_state, int agent_id_from, int agent_id_to) : from_state(std::move(from_state)), to_state(std::move(to_state)), agent_id_from(agent_id_from), agent_id_to(agent_id_to) {
-        /// @brief The type of the Conflict.
-        type = ConflictType::EDGE_CONFLICT;
-    }
+/// @brief Base class for all CBS variants. Defines some required methods.
+class CBSBase {
+protected:
+public:
+    /// @brief Get the conflict types requested by the algorithm.
+    CBSBase() = default;
+    ~CBSBase() = default;
+    /// @return The conflict types.
+    virtual std::vector<ConflictType> getConflictTypes() = 0;
 };
 
 // ==========================
@@ -110,9 +111,8 @@ struct EdgeConflict : public Conflict {
 // ==========================
 /// @class CBS class.
 /// @brief The CBS algorithm.
-class CBS : public BestFirstSearch {
+class CBS : public BestFirstSearch, public CBSBase {
 private:
-
 public:
     /// @brief Constructor
     /// @param params The parameters
@@ -133,7 +133,7 @@ public:
     /// @param agent_names The names of the agents.
     /// @param starts The start states for all agents.
     /// @param goals The goal states for all agents.
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief plan a path
     /// @param path The path
@@ -141,13 +141,9 @@ public:
     bool plan(MultiAgentPaths& paths);
 
 protected:
-
-    // friend wAStar;
-
     // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
     /// @brief The search state.
     struct SearchState : public ims::BestFirstSearch::SearchState {
-
         // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
         MultiAgentPaths paths;
 
@@ -155,8 +151,8 @@ protected:
         std::unordered_map<int, double> paths_costs;
 
         // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
-        std::vector<std::shared_ptr<Conflict>> conflicts = {};
-        
+        std::vector<std::shared_ptr<Conflict>> unresolved_conflicts = {};
+
         // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
         MultiAgentConstraintsCollective constraints_collectives;
     };
@@ -184,7 +180,7 @@ protected:
     /// @param paths The paths to pad.
     void padPathsToMaxLength(MultiAgentPaths& paths);
 
-    virtual std::vector<std::pair<int, std::shared_ptr<Constraint>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts);
+    virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts);
 
     /// @brief Set the search state struct values.
     /// @param state_id
@@ -201,6 +197,13 @@ protected:
     /// @param goals
     void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
+    /// @brief Get the conflict types requested by the algorithm.
+    /// @return The conflict types.
+    /// @note Derived class, aka CBS variants that request different conflict types (e.g., point3d, etc.) should override this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
+    virtual inline std::vector<ConflictType> getConflictTypes() {
+        return conflict_types_;
+    }
+
     /// Member variables.
     // The search parameters.
     CBSParams params_;
@@ -209,11 +212,11 @@ protected:
     std::vector<std::shared_ptr<ConstrainedActionSpace>> agent_action_space_ptrs_;
 
     // The low-level planners.
-    std::vector<std::shared_ptr<AStar>> agent_planner_ptrs_;
+    std::vector<std::shared_ptr<wAStar>> agent_planner_ptrs_;
 
     // The low-level planners parameters.
-    EuclideanRemoveTimeHeuristic* low_level_planner_heuristic_ptr_ = new ims::EuclideanRemoveTimeHeuristic();
-    AStarParams astar_params_ = AStarParams(low_level_planner_heuristic_ptr_);
+    // EuclideanRemoveTimeHeuristic* low_level_planner_heuristic_ptr_ = new ims::EuclideanRemoveTimeHeuristic();
+    // wAStarParams wastar_params_ = wAStarParams(low_level_planner_heuristic_ptr_, params_.weight_low_level_heuristic);
 
     /// @brief The start and goal states of the single agents. Remember that these have a time dimension in them.
     std::vector<StateType> starts_;
@@ -228,6 +231,10 @@ protected:
 
     /// @brief The names of the agents.
     std::vector<std::string> agent_names_;
+
+    // Public variable. For shadowing.
+    /// @brief The conflict types that this algorithm asks for from the action space.
+    std::vector<ConflictType> conflict_types_ = {ConflictType::EDGE, ConflictType::VERTEX};
 };
 
 }  // namespace ims

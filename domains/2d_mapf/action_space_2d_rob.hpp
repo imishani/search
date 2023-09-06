@@ -137,11 +137,12 @@ public:
 
                 // Check if the constraint is a vertex constraint or an edge constraint.
                 switch (constraint_ptr->type) {
-                    case ims::ConstraintType::VERTEX_CONSTRAINT: {
+                    case ims::ConstraintType::VERTEX: {
                         // Convert to a vertex constraint pointer to get access to its members.
                         auto* vertex_constraint_ptr = dynamic_cast<ims::VertexConstraint*>(constraint_ptr.get());
                         if (vertex_constraint_ptr != nullptr) {
                             // If the constraint is a vertex constraint, check if the state is valid w.r.t the constraint.
+                            // note(yoraish): the state includes time so the check for equality in time is the element at position 2.
                             if (vertex_constraint_ptr->state[0] == next_state_val[0] && vertex_constraint_ptr->state[1] == next_state_val[1] && vertex_constraint_ptr->state[2] == next_state_val[2]) {
                                 return false;
                             }
@@ -149,7 +150,7 @@ public:
                         break;
                     }
 
-                    case ims::ConstraintType::EDGE_CONSTRAINT: {
+                    case ims::ConstraintType::EDGE: {
                         // Convert to an edge constraint pointer to get access to its members.
                         auto* edge_constraint_ptr = dynamic_cast<ims::EdgeConstraint*>(constraint_ptr.get());
                         if (edge_constraint_ptr != nullptr) {
@@ -247,8 +248,13 @@ public:
         return cost;
     }
 
-    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths, std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs, int max_conflicts, const std::vector<std::string> & names) {
+    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths, std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs, const std::vector<ims::ConflictType>& conflict_types, int max_conflicts, const std::vector<std::string> & names) {
         // Loop through the paths and check for conflicts.
+        // If requested, get all the conflicts available.
+        if (max_conflicts == -1) {
+            max_conflicts = INF_INT;
+        }
+
         // Length of the longest path.
         int max_path_length = 0;
         for (auto& path : *paths) {

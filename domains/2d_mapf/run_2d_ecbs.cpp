@@ -45,7 +45,7 @@
 #include <opencv2/imgproc.hpp> // Get the cv circle.
 
 // project includes
-#include <search/planners/multi_agent/cbs.hpp>
+#include <search/planners/multi_agent/ecbs.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
 
 // Note(yoraish): Leaving quotation marks include since it is a local file for the example.
@@ -104,13 +104,11 @@ int main(int argc, char** argv) {
     std::cout << "Constructing planner..." << std::endl;
 
     // Construct the parameters.
-    ims::CBSParams params;
+    ims::ECBSParams params;
     params.low_level_heuristic_ptrs;
     for (int i {0}; i < num_agents; i++){
         params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
     }
-    params.weight_low_level_heuristic = 1.0;
-
 
     // Construct the scene and the action space.
     scene2DRob scene (map);
@@ -155,7 +153,7 @@ int main(int argc, char** argv) {
     }
 
     // Now, use the action spaces to create the planner. The planner itself creates derived classes for each of the action spaces, called ConstrainedActionSpace.
-    ims::CBS planner(params);
+    ims::ECBS planner(params);
     planner.initializePlanner(action_spaces, start_state_vals, goal_state_vals);
 
     // Plan.

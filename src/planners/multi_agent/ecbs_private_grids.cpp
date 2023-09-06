@@ -32,17 +32,16 @@
  * \date   August 24 2023
  */
 
-#include <search/planners/multi_agent/cbs_private_grids.hpp>
+#include <search/planners/multi_agent/ecbs_private_grids.hpp>
 
-ims::CBSPrivateGrids::CBSPrivateGrids(const ims::CBSParams& params) : params_(params), ims::CBS(params) {}
+ims::ECBSPrivateGrids::ECBSPrivateGrids(const ims::ECBSParams& params) : params_(params), ims::ECBS(params) {}
 
-std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::CBSPrivateGrids::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
+std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::ECBSPrivateGrids::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
     std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> agent_constraints;
     // TODO(yoraish): this is WIP.
     // Iterate through the conflicts and convert them to constraints.
     for (auto& conflict_ptr : conflicts) {
         // Create a new constraint given the conflict.
-
         // ===========================
         // Vertex Conflicts.
         // ===========================
@@ -52,16 +51,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             if (vertex_conflict_ptr == nullptr) {
                 throw std::runtime_error("Conflict is a vertex conflict, but could not be converted to a VertexConflict.");
             }
-
-            // For each affected agent (2, in CBS), create a new constraint, and down the line a search state for each as well.
-            for (int agent_id : vertex_conflict_ptr->agent_ids) {
-
-                // Create a new vertex constraint.
-                VertexConstraint constraint = VertexConstraint(vertex_conflict_ptr->state);
-
-                // Update the constraints collective to also include the new constraint.
-                agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexConstraint>(constraint)});
-            }
+            ims::conflict_conversions::vertexConflictToVertexConstraints(vertex_conflict_ptr, agent_constraints);
         }
 
         // ===========================
@@ -75,22 +65,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             if (edge_conflict_ptr == nullptr) {
                 throw std::runtime_error("Conflict is an edge conflict, but could not be converted to an EdgeConflict.");
             }
-
-            // We have exactly two affected agents. Call them agent_a and agent_b. The conflict is 'a' moving 'from_state' to 'to_state' and 'b' moving 'to_state' to 'from_state', with time decremented and incremented by 1, respectively.
-            int agent_a = edge_conflict_ptr->agent_id_from;
-            int agent_b = edge_conflict_ptr->agent_id_to;
-
-            // Create a new edge constraint.
-            EdgeConstraint constraint_a = EdgeConstraint(edge_conflict_ptr->from_state, edge_conflict_ptr->to_state);
-            StateType from_state_b = edge_conflict_ptr->to_state;
-            from_state_b.back() -= 1;
-            StateType to_state_b = edge_conflict_ptr->from_state;
-            to_state_b.back() += 1;
-            EdgeConstraint constraint_b = EdgeConstraint(from_state_b, to_state_b);
-
-            // Add to the constraints object.
-            agent_constraints.emplace_back(agent_a, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint_a)});
-            agent_constraints.emplace_back(agent_b, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint_b)});
+            ims::conflict_conversions::edgeConflictToEdgeConstraints(edge_conflict_ptr, agent_constraints);
         }
 
         // ===========================
@@ -103,17 +78,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             if (private_grids_vertex_conflict_ptr == nullptr) {
                 throw std::runtime_error("Conflict is a private grids vertex conflict, but could not be converted to a PrivateGridsVertexConflict.");
             }
-
-            // For each affected agent (2, in CBS), create a new constraint, and down the line a search state for each as well.
-            for (int i = 0; i < private_grids_vertex_conflict_ptr->agent_ids.size(); i++) {
-                int agent_id = private_grids_vertex_conflict_ptr->agent_ids[i];
-
-                // Create a new vertex constraint.
-                VertexConstraint constraint = VertexConstraint(private_grids_vertex_conflict_ptr->states[i]);
-
-                // Update the constraints collective to also include the new constraint.
-                agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexConstraint>(constraint)});
-            }
+            ims::conflict_conversions::privateGridsVertexConflictToVertexConstraints(private_grids_vertex_conflict_ptr, agent_constraints);
         }
 
         // ===========================
@@ -126,29 +91,8 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             if (private_grids_edge_conflict_ptr == nullptr) {
                 throw std::runtime_error("Conflict is a private grids edge conflict, but could not be converted to a PrivateGridsEdgeConflict.");
             }
+            ims::conflict_conversions::privateGridsEdgeConflictToEdgeConstraints(private_grids_edge_conflict_ptr, agent_constraints);
 
-            // We have two or more affected agents. For example say we have two and call them agent_a and agent_b. The conflict is 'a' moving 'from_state' to 'to_state' and 'b' moving from its own 'from_state' to 'to_state', each on their own private grid.
-            for (int i = 0; i < private_grids_edge_conflict_ptr->agent_ids.size(); i++) {
-                int agent_id = private_grids_edge_conflict_ptr->agent_ids[i];
-                StateType from_state = private_grids_edge_conflict_ptr->from_states[i];
-                StateType to_state = private_grids_edge_conflict_ptr->to_states[i];
-
-                // It could be that one of the agents is not in transition while the other one is, so ceate a new edge constraint only if the states are different.
-                if (from_state != to_state) {
-                    EdgeConstraint constraint = EdgeConstraint(from_state, to_state);
-
-                    // Update the constraints collective to also include the new constraint.
-                    agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint)});
-                }
-
-                // Otherwise, create a new vertex constraint.
-                else {
-                    VertexConstraint constraint = VertexConstraint(from_state);
-
-                    // Update the constraints collective to also include the new constraint.
-                    agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexConstraint>(constraint)});
-                }
-            }
         }
     }
     return agent_constraints;

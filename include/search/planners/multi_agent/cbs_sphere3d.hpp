@@ -27,13 +27,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   cbs_private_grids.hpp
+ * \file   cbs_sphere3d.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
- * \date   August 18 2023
+ * \date   August 21 2023
  */
 
-#ifndef SEARCH_CBS_PRIVATE_GRIDS_HPP
-#define SEARCH_CBS_PRIVATE_GRIDS_HPP
+#ifndef SEARCH_CBS_SPHERE3D_HPP
+#define SEARCH_CBS_SPHERE3D_HPP
 
 // Standard includes.
 #include <algorithm>
@@ -62,37 +62,61 @@ using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsColle
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
 // ==========================
-// CBS Private Grids Algorithm.
+// Related structs: CBSSphere3dParams
+// ==========================
+
+/// @class CBSParams class.
+/// @brief The parameters for the CBS algorithm
+struct CBSSphere3dParams : public CBSParams {
+    /// @brief Constructor
+    explicit CBSSphere3dParams() : CBSParams() {}
+
+    /// @brief Destructor
+    ~CBSSphere3dParams() override = default;
+
+    /// @brief Exhaustive search flag. If true, the algorithm will continue to search until the goal is found or the open list is empty.
+    bool exhaustive = false;
+
+    /// @brief The radius of the sphere3d constraint.
+    double sphere3d_constraint_radius = 0.001;
+};
+
+// ==========================
+// CBS Sphere-3D Algorithm.
 // ==========================
 /// @class CBS for private grids class.
 /// @brief The CBS algorithm for private grids. Perhaps obviously.
-class CBSPrivateGrids : public CBS {
+class CBSSphere3d : public CBS {
 private:
+
+    /// @brief The radius of the sphere3d constraint.
+    double sphere3d_constraint_radius_ = 0.05;
+
 public:
     /// @brief Constructor
     /// @param params The parameters
-    explicit CBSPrivateGrids(const CBSParams& params);
+    explicit CBSSphere3d(const CBSSphere3dParams& params);
 
     /// @brief Destructor
-    ~CBSPrivateGrids() override = default;
+    ~CBSSphere3d() override = default;
 
-    /// @brief Get the required conflict types.
-    /// @return The required conflict types.
+    /// @brief Get the conflict types.
+    /// @return The conflict types.
     inline std::vector<ConflictType> getConflictTypes() override { return conflict_types_; }
 
 protected:
-    /// @brief  Convert conflicts to constraints. This is a main differentiator between CBS and CBSPrivateGrids. CBS can handle vertex and edge constraints, so CBSPrivateGrids converts conflicts to these types of constraints. Each conflict is converted to a collection of constraints. Traditionally, CBS would convert each conflict to a single constraint, but other algorithms may do it differently. The constraint collection that is outputted form this method is used as an addition to a new CT search state.
+    /// @brief  Convert conflicts to constraints. This is one of the main differentiators between CBS and CBSSphere3d. CBS can handle vertex and edge constraints in its original formulation. Now we would like it to instead handle Sphere3d constraints. To enable that, this method converts conflicts (most likely Point3d conflicts) to Sphere3d constraints.
     /// @param conflicts
-    /// @return mapping from agent id to constraint sets.
+    /// @return mapping from agent id to constraints.
     std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
     // Parameters.
-    CBSParams params_;
+    CBSSphere3dParams params_;
 
-    // The required conflict types.
-    std::vector<ConflictType> conflict_types_ = {ConflictType::PRIVATE_GRIDS_VERTEX, ConflictType::PRIVATE_GRIDS_EDGE};
+    /// @brief The conflict types that this algorithm asks for from the action space. Shadow the value in the parent class.
+    std::vector<ConflictType> conflict_types_{ConflictType::POINT3D};
 };
 
 }  // namespace ims
 
-#endif  // SEARCH_CBS_PRIVATE_GRIDS_HPP
+#endif  // SEARCH_CBS_SPHERE3D_HPP

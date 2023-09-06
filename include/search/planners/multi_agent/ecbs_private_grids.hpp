@@ -32,8 +32,8 @@
  * \date   August 18 2023
  */
 
-#ifndef SEARCH_CBS_PRIVATE_GRIDS_HPP
-#define SEARCH_CBS_PRIVATE_GRIDS_HPP
+#ifndef SEARCH_ECBS_PRIVATE_GRIDS_HPP
+#define SEARCH_ECBS_PRIVATE_GRIDS_HPP
 
 // Standard includes.
 #include <algorithm>
@@ -49,7 +49,7 @@
 #include <search/heuristics/standard_heuristics.hpp>
 #include <search/planners/astar.hpp>
 #include <search/planners/best_first_search.hpp>
-#include <search/planners/multi_agent/cbs.hpp>
+#include <search/planners/multi_agent/ecbs.hpp>
 
 #include "search/action_space/constrained_action_space.hpp"
 
@@ -62,32 +62,32 @@ using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsColle
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
 // ==========================
-// CBS Private Grids Algorithm.
+// ECBS Private Grids Algorithm.
 // ==========================
-/// @class CBS for private grids class.
-/// @brief The CBS algorithm for private grids. Perhaps obviously.
-class CBSPrivateGrids : public CBS {
+/// @class ECBS for private grids class.
+/// @brief The ECBS algorithm for private grids. Perhaps obviously.
+class ECBSPrivateGrids : public ECBS {
 private:
 public:
     /// @brief Constructor
     /// @param params The parameters
-    explicit CBSPrivateGrids(const CBSParams& params);
+    explicit ECBSPrivateGrids(const ECBSParams& params);
 
     /// @brief Destructor
-    ~CBSPrivateGrids() override = default;
+    ~ECBSPrivateGrids() override = default;
 
     /// @brief Get the required conflict types.
     /// @return The required conflict types.
     inline std::vector<ConflictType> getConflictTypes() override { return conflict_types_; }
 
 protected:
-    /// @brief  Convert conflicts to constraints. This is a main differentiator between CBS and CBSPrivateGrids. CBS can handle vertex and edge constraints, so CBSPrivateGrids converts conflicts to these types of constraints. Each conflict is converted to a collection of constraints. Traditionally, CBS would convert each conflict to a single constraint, but other algorithms may do it differently. The constraint collection that is outputted form this method is used as an addition to a new CT search state.
+    /// @brief  Convert conflicts to constraints. This is a main differentiator between ECBS and ECBSPrivateGrids. ECBS can handle vertex and edge constraints, so ECBSPrivateGrids converts conflicts to these types of constraints.
     /// @param conflicts
-    /// @return mapping from agent id to constraint sets.
+    /// @return mapping from agent id to constraints.
     std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
     // Parameters.
-    CBSParams params_;
+    ECBSParams params_;
 
     // The required conflict types.
     std::vector<ConflictType> conflict_types_ = {ConflictType::PRIVATE_GRIDS_VERTEX, ConflictType::PRIVATE_GRIDS_EDGE};
@@ -95,4 +95,4 @@ protected:
 
 }  // namespace ims
 
-#endif  // SEARCH_CBS_PRIVATE_GRIDS_HPP
+#endif  // SEARCH_ECBS_PRIVATE_GRIDS_HPP
