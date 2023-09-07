@@ -60,6 +60,7 @@ namespace ims {
             call_number = 0;
             ara_time_limit = INF_DOUBLE; // default: no time limit
             expansions_limit = INF_INT; // default: no expansion limit
+            curr_cost = INF_DOUBLE;
         }
 
         /// @brief Destructor
@@ -67,6 +68,7 @@ namespace ims {
 
         int call_number;
         double final_epsilon, epsilon_delta;
+        double curr_cost;
 
         enum timing_types {TIME, EXPANSIONS, USER} type = TIME;
         double ara_time_limit; // TIME: time limit for the search
@@ -82,6 +84,8 @@ namespace ims {
     /// within a given time bound. This algorithm reuses the search tree from the previous search to
     /// improve the efficiency rather the vanilla case which starts from scratch in each iteration.
     class ARAStar : public wAStar {
+
+        friend class ExperienceARAstar;
 
     private:
     struct SearchState : public BestFirstSearch::SearchState {
@@ -154,7 +158,7 @@ namespace ims {
         void reorderOpen();
 
         /// @brief Update all bounds for the next iteration (time and suboptimality)
-        void updateBounds();
+        virtual void updateBounds();
 
         /// @brief Reinit search state when in new iteration
         /// @param state The state to be reinitialized
