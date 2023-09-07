@@ -209,7 +209,7 @@ bool ims::ARAStar::improvePath(std::vector<StateType> &path) {
             goal_ = state->state_id;
             getTimeFromStart(stats_.time);
             reconstructPath(path);
-            stats_.cost = state->g;
+            stats_.cost = state->g; params_.curr_cost = state->g;
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();
             return true;
