@@ -27,17 +27,56 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   cbs.hpp
+ * \file   eacbs.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   07/07/23
  */
 
-#include <search/planners/astar.hpp>
+#include <search/planners/wastar.hpp>
+#include <search/planners/multi_agent/eacbs.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
 
-ims::CBS::CBS(const ims::CBSParams& params) : params_(params), BestFirstSearch(params) {}
+ims::EACBS::EACBS(const ims::EACBSParams& params) : params_(params), CBS(params) {}
 
-void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
+void ims::EACBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
+                        const std::vector<StateType>& starts, const std::vector<StateType>& goals){
+    
+    // Cast the action spaces to ExperienceAcceleratedConstrainedActionSpace.
+    std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>> eac_action_space_ptrs;
+    for (auto& action_space_ptr : action_space_ptrs) {
+        eac_action_space_ptrs.push_back(std::dynamic_pointer_cast<ExperienceAcceleratedConstrainedActionSpace>(action_space_ptr));
+    }
+
+    // Check that all casts succeeded.
+    for (auto& action_space_ptr : eac_action_space_ptrs) {
+        if (action_space_ptr == nullptr) {
+            throw std::runtime_error("Could not cast action space to ExperienceAcceleratedConstrainedActionSpace");
+        }
+    }
+
+    // Call the other initializePlanner method.
+    initializePlanner(eac_action_space_ptrs, starts, goals);
+}
+
+void ims::EACBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
+    // Cast the action spaces to ExperienceAcceleratedConstrainedActionSpace.
+    std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>> eac_action_space_ptrs;
+    for (auto& action_space_ptr : action_space_ptrs) {
+        eac_action_space_ptrs.push_back(std::dynamic_pointer_cast<ExperienceAcceleratedConstrainedActionSpace>(action_space_ptr));
+    }
+
+    // Check that all casts succeeded.
+    for (auto& action_space_ptr : eac_action_space_ptrs) {
+        if (action_space_ptr == nullptr) {
+            throw std::runtime_error("Could not cast action space to ExperienceAcceleratedConstrainedActionSpace");
+        }
+    }
+
+    // Call the other initializePlanner method.
+    initializePlanner(eac_action_space_ptrs, agent_names, starts, goals);
+}
+
+void ims::EACBS::initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
     agent_action_space_ptrs_ = action_space_ptrs;
@@ -59,15 +98,16 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
 
     // Create all the low-level planners.
     for (size_t i{0}; i < starts.size(); ++i) {
-        ims::wAStarParams wastar_params_(params_.low_level_heuristic_ptrs[i], params_.weight_low_level_heuristic);
+        ims::EAwAStarUniformCostParams eawastar_params_(params_.low_level_heuristic_ptrs[i], params_.weight_low_level_heuristic);
         
-        agent_planner_ptrs_.push_back(std::make_shared<ims::wAStar>(wastar_params_));
+        agent_planner_ptrs_.push_back(std::make_shared<ims::EAwAStarUniformCost>(eawastar_params_));
     }
 
     // Generate a plan for each of the agents.
     MultiAgentPaths initial_paths;
     std::unordered_map<int, double> initial_paths_costs;
     std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
+
     for (size_t i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
         agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts[i], goals[i]);
@@ -83,25 +123,31 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
         // Compute the cost of the path.
         initial_paths_costs[i] = agent_planner_ptrs_[i]->stats_.cost;
         initial_paths_transition_costs[i] = agent_planner_ptrs_[i]->stats_.transition_costs;
-
     }
 
 
-    // Create the initial CBS state to the open list. This planner does not interface with an action space, so it does not call the getOrCreateRobotState to retrieve a new-state index. But rather decides on a new index directly and creates a search-state index with the getOrCreateSearchState method. Additionally, there is no goal specification for CBS, so we do not have a goal state.
+    // Create the initial EACBS state to the open list. This planner does not interface with an action space, so it does not call the getOrCreateRobotState to retrieve a new-state index. But rather decides on a new index directly and creates a search-state index with the getOrCreateSearchState method. Additionally, there is no goal specification for EACBS, so we do not have a goal state.
     int start_ind_ = 0;
     auto start_ = getOrCreateSearchState(start_ind_);
 
-    // Set the initial CBS state.
+    // Set the initial EACBS state.
     start_->parent_id = PARENT_TYPE(START);
     start_->paths = initial_paths;
     start_->paths_costs = initial_paths_costs;
     start_->paths_transition_costs = initial_paths_transition_costs;
 
-    // Set the cost of the CBSState start_.
+    // Set the cost of the EACBSState start_.
     start_->f = std::accumulate(initial_paths_costs.begin(), initial_paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
     start_->setOpen();
 
-    // Push the initial CBS state to the open list.
+    // Check for conflicts in this new state.
+    agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(start_->paths), 
+                                                    start_->unresolved_conflicts, 
+                                                    getConflictTypes()   ,
+                                                    1, 
+                                                    agent_names_);
+
+    // Push the initial EACBS state to the open list.
     open_.push(start_);
 
     // Show the initial paths.
@@ -119,17 +165,17 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
     }
 }
 
-void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
+void ims::EACBS::initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
                         agent_names_ = agent_names;
                         initializePlanner(action_space_ptrs, starts, goals);
                         }
 
-auto ims::CBS::getSearchState(int state_id) -> ims::CBS::SearchState* {
+auto ims::EACBS::getSearchState(int state_id) -> ims::EACBS::SearchState* {
     assert(state_id < states_.size() && state_id >= 0);
     return states_[state_id];
 }
 
-auto ims::CBS::getOrCreateSearchState(int state_id) -> ims::CBS::SearchState* {
+auto ims::EACBS::getOrCreateSearchState(int state_id) -> ims::EACBS::SearchState* {
     if (state_id >= states_.size()) {
         states_.resize(state_id + 1, nullptr);
     }
@@ -141,13 +187,13 @@ auto ims::CBS::getOrCreateSearchState(int state_id) -> ims::CBS::SearchState* {
     return states_[state_id];
 }
 
-bool ims::CBS::plan(MultiAgentPaths& paths) {
+bool ims::EACBS::plan(MultiAgentPaths& paths) {
     startTimer();
     int iter{0};
     while (!open_.empty() && !isTimeOut()) {
         // Report progress every 100 iterations
         if (iter % 10 == 0) {
-            std::cout << "CBS CT open size: " << open_.size() << std::endl;
+            std::cout << "EACBS CT open size: " << open_.size() << std::endl;
         }
 
         // Get the state of least cost.
@@ -157,14 +203,7 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
         // Set the state to closed.
         state->setClosed();
 
-        // Expand the state. This requires a check for conflicts (done right below), a branch if there are conflicts (converted to constraints, done in expand()), and a replan for each branch in light of the new constraints (also done in expand()). If no conflicts were found, then the state is a goal state, is set in goals_, and we return.
-        // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the CBS class, and then passed to the action_space.
-        agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), 
-                                                       state->unresolved_conflicts, 
-                                                       getConflictTypes()   ,
-                                                       1, 
-                                                       agent_names_);
-
+        // Expand the state. 
         // Before we actually expand the state, we check if there is even a need to do so. If there are no conflicts, then this is a goal state. Set the goal state and return.
         if (state->unresolved_conflicts.empty()) {
             std::cout << "No conflicts found. This is a goal state." << std::endl;
@@ -185,23 +224,22 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
     return false;
 }
 
-void ims::CBS::expand(int state_id) {
+void ims::EACBS::expand(int state_id) {
     auto state = getSearchState(state_id);
     std::vector<int> successors;
-    std::vector<double> costs;
 
-    // First, convert all conflicts to pairs of (agent_id, constraint). In vanilla CBS, there is only one conflict found from a set of paths (the first/random one), and that would yield two constraints. To allow for more flexibility, we do not restrict the data structure to only two constraints per conflict.
+    // First, convert all conflicts to pairs of (agent_id, constraint). In vanilla EACBS, there is only one conflict found from a set of paths (the first/random one), and that would yield two constraints. To allow for more flexibility, we do not restrict the data structure to only two constraints per conflict.
     std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> constraints = conflictsToConstraints(state->unresolved_conflicts);
 
     // Second, iterate through the constraints, and for each one, create a new search state. The new search state is a copy of the previous search state, with the constraint added to the constraints collective of the agent.
     // For each constraint, split the state into branches. Each branch will be a new state in the search tree.
-    for (auto& agent_id_constraint : constraints){
+    for (auto& agent_id_constraints : constraints){
 
         // The first element is the agent ID.
-        int agent_id = agent_id_constraint.first;
+        int agent_id = agent_id_constraints.first;
 
         // The second element is a shared pointer to the constraint.
-        auto constraint_ptr = agent_id_constraint.second;
+        auto constraints_ptr = agent_id_constraints.second;
 
         // Create a new search state. In this implementation ther is no check for whether the search state already exists (same starts, goals, and constraints), so we always create a new search state and push(...) it to the open list. Otherwise, we would check if the search state already exists, and if so, we would update(...) the open list heap.
         // NOTE(yoraish): lock below for parallelization. Think of copying action-spaces and planners as well for each thread?
@@ -219,15 +257,49 @@ void ims::CBS::expand(int state_id) {
         // NOTE(yoraish): we do not copy over the conflicts, since they will be recomputed in the new state. We could consider keeping a history of conflicts in the search state, with new conflicts being marked as such.
 
         // Update the constraints collective to also include the new constraint.
-        new_state->constraints_collectives[agent_id].addConstraints(constraint_ptr);
+        new_state->constraints_collectives[agent_id].addConstraints(constraints_ptr);
 
-        // update the action-space.
+        // Update the action-space with the updated constraints.
         agent_action_space_ptrs_[agent_id]->setConstraintsCollective(std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]));
+
+        // Update the action-space with an experience yielded by the previous path of this agent. Notice that this is slightly different from what we do with constraints. With the constraints, we first update the constraints stored in the search state and then set this same constraints collective in the action space. With experiences though, we would like to (perhaps) reuse experiences from different CT nodes, so we directly add experiences to the action space, which is shared by all invocations be this agents' low-level planner across CT subtrees.
+        // NOTE(yoraish): if we do not want to share experiences across CT subtrees, then we should work in the same way as the constraints (keep track of experiences in the search state, and update (set) the action space with the experiences stored in the search state (not to add to them)).
+        agent_action_space_ptrs_[agent_id]->clearExperiences();
+        agent_action_space_ptrs_[agent_id]->addTimedExperienceToExperiencesCollective(std::make_shared<Experience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
 
         // Update the low-level planner for this agent.
         agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);
 
+
+        // // TEST TEST
+        // // Set the OPEN list of the low-level planner to be the valid states of the previous path of this agent starting from the "start" until a state that is not valid w.r.t constraints is found.
+        // std::vector<StateType> valid_states_for_reuse;
+        // std::vector<double> valid_states_for_reuse_costs;
+        // for (int state_ix = 0; state_ix < state->paths[agent_id].size() - 1; ++state_ix) {
+        //     // Get the state.
+        //     StateType robot_state = new_state->paths[agent_id][state_ix];
+        //     StateType next_robot_state = new_state->paths[agent_id][state_ix + 1];
+
+        //     // Check if the state is valid w.r.t constraints.
+        //     if (agent_action_space_ptrs_[agent_id]->isSatisfyingConstraints(robot_state, next_robot_state)) {
+        //         valid_states_for_reuse.push_back(robot_state);
+        //         valid_states_for_reuse_costs.push_back(state->paths_transition_costs[agent_id][state_ix]);
+        //     } else {
+        //         // If not, break.
+        //         break;
+        //     }
+        // }
+        // // If we have no valid states for reuse, then we cannot reuse any states. We need to plan from scratch.
+        // if (!valid_states_for_reuse.empty()){
+        //     // Add the valid states for reuse to the open list of the low-level planner.
+        //     agent_planner_ptrs_[agent_id]->addValidSubpathToOpenList(valid_states_for_reuse, valid_states_for_reuse_costs); // NOTE(yoraish): the first state (has time) in this subpath must already be in the open list of the low-level planner. Otherwise, we need to add it to the open list.
+        // }
+        // // END TEST TEST
+
+
+
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
+        // The replanning will be using the updated constraints and experiences stored within the action space.
         new_state->paths[agent_id].clear();
         agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
         new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.transition_costs;
@@ -243,6 +315,13 @@ void ims::CBS::expand(int state_id) {
         // The goal state returned is at time -1. We need to fix that.
         new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
 
+        // Check for conflicts in this new state.
+        agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(new_state->paths), 
+                                                       new_state->unresolved_conflicts, 
+                                                       getConflictTypes()   ,
+                                                       1, 
+                                                       agent_names_);
+
         // Push the new state to the open list.
         open_.push(new_state);
         new_state->setOpen();
@@ -252,7 +331,7 @@ void ims::CBS::expand(int state_id) {
     }
 }
 
-void ims::CBS::padPathsToMaxLength(MultiAgentPaths& paths) {
+void ims::EACBS::padPathsToMaxLength(MultiAgentPaths& paths) {
     // Pad all paths to the same length. Do this by adding the last state of the path to the end of the path (the state is identical, so time may be repeated).
     int max_path_length = (int)std::max_element(paths.begin(), paths.end(), [](const std::pair<int, std::vector<StateType>>& a, const std::pair<int, std::vector<StateType>>& b) { return a.second.size() < b.second.size(); })->second.size();
 
@@ -270,13 +349,13 @@ void ims::CBS::padPathsToMaxLength(MultiAgentPaths& paths) {
     }
 }
 
-void ims::CBS::setStateVals(int state_id, int parent_id, double cost) {
+void ims::EACBS::setStateVals(int state_id, int parent_id, double cost) {
     auto state = getSearchState(state_id);
     auto parent = getSearchState(parent_id);
     state->parent_id = parent_id;
 }
 
-std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::CBS::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
+std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::EACBS::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
     std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> agent_constraints;
 
     // Iterate through the conflicts and convert them to constraints.
@@ -289,7 +368,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
                 throw std::runtime_error("Conflict is a vertex conflict, but could not be converted to a VertexConflict.");
             }
 
-            // For each affected agent (2, in CBS), create a new constraint, and a search state for each as well.
+            // For each affected agent (2, in EACBS), create a new constraint, and a search state for each as well.
             ims::conflict_conversions::vertexConflictToVertexConstraints(vertex_conflict_ptr, agent_constraints);
         }
 
@@ -308,7 +387,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
     return agent_constraints;
 }
 
-void ims::CBS::verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
+void ims::EACBS::verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
     // Check all goals have starts.
     if (starts.size() != goals.size()) {
         throw std::runtime_error("Start state vector size (" + std::to_string(starts.size()) + ") does not match the goal state vector size (" + std::to_string(goals.size()) + ")");

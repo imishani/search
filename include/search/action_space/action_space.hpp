@@ -138,6 +138,46 @@ namespace ims {
             return states_[id];
         }
 
+        /// @brief Get a state by state value
+        /// @param  state_val The state value
+        /// @return The robot state
+        /// @note The id is assumed to be valid - meaning that the state exists in states_
+        virtual auto getRobotState(const StateType& state_val) -> RobotState*{
+            auto* curr_state = new RobotState;
+            curr_state->state = state_val;
+            auto it = state_to_id_.find(curr_state);
+            if(it != state_to_id_.end()){
+                delete curr_state;
+                return states_[it->second];
+            } else {
+                // Raise an error.
+                std::cout << "getRobotState via state_val failed. State not found." << std::endl;
+                throw std::runtime_error("getRobotState via state_val failed. State not found.");
+                delete curr_state;
+                return nullptr;
+            }
+        }
+
+        /// @brief Get a state id by state value
+        /// @param  state_val The state value
+        /// @return The robot state id
+        /// @note The id is assumed to be valid - meaning that the state exists in states_
+        virtual int getRobotStateId(const StateType& state_val){
+            auto* curr_state = new RobotState;
+            curr_state->state = state_val;
+            auto it = state_to_id_.find(curr_state);
+            if(it != state_to_id_.end()){
+                delete curr_state;
+                return it->second;
+            } else {
+                // Raise an error.
+                std::cout << "getRobotStateId via state_val failed. State not found." << std::endl;
+                throw std::runtime_error("getRobotStateId via state_val failed. State not found.");
+                delete curr_state;
+                return -1;
+            }
+        }
+
         /// @brief Get or create state by state value
         /// @param state_val The state value
         /// @return The state id
@@ -194,6 +234,14 @@ namespace ims {
             }
             states_.clear();
             state_to_id_.clear();
+        }
+
+        /// @brief Check if the current state is a goal state.
+        /// @param s_id The state id
+        /// @param goals The goal states
+        /// @return if the current state is the goal state or not
+        virtual bool isGoalState(int state_id, const std::vector<int>& goal_ids){
+            return false;
         }
     };
 }

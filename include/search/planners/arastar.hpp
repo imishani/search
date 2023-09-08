@@ -149,6 +149,7 @@ namespace ims {
         void setStateVals(int state_id, int parent_id, double cost) override;
 
         void reconstructPath(std::vector<StateType>& path) override;
+        void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
 
         /// @brief Reorder the open list
         void reorderOpen();

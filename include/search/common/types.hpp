@@ -82,6 +82,7 @@ struct PlannerStats{
     double time {0};
     double cost {INF_DOUBLE};
     int path_length {INF_INT};
+    std::vector<double> transition_costs; // Each step in the path has a cost to move to the next step. The last one is zero.
 
     int num_expanded {0};
     int num_generated {0};

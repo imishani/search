@@ -63,6 +63,9 @@ public:
     /// @brief Destructor
     ~ConstrainedActionSpace() = default;
 
+
+    virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) = 0;
+
 };
 
 }  // namespace ims

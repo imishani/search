@@ -132,7 +132,6 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_s
 
 }
 
-
 auto ims::wAStar::getSearchState(int state_id) -> ims::wAStar::SearchState * {
     assert(state_id < states_.size() && state_id >= 0);
     return states_[state_id];
@@ -150,6 +149,36 @@ auto ims::wAStar::getOrCreateSearchState(int state_id) -> ims::wAStar::SearchSta
     return states_[state_id];
 }
 
+// void ims::wAStar::addValidSubpathToOpenList(const std::vector<StateType> & states, const std::vector<double> & costs){
+//     // First get the search state associated with the first state in the subpath.
+//     // We require that the first state in the subpath already exists in the action space and has a valid id and parent state. This is necessary for determining the g values and parent ids of the rest of the states in the subpath.
+//     int state_id = action_space_ptr_->getRobotStateId(states[0]);
+//     SearchState* search_state = getSearchState(state_id);
+//     int prev_state_id = state_id;
+
+//     // Now, add the rest of the states to the open list.
+//     for (size_t i = 1; i < states.size(); ++i){
+//         // Get the state id.
+//         int state_id = action_space_ptr_->getOrCreateRobotState(states[i]);
+//         // Get the search state.
+//         SearchState* search_state = getOrCreateSearchState(state_id);
+//         // Set the parent id.
+//         search_state->parent_id = prev_state_id;
+//         // Set the g value.
+//         search_state->g = getSearchState(search_state->parent_id)->g + costs[i-1];
+//         // Set the h value.
+//         search_state->h = computeHeuristic(state_id);
+//         // Set the f value.
+//         search_state->f = search_state->g + params_.epsilon*search_state->h;
+//         // Add the state to the open list.
+//         open_.push(search_state);
+//         // Set the state to be open.
+//         search_state->setOpen();
+//         // Update the previous state id.
+//         prev_state_id = state_id;
+//     }
+// }
+
 
 bool ims::wAStar::plan(std::vector<StateType>& path) {
     startTimer();
@@ -165,7 +194,7 @@ bool ims::wAStar::plan(std::vector<StateType>& path) {
         if (isGoalState(state->state_id)){
             goal_ = state->state_id;
             getTimeFromStart(stats_.time);
-            reconstructPath(path);
+            reconstructPath(path, stats_.transition_costs);
             stats_.cost = state->g;
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();
@@ -179,6 +208,7 @@ bool ims::wAStar::plan(std::vector<StateType>& path) {
 }
 
 void ims::wAStar::expand(int state_id){
+
     auto state_ = getSearchState(state_id);
     std::vector<int> successors;
     std::vector<double> costs;
@@ -217,6 +247,28 @@ void ims::wAStar::setStateVals(int state_id, int parent_id, double cost)
     state_->g = parent->g + cost;
     state_->h = computeHeuristic(state_id);
     state_->f = state_->g + params_.epsilon*state_->h;
+}
+
+
+void ims::wAStar::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
+    path.clear();
+    costs.clear();
+
+    costs.push_back(0); // The goal state gets a transition cost of 0.
+    SearchState* state_ = getSearchState(goal_);
+    while (state_->parent_id != -1){
+        path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
+        
+        // Get the transition cost. This is the difference between the g values of the current state and its parent.
+        double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
+        costs.push_back(transition_cost);
+
+        state_ = getSearchState(state_->parent_id);
+    }
+    path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
+
+    std::reverse(path.begin(), path.end());
+    std::reverse(costs.begin(), costs.end());   
 }
 
 void ims::wAStar::reconstructPath(std::vector<StateType>& path) {

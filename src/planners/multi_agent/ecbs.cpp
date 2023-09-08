@@ -70,6 +70,7 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
     // Generate a plan for each of the agents.
     MultiAgentPaths initial_paths;
     std::unordered_map<int, double> initial_paths_costs;
+    std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
     for (size_t i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
         agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts[i], goals[i]);
@@ -85,6 +86,7 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
         // Compute the cost of the path.
         // initial_paths_costs.insert(std::make_pair(i, agent_planner_ptrs_[i]->stats_.cost));
         initial_paths_costs[i] = agent_planner_ptrs_[i]->stats_.cost;
+        initial_paths_transition_costs[i] = agent_planner_ptrs_[i]->stats_.transition_costs;
     }
 
     // Create the initial CBS state to the open list. This planner does not interface with an action space, so it does not call the getOrCreateRobotState to retrieve a new-state index. But rather decides on a new index directly and creates a search-state index with the getOrCreateSearchState method. Additionally, there is no goal specification for CBS, so we do not have a goal state.
@@ -95,6 +97,7 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
     start_->parent_id = PARENT_TYPE(START);
     start_->paths = initial_paths;
     start_->paths_costs = initial_paths_costs;
+    start_->paths_transition_costs = initial_paths_transition_costs;
 
     // Get conflicts within the paths.
     // Get any conflicts between the newly computed paths.
@@ -205,6 +208,7 @@ void ims::ECBS::expand(int state_id) {
         new_state->parent_id = state->state_id;
         new_state->paths = state->paths;
         new_state->paths_costs = state->paths_costs;
+        new_state->paths_transition_costs = state->paths_transition_costs;
         new_state->f = state->f;
         new_state->constraints_collectives = state->constraints_collectives;
         // NOTE(yoraish): we do not copy over the conflicts, since they will be recomputed in the new state. We could consider keeping a history of conflicts in the search state, with new conflicts being marked as such.
@@ -221,6 +225,7 @@ void ims::ECBS::expand(int state_id) {
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
         new_state->paths[agent_id].clear();
         agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
+        new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.transition_costs;
         new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.cost;
 
         // If there is no path for this agent, then this is not a valid state. Discard it.
@@ -229,6 +234,8 @@ void ims::ECBS::expand(int state_id) {
             continue;
         }
 
+        // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
+        new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
         // Get the sum of costs for the new state.
         double new_state_soc = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
 
@@ -244,9 +251,6 @@ void ims::ECBS::expand(int state_id) {
         std::cout << "New state num conflicts: " << new_state->unresolved_conflicts.size() << std::endl;
 
         new_state->f = new_state_soc + params_.weight_num_conflicts * new_state->unresolved_conflicts.size(); /////////////////////////////////////////////
-
-        // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
-        new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
 
         // Push the new state to the open list.
         open_.push(new_state);

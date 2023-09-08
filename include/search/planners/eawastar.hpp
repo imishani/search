@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023, Itamar Mishani
+ * Copyright (C) 2023, Yorai Shaoul
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,13 +27,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   wastar.hpp
- * \author Itamar Mishani (imishani@cmu.edu)
- * \date   3/28/23
+ * \file   eawastar.hpp
+ * \author Yorai Shaoul (yorai@cmu.edu)
+ * \date   September 5 2023
 */
 
-#ifndef SEARCH_WASTAR_HPP
-#define SEARCH_WASTAR_HPP
+#ifndef SEARCH_EAWASTAR_HPP
+#define SEARCH_EAWASTAR_HPP
 
 // standard includes
 #include <functional>
@@ -42,68 +42,46 @@
 #include <algorithm>
 // project includes
 #include <search/planners/best_first_search.hpp>
+#include <search/planners/wastar.hpp>
+#include <search/common/experiences.hpp>
+#include <search/action_space/experience_accelerated_constrained_action_space.hpp>
 
 namespace ims{
 
     /// @class AStarParams class.
     /// @brief The parameters for the AStar algorithm
-    struct wAStarParams : public BestFirstSearchParams{
+    struct EAwAStarUniformCostParams : public wAStarParams{
 
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit wAStarParams(BaseHeuristic* heuristic,
-                              double epsilon) : BestFirstSearchParams(heuristic) {
+        explicit EAwAStarUniformCostParams(BaseHeuristic* heuristic,
+                              double epsilon) : wAStarParams(heuristic, epsilon) {
             this->epsilon = epsilon;
         }
 
         /// @brief Destructor
-        ~wAStarParams() override = default;
+        ~EAwAStarUniformCostParams() override = default;
 
         double epsilon;
 
     };
 
-    /// @class wAStar class. Weighted A* algorithm
+    /// @class EAwAStarUniformCost class. Weighted A* algorithm
     /// @brief A weighted A* algorithm implementation. This algorithm is a modification of the A* algorithm that
     /// uses inflation of the heuristic function to find a solution with a cost that is within a factor of epsilon
     /// of the optimal solution (epsilon-suboptimality).
-    class wAStar : public BestFirstSearch{
+    class EAwAStarUniformCost : public wAStar{
 
     private:
 
-        friend class AStar; friend class Dijkstra;
-        friend class ExperienceWAstar; friend class EAwAStarUniformCost;
-
-        /// @brief The search state.
-        struct SearchState: public ims::BestFirstSearch::SearchState{
-            /// @brief The heuristic value
-            double h {-1};
-        };
-
-        /// @brief The open list.
-        using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-        OpenList open_;
-
-        std::vector<SearchState*> states_;
-
-        /// @brief Get the state by id
-        /// @param state_id The id of the state
-        /// @return The state
-        /// @note Use this function only if you are sure that the state exists
-        auto getSearchState(int state_id) -> SearchState*;
-
-        /// @brief Get the state by id or create a new one if it does not exist
-        /// @param state_id The id of the state
-        /// @return The state
-        auto getOrCreateSearchState(int state_id) -> SearchState*;
 
     public:
         /// @brief Constructor
         /// @param params The parameters
-        explicit wAStar(const wAStarParams &params);
+        explicit EAwAStarUniformCost(const EAwAStarUniformCostParams &params);
 
         /// @brief Destructor
-        ~wAStar() override;
+        ~EAwAStarUniformCost() override;
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
@@ -120,37 +98,27 @@ namespace ims{
         void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                const StateType& start, const StateType& goal) override;
 
-        /// @brief plan a path
-        /// @param path The path
-        /// @return if the plan was successful or not
-        bool plan(std::vector<StateType> &path) override;
-
-        /// @brief Reset the planner
-        void resetPlanningData() override;
-        
         /// @brief Add a connected subpath to the open list.
         /// @param states The states of the subpath
         /// @note This function assumes that each state in the subpath can have its parent set to the previous state.
-        // void addValidSubpathToOpenList(const std::vector<StateType> & state_ids, const std::vector<double> & transition_costs);
+        void addValidSubpathToOpenList(const std::vector<int> & state_ids, const std::vector<double> & transition_costs);
 
     protected:
 
-        void setStateVals(int state_id, int parent_id, double cost) override;
+        /// @brief A pointer to the action space. We need this action space to be (at least) experience-accelerateable in order to have access to the action space method querying for valid experience subpaths.
+        std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace> action_space_ptr_;
 
         void expand(int state_id) override;
 
-        void reconstructPath(std::vector<StateType>& path) override;
+        /// @brief  Asks the action space for valid experience subpaths from the given state and adds them to the open list. Validity of subpaths is determined by the action space. It could be validity with respect to constraints, or validity with respect to other factors in the environment. In EAwA* and EACBS, we only keep collision-free experiences and therefore only check for validity with respect to constraints. 
+        /// @param state_id 
+        void experienceAccelerateOpenList(int state_id);
 
-        /// @brief Reconstruct the path and also get the transition costs.
-        /// @param path The path to be populated
-        /// @param costs The costs to be populated. Cost at index i is the cost of the transition from state i to state i+1. Thus, the cost at the goal state is zero as there is no transition from the goal state.
-        void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
-
-        wAStarParams params_;
+        EAwAStarUniformCostParams params_;
 
     };
 
 }
 
 
-#endif //SEARCH_WASTAR_HPP
+#endif //SEARCH_EAWASTAR_HPP
