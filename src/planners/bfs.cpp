@@ -216,3 +216,23 @@ void ims::BFS::reconstructPath(std::vector<StateType>& path) {
     std::reverse(path.begin(), path.end());
 }
 
+void ims::BFS::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
+    path.clear();
+    costs.clear();
+
+    costs.push_back(0); // The goal state gets a transition cost of 0.
+    SearchState* state_ = getSearchState(goal_);
+    while (state_->parent_id != -1){
+        path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
+        
+        // Get the transition cost. This is the difference between the g values of the current state and its parent.
+        double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
+        costs.push_back(transition_cost);
+
+        state_ = getSearchState(state_->parent_id);
+    }
+    path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
+
+    std::reverse(path.begin(), path.end());
+    std::reverse(costs.begin(), costs.end());   
+}

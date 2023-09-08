@@ -67,12 +67,13 @@ namespace ims{
     class BestFirstSearch : public Planner{
     private:
 
-        friend class AStar; friend class wAStar;
+        friend class AStar; friend class wAStar; friend class EAwAStarUniformCost;
         friend class BFS; friend class ARAStar;
         friend class plannerZero; friend class CBS;
         friend class CBSPrivateGrids;
         friend class CBSSphere3d;
         friend class ECBS;
+        friend class EACBS;
 
         /// @brief The search state.
         struct SearchState: public ims::SearchState {
@@ -112,7 +113,8 @@ namespace ims{
                 if ((s1.f == s2.f) && (s1.g == s2.g))
                     return (s1.state_id < s2.state_id);
                 else if (s1.f == s2.f)
-                    return s1.g < s2.g;
+                    // For tie breaking, we prefer the state with the larger g value as it is closer to the goal (lower h in the case of an informed search).
+                    return s1.g > s2.g;
                 else
                     return s1.f < s2.f;
             }
@@ -184,6 +186,7 @@ namespace ims{
         virtual void expand(int state_id);
 
         void reconstructPath(std::vector<StateType>& path) override;
+        void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
 
         bool isGoalState(int state_id) override;
 

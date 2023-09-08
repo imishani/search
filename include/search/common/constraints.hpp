@@ -42,6 +42,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <eigen3/Eigen/Dense>
 
 // Project includes.
 #include <search/common/types.hpp>

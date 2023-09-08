@@ -64,7 +64,6 @@ namespace ims {
 // ==========================
 // Related structs: CBSParams
 // ==========================
-
 /// @class CBSParams class.
 /// @brief The parameters for the ECBS algorithm
 struct ECBSParams : public CBSParams {
@@ -153,6 +152,52 @@ protected:
     /// Member variables.
     // The search parameters.
     ECBSParams params_;
+
+    // /// @brief The search state compare struct.
+    // struct SearchStateCompareFhat{
+    //     bool operator()(const ECBS::SearchState& s1, const ECBS::SearchState& s2) const{
+    //          if (s1.unresolved_conflicts.size() == s2.unresolved_conflicts.size()){
+    //             return ECBS::SearchStateCompare()(s1, s2);
+    //          }
+    //          else {
+    //                 return s1.unresolved_conflicts.size() < s2.unresolved_conflicts.size();
+    //          }
+    //     }
+    // };
+
+    // // FOCAL priority queue.
+    // /// @class ECBSFocalQueue
+    // /// @brief A prioirity queue with a FOCAL list.
+    // class ECBSFocalQueue {
+
+    // private:
+    // /// @brief The open list. We set it to a deque for fast pop_front().
+    // using OpenList = ::smpl::IntrusiveHeap<ECBS::SearchState, SearchStateCompare>;
+    // OpenList open_;
+
+    // /// @brief The open list. We set it to a deque for fast pop_front().
+    // using FocalList = ::smpl::IntrusiveHeap<ECBS::SearchState, SearchStateCompareFhat>;
+    // FocalList focal_;
+
+    // public:
+    //     bool empty() const{
+    //         return open_.empty() && focal_.empty();
+    //     }
+
+    //     size_t size() const;
+    //     void clear();
+    //     void push(ECBS::SearchState* e); // TODO(rishi): make sure search state is the right one for ECBS.
+    //     void pop();
+    //     bool contains(ECBS::SearchState* e);
+    //     void update(ECBS::SearchState* e);
+    
+
+    // };
+
+    
+    // };
+
+
 };
 
 }  // namespace ims

@@ -19,12 +19,16 @@ add_library(search SHARED
         src/planners/dijkstra.cpp
         src/planners/astar.cpp
         src/planners/wastar.cpp
+        src/planners/eawastar.cpp
         src/planners/arastar.cpp
         src/planners/bfs.cpp
         src/planners/multi_agent/cbs.cpp
+        src/planners/multi_agent/eacbs.cpp
+        src/planners/multi_agent/eacbs_private_grids.cpp
         src/planners/multi_agent/cbs_sphere3d.cpp
         src/planners/multi_agent/cbs_private_grids.cpp
         src/planners/multi_agent/ecbs_private_grids.cpp
+        src/planners/multi_agent/eacbs_private_grids.cpp
         src/planners/multi_agent/ecbs.cpp
         src/common/bfs3d.cpp
         src/planners/egraph_wastar.cpp
@@ -71,6 +75,9 @@ target_link_libraries(run_2d_mapf_cbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_ecbs domains/2d_mapf/run_2d_ecbs.cpp)
 target_link_libraries(run_2d_mapf_ecbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+
+add_executable(run_2d_mapf_eacbs domains/2d_mapf/run_2d_eacbs.cpp)
+target_link_libraries(run_2d_mapf_eacbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
 # Add an uninstall target.
 if(NOT TARGET uninstall)

@@ -27,13 +27,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   cbs.hpp
+ * \file   eacbs.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   07/07/23
  */
 
-#ifndef SEARCH_CBS_HPP
-#define SEARCH_CBS_HPP
+#ifndef SEARCH_EACBS_HPP
+#define SEARCH_EACBS_HPP
 
 // Standard includes.
 #include <algorithm>
@@ -47,29 +47,28 @@
 #include <search/common/conflicts.hpp>
 #include <search/common/constraints.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
-#include <search/planners/wastar.hpp>
+#include <search/planners/eawastar.hpp>
 #include <search/planners/best_first_search.hpp>
 #include <search/common/conflict_conversions.hpp>
+#include <search/planners/multi_agent/cbs.hpp>
 
-#include "search/action_space/constrained_action_space.hpp"
-
-#include <search/common/queue_general.h>
+#include "search/action_space/experience_accelerated_constrained_action_space.hpp"
 
 namespace ims {
 
 // ==========================
-// Related structs: CBSParams
+// Related structs: EACBSParams
 // ==========================
 
-/// @class CBSParams class.
-/// @brief The parameters for the CBS algorithm
-struct CBSParams : public BestFirstSearchParams {
+/// @class EACBSParams class.
+/// @brief The parameters for the EACBS algorithm
+struct EACBSParams : public CBSParams {
     /// @brief Constructor
-    explicit CBSParams() : BestFirstSearchParams(new ims::ZeroHeuristic()) {
+    explicit EACBSParams() : CBSParams() {
     }
 
     /// @brief Destructor
-    ~CBSParams() override = default;
+    ~EACBSParams() override = default;
 
     /// @brief Exhaustive search flag. If true, the algorithm will continue to search until the goal is found or the open list is empty.
     bool exhaustive = false;
@@ -87,37 +86,28 @@ using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsColle
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
-/// @brief Base class for all CBS variants. Defines some required methods.
-class CBSBase {
-protected:
-public:
-    /// @brief Get the conflict types requested by the algorithm.
-    CBSBase() = default;
-    ~CBSBase() = default;
-    /// @return The conflict types.
-    virtual std::vector<ConflictType> getConflictTypes() = 0;
-};
-
 // ==========================
-// CBS Algorithm.
+// EACBS Algorithm.
 // ==========================
-/// @class CBS class.
-/// @brief The CBS algorithm.
-class CBS : public BestFirstSearch, public CBSBase {
+/// @class EACBS class.
+/// @brief The EACBS algorithm.
+class EACBS : public CBS {
 private:
 public:
     /// @brief Constructor
     /// @param params The parameters
-    explicit CBS(const CBSParams& params);
+    explicit EACBS(const EACBSParams& params);
 
     /// @brief Destructor
-    ~CBS() override = default;
+    ~EACBS() override = default;
 
     /// @brief Initialize the planner.
     /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
     /// @param starts The start states for all agents.
     /// @param goals The goal states for all agents.
     void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
+                           const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    void initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs,
                            const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief Initialize the planner and set the agent names.
@@ -126,6 +116,7 @@ public:
     /// @param starts The start states for all agents.
     /// @param goals The goal states for all agents.
     void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    void initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief plan a path
     /// @param path The path
@@ -133,44 +124,26 @@ public:
     bool plan(MultiAgentPaths& paths);
 
 protected:
-    // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
+    // The searchState struct. Keeps track of the state id, parent id, and cost. In EACBS, we also add the constraints and paths.
     /// @brief The search state.
-    struct SearchState : public ims::BestFirstSearch::SearchState, public LowerBoundMixin {
+    struct SearchState : public ims::BestFirstSearch::SearchState {
         // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
         MultiAgentPaths paths;
 
         // The path costs.
         std::unordered_map<int, double> paths_costs;
-        double sum_of_costs = 0.0;
         std::unordered_map<int, std::vector<double>> paths_transition_costs;
 
-        // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
+        // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For EACBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
         std::vector<std::shared_ptr<Conflict>> unresolved_conflicts = {};
 
         // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
         MultiAgentConstraintsCollective constraints_collectives;
-
-        /// @brief Required for FocalQueue
-        /// @return 
-        virtual double getLowerBound() const override {
-            assert(sum_of_costs > 0.0);
-            return sum_of_costs;
-        }
     };
 
     /// @brief The open list. We set it to a deque for fast pop_front().
-    // using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-    // OpenList open_;
-
-    struct MainQueueCompare {
-        bool operator()(const SearchState& s1, const SearchState& s2) const {
-            if (s1.f == s2.f)
-                return s1.g < s2.g;
-            return s1.f < s2.f;
-        }
-    };
-    AbstractQueue<SearchState>* open_;
-    // SimpleQueue<SearchState, SearchStateCompare> open_;
+    using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+    OpenList open_;
 
     // The states that have been created.
     std::vector<SearchState*> states_;
@@ -210,30 +183,27 @@ protected:
 
     /// @brief Get the conflict types requested by the algorithm.
     /// @return The conflict types.
-    /// @note Derived class, aka CBS variants that request different conflict types (e.g., point3d, etc.) should override this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
+    /// @note Derived class, aka EACBS variants that request different conflict types (e.g., point3d, etc.) should override this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
     virtual inline std::vector<ConflictType> getConflictTypes() {
         return conflict_types_;
     }
 
     /// Member variables.
     // The search parameters.
-    CBSParams params_;
+    EACBSParams params_;
 
     // The action spaces for the individual agents.
-    std::vector<std::shared_ptr<ConstrainedActionSpace>> agent_action_space_ptrs_;
+    std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>> agent_action_space_ptrs_;
 
     // The low-level planners.
-    std::vector<std::shared_ptr<wAStar>> agent_planner_ptrs_;
+    std::vector<std::shared_ptr<EAwAStarUniformCost>> agent_planner_ptrs_;
 
     // The low-level planners parameters.
-    // EuclideanRemoveTimeHeuristic* low_level_planner_heuristic_ptr_ = new ims::EuclideanRemoveTimeHeuristic();
-    // wAStarParams wastar_params_ = wAStarParams(low_level_planner_heuristic_ptr_, params_.weight_low_level_heuristic);
-
     /// @brief The start and goal states of the single agents. Remember that these have a time dimension in them.
     std::vector<StateType> starts_;
     std::vector<StateType> goals_;
 
-    /// @brief The goal states. Remember that these have a time dimension in them. In CBS the end time is not known, so we set it to -1.
+    /// @brief The goal states. Remember that these have a time dimension in them. In EACBS the end time is not known, so we set it to -1.
     // TODO(yoraish): consider creating a MultiAgentPlanner class that will hold the starts, goals, and other multi-agent related variables.
     std::vector<int> found_goal_search_state_ids_;
 
@@ -250,4 +220,4 @@ protected:
 
 }  // namespace ims
 
-#endif  // SEARCH_CBS_HPP
+#endif  // SEARCH_EACBS_HPP

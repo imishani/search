@@ -168,7 +168,7 @@ bool ims::BestFirstSearch::plan(std::vector<StateType>& path) {
         if (isGoalState(state->state_id)){
             goal_ = state->state_id;
             getTimeFromStart(stats_.time);
-            reconstructPath(path);
+            reconstructPath(path, stats_.transition_costs);
             stats_.cost = state->g;
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();
@@ -226,8 +226,37 @@ void ims::BestFirstSearch::reconstructPath(std::vector<StateType>& path) {
     std::reverse(path.begin(), path.end());
 }
 
+
+void ims::BestFirstSearch::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
+    path.clear();
+    costs.clear();
+
+    costs.push_back(0); // The goal state gets a transition cost of 0.
+    SearchState* state_ = getSearchState(goal_);
+    while (state_->parent_id != -1){
+        path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
+        
+        // Get the transition cost. This is the difference between the g values of the current state and its parent.
+        double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
+        costs.push_back(transition_cost);
+
+        state_ = getSearchState(state_->parent_id);
+    }
+    path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
+
+    std::reverse(path.begin(), path.end());
+    std::reverse(costs.begin(), costs.end());   
+}
+
+
 bool ims::BestFirstSearch::isGoalState(int s_id) {
-    return std::any_of(goals_.begin(), goals_.end(), [&s_id](int goal_ind) {return s_id == goal_ind;});
+    if (std::any_of(goals_.begin(), goals_.end(), [&s_id](int goal_ind) {return s_id == goal_ind;})){
+        return true;
+    }
+
+    // Also ask the action space if this state id is a goal state. Sometimes, states need to be determined as goal in real time.
+    return action_space_ptr_->isGoalState(s_id, goals_);
+
 }
 
 
