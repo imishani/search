@@ -34,6 +34,10 @@
 
 #include <search/planners/astar.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
+#include <chrono>
+
+// Global for cbs or not.
+bool IS_CONFLICT_CREATION_CBS = true;
 
 ims::CBS::CBS(const ims::CBSParams& params) : params_(params), BestFirstSearch(params) {}
 
@@ -102,6 +106,17 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
     start_->f = std::accumulate(initial_paths_costs.begin(), initial_paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
     start_->setOpen();
 
+    // >>> REMOVE REMOVE REMOVE
+    if (!IS_CONFLICT_CREATION_CBS){
+        // Check for conflicts in this new state.
+        agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(start_->paths), 
+                                                        start_->unresolved_conflicts, 
+                                                        getConflictTypes()   ,
+                                                        1, 
+                                                        agent_names_);
+    }
+    // <<< REMOVE REMOVE REMOVE
+
     // Push the initial CBS state to the open list.
     open_->push(start_);
 
@@ -160,11 +175,23 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
 
         // Expand the state. This requires a check for conflicts (done right below), a branch if there are conflicts (converted to constraints, done in expand()), and a replan for each branch in light of the new constraints (also done in expand()). If no conflicts were found, then the state is a goal state, is set in goals_, and we return.
         // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the CBS class, and then passed to the action_space.
-        agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), 
-                                                       state->unresolved_conflicts, 
-                                                       getConflictTypes()   ,
-                                                       1, 
-                                                       agent_names_);
+        // >>> KEEP KEEP KEEP
+        if (IS_CONFLICT_CREATION_CBS){
+            static int get_paths_conflicts_counter = 0;
+            static int sum_of_get_path_conflict_time = 0;
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+            agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), 
+                                                        state->unresolved_conflicts, 
+                                                        getConflictTypes()   ,
+                                                        1, 
+                                                        agent_names_);
+
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            ++get_paths_conflicts_counter;
+            sum_of_get_path_conflict_time += std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+            std::cout << "getPathsConflicts called " << get_paths_conflicts_counter << " times. Took " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " microseconds, summing to " << sum_of_get_path_conflict_time/1000000.0 << " seconds" << std::endl;
+        }
+        // <<< KEEP KEEP KEEP
 
         // Before we actually expand the state, we check if there is even a need to do so. If there are no conflicts, then this is a goal state. Set the goal state and return.
         if (state->unresolved_conflicts.empty()) {
@@ -222,9 +249,11 @@ void ims::CBS::expand(int state_id) {
         // Update the constraints collective to also include the new constraint.
         new_state->constraints_collectives[agent_id].addConstraints(constraint_ptr);
 
+        // Print number of constraints in the node.
+
         // update the action-space.
         agent_action_space_ptrs_[agent_id]->setConstraintsCollective(std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]));
-
+    
         // Update the low-level planner for this agent.
         agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);
 
@@ -235,6 +264,9 @@ void ims::CBS::expand(int state_id) {
         new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.cost;
         new_state->f = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
 
+        // Add a random number between zero and one to f.
+        // new_state->f += (double)rand() / RAND_MAX; // Uncomment for nitro boost.
+
         // If there is no path for this agent, then this is not a valid state. Discard it.
         if (new_state->paths[agent_id].empty()) {
             delete new_state;
@@ -243,6 +275,25 @@ void ims::CBS::expand(int state_id) {
 
         // The goal state returned is at time -1. We need to fix that.
         new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
+
+        // >>> REMOVE REMOVE REMOVE
+        if (!IS_CONFLICT_CREATION_CBS){
+            // Check for conflicts in this new state.
+            static int get_paths_conflicts_counter = 0;
+            static int sum_of_get_path_conflict_time = 0;
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+            get_paths_conflicts_counter++;
+            agent_action_space_ptrs_[3]->getPathsConflicts(std::make_shared<MultiAgentPaths>(new_state->paths), 
+                                                           new_state->unresolved_conflicts, 
+                                                           getConflictTypes()   ,
+                                                           1, 
+                                                           agent_names_);
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            ++get_paths_conflicts_counter;
+            sum_of_get_path_conflict_time += std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+            std::cout << "getPathsConflicts called " << get_paths_conflicts_counter << " times. Took " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " microseconds, summing to " << sum_of_get_path_conflict_time/1000000.0 << " seconds" << std::endl;
+        }
+        // <<< REMOVE REMOVE REMOVE
 
         // Push the new state to the open list.
         open_->push(new_state);
