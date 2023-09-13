@@ -103,7 +103,10 @@ void ims::EAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<int> 
     // We require that the first state in the subpath already exists in the action space and has a valid id and parent state. This is necessary for determining the g values and parent ids of the rest of the states in the subpath.
     // Notice that because we are planning in time (in this variant) and all the costs are uniform, then there is only a single g-value associated with each state. Therefore, we do not need to worry about updating g-values of states that are already in the open list.
     int first_state_id = state_ids[0];
-    SearchState* search_state = getSearchState(first_state_id);
+
+    // Assert that the first state in the subpath exists in the action space and the search.
+    SearchState* first_search_state = getSearchState(first_state_id);
+
     int prev_state_id = first_state_id;
 
     // Now, add the rest of the states to the open list.

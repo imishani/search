@@ -248,6 +248,8 @@ struct ConstraintsCollective {
     /// @brief Clear the constraints.
     void clear() {
         constraints_ptrs_.clear();
+        time_to_constraints_ptrs_.clear();
+        last_constraint_time_ = -1;   
     }
 
     // Getters.

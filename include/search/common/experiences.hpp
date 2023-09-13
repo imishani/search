@@ -147,7 +147,13 @@ struct ExperiencesCollective {
     }
 
     void addExperience(const std::shared_ptr<Experience>& experience) {
+        // Check if this experience is new.
+        // TODO(yoraish) IMPORTANT
+
         experiences_ptrs_.push_back(experience);
+        // Print the number of experiences.
+        std::cout << "ExperiencesCollective: Added experience. Number of experiences: " << experiences_ptrs_.size() << std::endl;
+        std::cout << "States in experiences map: " << state_to_experiences_ptrs_.size() << std::endl;
 
         // Point each of the states in the experience to this experience.
         for (const auto& state : experience->getPath()) {
@@ -161,16 +167,27 @@ struct ExperiencesCollective {
         }
     }
 
+    void addTimedExperience(const std::shared_ptr<Experience>& experience) {
+        PathType path_wo_time = experience->getPath(); // A copy of the path that will be modified to remove the time component.
+        for (auto& state : path_wo_time) {
+            state.pop_back();
+        }
+        std::shared_ptr<Experience> experience_wo_time = std::make_shared<Experience>(path_wo_time, experience->getPathTransitionCosts());
+        addExperience(experience_wo_time);
+    }
+
+    /// @brief Get the experiences that contain this state. These are subexperiences since those that are returned all begin with the query state. If they started before it, then only their suffixes are returned.
+    /// @param state The state to get the experiences for.
+    /// @param experience_subpaths The vector of subpaths -- to be updated with the subpaths.
+    /// @param experience_subpaths_transition_costs The vector of subpath transition costs -- to be updated with the subpath transition costs.
     void getSubExperiencesFromState(const StateType& state, std::vector<PathType>& experience_subpaths, std::vector<std::vector<double>>&experience_subpaths_transition_costs) const {
 
         // Find all the experiences that contain this state. Return if there are none.
         if (state_to_experiences_ptrs_.find(state) == state_to_experiences_ptrs_.end()) {
             return;
         }
-        // return; /////////
 
         std::vector<std::shared_ptr<Experience>> all_experiences_with_state = state_to_experiences_ptrs_.at(state);
-
 
         // Remove all prefixes in the experiences that come before this state.
         for (const auto& experience_ptr : all_experiences_with_state) {
@@ -227,7 +244,7 @@ struct ExperiencesCollective {
 
 private:
     /// @brief Map from a timestep to a set of experience pointers.
-    std::map<StateType, std::vector<std::shared_ptr<Experience>>> state_to_experiences_ptrs_ = {};
+    std::unordered_map<StateType, std::vector<std::shared_ptr<Experience>>, StateTypeHash> state_to_experiences_ptrs_ = {};
 
     // Member Variables.
     /// @brief The type of the experience.

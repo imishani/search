@@ -93,6 +93,7 @@ public:
             }
         }
 
+        
         // Get a valid prefix for each of the subexperiences.
         for (int i = 0; i < subexperiences.size(); i++) {
             // Get the subexperience.
@@ -122,11 +123,15 @@ public:
 
                 } else {
                     // If not, break and add the data to our returned objects.
-                    subpaths.push_back(valid_state_ids_for_reuse);
-                    subpath_transition_costs.push_back(valid_states_for_reuse_costs);
                     break;
                 }
             }
+
+            // If we got here, then we are done processing the experience. We found a prefix that is valid w.r.t constraints. (Could be empty, partial, or full.)
+            subpaths.push_back(valid_state_ids_for_reuse);
+            subpath_transition_costs.push_back(valid_states_for_reuse_costs);
+            
+
 
             // The last transition cost is zero.
             if (!valid_states_for_reuse_costs.empty()) {
