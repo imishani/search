@@ -119,6 +119,9 @@ public:
     void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
     void initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
+    /// @brief Initialize the open list with a node including single-agent paths.
+    void createRootInOpenList() override;
+
     /// @brief plan a path
     /// @param path The path
     /// @return whether the plan was successful or not

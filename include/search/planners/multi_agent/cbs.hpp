@@ -127,6 +127,9 @@ public:
     /// @param goals The goal states for all agents.
     void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
+    /// @brief  Initialize the conflict tree. This is done by computing a single-agent path for each agent and storing them in a search state in the CT.
+    virtual void createRootInOpenList();
+
     /// @brief plan a path
     /// @param path The path
     /// @return whether the plan was successful or not
