@@ -97,6 +97,9 @@ public:
     /// @return whether the plan was successful or not
     bool plan(MultiAgentPaths& paths);
 
+    /// @brief Create the root node in the CT. This requires planning a single-agent path for each of the participating agents and storing them all in a search state.
+    void createRootInOpenList() override;
+
 protected:
 
     struct SearchState: public EACBS::SearchState{};

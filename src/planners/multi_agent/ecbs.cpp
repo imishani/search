@@ -66,14 +66,16 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
         ims::wAStarParams wastar_params_(params_.low_level_heuristic_ptrs[i], params_.weight_low_level_heuristic);
         agent_planner_ptrs_.push_back(std::make_shared<ims::wAStar>(wastar_params_));
     }
-
+}
+                                 
+void ims::ECBS::createRootInOpenList() {
     // Generate a plan for each of the agents.
     MultiAgentPaths initial_paths;
     std::unordered_map<int, double> initial_paths_costs;
     std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
     for (size_t i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
-        agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts[i], goals[i]);
+        agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
         agent_planner_ptrs_[i]->plan(path);
 
         // Fix the last path state to have a correct time and not -1.
@@ -139,6 +141,10 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
 
 bool ims::ECBS::plan(MultiAgentPaths& paths) {
     startTimer();
+    
+    // Create the root node in the open list.
+    createRootInOpenList();
+
     int iter{0};
     while (!open_.empty() && !isTimeOut()) {
         // Report progress every 100 iterations

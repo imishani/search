@@ -102,7 +102,9 @@ void ims::EACBS::initializePlanner(std::vector<std::shared_ptr<ExperienceAcceler
         
         agent_planner_ptrs_.push_back(std::make_shared<ims::EAwAStarUniformCost>(eawastar_params_));
     }
+}
 
+void ims::EACBS::createRootInOpenList() {
     // Generate a plan for each of the agents.
     MultiAgentPaths initial_paths;
     std::unordered_map<int, double> initial_paths_costs;
@@ -110,7 +112,7 @@ void ims::EACBS::initializePlanner(std::vector<std::shared_ptr<ExperienceAcceler
 
     for (size_t i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
-        agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts[i], goals[i]);
+        agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
         agent_planner_ptrs_[i]->plan(path);
 
         // Fix the last path state to have a correct time and not -1.
@@ -143,19 +145,6 @@ void ims::EACBS::initializePlanner(std::vector<std::shared_ptr<ExperienceAcceler
     // Push the initial EACBS state to the open list.
     open_.push(start_);
 
-    // Show the initial paths.
-    std::cout << "Initial paths:" << std::endl;
-    for (auto& path : start_->paths) {
-        std::cout << "Agent " << path.first << ": \n";
-        for (auto state : path.second) {
-            std::cout << "    [";
-            for (auto val : state) {
-                std::cout << val << ", ";
-            }
-            std::cout << "], \n";
-        }
-        std::cout << std::endl;
-    }
 }
 
 void ims::EACBS::initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
@@ -182,6 +171,7 @@ auto ims::EACBS::getOrCreateSearchState(int state_id) -> ims::EACBS::SearchState
 
 bool ims::EACBS::plan(MultiAgentPaths& paths) {
     startTimer();
+    createRootInOpenList();
     int iter{0};
     while (!open_.empty() && !isTimeOut()) {
         // Report progress every 100 iterations

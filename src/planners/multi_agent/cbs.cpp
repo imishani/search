@@ -67,14 +67,16 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
         
         agent_planner_ptrs_.push_back(std::make_shared<ims::wAStar>(wastar_params_));
     }
+}
 
+void ims::CBS::createRootInOpenList(){
     // Generate a plan for each of the agents.
     MultiAgentPaths initial_paths;
     std::unordered_map<int, double> initial_paths_costs;
     std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
     for (size_t i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
-        agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts[i], goals[i]);
+        agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
         agent_planner_ptrs_[i]->plan(path);
 
         // Fix the last path state to have a correct time and not -1.
@@ -89,7 +91,6 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
         initial_paths_transition_costs[i] = agent_planner_ptrs_[i]->stats_.transition_costs;
 
     }
-
 
     // Create the initial CBS state to the open list. This planner does not interface with an action space, so it does not call the getOrCreateRobotState to retrieve a new-state index. But rather decides on a new index directly and creates a search-state index with the getOrCreateSearchState method. Additionally, there is no goal specification for CBS, so we do not have a goal state.
     int start_ind_ = 0;
@@ -118,20 +119,6 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
 
     // Push the initial CBS state to the open list.
     open_.push(start_);
-
-    // Show the initial paths.
-    std::cout << "Initial paths:" << std::endl;
-    for (auto& path : start_->paths) {
-        std::cout << "Agent " << path.first << ": \n";
-        for (auto state : path.second) {
-            std::cout << "    [";
-            for (auto val : state) {
-                std::cout << val << ", ";
-            }
-            std::cout << "], \n";
-        }
-        std::cout << std::endl;
-    }
 }
 
 void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
@@ -158,6 +145,7 @@ auto ims::CBS::getOrCreateSearchState(int state_id) -> ims::CBS::SearchState* {
 
 bool ims::CBS::plan(MultiAgentPaths& paths) {
     startTimer();
+    createRootInOpenList();
     int iter{0};
     while (!open_.empty() && !isTimeOut()) {
         // Report progress every 100 iterations
@@ -188,7 +176,7 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             ++get_paths_conflicts_counter;
             sum_of_get_path_conflict_time += std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-            std::cout << "getPathsConflicts called " << get_paths_conflicts_counter << " times. Took " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " microseconds, summing to " << sum_of_get_path_conflict_time/1000000.0 << " seconds" << std::endl;
+            // std::cout << "getPathsConflicts called " << get_paths_conflicts_counter << " times. Took " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " microseconds, summing to " << sum_of_get_path_conflict_time/1000000.0 << " seconds" << std::endl;
         }
         // <<< KEEP KEEP KEEP
 
@@ -282,7 +270,7 @@ void ims::CBS::expand(int state_id) {
             static int sum_of_get_path_conflict_time = 0;
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             get_paths_conflicts_counter++;
-            agent_action_space_ptrs_[3]->getPathsConflicts(std::make_shared<MultiAgentPaths>(new_state->paths), 
+            agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(new_state->paths), 
                                                            new_state->unresolved_conflicts, 
                                                            getConflictTypes()   ,
                                                            1, 
@@ -290,7 +278,7 @@ void ims::CBS::expand(int state_id) {
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             ++get_paths_conflicts_counter;
             sum_of_get_path_conflict_time += std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-            std::cout << "getPathsConflicts called " << get_paths_conflicts_counter << " times. Took " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " microseconds, summing to " << sum_of_get_path_conflict_time/1000000.0 << " seconds" << std::endl;
+            // std::cout << "getPathsConflicts called " << get_paths_conflicts_counter << " times. Took " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " microseconds, summing to " << sum_of_get_path_conflict_time/1000000.0 << " seconds" << std::endl;
         }
         // <<< REMOVE REMOVE REMOVE
 
