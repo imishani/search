@@ -92,7 +92,8 @@ using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 /// @class EACBS class.
 /// @brief The EACBS algorithm.
 class EACBS : public CBS {
-private:
+private:    
+    friend class EAECBS;
 public:
     /// @brief Constructor
     /// @param params The parameters
@@ -139,6 +140,9 @@ protected:
 
         // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
         MultiAgentConstraintsCollective constraints_collectives;
+
+        // The low level experiences collecitve. This is a map from agent id to experience collective.
+        MultiAgentExperiencesCollective experiences_collectives;
     };
 
     /// @brief The open list. We set it to a deque for fast pop_front().

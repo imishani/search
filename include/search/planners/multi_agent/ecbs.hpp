@@ -62,9 +62,9 @@ This class should not be derived from BestFirstSearch, but rather from FocalSear
 namespace ims {
 
 // ==========================
-// Related structs: CBSParams
+// Related structs: ECBSParams
 // ==========================
-/// @class CBSParams class.
+/// @class ECBSParams class.
 /// @brief The parameters for the ECBS algorithm
 struct ECBSParams : public CBSParams {
     /// @brief Constructor
