@@ -155,15 +155,71 @@ public:
                         auto* edge_constraint_ptr = dynamic_cast<ims::EdgeConstraint*>(constraint_ptr.get());
                         if (edge_constraint_ptr != nullptr) {
                             // If the constraint is an edge constraint, check if the state is valid w.r.t the constraint.
-                            if (edge_constraint_ptr->from_state[0] == state_val[0] && edge_constraint_ptr->from_state[1] == state_val[1] && edge_constraint_ptr->from_state[2] == state_val[2] && edge_constraint_ptr->to_state[0] == next_state_val[0] && edge_constraint_ptr->to_state[1] == next_state_val[1] && edge_constraint_ptr->to_state[2] == next_state_val[2]) {
+                            if (edge_constraint_ptr->state_from[0] == state_val[0] && edge_constraint_ptr->state_from[1] == state_val[1] && edge_constraint_ptr->state_from[2] == state_val[2] && edge_constraint_ptr->state_to[0] == next_state_val[0] && edge_constraint_ptr->state_to[1] == next_state_val[1] && edge_constraint_ptr->state_to[2] == next_state_val[2]) {
                                 return false;
                             }
                         }
                         break;
                     }
-                }
-            }
-        }
+
+                    case ims::ConstraintType::VERTEX_AVOIDANCE: {
+                        // Convert to a vertex constraint pointer to get access to its members.
+                        auto* vertex_avoidance_constraint_ptr = dynamic_cast<ims::VertexAvoidanceConstraint*>(constraint_ptr.get());
+                        if (vertex_avoidance_constraint_ptr != nullptr) {
+                            // The constraint specifies avoidance of multiple agents. Loop through them and check if the state is valid w.r.t the constraint.
+                            for (int other_agent_id : vertex_avoidance_constraint_ptr->agent_ids_to_avoid) {
+                                // Check equality of the constrained time and the current time. If the constrained time is -1, then the constraint is a goal constraint and should be checked only at the goal state.
+                                if (vertex_avoidance_constraint_ptr->time != -1 && vertex_avoidance_constraint_ptr->time != next_state_val[2]) {
+                                    continue;
+                                }
+
+                                // Get the state of the other agent at the current time step. Get this from the constraints context. If the constraint is "always imposed," there is a need to check that the current timestep is not surpassing the latest timestep of the other agent, and if it does then take the latest state of the other agent.
+                                TimeType other_agent_latest_time = constraints_collective_ptr_->getConstraintsContext()->agent_paths.at(other_agent_id).back().back();
+                                TimeType agent_time = next_state_val.back();
+                                TimeType other_agent_time = std::min(other_agent_latest_time, agent_time);
+                                StateType other_agent_state = constraints_collective_ptr_->getConstraintsContext()->agent_paths.at(other_agent_id).at(other_agent_time);
+
+                                // Check if the state is valid w.r.t the constraint.
+                                if (next_state_val[0] == other_agent_state[0] && next_state_val[1] == other_agent_state[1]) {
+                                    return false;
+                                }
+                            }
+                        }
+                        break;
+                    }
+
+                    case ims::ConstraintType::EDGE_AVOIDANCE: {
+                        // Convert to an edge constraint pointer to get access to its members.
+                        auto* edge_avoidance_constraint_ptr = dynamic_cast<ims::EdgeAvoidanceConstraint*>(constraint_ptr.get());
+                        if (edge_avoidance_constraint_ptr != nullptr) {
+                            // The constraint specifies avoidance of multiple agents. Loop through them and check if the state is valid w.r.t the constraint.
+                            for (int other_agent_id : edge_avoidance_constraint_ptr->agent_ids_to_avoid) {
+                                // Check equality of the constrained time and the current time. If the constrained time is -1, then the constraint is a goal constraint and should be checked only at the goal state.
+                                if (edge_avoidance_constraint_ptr->t_from != -1 && edge_avoidance_constraint_ptr->t_to != -1 && (edge_avoidance_constraint_ptr->t_from != state_val[2] || edge_avoidance_constraint_ptr->t_to != next_state_val[2])) {
+                                    continue;
+                                }
+
+                                TimeType other_agent_latest_time = constraints_collective_ptr_->getConstraintsContext()->agent_paths.at(other_agent_id).back().back();
+                                TimeType agent_time_from = state_val.back();
+                                TimeType agent_time_to = next_state_val.back();
+
+                                TimeType other_agent_time_from = std::min(other_agent_latest_time, agent_time_from);
+                                TimeType other_agent_time_to = std::min(other_agent_latest_time, agent_time_to);
+
+                                // Get the state of the other agent at the timesteps t_from and t_to. Get this from the constraints context.
+                                StateType other_agent_state_from = constraints_collective_ptr_->getConstraintsContext()->agent_paths.at(other_agent_id).at(other_agent_time_from);
+                                StateType other_agent_state_to = constraints_collective_ptr_->getConstraintsContext()->agent_paths.at(other_agent_id).at(other_agent_time_to);
+
+                                // Check if the state is valid w.r.t the constraint.
+                                if (state_val[0] == other_agent_state_to[0] && state_val[1] == other_agent_state_to[1] && next_state_val[0] == other_agent_state_from[0] && next_state_val[1] == other_agent_state_from[1]) {
+                                    return false;
+                                }
+                            }
+                        }    
+                    } // End of case EDGE_AVOIDANCE.
+                } // End of switch.
+            } // End of for loop over constraints.
+        } // End of if statement checking if there are constraints.
         return true;
     }
 

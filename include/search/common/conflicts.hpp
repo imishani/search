@@ -95,8 +95,8 @@ struct VertexConflict : public Conflict {
 struct EdgeConflict : public Conflict {
     /// @brief The state vector. Could be a robot configuration.
     // We specify the states directly since their ID may change in future low-level plan iterations.
-    StateType from_state;
-    StateType to_state;
+    StateType state_from;
+    StateType state_to;
 
     // The agent IDs.
     int agent_id_from;
@@ -104,7 +104,7 @@ struct EdgeConflict : public Conflict {
 
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param state The state vector.
-    explicit EdgeConflict(StateType from_state, StateType to_state, int agent_id_from, int agent_id_to) : from_state(std::move(from_state)), to_state(std::move(to_state)), agent_id_from(agent_id_from), agent_id_to(agent_id_to) {
+    explicit EdgeConflict(StateType state_from, StateType state_to, int agent_id_from, int agent_id_to) : state_from(std::move(state_from)), state_to(std::move(state_to)), agent_id_from(agent_id_from), agent_id_to(agent_id_to) {
         /// @brief The type of the Conflict.
         type = ConflictType::EDGE;
     }
@@ -163,7 +163,7 @@ struct Point3dConflict : public Conflict {
     // The point of conflict.
     Eigen::Vector3d point;
 
-    /// @brief Constructor, allowing to set the from_state, to_state, ids, and point.
+    /// @brief Constructor, allowing to set the state_from, state_to, ids, and point.
     /// @param state The state vector.
     explicit Point3dConflict(const std::vector<StateType>& from_states,
                              const std::vector<StateType>& to_states, 

@@ -56,21 +56,21 @@ void vertexConflictToVertexConstraints(const VertexConflict * vertex_conflict_pt
 
 void edgeConflictToEdgeConstraints(const EdgeConflict * edge_conflict_ptr,
                                         std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
-    // We have exactly two affected agents. Call them agent_a and agent_b. The conflict is 'a' moving 'from_state' to 'to_state' and 'b' moving 'to_state' to 'from_state', with time decremented and incremented by 1, respectively.
+    // We have exactly two affected agents. Call them agent_a and agent_b. The conflict is 'a' moving 'state_from' to 'state_to' and 'b' moving 'state_to' to 'state_from', with time decremented and incremented by 1, respectively.
     int agent_a = edge_conflict_ptr->agent_id_from;
     int agent_b = edge_conflict_ptr->agent_id_to;
 
     // Create a new edge constraint.
-    EdgeConstraint constraint_a = EdgeConstraint(edge_conflict_ptr->from_state, edge_conflict_ptr->to_state);
-    StateType from_state_b = edge_conflict_ptr->to_state;
+    EdgeConstraint constraint_a = EdgeConstraint(edge_conflict_ptr->state_from, edge_conflict_ptr->state_to);
+    StateType state_from_b = edge_conflict_ptr->state_to;
 
-    // Decrement the time of the from_state_b.
-    from_state_b.back() -= 1;
-    StateType to_state_b = edge_conflict_ptr->from_state;
+    // Decrement the time of the state_from_b.
+    state_from_b.back() -= 1;
+    StateType state_to_b = edge_conflict_ptr->state_from;
 
-    // Increment the time of the to_state_b.
-    to_state_b.back() += 1;
-    EdgeConstraint constraint_b = EdgeConstraint(from_state_b, to_state_b);
+    // Increment the time of the state_to_b.
+    state_to_b.back() += 1;
+    EdgeConstraint constraint_b = EdgeConstraint(state_from_b, state_to_b);
 
     // Add to the constraints object.
     agent_constraints.emplace_back(agent_a, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint_a)});
@@ -93,15 +93,15 @@ void privateGridsVertexConflictToVertexConstraints(const PrivateGridsVertexConfl
 
 void privateGridsEdgeConflictToEdgeConstraints(const PrivateGridsEdgeConflict * private_grids_edge_conflict_ptr,
                                         std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
-    // We have two or more affected agents. For example say we have two and call them agent_a and agent_b. The conflict is 'a' moving 'from_state' to 'to_state' and 'b' moving from its own 'from_state' to 'to_state', each on their own private grid.
+    // We have two or more affected agents. For example say we have two and call them agent_a and agent_b. The conflict is 'a' moving 'state_from' to 'state_to' and 'b' moving from its own 'state_from' to 'state_to', each on their own private grid.
     for (int i = 0; i < private_grids_edge_conflict_ptr->agent_ids.size(); i++) {
         int agent_id = private_grids_edge_conflict_ptr->agent_ids[i];
-        StateType from_state = private_grids_edge_conflict_ptr->from_states[i];
-        StateType to_state = private_grids_edge_conflict_ptr->to_states[i];
+        StateType state_from = private_grids_edge_conflict_ptr->from_states[i];
+        StateType state_to = private_grids_edge_conflict_ptr->to_states[i];
 
         // It could be that one of the agents is not in transition while the other one is, so ceate a new edge constraint only if the states are different.
-        if (from_state != to_state) {
-            EdgeConstraint constraint = EdgeConstraint(from_state, to_state);
+        if (state_from != state_to) {
+            EdgeConstraint constraint = EdgeConstraint(state_from, state_to);
 
             // Update the constraints collective to also include the new constraint.
             agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint)});
@@ -109,7 +109,7 @@ void privateGridsEdgeConflictToEdgeConstraints(const PrivateGridsEdgeConflict * 
 
         // Otherwise, create a new vertex constraint.
         else {
-            VertexConstraint constraint = VertexConstraint(from_state);
+            VertexConstraint constraint = VertexConstraint(state_from);
 
             // Update the constraints collective to also include the new constraint.
             agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexConstraint>(constraint)});

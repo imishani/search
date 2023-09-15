@@ -76,15 +76,15 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
                 throw std::runtime_error("Conflict is an edge conflict, but could not be converted to an EdgeConflict.");
             }
 
-            // We have exactly two affected agents. Call them agent_a and agent_b. The conflict is 'a' moving 'from_state' to 'to_state' and 'b' moving 'to_state' to 'from_state', with time decremented and incremented by 1, respectively.
+            // We have exactly two affected agents. Call them agent_a and agent_b. The conflict is 'a' moving 'state_from' to 'state_to' and 'b' moving 'state_to' to 'state_from', with time decremented and incremented by 1, respectively.
             int agent_a = edge_conflict_ptr->agent_id_from;
             int agent_b = edge_conflict_ptr->agent_id_to;
 
             // Create a new edge constraint.
-            EdgeConstraint constraint_a = EdgeConstraint(edge_conflict_ptr->from_state, edge_conflict_ptr->to_state);
-            StateType from_state_b = edge_conflict_ptr->to_state;
+            EdgeConstraint constraint_a = EdgeConstraint(edge_conflict_ptr->state_from, edge_conflict_ptr->state_to);
+            StateType from_state_b = edge_conflict_ptr->state_to;
             from_state_b.back() -= 1;
-            StateType to_state_b = edge_conflict_ptr->from_state;
+            StateType to_state_b = edge_conflict_ptr->state_from;
             to_state_b.back() += 1;
             EdgeConstraint constraint_b = EdgeConstraint(from_state_b, to_state_b);
 
@@ -127,15 +127,15 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
                 throw std::runtime_error("Conflict is a private grids edge conflict, but could not be converted to a PrivateGridsEdgeConflict.");
             }
 
-            // We have two or more affected agents. For example say we have two and call them agent_a and agent_b. The conflict is 'a' moving 'from_state' to 'to_state' and 'b' moving from its own 'from_state' to 'to_state', each on their own private grid.
+            // We have two or more affected agents. For example say we have two and call them agent_a and agent_b. The conflict is 'a' moving 'state_from' to 'state_to' and 'b' moving from its own 'state_from' to 'state_to', each on their own private grid.
             for (int i = 0; i < private_grids_edge_conflict_ptr->agent_ids.size(); i++) {
                 int agent_id = private_grids_edge_conflict_ptr->agent_ids[i];
-                StateType from_state = private_grids_edge_conflict_ptr->from_states[i];
-                StateType to_state = private_grids_edge_conflict_ptr->to_states[i];
+                StateType state_from = private_grids_edge_conflict_ptr->from_states[i];
+                StateType state_to = private_grids_edge_conflict_ptr->to_states[i];
 
                 // It could be that one of the agents is not in transition while the other one is, so ceate a new edge constraint only if the states are different.
-                if (from_state != to_state) {
-                    EdgeConstraint constraint = EdgeConstraint(from_state, to_state);
+                if (state_from != state_to) {
+                    EdgeConstraint constraint = EdgeConstraint(state_from, state_to);
 
                     // Update the constraints collective to also include the new constraint.
                     agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint)});
@@ -143,7 +143,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
 
                 // Otherwise, create a new vertex constraint.
                 else {
-                    VertexConstraint constraint = VertexConstraint(from_state);
+                    VertexConstraint constraint = VertexConstraint(state_from);
 
                     // Update the constraints collective to also include the new constraint.
                     agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexConstraint>(constraint)});

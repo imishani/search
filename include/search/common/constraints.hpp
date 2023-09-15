@@ -51,9 +51,11 @@ namespace ims {
 
 enum class ConstraintType {
     UNSET = -1,
-    VERTEX = 0,
-    EDGE = 1,
-    SPHERE3D = 2,
+    VERTEX = 0, // Do not be at v at time t.
+    EDGE = 1, // Do not cross edge (u, v) at time t to t+1.
+    SPHERE3D = 2, // Do not be in sphere at time t.
+    VERTEX_AVOIDANCE = 3, // Do not conflict with agent at time t, setting other agent as specified in its path in the context.
+    EDGE_AVOIDANCE = 4, // Do not conflict with agent at time t_from to t_to, setting other agent as specified in its path in the context.
 };
 
 /// @brief Base class for all search constraints.
@@ -114,12 +116,12 @@ struct VertexConstraint : public Constraint {
 struct EdgeConstraint : public Constraint {
     /// @brief The state vector. Could be a robot configuration.
     // We specify the states directly since their ID may change in future low-level plan iterations.
-    StateType from_state;
-    StateType to_state;
+    StateType state_from;
+    StateType state_to;
 
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param state The state vector.
-    explicit EdgeConstraint(StateType from_state, StateType to_state) : from_state(std::move(from_state)), to_state(std::move(to_state)) {
+    explicit EdgeConstraint(StateType state_from, StateType state_to) : state_from(std::move(state_from)), state_to(std::move(state_to)) {
         /// @brief The type of the constraint.
         type = ConstraintType::EDGE;
     }
@@ -127,20 +129,20 @@ struct EdgeConstraint : public Constraint {
     std::string toString() const override {
         std::stringstream ss;
         ss << "EdgeConstraint. From: (";
-        for (int i = 0; i < from_state.size() - 1; i++) {
-            ss << from_state[i] << ", ";
+        for (int i = 0; i < state_from.size() - 1; i++) {
+            ss << state_from[i] << ", ";
         }
-        ss << from_state.back() << ") To: (";
-        for (int i = 0; i < to_state.size() - 1; i++) {
-            ss << to_state[i] << ", ";
+        ss << state_from.back() << ") To: (";
+        for (int i = 0; i < state_to.size() - 1; i++) {
+            ss << state_to[i] << ", ";
         }
-        ss << to_state.back() << ")";
+        ss << state_to.back() << ")";
         return ss.str();
     }
 
     /// @brief The time interval of the constraint.
     std::pair<int, int> getTimeInterval() const override {
-        return std::make_pair(from_state.back(), to_state.back());
+        return std::make_pair(state_from.back(), state_to.back());
     }
 };
 
@@ -176,6 +178,148 @@ struct Sphere3dConstraint : public Constraint {
     }
 };
 
+// ==========================
+// Constraints used by Prioritized Planning.
+// ==========================
+struct VertexAvoidanceConstraint : public Constraint {
+
+    /// @brief The time of the constraint. If the time is -1, then the constraint is applied at all times.
+    TimeType time;
+
+    /// @brief the names of the agents to avoid.
+    std::vector<std::string> agent_names_to_avoid;
+    std::vector<int> agent_ids_to_avoid;
+
+    /// @brief Constructor, allowing to set the agent ids to avoid and when. An overload allows also setting the agent names.
+    /// @param agent_ids_to_avoid The agent ids to avoid.
+    /// @param time The time of the constraint.
+    explicit VertexAvoidanceConstraint(std::vector<int> agent_ids_to_avoid, TimeType time) : 
+        agent_ids_to_avoid(agent_ids_to_avoid), 
+        time(time) {
+
+        /// @brief The type of the constraint.
+        type = ConstraintType::VERTEX_AVOIDANCE;
+    }
+    explicit VertexAvoidanceConstraint(int agent_id_to_avoid, TimeType time) : 
+        time(time) {
+        agent_ids_to_avoid = {agent_id_to_avoid};
+
+        /// @brief The type of the constraint.
+        type = ConstraintType::VERTEX_AVOIDANCE;
+    }
+
+    /// @brief Constructor, allowing to set the agent ids to avoid, time, and agent names.
+    /// @param state The state vector.
+    explicit VertexAvoidanceConstraint(int agent_ids_to_avoid, TimeType time, std::vector<std::string> agent_names_to_avoid) :
+        agent_ids_to_avoid(agent_ids_to_avoid), 
+        time(time), 
+        agent_names_to_avoid(agent_names_to_avoid) {
+
+        /// @brief The type of the constraint.
+        type = ConstraintType::VERTEX_AVOIDANCE;
+    }
+    explicit VertexAvoidanceConstraint(int agent_id_to_avoid, TimeType time, std::string agent_name_to_avoid) :
+        time(time) {
+        agent_ids_to_avoid = {agent_id_to_avoid};
+        agent_names_to_avoid = {agent_name_to_avoid};
+        
+        /// @brief The type of the constraint.
+        type = ConstraintType::VERTEX_AVOIDANCE;
+    }
+
+    /// @brief String representation of the constraint.
+    /// @return The string representation.
+    std::string toString() const override {
+        std::stringstream ss;
+        ss << "VertexAvoidanceConstraint: avoid agents: (";
+        for (int i = 0; i < agent_ids_to_avoid.size() - 1; i++) {
+            ss << agent_ids_to_avoid[i];
+            if (i < agent_names_to_avoid.size() - 1) {
+                ss << " (" << agent_names_to_avoid[i] << "), ";
+            }
+            else {
+                ss << ", ";
+            }
+        }
+        ss << agent_ids_to_avoid.back() << ") at time: " << time;
+        return ss.str();
+    }
+
+    /// @brief The time interval of the constraint.
+    std::pair<TimeType, TimeType> getTimeInterval() const override {
+        return std::make_pair(time, time);
+    }
+};
+
+struct EdgeAvoidanceConstraint : public Constraint {
+    /// @brief The time interval of the constraint.
+    TimeType t_from;
+    TimeType t_to;
+
+    /// @brief the names of the agents to avoid.
+    std::vector<std::string> agent_names_to_avoid;
+
+    /// @brief the ids of the agents to avoid.
+    std::vector<int> agent_ids_to_avoid;
+
+    /// @brief Constructor, allowing to set the agent ids to avoid and when.
+    /// @param agent_ids_to_avoid The agent ids to avoid.
+    /// @param t_from The time to start avoiding the agents.
+    /// @param t_to The time to stop avoiding the agents.
+    explicit EdgeAvoidanceConstraint(int agent_id_to_avoid, TimeType t_from, TimeType t_to, std::string agent_name_to_avoid = "") :
+        t_from(t_from),
+        t_to(t_to),
+        agent_ids_to_avoid({agent_id_to_avoid}),
+        agent_names_to_avoid({agent_name_to_avoid}) {
+        type = ConstraintType::EDGE_AVOIDANCE;
+
+        // Check that there is exactly one timestep between `t_from` and `t_to`.
+        if (t_to - t_from != 1 && (t_to != -1 && t_from != -1)) {
+            throw std::invalid_argument("EdgeAvoidanceConstraint: t_to - t_from != 1. Currently only single-timestep-edges are supported.");
+        }
+    }
+
+    /// @brief Constructor, allowing to set the agent ids to avoid and when.
+    /// @param agent_ids_to_avoid The agent ids to avoid.
+    /// @param t_from The time to start avoiding the agents.
+    /// @param t_to The time to stop avoiding the agents.
+    explicit EdgeAvoidanceConstraint(std::vector<int> agent_ids_to_avoid, TimeType t_from, TimeType t_to, std::vector<std::string> agent_names_to_avoid = {}) :
+        t_from(t_from),
+        t_to(t_to),
+        agent_ids_to_avoid(agent_ids_to_avoid),
+        agent_names_to_avoid(agent_names_to_avoid) {
+        type = ConstraintType::EDGE_AVOIDANCE;
+
+        // Check that there is exactly one timestep between `t_from` and `t_to`.
+        if (t_to - t_from != 1 && (t_to != -1 && t_from != -1)) {
+            throw std::invalid_argument("EdgeAvoidanceConstraint: t_to - t_from != 1. Currently only single-timestep-edges are supported.");
+        }
+    }
+
+    /// @brief String representation of the constraint.
+    /// @return The string representation.
+    std::string toString() const override {
+        std::stringstream ss;
+        ss << "EdgeAvoidanceConstraint. Avoiding agent ids: (";
+        for (int i = 0; i < agent_ids_to_avoid.size() - 1; i++) {
+            ss << agent_ids_to_avoid[i];
+            if (i < agent_names_to_avoid.size() - 1) {
+                ss << " (" << agent_names_to_avoid[i] << "), ";
+            }
+            else {
+                ss << ", ";
+            }
+        }
+        ss << agent_ids_to_avoid.back() << ") from time: " << t_from << " to time: " << t_to;
+        return ss.str();
+    }
+
+    /// @brief The time interval of the constraint.
+    std::pair<int, int> getTimeInterval() const override {
+        return std::make_pair(t_from, t_to);
+    }
+};
+
 /// @brief Base class for all search constraint contexts.
 /// @details This class is used to store context variables that are required for constraint checking and satisfaction. For example, in the case of PBS, the context for constraint satisfaction is the paths of all the agents whose paths were already found. This class is used to store these paths, and is passed to the ConstrainedActionSpace via the setConstraintsContext method.
 struct ConstraintsContext {
@@ -185,7 +329,9 @@ struct ConstraintsContext {
     /// @brief Virtual destructor.
     virtual ~ConstraintsContext() = default;
 
-    /// @brief The type of the constraint.
+    /// @brief Paths of other agents.
+    MultiAgentPaths agent_paths = {};
+
 };
 
 /// @brief Base class for all search constraints.
@@ -218,14 +364,24 @@ struct ConstraintsCollective {
     void addConstraint(const std::shared_ptr<Constraint>& constraint) {
         constraints_ptrs_.push_back(constraint);
 
-        // Add to the time_to_constraints_ptrs_ map.
+        // Add to the time_to_constraints_ptrs_ map. This is only done if the time interval is not (-1, -1).
+        TimeType t_from = constraint->getTimeInterval().first;
+        TimeType t_to = constraint->getTimeInterval().second;
         // TODO(yoraish): incorporate the action discretization into this for loop. This comes from the actionspace, so will have to think how to incorporate it. Currently the assumption is that the time is moving in integer steps.
-        for (TimeType t = constraint->getTimeInterval().first; t <= constraint->getTimeInterval().second; t++) {
+        if (t_from == -1 && t_to == -1) {
+            return;
+        }
+        for (TimeType t = t_from; t <= t_to; t++) {
             time_to_constraints_ptrs_[t].push_back(constraint);
 
             // Update the latest time that has constraints, if necessary.
             last_constraint_time_ = std::max(last_constraint_time_, t);
         }
+    }
+
+    /// @brief Set the last time that has constraints. This time is often used to check if a planner is allowed to terminate (find a goal). If there are outstanding constraints, then the planner should not terminate. If we impose constraints that are "always active," then we need a way to tell planners "after this time t, keep satisfying the "always" constraints but you are allowed to find the goal." This is one way to do this.
+    void setLastConstraintTimeToAtLeast(TimeType t) {
+        last_constraint_time_ = std::max(last_constraint_time_, t);
     }
 
     void addConstraints(const std::vector<std::shared_ptr<Constraint>>& constraints) {
@@ -298,9 +454,6 @@ private:
 
 /// @brief An object for mapping [agent_ids] to a set of constraints collective.
 using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
-
-/// @brief An object for mapping [agent_ids][timestamp] to a state.
-using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
 }  // namespace ims
 

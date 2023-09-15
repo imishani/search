@@ -34,6 +34,7 @@ add_library(search SHARED
         src/planners/multi_agent/ecbs.cpp
         src/common/bfs3d.cpp
         src/planners/egraph_wastar.cpp
+        src/planners/multi_agent/prioritized_planning.cpp
         src/common/experience_graph.cpp
         src/common/conflict_conversions.cpp
 )
@@ -83,6 +84,9 @@ target_link_libraries(run_2d_mapf_eacbs search ${OpenCV_LIBS} ${Boost_LIBRARIES}
 
 add_executable(run_2d_mapf_eaecbs domains/2d_mapf/run_2d_eaecbs.cpp)
 target_link_libraries(run_2d_mapf_eaecbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+
+add_executable(run_2d_mapf_pp domains/2d_mapf/run_2d_pp.cpp)
+target_link_libraries(run_2d_mapf_pp search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
 # Add an uninstall target.
 if(NOT TARGET uninstall)
