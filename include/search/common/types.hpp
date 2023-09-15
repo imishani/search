@@ -67,6 +67,8 @@ const double PI = 3.14159265358979323846;
 // Typedefs
 using StateType = std::vector<double>;
 using PathType = std::vector<StateType>;
+/// @brief An object for mapping [agent_ids][timestamp] to a state.
+using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 using Action = std::vector<double>;
 using ActionSequence = std::vector<Action>;
 using ParamsType = std::unordered_map<std::string, double>;

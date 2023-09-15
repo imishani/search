@@ -155,7 +155,7 @@ public:
                         auto* edge_constraint_ptr = dynamic_cast<ims::EdgeConstraint*>(constraint_ptr.get());
                         if (edge_constraint_ptr != nullptr) {
                             // If the constraint is an edge constraint, check if the state is valid w.r.t the constraint.
-                            if (edge_constraint_ptr->from_state[0] == state_val[0] && edge_constraint_ptr->from_state[1] == state_val[1] && edge_constraint_ptr->from_state[2] == state_val[2] && edge_constraint_ptr->to_state[0] == next_state_val[0] && edge_constraint_ptr->to_state[1] == next_state_val[1] && edge_constraint_ptr->to_state[2] == next_state_val[2]) {
+                            if (edge_constraint_ptr->state_from[0] == state_val[0] && edge_constraint_ptr->state_from[1] == state_val[1] && edge_constraint_ptr->state_from[2] == state_val[2] && edge_constraint_ptr->state_to[0] == next_state_val[0] && edge_constraint_ptr->state_to[1] == next_state_val[1] && edge_constraint_ptr->state_to[2] == next_state_val[2]) {
                                 return false;
                             }
                         }

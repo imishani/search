@@ -53,16 +53,6 @@
 
 #include "search/action_space/constrained_action_space.hpp"
 
-/*
-Some things that need to be done:
-=== For the low level planner ===
-=== For the high level planner ===
-1. Fix the waiting-at-goal error. (Wait-at-goal just added blindly. Next plans should be at least as long as the previous ones and waiting pruned?)
-3. Add the edge constraints.
-4. Continue work on the main loop. (Not on expand.)
-
-*/
-
 namespace ims {
 
 // ==========================
