@@ -185,7 +185,7 @@ struct ZeroHeuristic : public BaseHeuristic {
 
 /// @brief Robot joint angles distance heuristic
 struct JointAnglesHeuristic : public BaseHeuristic {
-    JointAnglesHeuristic(const std::vector<bool>& valid_mask = std::vector<bool>()): valid_mask_(valid_mask) {} 
+    explicit JointAnglesHeuristic(const std::vector<bool>& valid_mask = std::vector<bool>()): valid_mask_(valid_mask) {}
 
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
