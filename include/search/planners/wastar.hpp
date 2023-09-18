@@ -111,14 +111,14 @@ namespace ims{
         /// @param goals Vector of goal states
         void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                const std::vector<StateType>& starts,
-                               const std::vector<StateType>& goals) override;
+                               CheckGoalCondition* check_goal_condition) override;
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
         /// @param start The start state
         /// @param goal The goal state
         void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                               const StateType& start, const StateType& goal) override;
+                               const StateType& start, CheckGoalCondition* check_goal_condition) override;
 
         /// @brief plan a path
         /// @param path The path
@@ -135,7 +135,7 @@ namespace ims{
 
         void expand(int state_id) override;
 
-        void reconstructPath(std::vector<StateType>& path) override;
+        // void reconstructPath(std::vector<StateType>& path) override;
 
         wAStarParams params_;
 

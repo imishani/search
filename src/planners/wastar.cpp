@@ -44,32 +44,32 @@ ims::wAStar::~wAStar() {
 
 void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                     const std::vector<StateType> &starts,
-                                    const std::vector<StateType> &goals) {
+                                    CheckGoalCondition* check_goal_condition) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
     // Clear both.
     action_space_ptr_->resetPlanningData();
     resetPlanningData();
 
-    if (goals.empty() || starts.empty()) {
-        throw std::runtime_error("Starts or goals are empty");
+    if (starts.empty()) {
+        throw std::runtime_error("Starts are empty");
     }
 
-    if (goals.size() > 1) {
-        throw std::runtime_error("Currently, only one goal is supported");
-    }
-    // check if goal is valid
-    if (!action_space_ptr_->isStateValid(goals[0])){
-        throw std::runtime_error("Goal state is not valid");
-    }
-    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
-    auto goal_ = getOrCreateSearchState(goal_ind_);
-    goals_.push_back(goal_ind_);
+    // if (goals.size() > 1) {
+    //     throw std::runtime_error("Currently, only one goal is supported");
+    // }
+    // // check if goal is valid
+    // if (!action_space_ptr_->isStateValid(goals[0])){
+    //     throw std::runtime_error("Goal state is not valid");
+    // }
+    // int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
+    // auto goal_ = getOrCreateSearchState(goal_ind_);
+    // goals_.push_back(goal_ind_);
 
     // Evaluate the goal state
-    goal_->parent_id = PARENT_TYPE(GOAL);
-    heuristic_->setGoal(const_cast<StateType &>(goals[0]));
-    goal_->h = 0;
+    // goal_->parent_id = PARENT_TYPE(GOAL);
+    // heuristic_->setGoal(const_cast<StateType &>(goals[0]));
+    // goal_->h = 0;
 
     for (auto &start : starts) {
         // check if start is valid
@@ -91,7 +91,7 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_s
 }
 
 void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                   const StateType& start, const StateType& goal) {
+                                   const StateType& start, CheckGoalCondition* check_goal_condition) {
     // Space pointer.
     action_space_ptr_ = action_space_ptr;
 
@@ -104,15 +104,15 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_s
         throw std::runtime_error("Start state is not valid");
     }
     // check if goal is valid
-    if (!action_space_ptr_->isStateValid(goal)){
-        throw std::runtime_error("Goal state is not valid");
-    }
+    // if (!action_space_ptr_->isStateValid(goal)){
+    //     throw std::runtime_error("Goal state is not valid");
+    // }
     int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
     auto start_ = getOrCreateSearchState(start_ind_);
 
-    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
-    auto goal_ = getOrCreateSearchState(goal_ind_);
-    goals_.push_back(goal_ind_);
+    // int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
+    // auto goal_ = getOrCreateSearchState(goal_ind_);
+    // goals_.push_back(goal_ind_);
 
     start_->parent_id = PARENT_TYPE(START);
     heuristic_->setStart(const_cast<StateType &>(start));
@@ -190,7 +190,7 @@ void ims::wAStar::expand(int state_id){
         if (successor->in_closed){
             continue;
         }
-        if (isGoalState(successor_id) && params_.verbose ){
+        if (m_check_goal_condition->isGoalState(successor_id) && params_.verbose ){
             std::cout << "Added Goal to open list" << std::endl;
         }
         if (successor->in_open){
@@ -219,15 +219,15 @@ void ims::wAStar::setStateVals(int state_id, int parent_id, double cost)
     state_->f = state_->g + params_.epsilon*state_->h;
 }
 
-void ims::wAStar::reconstructPath(std::vector<StateType>& path) {
-    SearchState* state_ = getSearchState(goal_);
-    while (state_->parent_id != -1){
-        path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-        state_ = getSearchState(state_->parent_id);
-    }
-    path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-    std::reverse(path.begin(), path.end());
-}
+// void ims::wAStar::reconstructPath(std::vector<StateType>& path) {
+//     SearchState* state_ = getSearchState(goal_);
+//     while (state_->parent_id != -1){
+//         path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
+//         state_ = getSearchState(state_->parent_id);
+//     }
+//     path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
+//     std::reverse(path.begin(), path.end());
+// }
 
 void ims::wAStar::resetPlanningData(){
     for (auto state_ : states_){
@@ -235,7 +235,7 @@ void ims::wAStar::resetPlanningData(){
     }
     states_.clear();
     open_.clear();
-    goals_.clear();
-    goal_ = -1;
+    // goals_.clear();
+    // goal_ = -1;
     stats_ = PlannerStats();
 }

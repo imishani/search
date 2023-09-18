@@ -43,6 +43,7 @@
 #include "search/action_space/action_space.hpp"
 #include <search/common/intrusive_heap.h>
 #include <search/common/types.hpp>
+#include <search/common/goal_conditions.hpp>
 
 
 namespace ims{
@@ -96,12 +97,9 @@ struct SearchState : public ::smpl::HeapElement {
         /// @param goals Vector of goal states
         virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                        const std::vector<StateType>& starts,
-                                       const std::vector<StateType>& goals){
-          if (starts.size() != 1 || goals.size() != 1){
-              throw std::invalid_argument("Planner::initializePlanner: Currently, Planner only supports one start and one goal state");
-          }
-          else {
-              initializePlanner(action_space_ptr, starts[0], goals[0]);
+                                       CheckGoalCondition* check_goal_condition){
+          if (starts.size() != 1){
+              throw std::invalid_argument("Planner::initializePlanner: Currently, Planner only supports one start state");
           }
         }
 
@@ -110,7 +108,7 @@ struct SearchState : public ::smpl::HeapElement {
         /// @param start The start state
         /// @param goal The goal state
         virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                       const StateType& start, const StateType& goal) = 0;
+                                       const StateType& start, CheckGoalCondition* check_goal_condition) = 0;
 
         /// @brief start the timer
         void startTimer() { t_start_ = std::chrono::steady_clock::now(); }
@@ -143,14 +141,14 @@ struct SearchState : public ::smpl::HeapElement {
     protected:
 
         /// @brief Reconstruct the path
-        virtual void reconstructPath(std::vector<StateType>& path) = 0;
+        // virtual void reconstructPath(std::vector<StateType>& path) = 0;
 
         /// @brief Check if the current state is the goal state
         /// @return if the current state is the goal state or not
-        virtual bool isGoalState(int s_id) = 0;
+        // virtual bool isGoalState(int s_id) = 0;
 
-        int goal_{};
-        std::vector<int> goals_;
+        // int goal_{};
+        // std::vector<int> goals_;
         PlannerParams params_;
         std::chrono::time_point<std::chrono::steady_clock> t_start_;
         PlannerStats stats_;
