@@ -94,28 +94,17 @@ struct SearchState : public ::smpl::HeapElement {
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
         /// @param starts Vector of start states
-        /// @param goals Vector of goal states
+        /// @param goal Goal condition
         virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                        const std::vector<StateType>& starts,
-                                       const std::shared_ptr<ActionSpace>& goal_condition) = 0;
-        //                                {
-        //     if (starts.size() != 1) {
-        //         throw std::invalid_argument("Planner::initializePlanner: Currently, Planner only supports one start state");
-        //     }
-        //     initializePlanner(action_space_ptr, starts[0], check_goal_condition);
-        // }
+                                       const std::shared_ptr<GoalCondition>& goal_condition) = 0;
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
         /// @param start The start state
         /// @param goal The goal state
         virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                       const StateType& start, const StateType& goal) {
-            int action_goal_ind = action_space_ptr_->getOrCreateRobotState(goal);
-            int search_goal_ind = getOrCreateSearchState(action_goal_ind);
-            std::shared_ptr<GoalConditionExplicitIDs> goal_condition = std::make_shared<GoalConditionExplicitIDs>(search_goal_ind);
-            initializePlanner(action_space_ptr, std::vector<StateType>{start}, goal_condition);
-        };
+                                       const StateType& start, const StateType& goal) = 0;
 
         /// @brief start the timer
         void startTimer() { t_start_ = std::chrono::steady_clock::now(); }

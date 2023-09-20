@@ -102,17 +102,10 @@ public:
     /// @brief Initialize the planner
     /// @param action_space_ptr The action space
     /// @param starts Vector of start states
-    /// @param goals Vector of goal states
-    void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                           const std::vector<StateType>& starts,
-                           const std::vector<StateType>& goals) override;
-
-    /// @brief Initialize the planner
-    /// @param action_space_ptr The action space
-    /// @param start The start state
     /// @param goal The goal state
     void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                           const StateType& start, const StateType& goal) override;
+                           const std::vector<StateType>& starts,
+                           const std::shared_ptr<GoalCondition>& goal_condition) override;
 
     /// @brief plan a path
     /// @param path The path
@@ -130,10 +123,6 @@ protected:
     /// @brief Generate descendents of a state, a key method in most search algorithms.
     /// @param state_id 
     void expand(int state_id) override;
-
-    /// @brief Reconstruct the path from the goal state to the start state.
-    /// @param path 
-    void reconstructPath(std::vector<StateType>& path) override;
 
     BFSParams params_;
 

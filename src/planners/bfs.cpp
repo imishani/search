@@ -76,7 +76,7 @@ void ims::BFS::initializePlanner(const std::shared_ptr<ActionSpace> &action_spac
         if (!action_space_ptr_->isStateValid(start)){
             throw std::runtime_error("Start state is not valid");
         }
-        // Evaluate the start state
+        // Create the start states in the action space, generating state indices internally.
         int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
         auto start_ = getOrCreateSearchState(start_ind_);
         start_->parent_id = PARENT_TYPE(START);
@@ -86,39 +86,6 @@ void ims::BFS::initializePlanner(const std::shared_ptr<ActionSpace> &action_spac
         open_.push_back(start_);
         start_->setOpen();
     }
-}
-
-void ims::BFS::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                   const StateType& start, const StateType& goal) {
-    // Create an action space pointer.
-    action_space_ptr_ = action_space_ptr;
-    // Clear both.
-    action_space_ptr_->resetPlanningData();
-    resetPlanningData();
-
-    // Check if the start state vector is valid.
-    if (!action_space_ptr_->isStateValid(start)){
-        throw std::runtime_error("Start state is not valid");
-    }
-    // Check if the goal state is valid
-    if (!action_space_ptr_->isStateValid(goal)){
-        throw std::runtime_error("Goal state is not valid");
-    }
-
-    // Create the start and goal states in the action space, generating state indices for both internally.
-    int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-    auto start_ = getOrCreateSearchState(start_ind_);
-
-    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
-    goals_.push_back(goal_ind_);
-
-    // Set the start search state and add it to the open list.
-    start_->parent_id = PARENT_TYPE(START);
-    start_->setOpen();
-    start_->g = 0;
-    start_->f = 0;
-
-    open_.push_back(start_);
 }
 
 
@@ -152,10 +119,9 @@ bool ims::BFS::plan(std::vector<StateType>& path) {
         open_.pop_front();
 
         state->setClosed();
-        if (isGoalState(state->state_id)){
-            goal_ = state->state_id;
+        if (m_check_goal_condition->isGoalState(state->state_id)) {
             getTimeFromStart(stats_.time);
-            reconstructPath(path);
+            reconstructPath(state, path);
             stats_.cost = state->g;
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();
@@ -203,16 +169,5 @@ void ims::BFS::setStateVals(int state_id, int parent_id, double cost)
 {
     auto state = getSearchState(state_id);
     state->parent_id = parent_id;
-}
-
-void ims::BFS::reconstructPath(std::vector<StateType>& path) {
-    SearchState* state = getSearchState(goal_);
-    while (state->parent_id != -1){
-        path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
-        state = getSearchState(state->parent_id);
-    }
-    
-    path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
-    std::reverse(path.begin(), path.end());
 }
 

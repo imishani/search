@@ -127,7 +127,7 @@ namespace ims {
         /// @param goals Vector of goal states
         void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                const std::vector<StateType>& starts,
-                               const std::vector<StateType>& goals) override;
+                               const std::shared_ptr<GoalCondition>& goal_condition) override;
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
@@ -151,8 +151,6 @@ namespace ims {
         void expand(int state_id) override;
 
         void setStateVals(int state_id, int parent_id, double cost) override;
-
-        void reconstructPath(std::vector<StateType>& path) override;
 
         /// @brief Reorder the open list
         void reorderOpen();

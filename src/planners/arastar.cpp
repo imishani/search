@@ -47,27 +47,27 @@ ims::ARAStar::~ARAStar() {
 
 void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                     const std::vector<StateType> &starts,
-                                    const std::vector<StateType> &goals) {
+                                    const std::shared_ptr<GoalCondition>& goal_condition) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
     // Clear both.
     action_space_ptr_->resetPlanningData();
     resetPlanningData();
 
-    if (goals.empty() || starts.empty()) {
-        throw std::runtime_error("Starts or goals are empty");
+    if (starts.empty()) {
+        throw std::runtime_error("Starts are empty");
     }
 
-    if (goals.size() > 1) {
-        throw std::runtime_error("Currently, only one goal is supported");
-    }
-    // check if goal is valid
-    if (!action_space_ptr_->isStateValid(goals[0])){
-        throw std::runtime_error("Goal state is not valid");
-    }
-    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
-    auto goal_ = getOrCreateSearchState(goal_ind_);
-    goals_.push_back(goal_ind_);
+    // if (goals.size() > 1) {
+    //     throw std::runtime_error("Currently, only one goal is supported");
+    // }
+    // // check if goal is valid
+    // if (!action_space_ptr_->isStateValid(goals[0])){
+    //     throw std::runtime_error("Goal state is not valid");
+    // }
+    // int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
+    // auto goal_ = getOrCreateSearchState(goal_ind_);
+    // goals_.push_back(goal_ind_);
 
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
@@ -93,47 +93,47 @@ void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_
     stats_.suboptimality = params_.epsilon;
 }
 
-void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                    const StateType& start, const StateType& goal) {
-    // space pointer
-    action_space_ptr_ = action_space_ptr;
-    // Clear both.
-    action_space_ptr_->resetPlanningData();
-    resetPlanningData();
+// void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+//                                     const StateType& start, const StateType& goal) {
+//     // space pointer
+//     action_space_ptr_ = action_space_ptr;
+//     // Clear both.
+//     action_space_ptr_->resetPlanningData();
+//     resetPlanningData();
 
-    // check if start is valid
-    if (!action_space_ptr_->isStateValid(start)){
-        throw std::runtime_error("Start state is not valid");
-    }
-    // check if goal is valid
-    if (!action_space_ptr_->isStateValid(goal)){
-        throw std::runtime_error("Goal state is not valid");
-    }
-    int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-    printf("start ind: %d \n", start_ind_);
-    auto start_ = getOrCreateSearchState(start_ind_);
+//     // check if start is valid
+//     if (!action_space_ptr_->isStateValid(start)){
+//         throw std::runtime_error("Start state is not valid");
+//     }
+//     // check if goal is valid
+//     if (!action_space_ptr_->isStateValid(goal)){
+//         throw std::runtime_error("Goal state is not valid");
+//     }
+//     int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
+//     printf("start ind: %d \n", start_ind_);
+//     auto start_ = getOrCreateSearchState(start_ind_);
 
-    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
-    auto goal_ = getOrCreateSearchState(goal_ind_);
-    goals_.push_back(goal_ind_);
+//     int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
+//     auto goal_ = getOrCreateSearchState(goal_ind_);
+//     goals_.push_back(goal_ind_);
 
-    start_->parent_id = PARENT_TYPE(START);
-    heuristic_->setStart(const_cast<StateType &>(start));
-    // Evaluate the goal state
-    goal_->parent_id = PARENT_TYPE(GOAL);
-    heuristic_->setGoal(const_cast<StateType &>(goal));
-    goal_->h = 0;
-    // Evaluate the start state
-    start_->g = 0;
-    start_->h = computeHeuristic(start_ind_);
-    start_->f = start_->g + params_.epsilon*start_->h;
-    start_->setOpen();
+//     start_->parent_id = PARENT_TYPE(START);
+//     heuristic_->setStart(const_cast<StateType &>(start));
+//     // Evaluate the goal state
+//     goal_->parent_id = PARENT_TYPE(GOAL);
+//     heuristic_->setGoal(const_cast<StateType &>(goal));
+//     goal_->h = 0;
+//     // Evaluate the start state
+//     start_->g = 0;
+//     start_->h = computeHeuristic(start_ind_);
+//     start_->f = start_->g + params_.epsilon*start_->h;
+//     start_->setOpen();
 
-    open_.push(start_);
-    // update stats suboptimality
-    stats_.suboptimality = params_.epsilon;
+//     open_.push(start_);
+//     // update stats suboptimality
+//     stats_.suboptimality = params_.epsilon;
 
-}
+// }
 
 auto ims::ARAStar::getSearchState(int state_id) -> ims::ARAStar::SearchState * {
     assert(state_id < states_.size() && state_id >= 0);
@@ -205,10 +205,10 @@ bool ims::ARAStar::improvePath(std::vector<StateType> &path) {
         }
         open_.pop();
         state->setClosed(); state->v = state->g; //state->call_number = params_.call_number;
-        if (isGoalState(state->state_id)){
-            goal_ = state->state_id;
+        if (m_check_goal_condition->isGoalState(state->state_id)){
             getTimeFromStart(stats_.time);
-            reconstructPath(path);
+            path.clear();
+            reconstructPath(state, path);
             stats_.cost = state->g; params_.curr_cost = state->g;
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();
@@ -268,17 +268,6 @@ void ims::ARAStar::setStateVals(int state_id, int parent_id, double cost)
     state_->g = parent->g + cost;
     state_->h = computeHeuristic(state_id);
     state_->f = state_->g + params_.epsilon*state_->h;
-}
-
-void ims::ARAStar::reconstructPath(std::vector<StateType>& path) {
-    path.clear();
-    SearchState* state_ = getSearchState(goal_);
-    while (state_->parent_id != -1){
-        path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-        state_ = getSearchState(state_->parent_id);
-    }
-    path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-    std::reverse(path.begin(), path.end());
 }
 
 void ims::ARAStar::reorderOpen() {

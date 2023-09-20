@@ -47,7 +47,7 @@ ims::BestFirstSearch::~BestFirstSearch() {
 
 void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                              const std::vector<StateType> &starts,
-                                             GoalCondition* check_goal_condition) {
+                                             const std::shared_ptr<GoalCondition>& goal_condition) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
     // Clear both.
@@ -84,36 +84,11 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> 
 }
 
 void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                             const StateType& start, GoalCondition* check_goal_condition) {
-    // space pointer
-    action_space_ptr_ = action_space_ptr;
-    // Clear both.
-    action_space_ptr_->resetPlanningData();
-    resetPlanningData();
-
-    // Reset the search algorithm and the action space.
-    action_space_ptr_->resetPlanningData();
-    this->resetPlanningData();
-
-    // Check if start is valid and add it to the action space.
-    int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-    auto start_ = getOrCreateSearchState(start_ind_);
-
-    // int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
-    // auto goal_ = getOrCreateSearchState(goal_ind_);
-    // goals_.push_back(goal_ind_);
-
-    // Evaluate the start state
-    start_->parent_id = PARENT_TYPE(START);
-    heuristic_->setStart(const_cast<StateType &>(start));
-    // Evaluate the goal state
-    // goal_->parent_id = PARENT_TYPE(GOAL);
-    // heuristic_->setGoal(const_cast<StateType &>(goal));
-    // Evaluate the start state
-    start_->g = 0;
-    start_->f = computeHeuristic(start_ind_);
-    open_.push(start_);
-    start_->setOpen();
+                                             const StateType& start, const StateType& goal) {
+    int goal_ind = action_space_ptr_->getOrCreateRobotState(goal);
+    getOrCreateSearchState(goal_ind); // To make sure indices line up? TODO: Is this necessary? I think so
+    std::shared_ptr<GoalConditionExplicitIDs> goal_condition = std::make_shared<GoalConditionExplicitIDs>(goal_ind);
+    initializePlanner(action_space_ptr, std::vector<StateType>{start}, goal_condition);
 }
 
 auto ims::BestFirstSearch::getSearchState(int state_id) -> ims::BestFirstSearch::SearchState*{
@@ -159,14 +134,13 @@ bool ims::BestFirstSearch::plan(std::vector<StateType>& path) {
     int iter {0};
     while (!open_.empty() && !isTimeOut()){
         // report progress every 1000 iterations
-        if (iter % 100000 == 0){
+        if (iter % 100000 == 0 && params_.verbose){
             std::cout << "open size: " << open_.size() << std::endl;
         }
         auto state  = open_.min();
         open_.pop();
         state->setClosed();
         if (m_check_goal_condition->isGoalState(state->state_id)){
-            // goal_ = state->state_id;
             getTimeFromStart(stats_.time);
             reconstructPath(state, path);
             stats_.cost = state->g;
@@ -216,8 +190,7 @@ void ims::BestFirstSearch::setStateVals(int state_id, int parent_id, double cost
 }
 
 
-void ims::BestFirstSearch::reconstructPath(SearchState* state, std::vector<StateType>& path) {
-    // SearchState* state = getSearchState(goal_);
+void ims::BestFirstSearch::reconstructPath(const SearchState* state, std::vector<StateType>& path) {
     while (state->parent_id != -1){
         path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
         state = getSearchState(state->parent_id);
@@ -226,19 +199,12 @@ void ims::BestFirstSearch::reconstructPath(SearchState* state, std::vector<State
     std::reverse(path.begin(), path.end());
 }
 
-// bool ims::BestFirstSearch::isGoalState(int s_id) {
-//     return std::any_of(goals_.begin(), goals_.end(), [&s_id](int goal_ind) {return s_id == goal_ind;});
-// }
-
 
 void ims::BestFirstSearch::resetPlanningData() {
     for (auto state : states_){
         delete state;
     }
-    states_ = std::vector<SearchState*>();
+    states_.clear();
     open_.clear();
-
-    // goals_.clear();
-    // goal_ = -1;
     stats_ = PlannerStats();
 }

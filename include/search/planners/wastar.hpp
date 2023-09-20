@@ -111,22 +111,7 @@ namespace ims{
         /// @param goals Vector of goal states
         void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                const std::vector<StateType>& starts,
-                               GoalCondition* check_goal_condition) override;
-
-        // /// @brief Initialize the planner
-        // /// @param action_space_ptr The action space
-        // /// @param start The start state
-        // /// @param goal The goal state
-        // void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-        //                        const StateType& start, GoalCondition* check_goal_condition) override;
-
-        /// @brief plan a path
-        /// @param path The path
-        /// @return if the plan was successful or not
-        bool plan(std::vector<StateType> &path) override;
-
-        /// @brief Reset the planner
-        void resetPlanningData() override;
+                               const std::shared_ptr<GoalCondition>& goal_condition) override;
 
 
     protected:
@@ -134,8 +119,6 @@ namespace ims{
         void setStateVals(int state_id, int parent_id, double cost) override;
 
         void expand(int state_id) override;
-
-        // void reconstructPath(std::vector<StateType>& path) override;
 
         wAStarParams params_;
 
