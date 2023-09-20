@@ -44,7 +44,7 @@ ims::wAStar::~wAStar() {
 
 void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                     const std::vector<StateType> &starts,
-                                    CheckGoalCondition* check_goal_condition) {
+                                    GoalCondition* check_goal_condition) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
     // Clear both.
@@ -90,47 +90,47 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_s
     stats_.suboptimality = params_.epsilon;
 }
 
-void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                   const StateType& start, CheckGoalCondition* check_goal_condition) {
-    // Space pointer.
-    action_space_ptr_ = action_space_ptr;
+// void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+//                                    const StateType& start, GoalCondition* check_goal_condition) {
+//     // Space pointer.
+//     action_space_ptr_ = action_space_ptr;
 
-    // Clear both.
-    action_space_ptr_->resetPlanningData();
-    resetPlanningData();
+//     // Clear both.
+//     action_space_ptr_->resetPlanningData();
+//     resetPlanningData();
 
-    // check if start is valid
-    if (!action_space_ptr_->isStateValid(start)){
-        throw std::runtime_error("Start state is not valid");
-    }
-    // check if goal is valid
-    // if (!action_space_ptr_->isStateValid(goal)){
-    //     throw std::runtime_error("Goal state is not valid");
-    // }
-    int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-    auto start_ = getOrCreateSearchState(start_ind_);
+//     // check if start is valid
+//     if (!action_space_ptr_->isStateValid(start)){
+//         throw std::runtime_error("Start state is not valid");
+//     }
+//     // check if goal is valid
+//     // if (!action_space_ptr_->isStateValid(goal)){
+//     //     throw std::runtime_error("Goal state is not valid");
+//     // }
+//     int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
+//     auto start_ = getOrCreateSearchState(start_ind_);
 
-    // int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
-    // auto goal_ = getOrCreateSearchState(goal_ind_);
-    // goals_.push_back(goal_ind_);
+//     // int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
+//     // auto goal_ = getOrCreateSearchState(goal_ind_);
+//     // goals_.push_back(goal_ind_);
 
-    start_->parent_id = PARENT_TYPE(START);
-    heuristic_->setStart(const_cast<StateType &>(start));
-    // Evaluate the goal state
-    goal_->parent_id = PARENT_TYPE(GOAL);
-    heuristic_->setGoal(const_cast<StateType &>(goal));
-    goal_->h = 0;
-    // Evaluate the start state
-    start_->g = 0;
-    start_->h = computeHeuristic(start_ind_);
-    start_->f = start_->g + params_.epsilon*start_->h;
-    start_->setOpen();
+//     start_->parent_id = PARENT_TYPE(START);
+//     heuristic_->setStart(const_cast<StateType &>(start));
+//     // Evaluate the goal state
+//     goal_->parent_id = PARENT_TYPE(GOAL);
+//     heuristic_->setGoal(const_cast<StateType &>(goal));
+//     goal_->h = 0;
+//     // Evaluate the start state
+//     start_->g = 0;
+//     start_->h = computeHeuristic(start_ind_);
+//     start_->f = start_->g + params_.epsilon*start_->h;
+//     start_->setOpen();
 
-    open_.push(start_);
-    // update stats suboptimality
-    stats_.suboptimality = params_.epsilon;
+//     open_.push(start_);
+//     // update stats suboptimality
+//     stats_.suboptimality = params_.epsilon;
 
-}
+// }
 
 
 auto ims::wAStar::getSearchState(int state_id) -> ims::wAStar::SearchState * {

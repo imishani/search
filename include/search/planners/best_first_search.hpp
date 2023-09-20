@@ -148,14 +148,14 @@ namespace ims{
         /// @param goals Vector of goal states
         void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                        const std::vector<StateType>& starts,
-                                       CheckGoalCondition* check_goal_condition) override;
+                                       GoalCondition* check_goal_condition) override;
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
         /// @param start The start state
         /// @param goal The goal state
         void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                               const StateType& start, CheckGoalCondition* check_goal_condition) override;
+                               const StateType& start, GoalCondition* check_goal_condition) override;
 
         /// @brief plan a path
         /// @param path The path
@@ -189,7 +189,7 @@ namespace ims{
         // bool isGoalState(int state_id) override;
 
         BaseHeuristic* heuristic_ = nullptr;
-        CheckGoalCondition* m_check_goal_condition = nullptr;
+        GoalCondition* m_check_goal_condition = nullptr;
 
 
     }; // class BestFirstSearch

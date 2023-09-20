@@ -47,7 +47,7 @@ ims::BestFirstSearch::~BestFirstSearch() {
 
 void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                              const std::vector<StateType> &starts,
-                                             CheckGoalCondition* check_goal_condition) {
+                                             GoalCondition* check_goal_condition) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
     // Clear both.
@@ -84,7 +84,7 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> 
 }
 
 void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                             const StateType& start, CheckGoalCondition* check_goal_condition) {
+                                             const StateType& start, GoalCondition* check_goal_condition) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
     // Clear both.

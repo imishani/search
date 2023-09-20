@@ -62,6 +62,7 @@ namespace ims{
         /// @param dist The distance between the two states (output, pass by reference)
         /// @return The heuristic value
         virtual bool getHeuristic(const StateType& s, double& dist) = 0;
+
         // virtual bool getHeuristic(const StateType& s, double& dist) {
         //     if (mGoal.empty()) {
         //         throw std::runtime_error("Goal state is not set");
