@@ -43,11 +43,11 @@ namespace ims{
     /// @brief The base heuristic class
     class BaseHeuristic {
     public:
-        /// @brief Constructor
-        BaseHeuristic() = default;
+        // /// @brief Constructor
+        // BaseHeuristic() = default;
 
-        /// @brief Destructor
-        virtual ~BaseHeuristic()= default;
+        // /// @brief Destructor
+        // virtual ~BaseHeuristic()= default;
 
 
         /// @brief This function should be implemented by the user and is the function that calculates the heuristic
@@ -87,6 +87,21 @@ namespace ims{
         // StateType mGoal;
         // StateType mStart;
 
+    };
+
+    /// @brief A abstract class that defines getHeuristic(s, dist) as getHeuristic(s, goal, dist)
+    /// @param goal The goal state
+    /// @note This class defines the getHeuristic(s, dist) function for the user. Only need to override
+    /// the getHeuristic(s, goal, dist) function
+    class BaseSingleGoalHeuristic : public BaseHeuristic {
+    public:
+        BaseSingleGoalHeuristic(const StateType& goal): mGoal(goal) {};
+
+        bool getHeuristic(const StateType& s, double& dist) override {
+            return getHeuristic(s, mGoal, dist);
+        };
+    protected:
+        StateType mGoal;
     };
 
     /// @class ExperienceHeuristicBase
