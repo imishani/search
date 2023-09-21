@@ -50,9 +50,11 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> 
                                              const std::shared_ptr<GoalCondition>& goal_condition) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
-    // Clear both.
-    action_space_ptr_->resetPlanningData();
-    resetPlanningData();
+    // // Clear both. Cannot do this as messes up goal_condition
+    // action_space_ptr_->resetPlanningData();
+    // resetPlanningData();
+
+    m_check_goal_condition = goal_condition;
 
     if (starts.empty()) {
         throw std::runtime_error("Start are empty");
@@ -88,6 +90,10 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> 
 
 void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                              const StateType& start, const StateType& goal) {
+    // Clear both.
+    action_space_ptr->resetPlanningData();
+    resetPlanningData();
+
     //// Set up GoalCondition
     int goal_ind = action_space_ptr->getOrCreateRobotState(goal);
     getOrCreateSearchState(goal_ind); // To make sure indices line up? TODO: Is this necessary? I think so

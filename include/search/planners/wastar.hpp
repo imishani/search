@@ -74,28 +74,28 @@ namespace ims{
         friend class AStar; friend class Dijkstra;
         friend class ExperienceWAstar;
 
-        /// @brief The search state.
-        struct SearchState: public ims::BestFirstSearch::SearchState{
-            /// @brief The heuristic value
-            double h {-1};
-        };
+        // /// @brief The search state.
+        // struct SearchState: public ims::BestFirstSearch::SearchState{
+        //     /// @brief The heuristic value
+        //     double h {-1};
+        // };
 
-        /// @brief The open list.
-        using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-        OpenList open_;
+        // /// @brief The open list.
+        // using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+        // OpenList open_;
 
-        std::vector<SearchState*> states_;
+        // std::vector<SearchState*> states_;
 
-        /// @brief Get the state by id
-        /// @param state_id The id of the state
-        /// @return The state
-        /// @note Use this function only if you are sure that the state exists
-        auto getSearchState(int state_id) -> SearchState*;
+        // /// @brief Get the state by id
+        // /// @param state_id The id of the state
+        // /// @return The state
+        // /// @note Use this function only if you are sure that the state exists
+        // auto getSearchState(int state_id) -> SearchState*;
 
-        /// @brief Get the state by id or create a new one if it does not exist
-        /// @param state_id The id of the state
-        /// @return The state
-        auto getOrCreateSearchState(int state_id) -> SearchState*;
+        // /// @brief Get the state by id or create a new one if it does not exist
+        // /// @param state_id The id of the state
+        // /// @return The state
+        // auto getOrCreateSearchState(int state_id) -> SearchState*;
 
     public:
         /// @brief Constructor
@@ -103,7 +103,7 @@ namespace ims{
         explicit wAStar(const wAStarParams &params);
 
         /// @brief Destructor
-        ~wAStar() override;
+        virtual ~wAStar() override {};
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space

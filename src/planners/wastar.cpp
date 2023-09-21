@@ -36,25 +36,20 @@
 
 ims::wAStar::wAStar(const ims::wAStarParams &params) : params_(params), BestFirstSearch(params) {}
 
-ims::wAStar::~wAStar() {
-    for (auto &state : states_) {
-        delete state;
-    }
-}
-
 void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                     const std::vector<StateType> &starts,
                                     const std::shared_ptr<GoalCondition>& goal_condition) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
     // Clear both.
-    action_space_ptr_->resetPlanningData();
-    resetPlanningData();
+    // action_space_ptr_->resetPlanningData();
+    // resetPlanningData();
 
     if (starts.empty()) {
         throw std::runtime_error("Starts are empty");
     }
 
+    m_check_goal_condition = goal_condition;
     // if (goals.size() > 1) {
     //     throw std::runtime_error("Currently, only one goal is supported");
     // }
@@ -90,22 +85,22 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_s
     stats_.suboptimality = params_.epsilon;
 }
 
-auto ims::wAStar::getSearchState(int state_id) -> ims::wAStar::SearchState * {
-    assert(state_id < states_.size() && state_id >= 0);
-    return states_[state_id];
-}
+// auto ims::wAStar::getSearchState(int state_id) -> ims::wAStar::SearchState * {
+//     assert(state_id < states_.size() && state_id >= 0);
+//     return states_[state_id];
+// }
 
-auto ims::wAStar::getOrCreateSearchState(int state_id) -> ims::wAStar::SearchState * {
-    if (state_id >= states_.size()){
-        states_.resize(state_id + 1, nullptr);
-    }
-    if (states_[state_id] == nullptr){
-        assert(state_id < states_.size() && state_id >= 0);
-        states_[state_id] = new SearchState;
-        states_[state_id]->state_id = state_id;
-    }
-    return states_[state_id];
-}
+// auto ims::wAStar::getOrCreateSearchState(int state_id) -> ims::wAStar::SearchState * {
+//     if (state_id >= states_.size()){
+//         states_.resize(state_id + 1, nullptr);
+//     }
+//     if (states_[state_id] == nullptr){
+//         assert(state_id < states_.size() && state_id >= 0);
+//         states_[state_id] = new SearchState;
+//         states_[state_id]->state_id = state_id;
+//     }
+//     return states_[state_id];
+// }
 
 void ims::wAStar::expand(int state_id){
     auto state_ = getSearchState(state_id);

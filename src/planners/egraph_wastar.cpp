@@ -51,14 +51,15 @@ void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace>
     egraph_action_space_ptr_ = std::dynamic_pointer_cast<EGraphActionSpace>(action_space_ptr);
     action_space_ptr_ = egraph_action_space_ptr_;
     // Clear both.
-    egraph_action_space_ptr_->resetPlanningData();
-    resetPlanningData();
+    // egraph_action_space_ptr_->resetPlanningData();
+    // resetPlanningData();
 
     // check if start is valid
     StateType start = starts[0];
     if (!egraph_action_space_ptr_->isStateValid(start)){
         throw std::runtime_error("Start state is not valid");
     }
+    m_check_goal_condition = goal_condition;
     // check if goal is valid
     // if (!egraph_action_space_ptr_->isStateValid(goal)){
     //     throw std::runtime_error("Goal state is not valid");

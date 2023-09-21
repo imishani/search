@@ -75,6 +75,98 @@ namespace ims{
         friend class CBSSphere3d;
         friend class ECBS;
 
+        // /// @brief The search state.
+        // struct SearchState: public ims::SearchState {
+
+        //     /// @brief The parent state
+        //     int parent_id = UNSET;
+        //     /// @brief The cost to come
+        //     double g = INF_DOUBLE;
+        //     /// @brief The f value
+        //     double f = INF_DOUBLE;
+        //     /// @brief open list boolean
+        //     bool in_open = false;
+        //     /// @brief closed list boolean
+        //     bool in_closed = false;
+        //     /// @brief The heuristic value
+        //     double h {-1};
+
+        //     /// @brief set the state to open list (make sure it is not in closed list and if it is, update it)
+        //     void setOpen(){
+        //         in_open = true;
+        //         in_closed = false;
+        //     }
+
+        //     /// @brief set the state to closed list (make sure it is not in open list and if it is, update it)
+        //     void setClosed(){
+        //         in_closed = true;
+        //         in_open = false;
+        //     }
+
+        //     void print() override{
+        //         std::cout << "State: " << state_id << " Parent: " << parent_id << " g: " << g << " f: " << f << std::endl;
+        //     }
+
+        // };
+
+        // /// @brief The search state compare struct.
+        // struct SearchStateCompare{
+        //     bool operator()(const SearchState& s1, const SearchState& s2) const{
+        //         if ((s1.f == s2.f) && (s1.g == s2.g))
+        //             return (s1.state_id < s2.state_id);
+        //         else if (s1.f == s2.f)
+        //             return s1.g < s2.g;
+        //         else
+        //             return s1.f < s2.f;
+        //     }
+        // };
+        // // /// @brief The open list.
+        // // using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+        // // OpenList open_;
+
+        // std::vector<SearchState*> states_;
+        // /// @brief Get the state by id
+        // /// @param state_id The id of the state
+        // /// @return The state
+        // /// @note Use this function only if you are sure that the state exists.
+        // auto getSearchState(int state_id) -> SearchState*;
+
+        // /// @brief Get the state by id or create a new one if it does not exist. If a search state does not exist yet and a new one is created, it's ID will be set, and all other member fields will initialize to default values.
+        // /// @param state_id The id of the state
+        // /// @return The state
+        // auto getOrCreateSearchState(int state_id) -> SearchState*;
+
+    public:
+        /// @brief Constructor
+        /// @param params The parameters
+        explicit BestFirstSearch(const BestFirstSearchParams &params);
+
+        /// @brief Destructor
+        virtual ~BestFirstSearch() override;
+
+        /// @brief Initialize the planner
+        /// @param action_space_ptr The action space
+        /// @param starts Vector of start states
+        /// @param goal The goal state
+        virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                                const std::vector<StateType>& starts,
+                                const std::shared_ptr<GoalCondition>& goal_condition) override;
+
+        /// @brief Initialize the planner
+        /// @param action_space_ptr The action space
+        /// @param start The start state
+        /// @param goal The goal state
+        virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                               const StateType& start, const StateType& goal) override;
+
+        /// @brief plan a path
+        /// @param path The path
+        /// @return if the plan was successful or not
+        virtual bool plan(std::vector<StateType>& path) override;
+
+        void resetPlanningData() override;
+
+    protected:
         /// @brief The search state.
         struct SearchState: public ims::SearchState {
 
@@ -88,6 +180,8 @@ namespace ims{
             bool in_open = false;
             /// @brief closed list boolean
             bool in_closed = false;
+            /// @brief The heuristic value
+            double h {-1};
 
             /// @brief set the state to open list (make sure it is not in closed list and if it is, update it)
             void setOpen(){
@@ -118,9 +212,9 @@ namespace ims{
                     return s1.f < s2.f;
             }
         };
-        /// @brief The open list.
-        using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-        OpenList open_;
+        // /// @brief The open list.
+        // using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+        // OpenList open_;
 
         std::vector<SearchState*> states_;
         /// @brief Get the state by id
@@ -134,37 +228,9 @@ namespace ims{
         /// @return The state
         auto getOrCreateSearchState(int state_id) -> SearchState*;
 
-    public:
-        /// @brief Constructor
-        /// @param params The parameters
-        explicit BestFirstSearch(const BestFirstSearchParams &params);
-
-        /// @brief Destructor
-        ~BestFirstSearch() override;
-
-        /// @brief Initialize the planner
-        /// @param action_space_ptr The action space
-        /// @param starts Vector of start states
-        /// @param goal The goal state
-        virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                const std::vector<StateType>& starts,
-                                const std::shared_ptr<GoalCondition>& goal_condition) override;
-
-        /// @brief Initialize the planner
-        /// @param action_space_ptr The action space
-        /// @param start The start state
-        /// @param goal The goal state
-        virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                               const StateType& start, const StateType& goal) override;
-
-        /// @brief plan a path
-        /// @param path The path
-        /// @return if the plan was successful or not
-        virtual bool plan(std::vector<StateType>& path) override;
-
-        void resetPlanningData() override;
-
-    protected:
+        /// @brief The open list.
+        using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+        OpenList open_;
 
         /// @brief 
         /// @param state_id The id of the state.
@@ -189,7 +255,7 @@ namespace ims{
         // bool isGoalState(int state_id) override;
 
         BaseHeuristic* heuristic_ = nullptr;
-        GoalCondition* m_check_goal_condition = nullptr;
+        std::shared_ptr<GoalCondition> m_check_goal_condition = nullptr;
 
 
     }; // class BestFirstSearch
