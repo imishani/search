@@ -72,6 +72,9 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> 
 
     for (auto &start : starts) {
         // Evaluate the start state
+        if (!action_space_ptr_->isStateValid(start)){
+            throw std::runtime_error("Start state is not valid");
+        }
         int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
         auto start_ = getOrCreateSearchState(start_ind_);
         start_->parent_id = PARENT_TYPE(START);
@@ -85,9 +88,15 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> 
 
 void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                              const StateType& start, const StateType& goal) {
+    //// Set up GoalCondition
     int goal_ind = action_space_ptr_->getOrCreateRobotState(goal);
     getOrCreateSearchState(goal_ind); // To make sure indices line up? TODO: Is this necessary? I think so
     std::shared_ptr<GoalConditionExplicitIDs> goal_condition = std::make_shared<GoalConditionExplicitIDs>(goal_ind);
+    
+    //// Set up heuristic
+    heuristic_->setGoal(goal);
+
+    //// Call initializePlanner
     initializePlanner(action_space_ptr, std::vector<StateType>{start}, goal_condition);
 }
 

@@ -43,50 +43,50 @@ ims::BFS::~BFS() {
 }
 
 
-void ims::BFS::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
-                                    const std::vector<StateType> &starts,
-                                    const std::vector<StateType> &goals) {
-    // space pointer
-    action_space_ptr_ = action_space_ptr;
-    // Clear both.
-    action_space_ptr_->resetPlanningData();
-    resetPlanningData();
+// void ims::BFS::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+//                                 const std::vector<StateType> &starts,
+//                                 const std::shared_ptr<GoalCondition>& goal_condition) {
+//     // space pointer
+//     action_space_ptr_ = action_space_ptr;
+//     // Clear both.
+//     action_space_ptr_->resetPlanningData();
+//     resetPlanningData();
 
-    if (goals.empty() || starts.empty()) {
-        throw std::runtime_error("Starts or goals are empty");
-    }
+//     if (starts.empty()) {
+//         throw std::runtime_error("Starts or goals are empty");
+//     }
 
-    if (goals.size() > 1) {
-        throw std::runtime_error("Currently, only one goal is supported");
-    }
-    // check if goal is valid
-    if (!action_space_ptr_->isStateValid(goals[0])){
-        throw std::runtime_error("Goal state is not valid");
-    }
-    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
-    auto goal_ = getOrCreateSearchState(goal_ind_);
-    goals_.push_back(goal_ind_);
+//     if (goals.size() > 1) {
+//         throw std::runtime_error("Currently, only one goal is supported");
+//     }
+//     // check if goal is valid
+//     if (!action_space_ptr_->isStateValid(goals[0])){
+//         throw std::runtime_error("Goal state is not valid");
+//     }
+//     int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
+//     auto goal_ = getOrCreateSearchState(goal_ind_);
+//     goals_.push_back(goal_ind_);
 
-    // Evaluate the goal state
-    goal_->parent_id = PARENT_TYPE(GOAL);
-    heuristic_->setGoal(const_cast<StateType &>(goals[0]));
+//     // Evaluate the goal state
+//     goal_->parent_id = PARENT_TYPE(GOAL);
+//     heuristic_->setGoal(const_cast<StateType &>(goals[0]));
 
-    for (auto &start : starts) {
-        // check if start is valid
-        if (!action_space_ptr_->isStateValid(start)){
-            throw std::runtime_error("Start state is not valid");
-        }
-        // Create the start states in the action space, generating state indices internally.
-        int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-        auto start_ = getOrCreateSearchState(start_ind_);
-        start_->parent_id = PARENT_TYPE(START);
-        heuristic_->setStart(const_cast<StateType &>(start));
-        start_->g = 0;
-        start_->f = 0;
-        open_.push_back(start_);
-        start_->setOpen();
-    }
-}
+//     for (auto &start : starts) {
+//         // check if start is valid
+//         if (!action_space_ptr_->isStateValid(start)){
+//             throw std::runtime_error("Start state is not valid");
+//         }
+//         // Create the start states in the action space, generating state indices internally.
+//         int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
+//         auto start_ = getOrCreateSearchState(start_ind_);
+//         start_->parent_id = PARENT_TYPE(START);
+//         heuristic_->setStart(const_cast<StateType &>(start));
+//         start_->g = 0;
+//         start_->f = 0;
+//         open_.push_back(start_);
+//         start_->setOpen();
+//     }
+// }
 
 
 auto ims::BFS::getSearchState(int state_id) -> ims::BFS::SearchState * {

@@ -80,7 +80,7 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_s
         int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
         auto start_ = getOrCreateSearchState(start_ind_);
         start_->parent_id = PARENT_TYPE(START);
-        heuristic_->setStart(const_cast<StateType &>(start));
+        // heuristic_->setStart(const_cast<StateType &>(start));
         start_->g = 0;
         start_->h = computeHeuristic(start_ind_);
         start_->f = start_->g + params_.epsilon*start_->h;

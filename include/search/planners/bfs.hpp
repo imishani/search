@@ -99,13 +99,13 @@ public:
     /// @brief Destructor
     ~BFS() override;
 
-    /// @brief Initialize the planner
-    /// @param action_space_ptr The action space
-    /// @param starts Vector of start states
-    /// @param goal The goal state
-    void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                           const std::vector<StateType>& starts,
-                           const std::shared_ptr<GoalCondition>& goal_condition) override;
+    // /// @brief Initialize the planner
+    // /// @param action_space_ptr The action space
+    // /// @param starts Vector of start states
+    // /// @param goal The goal state
+    // void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+    //                        const std::vector<StateType>& starts,
+    //                        const std::shared_ptr<GoalCondition>& goal_condition) override;
 
     /// @brief plan a path
     /// @param path The path

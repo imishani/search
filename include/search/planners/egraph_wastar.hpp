@@ -85,14 +85,7 @@ public:
     /// @param goals Vector of goal states
     void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                            const std::vector<StateType>& starts,
-                           const std::vector<StateType>& goals) override;
-//
-    /// @brief Initialize the planner
-    /// @param action_space_ptr The action space
-    /// @param start The start state
-    /// @param goal The goal state
-    void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                           const StateType& start, const StateType& goal) override;
+                           const std::shared_ptr<GoalCondition>& goal_condition) override;
 
     /// @brief plan a path
     /// @param path The path
@@ -104,7 +97,7 @@ protected:
 
     void extractPath(const std::vector<int> &search_path, PathType &path);
 
-    void reconstructPath(std::vector<StateType> &path) override;
+    void reconstructPath(const SearchState* state, std::vector<StateType> &path);
 
     void expand(int state_id) override;
 

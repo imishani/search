@@ -39,23 +39,15 @@ ims::ExperienceWAstar::ExperienceWAstar(const ims::ExperienceWAStarParams &param
 
 void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                               const std::vector<StateType> &starts,
-                                              const std::vector<StateType> &goals) {
-    if (goals.empty() || starts.empty()) {
-        throw std::runtime_error("Starts or goals are empty");
+                                              const std::shared_ptr<GoalCondition>& goal_condition) {
+    if (starts.empty()) {
+        throw std::runtime_error("Starts are empty");
     }
-
-    if (goals.size() > 1) {
-        throw std::runtime_error("Currently, only one goal is supported");
+    if (starts.size() > 1) {
+        std::cout << RED << "[ERROR]: Experience planner with multiple starts is not implemented yet!" << std::endl;
     }
-
-    std::cout << RED << "[ERROR]: Experience planner with multiple starts is not implemented yet!" << std::endl;
     std::cout << "      Assuming goal and start to be the first element is the vector " << RESET << std::endl;
-    initializePlanner(action_space_ptr, starts[0], goals[0]);
-}
 
-void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
-                                              const StateType &start,
-                                              const StateType &goal) {
     egraph_action_space_ptr_ = std::dynamic_pointer_cast<EGraphActionSpace>(action_space_ptr);
     action_space_ptr_ = egraph_action_space_ptr_;
     // Clear both.
@@ -63,32 +55,33 @@ void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace>
     resetPlanningData();
 
     // check if start is valid
+    StateType start = starts[0];
     if (!egraph_action_space_ptr_->isStateValid(start)){
         throw std::runtime_error("Start state is not valid");
     }
     // check if goal is valid
-    if (!egraph_action_space_ptr_->isStateValid(goal)){
-        throw std::runtime_error("Goal state is not valid");
-    }
+    // if (!egraph_action_space_ptr_->isStateValid(goal)){
+    //     throw std::runtime_error("Goal state is not valid");
+    // }
     int start_ind_ = egraph_action_space_ptr_->getOrCreateRobotState(start);
     auto start_ = getOrCreateSearchState(start_ind_);
 
-    int goal_ind_ = egraph_action_space_ptr_->getOrCreateRobotState(goal);
-    auto goal_ = getOrCreateSearchState(goal_ind_);
-    goals_.push_back(goal_ind_);
+    // int goal_ind_ = egraph_action_space_ptr_->getOrCreateRobotState(goal);
+    // auto goal_ = getOrCreateSearchState(goal_ind_);
+    // goals_.push_back(goal_ind_);
 
     // load the experience graph
     egraph_action_space_ptr_->loadEGraph(params_.experiences_dir);
 
     start_->parent_id = PARENT_TYPE(START);
-    goal_->parent_id = PARENT_TYPE(GOAL);
+    // goal_->parent_id = PARENT_TYPE(GOAL);
 
     syncStatesCreated();
 
-    heuristic_->setStart(const_cast<StateType &>(start));
+    // heuristic_->setStart(const_cast<StateType &>(start));
     // Evaluate the goal state
-    heuristic_->setGoal(const_cast<StateType &>(goal));
-    goal_->h = 0;
+    // heuristic_->setGoal(const_cast<StateType &>(goal));
+    // goal_->h = 0;
     // Evaluate the start state
     start_->g = 0;
     start_->h = computeHeuristic(start_ind_);
@@ -112,10 +105,10 @@ bool ims::ExperienceWAstar::plan(std::vector<StateType> &path) {
         auto state  = open_.min();
         open_.pop();
         state->setClosed();
-        if (isGoalState(state->state_id)){
-            goal_ = state->state_id;
+        if (m_check_goal_condition->isGoalState(state->state_id)){
+            // goal_ = state->state_id;
             getTimeFromStart(stats_.time);
-            reconstructPath(path);
+            reconstructPath(state, path);
             if (path.empty()){
                 std::cout << RED << "[ERROR]: Path size is 0. Something is wrong" << RESET << std::endl;
                 return false;
@@ -144,7 +137,7 @@ void ims::ExperienceWAstar::expand(int state_id) {
         if (successor->in_closed){
             continue;
         }
-        if (isGoalState(successor_id)){
+        if (m_check_goal_condition->isGoalState(successor_id)){
             std::cout << "Added Goal to open list" << std::endl;
         }
         if (successor->in_open){
@@ -219,14 +212,14 @@ void ims::ExperienceWAstar::expand(int state_id) {
     stats_.num_expanded++;
 }
 
-void ims::ExperienceWAstar::reconstructPath(std::vector<StateType> &path) {
+void ims::ExperienceWAstar::reconstructPath(const SearchState* state, std::vector<StateType> &path) {
     std::vector<int> search_path;
-    SearchState* state_ = getSearchState(goal_);
-    while (state_->parent_id != -1){
-        search_path.push_back(state_->state_id);
-        state_ = getSearchState(state_->parent_id);
+    // SearchState* state_ = getSearchState(goal_);
+    while (state->parent_id != -1){
+        search_path.push_back(state->state_id);
+        state = getSearchState(state->parent_id);
     }
-    search_path.push_back(state_->state_id);
+    search_path.push_back(state->state_id);
     std::reverse(search_path.begin(), search_path.end());
     extractPath(search_path, path);
 }
@@ -242,7 +235,7 @@ void ims::ExperienceWAstar::extractPath(const std::vector<int> &search_path, Pat
         std::cout << YELLOW << "[WARN]: Path has only one state" << RESET << std::endl;
         return;
     }
-    if (search_path[0] == goal_){
+    if (m_check_goal_condition->isGoalState(search_path[0])){
         std::cout << RED << "[ERROR]: Goal is the first state in the path!" << RESET << std::endl;
         return;
     }
@@ -266,7 +259,8 @@ void ims::ExperienceWAstar::extractPath(const std::vector<int> &search_path, Pat
         std::vector<ActionSequence> action_sequences;
         action_space_ptr_->getActions(prev_s_id, action_sequences, true);
         for (auto& action_sequence : action_sequences){
-            if (curr_id == goal_){
+            // if (curr_id == goal_){
+            if (curr_id == search_path.back()) {
                 // check if the last point is the goal
                 if (action_sequence.back() == curr_state->state){
                     temp_path.push_back(curr_state->state);

@@ -121,20 +121,20 @@ namespace ims {
         /// @brief Destructor
         ~ARAStar() override;
 
-        /// @brief Initialize the planner
-        /// @param action_space_ptr The action space
-        /// @param starts Vector of start states
-        /// @param goals Vector of goal states
-        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                               const std::vector<StateType>& starts,
-                               const std::shared_ptr<GoalCondition>& goal_condition) override;
+        // /// @brief Initialize the planner
+        // /// @param action_space_ptr The action space
+        // /// @param starts Vector of start states
+        // /// @param goals Vector of goal states
+        // void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+        //                        const std::vector<StateType>& starts,
+        //                        const std::shared_ptr<GoalCondition>& goal_condition) override;
 
-        /// @brief Initialize the planner
-        /// @param action_space_ptr The action space
-        /// @param start The start state
-        /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                               const StateType& start, const StateType& goal) override;
+        // /// @brief Initialize the planner
+        // /// @param action_space_ptr The action space
+        // /// @param start The start state
+        // /// @param goal The goal state
+        // void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+        //                        const StateType& start, const StateType& goal) override;
 
         /// @brief Plan a path
         /// @param path The path to be filled
@@ -150,7 +150,7 @@ namespace ims {
 
         void expand(int state_id) override;
 
-        void setStateVals(int state_id, int parent_id, double cost) override;
+        // void setStateVals(int state_id, int parent_id, double cost) override;
 
         /// @brief Reorder the open list
         void reorderOpen();

@@ -45,9 +45,7 @@
 namespace ims {
 
 /// @brief The Euclidean distance heuristic
-struct EuclideanHeuristic : public BaseSingleGoalHeuristic {
-    EuclideanHeuristic(const StateType& goal): BaseSingleGoalHeuristic(goal) {};
-
+struct EuclideanHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
         // check id the states are the same size
@@ -67,8 +65,6 @@ struct EuclideanHeuristic : public BaseSingleGoalHeuristic {
 
 /// @brief The Euclidean distance heuristic
 struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
-    EuclideanHeuristic(const StateType& goal): BaseSingleGoalHeuristic(goal) {};
-
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
         StateType s1_no_time = s1;
@@ -91,9 +87,7 @@ struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
 };
 
 /// @brief The Manhattan distance heuristic
-struct ManhattanHeuristic : public BaseSingleGoalHeuristic {
-    ManhattanHeuristic(const StateType& goal): BaseSingleGoalHeuristic(goal) {};
-
+struct ManhattanHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
         // check id the states are the same size
@@ -111,9 +105,7 @@ struct ManhattanHeuristic : public BaseSingleGoalHeuristic {
 };
 
 /// @brief The Chebyshev distance heuristic
-struct ChebyshevHeuristic : public BaseSingleGoalHeuristic {
-    ChebyshevHeuristic(const StateType& goal): BaseSingleGoalHeuristic(goal) {};
-
+struct ChebyshevHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
         // check id the states are the same size
@@ -132,9 +124,7 @@ struct ChebyshevHeuristic : public BaseSingleGoalHeuristic {
 };
 
 /// @brief The Minkowski distance heuristic
-struct MinkowskiHeuristic : public BaseSingleGoalHeuristic {
-    MinkowskiHeuristic(const StateType& goal): BaseSingleGoalHeuristic(goal) {};
-
+struct MinkowskiHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
         // check id the states are the same size
@@ -153,9 +143,7 @@ struct MinkowskiHeuristic : public BaseSingleGoalHeuristic {
 };
 
 /// @brief The Octile distance heuristic
-struct OctileHeuristic : public BaseSingleGoalHeuristic {
-    OctileHeuristic(const StateType& goal): BaseSingleGoalHeuristic(goal) {};
-
+struct OctileHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
         // check id the states are the same size
@@ -174,9 +162,7 @@ struct OctileHeuristic : public BaseSingleGoalHeuristic {
 };
 
 /// @brief The Zero distance heuristic
-struct ZeroHeuristic : public BaseSingleGoalHeuristic {
-    ZeroHeuristic(const StateType& goal): BaseSingleGoalHeuristic(goal) {};
-
+struct ZeroHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
         // check id the states are the same size
@@ -192,9 +178,9 @@ struct ZeroHeuristic : public BaseSingleGoalHeuristic {
 };
 
 /// @brief Robot joint angles distance heuristic
-struct JointAnglesHeuristic : public BaseSingleGoalHeuristic {
-    JointAnglesHeuristic(const StateType& goal, const std::vector<bool>& valid_mask = std::vector<bool>()): 
-        BaseSingleGoalHeuristic(goal), (valid_mask) {} 
+struct JointAnglesHeuristic : public BaseHeuristic {
+    JointAnglesHeuristic(const std::vector<bool>& valid_mask = std::vector<bool>()): 
+            (valid_mask) {} 
 
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -228,9 +214,7 @@ private:
 };
 
 /// @brief SE(3) distance heuristic
-struct SE3HeuristicRPY : public BaseSingleGoalHeuristic {
-    SE3HeuristicRPY(const StateType& goal): BaseSingleGoalHeuristic(goal) {};
-
+struct SE3HeuristicRPY : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
         // check id the states are the same size
@@ -256,9 +240,7 @@ struct SE3HeuristicRPY : public BaseSingleGoalHeuristic {
 };
 
 /// @brief SE(3) distance heuristic
-struct SE3HeuristicQuat : public BaseSingleGoalHeuristic {
-    SE3HeuristicQuat(const StateType& goal): BaseSingleGoalHeuristic(goal) {};
-
+struct SE3HeuristicQuat : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
         // check id the states are the same size
@@ -284,12 +266,10 @@ struct SE3HeuristicQuat : public BaseSingleGoalHeuristic {
 };
 
 /// @brief Local Heuristic using Dijkstra's Algorithm
-struct LocalHeuristic : public BaseSingleGoalHeuristic {
-
+struct LocalHeuristic : public BaseHeuristic {
     // Constructor
-    LocalHeuristic(const StateType& goal, std::shared_ptr<ActionSpace> action_space_ptr,
+    LocalHeuristic(std::shared_ptr<ActionSpace> action_space_ptr,
                    BaseHeuristic* heuristic, double distance):
-            BaseSingleGoalHeuristic(goal), 
             action_space_ptr_(std::move(action_space_ptr)),
             base_heuristic_(heuristic), distance_(distance) {}
 

@@ -61,48 +61,38 @@ namespace ims{
         /// @param s The state
         /// @param dist The distance between the two states (output, pass by reference)
         /// @return The heuristic value
-        virtual bool getHeuristic(const StateType& s, double& dist) = 0;
-
-        // virtual bool getHeuristic(const StateType& s, double& dist) {
-        //     if (mGoal.empty()) {
-        //         throw std::runtime_error("Goal state is not set");
-        //     }
-        //     return getHeuristic(s, mGoal, dist);
-        // }
-
-        // /// @brief Set the goal state
-        // /// @param goal The goal state
-        // /// @note You have to set the goal state if you want to use the getHeuristic(const std::shared_ptr<state> s) function
-        // virtual void setGoal(const StateType& goal) {
-        //     mGoal = goal;
-        // }
-
-        // /// @brief Set the start state
-        // /// @param start The start state
-        // /// @note You have to set the start state if you want to use bfs heuristic
-        // virtual void setStart(const StateType& start) {
-        //     mGoal = start;
-        // }
-
-        // StateType mGoal;
-        // StateType mStart;
-
-    };
-
-    /// @brief A abstract class that defines getHeuristic(s, dist) as getHeuristic(s, goal, dist)
-    /// @param goal The goal state
-    /// @note This class defines the getHeuristic(s, dist) function for the user. Only need to override
-    /// the getHeuristic(s, goal, dist) function
-    class BaseSingleGoalHeuristic : public BaseHeuristic {
-    public:
-        BaseSingleGoalHeuristic(const StateType& goal): mGoal(goal) {};
-
-        bool getHeuristic(const StateType& s, double& dist) override {
+        virtual bool getHeuristic(const StateType& s, double& dist) {
+            if (mGoal.empty()) {
+                throw std::runtime_error("Goal state is not set");
+            }
             return getHeuristic(s, mGoal, dist);
-        };
+        }
+
+        /// @brief Set the goal state
+        /// @param goal The goal state
+        /// @note You have to set the goal state if you want to use the getHeuristic(const std::shared_ptr<state> s) function
+        virtual void setGoal(const StateType& goal) {
+            mGoal = goal;
+        }
     protected:
         StateType mGoal;
+
     };
+
+    // /// @brief A abstract class that defines getHeuristic(s, dist) as getHeuristic(s, goal, dist)
+    // /// @param goal The goal state
+    // /// @note This class defines the getHeuristic(s, dist) function for the user. Only need to override
+    // /// the getHeuristic(s, goal, dist) function
+    // class BaseSingleGoalHeuristic : public BaseHeuristic {
+    // public:
+    //     BaseSingleGoalHeuristic(const StateType& goal): mGoal(goal) {};
+
+    //     bool getHeuristic(const StateType& s, double& dist) override {
+    //         return getHeuristic(s, mGoal, dist);
+    //     };
+    // protected:
+    //     StateType mGoal;
+    // };
 
     /// @class ExperienceHeuristicBase
     /// @brief The base class for the experience heuristic
