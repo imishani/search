@@ -133,7 +133,9 @@ public:
     /// @param agent_names The names of the agents.
     /// @param starts The start states for all agents.
     /// @param goals The goal states for all agents.
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, 
+                        const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, 
+                        const std::vector<StateType>& goals);
 
     /// @brief plan a path
     /// @param path The path
@@ -150,10 +152,14 @@ protected:
         // The path costs.
         std::unordered_map<int, double> paths_costs;
 
-        // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
+        // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of
+        //   conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here 
+        //   could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
         std::vector<std::shared_ptr<Conflict>> unresolved_conflicts = {};
 
-        // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
+        // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent 
+        //  id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. 
+        //  By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
         MultiAgentConstraintsCollective constraints_collectives;
     };
 
@@ -192,14 +198,16 @@ protected:
     /// @param state_id
     void expand(int state_id) override;
 
-    /// @brief Checks that the start and goals states are valid. The checks are for time (all initial times are zero and all goal times are -1), for individual agents, and between agents.
+    /// @brief Checks that the start and goals states are valid. The checks are for time (all initial times 
+    //         are zero and all goal times are -1), for individual agents, and between agents.
     /// @param starts
     /// @param goals
     void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief Get the conflict types requested by the algorithm.
     /// @return The conflict types.
-    /// @note Derived class, aka CBS variants that request different conflict types (e.g., point3d, etc.) should override this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
+    /// @note Derived class, aka CBS variants that request different conflict types (e.g., point3d, etc.) should override 
+    //  this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
     virtual inline std::vector<ConflictType> getConflictTypes() {
         return conflict_types_;
     }

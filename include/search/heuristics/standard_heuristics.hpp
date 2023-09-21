@@ -40,6 +40,7 @@
 #include <search/common/types.hpp>
 #include <search/planners/wastar.hpp>
 #include <utility>
+#include <search/common/goal_conditions.hpp>
 
 /// @brief The standard heuristic functions
 namespace ims {
@@ -179,8 +180,7 @@ struct ZeroHeuristic : public BaseHeuristic {
 
 /// @brief Robot joint angles distance heuristic
 struct JointAnglesHeuristic : public BaseHeuristic {
-    JointAnglesHeuristic(const std::vector<bool>& valid_mask = std::vector<bool>()): 
-            (valid_mask) {} 
+    JointAnglesHeuristic(const std::vector<bool>& valid_mask = std::vector<bool>()): valid_mask_(valid_mask) {} 
 
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -267,36 +267,43 @@ struct SE3HeuristicQuat : public BaseHeuristic {
 
 /// @brief Local Heuristic using Dijkstra's Algorithm
 struct LocalHeuristic : public BaseHeuristic {
+private:
+    std::shared_ptr<ActionSpace> action_space_ptr_;
+    BaseHeuristic* base_heuristic_;
+    double distance_;
+
+public:
     // Constructor
     LocalHeuristic(std::shared_ptr<ActionSpace> action_space_ptr,
                    BaseHeuristic* heuristic, double distance):
             action_space_ptr_(std::move(action_space_ptr)),
-            base_heuristic_(heuristic), distance_(distance) {}
+            base_heuristic_(heuristic), distance_(distance) {
+    }
 
     //custom dijkstra class to handle escaping a local region
-    struct MyAStar : public wAStar {
+    // struct MyAStar : public wAStar {
 
-        double goal_distance;
-        StateType goal_center;
+    //     double goal_distance;
+    //     StateType goal_center;
 
-        MyAStar(StateType goal,
-                const wAStarParams& params,
-                double distance) : goal_distance(distance),
-                                   goal_center(std::move(goal)),
-                                   wAStar(params) {}
+    //     MyAStar(StateType goal,
+    //             const wAStarParams& params,
+    //             double distance) : goal_distance(distance),
+    //                                goal_center(std::move(goal)),
+    //                                wAStar(params) {}
 
-        bool isGoalState(int state_id) override {
-            StateType cur_state = action_space_ptr_->getRobotState(state_id)->state;
-            for (int i = 0; i < cur_state.size(); i++)
-            {
-                if (fabs(cur_state[i]-goal_center[i])>goal_distance)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-    };
+    //     // bool isGoalState(int state_id) override {
+    //     //     StateType cur_state = action_space_ptr_->getRobotState(state_id)->state;
+    //     //     for (int i = 0; i < cur_state.size(); i++)
+    //     //     {
+    //     //         if (fabs(cur_state[i]-goal_center[i])>goal_distance)
+    //     //         {
+    //     //             return true;
+    //     //         }
+    //     //     }
+    //     //     return false;
+    //     // }
+    // };
 
     //base_heuristic_ that uses above dijkstra class
     bool getHeuristic(const StateType& s1, const StateType& s2,
@@ -306,19 +313,24 @@ struct LocalHeuristic : public BaseHeuristic {
             std::cout << "Error: The states are not the same size!" << std::endl;
             return false;
         } else {
-            wAStarParams params(base_heuristic_, 1.0);
-            // construct planner
-            MyAStar planner(s1, params, distance_);
-
-            planner.initializePlanner(action_space_ptr_, s1, s2);
             for (int i = 0; i < s1.size(); i++)
             {
-                if (fabs(s1[i]-s2[i])<planner.goal_distance)
+                if (fabs(s1[i]-s2[i]) < distance_)
                 {
                     base_heuristic_->getHeuristic(s1, s2, dist);
                     return true;
                 }
             }
+
+            wAStarParams params(base_heuristic_, 1.0);
+            // construct planner
+            // MyAStar planner(s1, params, distance_);
+
+            std::shared_ptr<GoalConditionEscapeLocalRegion> goal_condition = 
+                std::make_shared<GoalConditionEscapeLocalRegion>(mGoal, distance_, action_space_ptr_);
+
+            wAStar planner(params);
+            planner.initializePlanner(action_space_ptr_, {s1}, goal_condition);
             std::vector<StateType> path;
             bool success = planner.plan(path);
             if (success)
@@ -337,9 +349,6 @@ struct LocalHeuristic : public BaseHeuristic {
             }
         }
     }
-    std::shared_ptr<ActionSpace> action_space_ptr_;
-    BaseHeuristic* base_heuristic_;
-    double distance_;
 };
 
 }  // namespace ims

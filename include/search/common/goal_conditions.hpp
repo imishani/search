@@ -25,7 +25,7 @@ public:
 
     // @brief Returns false if goal condition is definitely not possible.
     // Note: Even if it returns true, it is not guaranteed that the goal condition is possible
-    virtual bool checkValidGoalCondition(std::shared_ptr<ActionSpace> action_space_ptr) = 0;
+    virtual bool checkValidGoalCondition(const std::shared_ptr<ActionSpace>& action_space_ptr) = 0;
 };
 
 
@@ -35,13 +35,14 @@ protected:
     std::vector<int> m_goal_ids;
 
 public:
-    GoalConditionExplicitIDs(std::vector<int> goal_ids): m_goal_ids(goal_ids) {};
+    explicit GoalConditionExplicitIDs(std::vector<int> goal_ids): m_goal_ids(goal_ids) {};
+    explicit GoalConditionExplicitIDs(int goal_id): m_goal_ids{goal_id} {};
 
     bool isGoalState(int state_id) override {
         return std::any_of(m_goal_ids.begin(), m_goal_ids.end(), [&state_id](int goal_ind) {return state_id == goal_ind;});
     };
 
-    bool checkValidGoalCondition(std::shared_ptr<ActionSpace> action_space_ptr) override {
+    bool checkValidGoalCondition(const std::shared_ptr<ActionSpace>& action_space_ptr) override {
         bool atLeastOneValid = false;
         for (int goal_id : m_goal_ids) {
             StateType goal_state = action_space_ptr->getRobotState(goal_id)->state;
@@ -61,7 +62,7 @@ protected:
     std::shared_ptr<ActionSpace> m_action_space_ptr;
 
 public:
-    GoalConditionEscapeLocalRegion(StateType region_center, double region_size, std::shared_ptr<ActionSpace> action_space_ptr): 
+    explicit GoalConditionEscapeLocalRegion(StateType region_center, double region_size, std::shared_ptr<ActionSpace> action_space_ptr): 
             m_region_center(region_center), m_region_size(region_size), m_action_space_ptr(action_space_ptr) {};
 
     bool isGoalState(int state_id) override {
@@ -74,7 +75,7 @@ public:
         return false;
     };
 
-    bool checkValidGoalCondition(std::shared_ptr<ActionSpace> action_space_ptr) override {
+    bool checkValidGoalCondition(const std::shared_ptr<ActionSpace>& action_space_ptr) override {
         return true;
     }
 };

@@ -155,7 +155,7 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
         // Before we actually expand the state, we check if there is even a need to do so. If there are no conflicts, then this is a goal state. Set the goal state and return.
         if (state->unresolved_conflicts.empty()) {
             std::cout << "No conflicts found. This is a goal state." << std::endl;
-            goal_ = state->state_id;
+            // goal_ = state->state_id;
             getTimeFromStart(stats_.time);
             stats_.cost = state->f;
             paths = state->paths;
