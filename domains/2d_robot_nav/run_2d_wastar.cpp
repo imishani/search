@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
         std::vector<StateType> path_;
         if (!planner.plan(path_)) {
             std::cout << "No path found!" << std::endl;
-//            return 0;
+            return 0;
         }
         else
             std::cout << "Path found!" << std::endl;

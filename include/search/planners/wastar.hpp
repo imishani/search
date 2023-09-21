@@ -113,6 +113,10 @@ namespace ims{
                                const std::vector<StateType>& starts,
                                const std::shared_ptr<GoalCondition>& goal_condition) override;
 
+        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                               const StateType& start, const StateType& goal) override {
+            return BestFirstSearch::initializePlanner(action_space_ptr, start, goal);
+        }
 
     protected:
 

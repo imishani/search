@@ -89,7 +89,7 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> 
 void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                              const StateType& start, const StateType& goal) {
     //// Set up GoalCondition
-    int goal_ind = action_space_ptr_->getOrCreateRobotState(goal);
+    int goal_ind = action_space_ptr->getOrCreateRobotState(goal);
     getOrCreateSearchState(goal_ind); // To make sure indices line up? TODO: Is this necessary? I think so
     std::shared_ptr<GoalConditionExplicitIDs> goal_condition = std::make_shared<GoalConditionExplicitIDs>(goal_ind);
     
