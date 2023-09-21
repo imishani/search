@@ -255,8 +255,9 @@ bool ims::BestFirstSearch::isGoalState(int s_id) {
     }
 
     // Also ask the action space if this state id is a goal state. Sometimes, states need to be determined as goal in real time.
-    return action_space_ptr_->isGoalState(s_id, goals_);
-
+    // This is EXTREMELY bug prone. Commenting this out for now until we have a proper GoalCondition object.
+    // return action_space_ptr_->isGoalState(s_id, goals_);
+    return false;
 }
 
 
