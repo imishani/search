@@ -127,16 +127,16 @@ public:
                 }
             }
 
-            // If we got here, then we are done processing the experience. We found a prefix that is valid w.r.t constraints. (Could be empty, partial, or full.)
-            subpaths.push_back(valid_state_ids_for_reuse);
-            subpath_transition_costs.push_back(valid_states_for_reuse_costs);
+            // If we got here, then we are done processing the experience. We found a prefix that is valid w.r.t constraints. (Could be empty, partial, or full.)        
             
-
-
             // The last transition cost is zero.
             if (!valid_states_for_reuse_costs.empty()) {
                 valid_states_for_reuse_costs.back() = 0.0;
             }
+
+            subpaths.push_back(valid_state_ids_for_reuse);
+            subpath_transition_costs.push_back(valid_states_for_reuse_costs);
+
         }
     }
 

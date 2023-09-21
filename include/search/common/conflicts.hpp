@@ -68,6 +68,9 @@ struct Conflict {
     /// @brief Getter method for all the member variables.
     // virtual std::vector<int> getMemberVariables() const = 0;
 
+    /// @brief Get a string describing the conflict.
+    virtual std::string toString() const = 0;
+
     /// @brief The type of the conflict.
     ConflictType type;
 };
@@ -90,6 +93,18 @@ struct VertexConflict : public Conflict {
         /// @brief The type of the Conflict.
         type = ConflictType::VERTEX;
     }
+
+    std::string toString() const override {
+        std::string str = "Vertex conflict at state: ";
+        for (const auto& s : state) {
+            str += std::to_string(s) + " ";
+        }
+        str += "for agents: ";
+        for (const auto& a : agent_ids) {
+            str += std::to_string(a) + " ";
+        }
+        return str;
+    }
 };
 
 struct EdgeConflict : public Conflict {
@@ -107,6 +122,19 @@ struct EdgeConflict : public Conflict {
     explicit EdgeConflict(StateType state_from, StateType state_to, int agent_id_from, int agent_id_to) : state_from(std::move(state_from)), state_to(std::move(state_to)), agent_id_from(agent_id_from), agent_id_to(agent_id_to) {
         /// @brief The type of the Conflict.
         type = ConflictType::EDGE;
+    }
+
+    std::string toString() const override {
+        std::string str = "Edge conflict at states: ";
+        for (const auto& s : state_from) {
+            str += std::to_string(s) + " ";
+        }
+        str += "and ";
+        for (const auto& s : state_to) {
+            str += std::to_string(s) + " ";
+        }
+        str += "for agents: " + std::to_string(agent_id_from) + " and " + std::to_string(agent_id_to);
+        return str;
     }
 };
 // ==========================
@@ -127,6 +155,21 @@ struct PrivateGridsVertexConflict : public Conflict {
         /// @brief The type of the Conflict.
         type = ConflictType::PRIVATE_GRIDS_VERTEX;
     }
+
+    std::string toString() const override {
+        std::string str = "Vertex conflict at states: ";
+        for (const auto& s : states) {
+            for (const auto& ss : s) {
+                str += std::to_string(ss) + " ";
+            }
+            str += "and ";
+        }
+        str += "for agents: ";
+        for (const auto& a : agent_ids) {
+            str += std::to_string(a) + " ";
+        }
+        return str;
+    }
 };
 
 /// @brief A struct for storing an edge conflict on private grids.
@@ -144,6 +187,28 @@ struct PrivateGridsEdgeConflict : public Conflict {
     explicit PrivateGridsEdgeConflict(std::vector<StateType> from_states, std::vector<StateType> to_states, std::vector<int> agent_ids) : from_states(std::move(from_states)), to_states(std::move(to_states)), agent_ids(std::move(agent_ids)) {
         /// @brief The type of the Conflict.
         type = ConflictType::PRIVATE_GRIDS_EDGE;
+    }
+
+    std::string toString() const override {
+        std::string str = "Edge conflict at states: ";
+        for (const auto& s : from_states) {
+            for (const auto& ss : s) {
+                str += std::to_string(ss) + " ";
+            }
+            str += "and ";
+        }
+        str += "and ";
+        for (const auto& s : to_states) {
+            for (const auto& ss : s) {
+                str += std::to_string(ss) + " ";
+            }
+            str += "and ";
+        }
+        str += "for agents: ";
+        for (const auto& a : agent_ids) {
+            str += std::to_string(a) + " ";
+        }
+        return str;
     }
 };
 
@@ -192,6 +257,29 @@ struct Point3dConflict : public Conflict {
 
     // Set the to states to be empty.
     to_states = {};
+    }
+
+    std::string toString() const override {
+        std::string str = "Point3d conflict at states: ";
+        for (const auto& s : from_states) {
+            for (const auto& ss : s) {
+                str += std::to_string(ss) + " ";
+            }
+            str += "and ";
+        }
+        str += "and ";
+        for (const auto& s : to_states) {
+            for (const auto& ss : s) {
+                str += std::to_string(ss) + " ";
+            }
+            str += "and ";
+        }
+        str += "for agents: ";
+        for (const auto& a : agent_ids) {
+            str += std::to_string(a) + " ";
+        }
+        str += "at point: " + std::to_string(point[0]) + " " + std::to_string(point[1]) + " " + std::to_string(point[2]);
+        return str;
     }
 };
 
