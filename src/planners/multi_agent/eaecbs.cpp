@@ -259,10 +259,14 @@ void ims::EAECBS::expand(int state_id) {
 
         // Update the constraints collective to also include the new constraint.
         new_state->constraints_collectives[agent_id].addConstraints(constraint_ptr);
-
+        
         // update the action-space.
         agent_action_space_ptrs_[agent_id]->setConstraintsCollective(std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]));
 
+        /////////////////////////////////////////////
+        // Update the experiences collective.
+        /////////////////////////////////////////////
+    
         // if (is_experience_shared_across_ct_){
             // agent_action_space_ptrs_[agent_id]->addTimedExperienceToExperiencesCollective(std::make_shared<Experience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
         // }
