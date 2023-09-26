@@ -168,10 +168,23 @@ struct ExperiencesCollective {
     }
 
     void addTimedExperience(const std::shared_ptr<Experience>& experience) {
-        PathType path_wo_time = experience->getPath(); // A copy of the path that will be modified to remove the time component.
-        for (auto& state : path_wo_time) {
+
+        // A copy of the path that will be modified to remove the time component and remove loops.
+        PathType path_wo_time;
+        std::vector<double> path_transition_costs;
+        for (size_t i{0}; i < experience->getPath().size() ; ++i){
+            StateType state = experience->getPath()[i];
             state.pop_back();
+
+            // If the current state is the same as the previous state, then skip it.
+            if (i > 0 && state == path_wo_time.back()){
+                continue;
+            }
+            path_wo_time.push_back(state);
+            path_transition_costs.push_back(experience->getPathTransitionCosts()[i]);
         }
+        path_transition_costs.back() = 0.0;
+
         std::shared_ptr<Experience> experience_wo_time = std::make_shared<Experience>(path_wo_time, experience->getPathTransitionCosts());
         addExperience(experience_wo_time);
     }
