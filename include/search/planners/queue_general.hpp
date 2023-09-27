@@ -66,16 +66,12 @@ T* FocalQueue<T, CompareMain, CompareFocal>::min() const {
 
 template <class T, class CompareMain, class CompareFocal>
 void FocalQueue<T, CompareMain, CompareFocal>::pop() {
-    if (!m_waitlist.empty()) {
-        m_lower_bound = fmax(m_waitlist.min()->getLowerBound(), m_lower_bound);
-    }
     m_focal.pop(); // Remove from focal
 }
 
 template <class T, class CompareMain, class CompareFocal>
 void FocalQueue<T, CompareMain, CompareFocal>::push(T* e) {
     m_waitlist.push(e);
-    m_lower_bound = fmax(m_waitlist.min()->getLowerBound(), m_lower_bound);
 }
 
 template <class T, class CompareMain, class CompareFocal>

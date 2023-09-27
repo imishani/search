@@ -184,6 +184,8 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
 
 void ims::ECBS::expand(int state_id) {
     auto state = getSearchState(state_id);
+    // std::cout << "Expanding state: soc = " << state->sum_of_costs << " f=" << state->f 
+    //             << " num_conflicts=" << state->unresolved_conflicts.size() << std::endl;
     std::vector<int> successors;
     std::vector<double> costs;
 
@@ -253,7 +255,7 @@ void ims::ECBS::expand(int state_id) {
         std::cout << "New state soc: " << new_state_soc << std::endl;
         std::cout << "New state num conflicts: " << new_state->unresolved_conflicts.size() << std::endl;
 
-        new_state->f = new_state_soc + params_.weight_num_conflicts * new_state->unresolved_conflicts.size(); /////////////////////////////////////////////
+        new_state->f = new_state_soc; // + params_.weight_num_conflicts * new_state->unresolved_conflicts.size(); /////////////////////////////////////////////
         new_state->sum_of_costs = new_state_soc;
         // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
         new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;

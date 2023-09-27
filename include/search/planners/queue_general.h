@@ -50,7 +50,6 @@ struct HasLowerBound {
 template <class T, class CompareMain, class CompareFocal>
 class FocalQueue : public AbstractQueue<T> {
 private:
-    double m_lower_bound = 0.0;
     smpl::IntrusiveHeapWrapper<T, CompareMain> m_waitlist;
     smpl::IntrusiveHeapWrapper<T, CompareFocal> m_focal;
 
