@@ -39,7 +39,7 @@ ims::CBS::CBS(const ims::CBSParams& params) : params_(params), BestFirstSearch(p
 
 void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
-    // m_queue_ptr = new SimpleQueue<SearchState, SearchStateCompare>();
+    open_ = new SimpleQueue<SearchState, SearchStateCompare>();
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
     agent_action_space_ptrs_ = action_space_ptrs;
 
@@ -100,7 +100,7 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
     start_->setOpen();
 
     // Push the initial CBS state to the open list.
-    open_.push(start_);
+    open_->push(start_);
 
     // Show the initial paths.
     std::cout << "Initial paths:" << std::endl;
@@ -142,15 +142,15 @@ auto ims::CBS::getOrCreateSearchState(int state_id) -> ims::CBS::SearchState* {
 bool ims::CBS::plan(MultiAgentPaths& paths) {
     startTimer();
     int iter{0};
-    while (!open_.empty() && !isTimeOut()) {
+    while (!open_->empty() && !isTimeOut()) {
         // Report progress every 100 iterations
         if (iter % 1000 == 0) {
-            std::cout << "CBS CT open size: " << open_.size() << std::endl;
+            std::cout << "CBS CT open size: " << open_->size() << std::endl;
         }
 
         // Get the state of least cost.
-        auto state = open_.min();
-        open_.pop();
+        auto state = open_->min();
+        open_->pop();
 
         // Set the state to closed.
         state->setClosed();
@@ -240,7 +240,7 @@ void ims::CBS::expand(int state_id) {
         new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
 
         // Push the new state to the open list.
-        open_.push(new_state);
+        open_->push(new_state);
         new_state->setOpen();
 
         // Delete the previous state but keep the entry in the states_ vector.

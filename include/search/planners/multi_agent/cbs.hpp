@@ -145,7 +145,7 @@ public:
 protected:
     // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
     /// @brief The search state.
-    struct SearchState : public ims::BestFirstSearch::SearchState {
+    struct SearchState : public ims::BestFirstSearch::SearchState, public HasLowerBound {
         // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
         MultiAgentPaths paths;
 
@@ -157,6 +157,10 @@ protected:
 
         // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
         MultiAgentConstraintsCollective constraints_collectives;
+
+        virtual double getLowerBound() const override {
+            return 0.0;
+        }
     };
 
     /// @brief The open list. We set it to a deque for fast pop_front().
@@ -170,8 +174,8 @@ protected:
             return s1.f < s2.f;
         }
     };
-    // AbstractQueue<SearchState>* open_;
-    SimpleQueue<SearchState, SearchStateCompare> open_;
+    AbstractQueue<SearchState>* open_;
+    // SimpleQueue<SearchState, SearchStateCompare> open_;
 
     // The states that have been created.
     std::vector<SearchState*> states_;

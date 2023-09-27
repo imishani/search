@@ -42,6 +42,11 @@ void SimpleQueue<T, CompareMain>::updateWithNoBound() {
     return;
 }
 
+template <class T, class CompareMain>
+double SimpleQueue<T, CompareMain>::getLowerBound() const {
+    return m_open.min()->getLowerBound();
+}
+
 ///////////////////////////////////////////////////////////////
 ////////////////////// FocalQueue below ///////////////////////
 
@@ -52,13 +57,16 @@ T* FocalQueue<T, CompareMain, CompareFocal>::min() const {
 
 template <class T, class CompareMain, class CompareFocal>
 void FocalQueue<T, CompareMain, CompareFocal>::pop() {
-    m_waitlist.erase(m_focal.min()); // Remove from waitlist
+    if (!m_waitlist.empty()) {
+        m_lower_bound = fmax(m_waitlist.min()->getLowerBound(), m_lower_bound);
+    }
     m_focal.pop(); // Remove from focal
 }
 
 template <class T, class CompareMain, class CompareFocal>
 void FocalQueue<T, CompareMain, CompareFocal>::push(T* e) {
     m_waitlist.push(e);
+    m_lower_bound = fmax(m_waitlist.min()->getLowerBound(), m_lower_bound);
 }
 
 template <class T, class CompareMain, class CompareFocal>
@@ -73,7 +81,7 @@ size_t FocalQueue<T, CompareMain, CompareFocal>::size() const {
 
 template <class T, class CompareMain, class CompareFocal>
 void FocalQueue<T, CompareMain, CompareFocal>::updateWithBound(double lower_bound) {
-    while (m_waitlist.min()->lower_bound <= lower_bound) {
+    while (!m_waitlist.empty() && m_waitlist.min()->getLowerBound() <= lower_bound) {
         m_focal.push(m_waitlist.min());
         m_waitlist.pop();
     }
@@ -82,6 +90,11 @@ void FocalQueue<T, CompareMain, CompareFocal>::updateWithBound(double lower_boun
 template <class T, class CompareMain, class CompareFocal>
 void FocalQueue<T, CompareMain, CompareFocal>::updateWithNoBound() {
     throw std::runtime_error("Not supposed to be called");
+}
+
+template <class T, class CompareMain, class CompareFocal>
+double FocalQueue<T, CompareMain, CompareFocal>::getLowerBound() const {
+    return m_lower_bound;
 }
 
 } // Namespace ims

@@ -16,6 +16,7 @@ public:
 
     virtual void updateWithBound(double lower_bound) = 0;
     virtual void updateWithNoBound() = 0;
+    virtual double getLowerBound() const = 0;
 };
 
 
@@ -36,16 +37,24 @@ public:
 
     virtual void updateWithBound(double lower_bound) override;
     virtual void updateWithNoBound() override;
+    virtual double getLowerBound() const override;
 };
 
+/// @brief Require LowerBound function for FocalQueue elements
+struct HasLowerBound {
+    virtual double getLowerBound() const = 0;
+};
 
 template <class T, class CompareMain, class CompareFocal>
 class FocalQueue : public AbstractQueue<T> {
 private:
+    double m_lower_bound = 0.0;
     smpl::IntrusiveHeap<T, CompareMain> m_waitlist;
     smpl::IntrusiveHeap<T, CompareFocal> m_focal;
 
 public:
+    static_assert(std::is_base_of<ims::HasLowerBound, T>::value,
+                  "T must inherit from ims::HasLowerBound");
     virtual T* min() const override;
     virtual void pop() override;
     virtual void push(T* e) override;
@@ -54,6 +63,7 @@ public:
 
     virtual void updateWithBound(double lower_bound) override;
     virtual void updateWithNoBound() override;
+    virtual double getLowerBound() const override;
 };
 
 
