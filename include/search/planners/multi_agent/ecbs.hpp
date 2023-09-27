@@ -81,7 +81,7 @@ struct ECBSParams : public CBSParams {
     /// @brief The weight of the number of conflicts in the f value of the high level nodes.
     double weight_num_conflicts = 1.0;
 
-    double high_level_suboptimality = 2.0;
+    double high_level_suboptimality = 1.0;
 };
 
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.

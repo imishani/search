@@ -42,7 +42,7 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
     // open_ = new SimpleQueue<SearchState, SearchStateCompare>();
-    open_ = new FocalQueue<SearchState, SearchStateCompare, ECBSFocalCompare>();
+    open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, ECBSFocalCompare>();
     agent_action_space_ptrs_ = action_space_ptrs;
 
     // Check if the inputs are valid.
@@ -111,6 +111,7 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
     double start_soc = std::accumulate(initial_paths_costs.begin(), initial_paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
     int start_num_conflicts = start_->unresolved_conflicts.size();
     start_->f = start_soc + params_.weight_num_conflicts * start_num_conflicts;
+    start_->sum_of_costs = start_soc;
     start_->setOpen();
 
     // Push the initial CBS state to the open list.
@@ -253,7 +254,7 @@ void ims::ECBS::expand(int state_id) {
         std::cout << "New state num conflicts: " << new_state->unresolved_conflicts.size() << std::endl;
 
         new_state->f = new_state_soc + params_.weight_num_conflicts * new_state->unresolved_conflicts.size(); /////////////////////////////////////////////
-
+        new_state->sum_of_costs = new_state_soc;
         // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
         new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
 

@@ -151,6 +151,7 @@ protected:
 
         // The path costs.
         std::unordered_map<int, double> paths_costs;
+        double sum_of_costs = 0.0;
 
         // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
         std::vector<std::shared_ptr<Conflict>> unresolved_conflicts = {};
@@ -159,7 +160,8 @@ protected:
         MultiAgentConstraintsCollective constraints_collectives;
 
         virtual double getLowerBound() const override {
-            return 0.0;
+            assert(sum_of_costs > 0.0);
+            return sum_of_costs;
         }
     };
 
