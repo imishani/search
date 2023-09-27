@@ -39,6 +39,7 @@ ims::CBS::CBS(const ims::CBSParams& params) : params_(params), BestFirstSearch(p
 
 void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
+    // m_queue_ptr = new SimpleQueue<SearchState, SearchStateCompare>();
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
     agent_action_space_ptrs_ = action_space_ptrs;
 

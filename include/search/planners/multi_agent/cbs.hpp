@@ -53,6 +53,8 @@
 
 #include "search/action_space/constrained_action_space.hpp"
 
+#include <search/planners/queue_general.h>
+
 /*
 Some things that need to be done:
 === For the low level planner ===
@@ -158,8 +160,18 @@ protected:
     };
 
     /// @brief The open list. We set it to a deque for fast pop_front().
-    using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-    OpenList open_;
+    // using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+    // OpenList open_;
+
+    struct MainQueueCompare {
+        bool operator()(const SearchState& s1, const SearchState& s2) const {
+            if (s1.f == s2.f)
+                return s1.g < s2.g;
+            return s1.f < s2.f;
+        }
+    };
+    // AbstractQueue<SearchState>* open_;
+    SimpleQueue<SearchState, SearchStateCompare> open_;
 
     // The states that have been created.
     std::vector<SearchState*> states_;
