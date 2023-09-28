@@ -41,17 +41,19 @@
 #include <search/common/scene_interface.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
 
-class scene2DRob : public ims::SceneInterface {
-public:
-    explicit scene2DRob(std::vector<std::vector<int>>& map_) : ims::SceneInterface() {
-        std::cout << "Creating scene with map of shape " << map_.size() << ", " << map_[0].size() << std::endl;
-        this->map = &map_;
-        this->map_size = {(*map).size(), (*map)[0].size()};
-    }
+#include "collision_checker_2d.h"
 
-    std::vector<std::vector<int>>* map;
-    std::vector<size_t> map_size;
-};
+// class scene2DRob : public ims::SceneInterface {
+// public:
+//     explicit scene2DRob(std::vector<std::vector<int>>& map_) : ims::SceneInterface() {
+//         std::cout << "Creating scene with map of shape " << map_.size() << ", " << map_[0].size() << std::endl;
+//         this->map = &map_;
+//         this->map_size = {(*map).size(), (*map)[0].size()};
+//     }
+
+//     std::vector<std::vector<int>>* map;
+//     std::vector<size_t> map_size;
+// };
 
 struct actionType2dRob : public ims::ActionType {
     actionType2dRob() : ims::ActionType() {
@@ -81,13 +83,15 @@ struct actionType2dRob : public ims::ActionType {
 
 class ConstrainedActionSpace2dRob : public ims::ConstrainedActionSpace {
 private:
-    std::shared_ptr<scene2DRob> env_;
+    // std::shared_ptr<scene2DRob> env_;
+    std::shared_ptr<CollisionChecker2D> m_cc2d;
     std::shared_ptr<actionType2dRob> action_type_;
 
 public:
-    ConstrainedActionSpace2dRob(const scene2DRob& env,
+    ConstrainedActionSpace2dRob(const std::shared_ptr<CollisionChecker2D>& cc2d,
                                 const actionType2dRob& actions_ptr) : ims::ConstrainedActionSpace() {
-        this->env_ = std::make_shared<scene2DRob>(env);
+        // this->env_ = std::make_shared<scene2DRob>(env);
+        this->m_cc2d = cc2d;
         this->action_type_ = std::make_shared<actionType2dRob>(actions_ptr);
     }
 
@@ -114,15 +118,19 @@ public:
     }
 
     bool isStateValid(const StateType& state_val) override {
-        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]) {
-            return false;
-        }
+        // TODO: Change col row to row col
+        double col = state_val[0];
+        double row = state_val[1];
+        return m_cc2d->isCellValid(row, col);
+        // if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]) {
+        //     return false;
+        // }
 
-        auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
-        if (map_val == 100) {
-            return false;
-        }
-        return true;
+        // auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
+        // if (map_val == 100) {
+        //     return false;
+        // }
+        // return true;
     }
 
     bool isSatisfyingConstraints(const StateType& state_val, const StateType& next_state_val) {
