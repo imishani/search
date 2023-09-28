@@ -69,9 +69,6 @@ target_link_libraries(run_2d_rob_nav_wastar_local_heu search ${OpenCV_LIBS} ${Bo
 add_executable(run_2d_mapf_cbs_or_ecbs domains/2d_mapf/run_2d_cbs_or_ecbs.cpp)
 target_link_libraries(run_2d_mapf_cbs_or_ecbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
-# add_executable(run_2d_mapf_ecbs domains/2d_mapf/run_2d_ecbs.cpp)
-# target_link_libraries(run_2d_mapf_ecbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
-
 # Add an uninstall target.
 if(NOT TARGET uninstall)
     configure_file(
