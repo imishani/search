@@ -43,18 +43,6 @@
 
 #include "collision_checker_2d.h"
 
-// class scene2DRob : public ims::SceneInterface {
-// public:
-//     explicit scene2DRob(std::vector<std::vector<int>>& map_) : ims::SceneInterface() {
-//         std::cout << "Creating scene with map of shape " << map_.size() << ", " << map_[0].size() << std::endl;
-//         this->map = &map_;
-//         this->map_size = {(*map).size(), (*map)[0].size()};
-//     }
-
-//     std::vector<std::vector<int>>* map;
-//     std::vector<size_t> map_size;
-// };
-
 struct actionType2dRob : public ims::ActionType {
     actionType2dRob() : ims::ActionType() {
         this->name = "actionType2dRob";

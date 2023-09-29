@@ -16,6 +16,8 @@ private:
 
 public:
     string m_map_file;
+    void loadInstanceFromArguments(const string& workspace_path, const string& map_file, 
+                    const string& agent_file, int num_agents);
     void loadCustomInstance(int map_index, int num_agents);
     void loadBenchmarkInstance(const string& map_file, 
                 const string& agent_file, int num_agents);
@@ -27,7 +29,15 @@ public:
     vector<StateType> getGoalsWithTime() {return addToEnd(m_goals, -1);}
 };
 
-
+/// @brief Returns if a string is a number or not
+/// @param s 
+/// @return
+/// @note https://stackoverflow.com/questions/4654636/how-to-determine-if-a-string-is-a-number-with-c 
+bool is_number(const std::string& s) {
+    string::const_iterator it = s.begin();
+    while (it != s.end() && std::isdigit(*it)) ++it;
+    return !s.empty() && it == s.end();
+}
 
 ////////////////// Implementations Below //////////////////////
 
@@ -39,6 +49,18 @@ vector<StateType> MAPFInstance::addToEnd(const vector<StateType>& states, double
         new_states.push_back(new_state);
     }
     return new_states;
+}
+
+void MAPFInstance::loadInstanceFromArguments(const string& workspace_path,
+                const string& map_file, const string& agent_file, int num_agents) {
+    if (is_number(map_file)) {
+        loadCustomInstance(std::stoi(map_file), num_agents);
+    }
+    else {
+        string map_path = workspace_path + map_file;
+        string agent_path = workspace_path + agent_file;
+        loadBenchmarkInstance(map_path, agent_path, num_agents);
+    }
 }
 
 
@@ -72,24 +94,28 @@ void MAPFInstance::loadBenchmarkInstance(const string& map_file,
         beg++; // skip the map name
         beg++; // skip the columns
         beg++; // skip the rows
+
         // read start [row,col] for agent i
         int col = atoi((*beg).c_str());
         beg++;
         int row = atoi((*beg).c_str());
-        StateType start = {col*1.0, row*1.0};
+        if (!m_collision_checker->isCellValid(row, col)) {
+            throw std::runtime_error("Error: goal " + std::to_string(row) 
+                        + ", " + std::to_string(col) + " is not valid");
+        }
         m_starts.push_back({col*1.0, row*1.0});
+
         // read goal [row,col] for agent i
         beg++;
         col = atoi((*beg).c_str());
         beg++;
         row = atoi((*beg).c_str());
         // goal_locations[i] = linearizeCoordinate(row, col);
-        m_goals.push_back({col*1.0, row*1.0});
-
-        if (!m_collision_checker->isCellValid(goal[1], goal[0])) {
-            throw std::runtime_error("Error: goal " + std::to_string(goal[0]) 
-                        + ", " + std::to_string(goal[1]) + " is not valid");
+        if (!m_collision_checker->isCellValid(row, col)) {
+            throw std::runtime_error("Error: goal " + std::to_string(row) 
+                        + ", " + std::to_string(col) + " is not valid");
         }
+        m_goals.push_back({col*1.0, row*1.0});
     }
 }
 

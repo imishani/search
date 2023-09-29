@@ -32,7 +32,7 @@
  * \date   09/07/2023
 */
 
-
+#include <boost/program_options.hpp> // For argument parsing.
 #include <boost/filesystem.hpp>
 #include <vector>
 #include <memory>
@@ -56,28 +56,63 @@
 #include "instance.h"
 
 int main(int argc, char** argv) {
+    namespace po = boost::program_options;
+    // Declare the supported options.
+	po::options_description desc("Allowed options");
+	desc.add_options()
+		("help", "produce help message")
 
-    if (argc < 4) {
-        std::cout << "Usage: " << argv[0] << " <map_file> <num_agents> <cbs||ecbs>" << std::endl;
-        return 0;
-    }
+		// params for the input instance and experiment settings
+        ("workspace_path,-d", po::value<string>()->default_value("/../"), "search directory")
+		("map_file_path,m", po::value<string>()->required(), "map file path")
+        ("agent_file_path,a", po::value<string>()->required(), "agent file path")
+		("num_agents,n", po::value<int>()->required(), "number of agents")
+        ("high_level_suboptimality,sub", po::value<double>()->default_value(1.0), 
+                    "high level suboptimality, default value of 1 is identical to CBS")
+        ;
+
+    po::variables_map vm;
+	po::store(po::parse_command_line(argc, argv, desc), vm);
+
+	if (vm.count("help")) {
+		std::cout << desc << std::endl;
+		return 1;
+	}
+
+    po::notify(vm);
+	if (vm["high_level_suboptimality"].as<double>() < 1) {
+		throw std::invalid_argument("high_level_suboptimality must be >= 1");
+	}
+
+    // if (argc < 4) {
+    //     std::cout << "Usage: " << argv[0] << " <map_file> <num_agents> <cbs||ecbs>" << std::endl;
+    //     return 0;
+    // }
     std::vector<std::string> maps;
 
     boost::filesystem::path full_path( boost::filesystem::current_path() );
     std::cout << "Current path is : " << full_path.string() << std::endl;
 
-    int map_index = std::stoi(argv[1]);
-    int num_agents = std::stoi(argv[2]);
-    string whichMethod = string(argv[3]);
-    assert(whichMethod == "cbs" || whichMethod == "ecbs");
-    bool useECBS = (whichMethod == "ecbs");
+    // int map_index = std::stoi(argv[1]);
+    // int num_agents = std::stoi(argv[2]);
+    // string whichMethod = string(argv[3]);
+    // assert(whichMethod == "cbs" || whichMethod == "ecbs");
+    // bool useECBS = (whichMethod == "ecbs");
+    int num_agents = vm["num_agents"].as<int>();
+    bool useECBS = (vm["high_level_suboptimality"].as<double>() > 1.0);
+    const string PATH_TO_WORKSPACE = full_path.string() + vm["workspace_path"].as<string>();
+
     MAPFInstance instance;
+    instance.loadInstanceFromArguments(PATH_TO_WORKSPACE, vm["map_file_path"].as<string>(), 
+                                            vm["agent_file_path"].as<string>(), num_agents);
     // instance.loadCustomInstance(map_index, num_agents);
 
-    const string REL_TO_DATASET = full_path.string() + "/../domains/2d_mapf/datasets/";
-    string MAPNAME = REL_TO_DATASET + "mapf-map/den312d.map";
-    string AGENTNAME = REL_TO_DATASET + "scen-random/den312d-random-1.scen";
-    instance.loadBenchmarkInstance(MAPNAME, AGENTNAME, num_agents);
+    // const string REL_TO_DATASET = full_path.string() + "/../domains/2d_mapf/datasets/";
+    // string MAPNAME = REL_TO_DATASET + "mapf-map/den312d.map";
+    // string AGENTNAME = REL_TO_DATASET + "scen-random/den312d-random-1.scen";
+    // string MAPNAME = full_path.string() + "/" + vm["map_file_path"].as<string>();
+    // string AGENTNAME = full_path.string() + "/" + vm["agent_file_path"].as<string>();
+    // instance.loadBenchmarkInstance(MAPNAME, AGENTNAME, num_agents);
 
     // Construct the planner.
     std::cout << "Constructing planner..." << std::endl;

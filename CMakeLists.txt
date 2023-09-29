@@ -11,7 +11,7 @@ find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 # link boost libraries
-find_package(Boost REQUIRED COMPONENTS system filesystem)
+find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 
 add_library(search SHARED
