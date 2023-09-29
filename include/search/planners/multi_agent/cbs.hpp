@@ -135,7 +135,7 @@ public:
 protected:
     // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
     /// @brief The search state.
-    struct SearchState : public ims::BestFirstSearch::SearchState, public LowerBoundInterface {
+    struct SearchStateLowerBoundInterfaceMixin : public ims::BestFirstSearch::SearchState, public LowerBoundInterface {
         // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
         MultiAgentPaths paths;
 
@@ -158,32 +158,32 @@ protected:
     };
 
     /// @brief The open list. We set it to a deque for fast pop_front().
-    // using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+    // using OpenList = ::smpl::IntrusiveHeap<SearchStateLowerBoundInterfaceMixin, SearchStateCompare>;
     // OpenList open_;
 
     struct MainQueueCompare {
-        bool operator()(const SearchState& s1, const SearchState& s2) const {
+        bool operator()(const SearchStateLowerBoundInterfaceMixin& s1, const SearchStateLowerBoundInterfaceMixin& s2) const {
             if (s1.f == s2.f)
                 return s1.g < s2.g;
             return s1.f < s2.f;
         }
     };
-    AbstractQueue<SearchState>* open_;
-    // SimpleQueue<SearchState, SearchStateCompare> open_;
+    AbstractQueue<SearchStateLowerBoundInterfaceMixin>* open_;
+    // SimpleQueue<SearchStateLowerBoundInterfaceMixin, SearchStateCompare> open_;
 
     // The states that have been created.
-    std::vector<SearchState*> states_;
+    std::vector<SearchStateLowerBoundInterfaceMixin*> states_;
 
     /// @brief Get the state by id
     /// @param state_id The id of the state
     /// @return The search state
     /// @note Use this function to get search states that are already created.
-    auto getSearchState(int state_id) -> SearchState*;
+    auto getSearchState(int state_id) -> SearchStateLowerBoundInterfaceMixin*;
 
     /// @brief Get the state by id or create a new one if it does not exist
     /// @param state_id The id of the state
     /// @return The search state
-    auto getOrCreateSearchState(int state_id) -> SearchState*;
+    auto getOrCreateSearchState(int state_id) -> SearchStateLowerBoundInterfaceMixin*;
 
     /// @brief Pad a set of paths such that they are all the maximum length.
     /// @note The padding is done by repeating the last state and incrementing time accordingly.

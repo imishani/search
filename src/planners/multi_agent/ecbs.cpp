@@ -41,8 +41,8 @@ ims::ECBS::ECBS(const ims::ECBSParams& params) : params_(params), CBS(params) {}
 void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
-    // open_ = new SimpleQueue<SearchState, SearchStateCompare>();
-    open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, ECBSFocalCompare>();
+    // open_ = new SimpleQueue<SearchStateLowerBoundInterfaceMixin, SearchStateCompare>();
+    open_ = new FocalAndAnchorQueueWrapper<SearchStateLowerBoundInterfaceMixin, SearchStateCompare, ECBSFocalCompare>();
     agent_action_space_ptrs_ = action_space_ptrs;
 
     // Check if the inputs are valid.
