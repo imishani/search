@@ -55,6 +55,12 @@
 // #include "collision_checker_2d.h"
 #include "instance.h"
 
+
+/// Example runs:
+/// For custom datasets: ./run_2d_cbs_or_ecbs -m 6 -a ignore -n 4 -sub 1.1
+/// For mapf datasets: ./run_2d_cbs_or_ecbs --map_file_path=domains/2d_mapf/datasets/mapf-map/den312d.map 
+///                         -a domains/2d_mapf/datasets/scen-random/den312d-random-1.scen -n 10
+///                         --high_level_suboptimality=1.5
 int main(int argc, char** argv) {
     namespace po = boost::program_options;
     // Declare the supported options.
