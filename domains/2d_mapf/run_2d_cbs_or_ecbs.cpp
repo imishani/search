@@ -72,7 +72,12 @@ int main(int argc, char** argv) {
     assert(whichMethod == "cbs" || whichMethod == "ecbs");
     bool useECBS = (whichMethod == "ecbs");
     MAPFInstance instance;
-    instance.loadCustomInstance(map_index, num_agents);
+    // instance.loadCustomInstance(map_index, num_agents);
+
+    const string REL_TO_DATASET = full_path.string() + "/../domains/2d_mapf/datasets/";
+    string MAPNAME = REL_TO_DATASET + "mapf-map/den312d.map";
+    string AGENTNAME = REL_TO_DATASET + "scen-random/den312d-random-1.scen";
+    instance.loadBenchmarkInstance(MAPNAME, AGENTNAME, num_agents);
 
     // Construct the planner.
     std::cout << "Constructing planner..." << std::endl;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include<boost/tokenizer.hpp> // For parsing
 #include <memory>
 #include <fstream>
 #include <search/common/types.hpp>
@@ -17,7 +18,7 @@ public:
     string m_map_file;
     void loadCustomInstance(int map_index, int num_agents);
     void loadBenchmarkInstance(const string& map_file, 
-                const string& agent_file, int num_rows);
+                const string& agent_file, int num_agents);
 
     std::shared_ptr<CollisionChecker2D> getCC() {return m_collision_checker;}
     vector<StateType> getRawStarts() {return m_starts;}
@@ -38,6 +39,58 @@ vector<StateType> MAPFInstance::addToEnd(const vector<StateType>& states, double
         new_states.push_back(new_state);
     }
     return new_states;
+}
+
+
+void MAPFInstance::loadBenchmarkInstance(const string& map_file, 
+                                    const string& agent_file, int num_agents) {
+    m_map_file = map_file;
+
+    ///////////////////////// Load the map /////////////////////////
+    m_collision_checker = std::make_shared<CollisionChecker2D>();
+    m_collision_checker->loadMap(m_map_file);
+
+    ///////////////////////// Load the agents /////////////////////////
+    /// Copied from EECBS Instance::loadAgents
+    string line;
+	std::ifstream myfile(agent_file.c_str());
+	if (!myfile.is_open()) {
+        throw std::runtime_error("Could not open file " + agent_file);
+    }
+
+	getline(myfile, line);
+	assert(line[0] == 'v'); // Nathan's benchmark
+    if (num_agents <= 0) {
+        throw std::runtime_error("The number of agents should be larger than 0");
+    }
+    boost::char_separator<char> sep("\t");
+    for (int i = 0; i < num_agents; i++) {
+        getline(myfile, line);
+        boost::tokenizer< boost::char_separator<char> > tok(line, sep);
+        boost::tokenizer< boost::char_separator<char> >::iterator beg = tok.begin();
+        beg++; // skip the first number
+        beg++; // skip the map name
+        beg++; // skip the columns
+        beg++; // skip the rows
+        // read start [row,col] for agent i
+        int col = atoi((*beg).c_str());
+        beg++;
+        int row = atoi((*beg).c_str());
+        StateType start = {col*1.0, row*1.0};
+        m_starts.push_back({col*1.0, row*1.0});
+        // read goal [row,col] for agent i
+        beg++;
+        col = atoi((*beg).c_str());
+        beg++;
+        row = atoi((*beg).c_str());
+        // goal_locations[i] = linearizeCoordinate(row, col);
+        m_goals.push_back({col*1.0, row*1.0});
+
+        if (!m_collision_checker->isCellValid(goal[1], goal[0])) {
+            throw std::runtime_error("Error: goal " + std::to_string(goal[0]) 
+                        + ", " + std::to_string(goal[1]) + " is not valid");
+        }
+    }
 }
 
 const vector<string> idxToMapName = {
@@ -67,6 +120,10 @@ void MAPFInstance::loadCustomInstance(int map_index, int num_agents) {
     string path = idxToStartGoal[map_index];
     m_map_file = idxToMapName[map_index];
 
+    ///////////////////////// Load the map /////////////////////////
+    m_collision_checker = std::make_shared<CollisionChecker2D>();
+    m_collision_checker->loadMap(m_map_file);
+
     ///////////////////////// Load the agents /////////////////////////
     std::ifstream starts_fin(path + "nav2d_starts.txt");
     std::ifstream goals_fin(path + "nav2d_goals.txt");
@@ -84,6 +141,14 @@ void MAPFInstance::loadCustomInstance(int map_index, int num_agents) {
             start.push_back(val_start);
             goal.push_back(val_goal);
         }
+        if (!m_collision_checker->isCellValid(start[1], start[0])) {
+            throw std::runtime_error("Error: start " + std::to_string(start[0]) 
+                        + ", " + std::to_string(start[1]) + " is not valid");
+        }
+        if (!m_collision_checker->isCellValid(goal[1], goal[0])) {
+            throw std::runtime_error("Error: goal " + std::to_string(goal[0]) 
+                        + ", " + std::to_string(goal[1]) + " is not valid");
+        }
 
         m_starts.push_back(start);
         m_goals.push_back(goal);
@@ -94,8 +159,4 @@ void MAPFInstance::loadCustomInstance(int map_index, int num_agents) {
     }
     starts_fin.close();
     goals_fin.close();
-
-    ///////////////////////// Load the map /////////////////////////
-    m_collision_checker = std::make_shared<CollisionChecker2D>();
-    m_collision_checker->loadMap(m_map_file);
 }
