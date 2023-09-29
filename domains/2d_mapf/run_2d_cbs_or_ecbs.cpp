@@ -84,20 +84,9 @@ int main(int argc, char** argv) {
 		throw std::invalid_argument("high_level_suboptimality must be >= 1");
 	}
 
-    // if (argc < 4) {
-    //     std::cout << "Usage: " << argv[0] << " <map_file> <num_agents> <cbs||ecbs>" << std::endl;
-    //     return 0;
-    // }
-    std::vector<std::string> maps;
-
     boost::filesystem::path full_path( boost::filesystem::current_path() );
     std::cout << "Current path is : " << full_path.string() << std::endl;
 
-    // int map_index = std::stoi(argv[1]);
-    // int num_agents = std::stoi(argv[2]);
-    // string whichMethod = string(argv[3]);
-    // assert(whichMethod == "cbs" || whichMethod == "ecbs");
-    // bool useECBS = (whichMethod == "ecbs");
     int num_agents = vm["num_agents"].as<int>();
     bool useECBS = (vm["high_level_suboptimality"].as<double>() > 1.0);
     const string PATH_TO_WORKSPACE = full_path.string() + vm["workspace_path"].as<string>();
@@ -105,14 +94,6 @@ int main(int argc, char** argv) {
     MAPFInstance instance;
     instance.loadInstanceFromArguments(PATH_TO_WORKSPACE, vm["map_file_path"].as<string>(), 
                                             vm["agent_file_path"].as<string>(), num_agents);
-    // instance.loadCustomInstance(map_index, num_agents);
-
-    // const string REL_TO_DATASET = full_path.string() + "/../domains/2d_mapf/datasets/";
-    // string MAPNAME = REL_TO_DATASET + "mapf-map/den312d.map";
-    // string AGENTNAME = REL_TO_DATASET + "scen-random/den312d-random-1.scen";
-    // string MAPNAME = full_path.string() + "/" + vm["map_file_path"].as<string>();
-    // string AGENTNAME = full_path.string() + "/" + vm["agent_file_path"].as<string>();
-    // instance.loadBenchmarkInstance(MAPNAME, AGENTNAME, num_agents);
 
     // Construct the planner.
     std::cout << "Constructing planner..." << std::endl;
