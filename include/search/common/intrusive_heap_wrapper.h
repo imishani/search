@@ -4,11 +4,15 @@
 
 namespace smpl {
 
+/// @brief This seperates IntrusiveHeap from the elements it contains.
+///         Allows inserting the same element into multiple heaps.
+/// @tparam T does *not* need to inherit from HeapElement.
+/// @tparam Compare 
 template <class T, class Compare>
 class IntrusiveHeapWrapper {
 private:
     struct HeapElementWrapper : public smpl::HeapElement {
-        // This will have heap_index_ internally b/c extending HeapElement
+        // This will have heap_index_ internally b/c extending HeapElement.
         T* element;
         HeapElementWrapper(T* e) : element(e) {}
     };
@@ -25,6 +29,9 @@ private:
 
 public:
     IntrusiveHeapWrapper();
+
+    /// @brief Descructor which deletes internal wrapper heap elements
+    ~IntrusiveHeapWrapper();
 
     virtual T* min() const;
     virtual void pop();

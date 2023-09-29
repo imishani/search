@@ -1,4 +1,4 @@
-#include <search/planners/queue_general.h>
+#include <search/common/queue_general.h>
 
 namespace ims {
 
@@ -43,11 +43,6 @@ size_t SimpleQueue<T, CompareMain>::size() const {
 template <class T, class CompareMain>
 void SimpleQueue<T, CompareMain>::updateWithBound(double lower_bound) {
     throw std::runtime_error("Not supposed to be called");
-}
-
-template <class T, class CompareMain>
-void SimpleQueue<T, CompareMain>::updateWithNoBound() {
-    return;
 }
 
 template <class T, class CompareMain>
@@ -101,11 +96,6 @@ void FocalQueue<T, CompareMain, CompareFocal>::updateWithBound(double lower_boun
 }
 
 template <class T, class CompareMain, class CompareFocal>
-void FocalQueue<T, CompareMain, CompareFocal>::updateWithNoBound() {
-    throw std::runtime_error("Not supposed to be called");
-}
-
-template <class T, class CompareMain, class CompareFocal>
 double FocalQueue<T, CompareMain, CompareFocal>::getLowerBound() const {
     throw std::runtime_error("getLowerBound() not supported for Focal Queue");
 }
@@ -153,11 +143,6 @@ size_t FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::size() const {
 template <class T, class CompareMain, class CompareFocal>
 void FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::updateWithBound(double lower_bound) {
     m_focalQ.updateWithBound(lower_bound);
-}
-
-template <class T, class CompareMain, class CompareFocal>
-void FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::updateWithNoBound() {
-    throw std::runtime_error("Not supposed to be called");
 }
 
 template <class T, class CompareMain, class CompareFocal>

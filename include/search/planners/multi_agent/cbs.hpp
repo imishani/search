@@ -53,17 +53,7 @@
 
 #include "search/action_space/constrained_action_space.hpp"
 
-#include <search/planners/queue_general.h>
-
-/*
-Some things that need to be done:
-=== For the low level planner ===
-=== For the high level planner ===
-1. Fix the waiting-at-goal error. (Wait-at-goal just added blindly. Next plans should be at least as long as the previous ones and waiting pruned?)
-3. Add the edge constraints.
-4. Continue work on the main loop. (Not on expand.)
-
-*/
+#include <search/common/queue_general.h>
 
 namespace ims {
 
@@ -145,7 +135,7 @@ public:
 protected:
     // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
     /// @brief The search state.
-    struct SearchState : public ims::BestFirstSearch::SearchState, public HasLowerBound {
+    struct SearchState : public ims::BestFirstSearch::SearchState, public LowerBoundInterface {
         // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
         MultiAgentPaths paths;
 
@@ -159,6 +149,8 @@ protected:
         // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
         MultiAgentConstraintsCollective constraints_collectives;
 
+        /// @brief Required for FocalQueue
+        /// @return 
         virtual double getLowerBound() const override {
             assert(sum_of_costs > 0.0);
             return sum_of_costs;

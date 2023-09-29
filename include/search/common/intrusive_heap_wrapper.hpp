@@ -6,6 +6,13 @@ template <class T, class Compare>
 IntrusiveHeapWrapper<T, Compare>::IntrusiveHeapWrapper() : m_pq() {}
 
 template <class T, class Compare>
+IntrusiveHeapWrapper<T, Compare>::~IntrusiveHeapWrapper() {
+    for (auto& pair : m_map) {
+        delete pair.second;
+    }
+}
+
+template <class T, class Compare>
 T* IntrusiveHeapWrapper<T, Compare>::min() const {
     assert(!m_pq.empty());
     return m_pq.min()->element;

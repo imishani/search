@@ -130,12 +130,13 @@ protected:
     struct ECBSFocalCompare{
         bool operator()(const SearchState& s1, const SearchState& s2) const{
             if (s1.unresolved_conflicts.size() == s2.unresolved_conflicts.size()) {
-                if ((s1.f == s2.f) && (s1.g == s2.g))
-                    return (s1.state_id < s2.state_id);
-                else if (s1.f == s2.f)
+                if (s1.f == s2.f) {
+                    if (s1.g == s2.g) {
+                        return s1.state_id < s2.state_id;
+                    }
                     return s1.g < s2.g;
-                else
-                    return s1.f < s2.f;
+                }
+                return s1.f < s2.f;
             }
             return s1.unresolved_conflicts.size() < s2.unresolved_conflicts.size();
         }
