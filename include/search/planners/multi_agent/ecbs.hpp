@@ -128,7 +128,7 @@ protected:
 
     /// @brief The search state compare struct.
     struct ECBSFocalCompare{
-        bool operator()(const SearchStateLowerBoundInterfaceMixin& s1, const SearchStateLowerBoundInterfaceMixin& s2) const{
+        bool operator()(const SearchState& s1, const SearchState& s2) const{
             if (s1.unresolved_conflicts.size() == s2.unresolved_conflicts.size()) {
                 if (s1.f == s2.f) {
                     if (s1.g == s2.g) {

@@ -39,7 +39,7 @@ ims::CBS::CBS(const ims::CBSParams& params) : params_(params), BestFirstSearch(p
 
 void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
-    open_ = new SimpleQueue<SearchStateLowerBoundInterfaceMixin, SearchStateCompare>();
+    open_ = new SimpleQueue<SearchState, SearchStateCompare>();
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
     agent_action_space_ptrs_ = action_space_ptrs;
 
@@ -122,18 +122,18 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
                         initializePlanner(action_space_ptrs, starts, goals);
                         }
 
-auto ims::CBS::getSearchState(int state_id) -> ims::CBS::SearchStateLowerBoundInterfaceMixin* {
+auto ims::CBS::getSearchState(int state_id) -> ims::CBS::SearchState* {
     assert(state_id < states_.size() && state_id >= 0);
     return states_[state_id];
 }
 
-auto ims::CBS::getOrCreateSearchState(int state_id) -> ims::CBS::SearchStateLowerBoundInterfaceMixin* {
+auto ims::CBS::getOrCreateSearchState(int state_id) -> ims::CBS::SearchState* {
     if (state_id >= states_.size()) {
         states_.resize(state_id + 1, nullptr);
     }
     if (states_[state_id] == nullptr) {
         assert(state_id < states_.size() && state_id >= 0);
-        states_[state_id] = new SearchStateLowerBoundInterfaceMixin;
+        states_[state_id] = new SearchState;
         states_[state_id]->state_id = state_id;
     }
     return states_[state_id];

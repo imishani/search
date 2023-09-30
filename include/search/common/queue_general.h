@@ -6,17 +6,17 @@
 namespace ims {
 
 /// @brief Require LowerBound function for elements.
-struct LowerBoundInterface {
+struct LowerBoundMixin {
     virtual double getLowerBound() const = 0;
 };
 
 /// @brief AbstractQueue which supports basic queue functionality for search.
-/// @tparam T must support LowerBoundInterface for getLowerBound() functionality.
+/// @tparam T must support LowerBoundMixin for getLowerBound() functionality.
 template <class T>
 class AbstractQueue {
 public:
-    static_assert(std::is_base_of<ims::LowerBoundInterface, T>::value,
-                  "T must inherit from ims::LowerBoundInterface");
+    static_assert(std::is_base_of<ims::LowerBoundMixin, T>::value,
+                  "T must inherit from ims::LowerBoundMixin");
 
     virtual T* min() const = 0;
     virtual void pop() = 0;
@@ -39,7 +39,7 @@ public:
 };
 
 /// @brief Basic queue which returns min element based on comparator.
-/// @tparam T element type which must support LowerBoundInterface.
+/// @tparam T element type which must support LowerBoundMixin.
 /// @tparam CompareMain which returns which element is smaller.
 /// @note CompareMain should sort by lower bound!
 /// TODO: MAKE SURE THIS IS THE CASE! Might want to have CompareMain just for tie-breaking?
@@ -71,7 +71,7 @@ public:
 
 /// @brief FocalQueue which uses both comparators and returns min element 
 //         satisfying lower bound.
-/// @tparam T element type which must support LowerBoundInterface.
+/// @tparam T element type which must support LowerBoundMixin.
 /// @tparam CompareMain used for anchor queue.
 /// @tparam CompareFocal used for focal queue.
 template <class T, class CompareMain, class CompareFocal>
@@ -100,7 +100,7 @@ public:
 };
 
 /// @brief Wrapper class that enables focal queue expansion and keeps track of lower bound.
-/// @tparam T element type which must support LowerBoundInterface.
+/// @tparam T element type which must support LowerBoundMixin.
 /// @tparam CompareMain used for anchor queue.
 /// @tparam CompareFocal used for focal queue.
 template <class T, class CompareMain, class CompareFocal>
