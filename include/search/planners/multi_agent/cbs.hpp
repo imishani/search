@@ -53,15 +53,7 @@
 
 #include "search/action_space/constrained_action_space.hpp"
 
-/*
-Some things that need to be done:
-=== For the low level planner ===
-=== For the high level planner ===
-1. Fix the waiting-at-goal error. (Wait-at-goal just added blindly. Next plans should be at least as long as the previous ones and waiting pruned?)
-3. Add the edge constraints.
-4. Continue work on the main loop. (Not on expand.)
-
-*/
+#include <search/common/queue_general.h>
 
 namespace ims {
 
@@ -143,23 +135,41 @@ public:
 protected:
     // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
     /// @brief The search state.
-    struct SearchState : public ims::BestFirstSearch::SearchState {
+    struct SearchState : public ims::BestFirstSearch::SearchState, public LowerBoundMixin {
         // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
         MultiAgentPaths paths;
 
         // The path costs.
         std::unordered_map<int, double> paths_costs;
+        double sum_of_costs = 0.0;
 
         // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
         std::vector<std::shared_ptr<Conflict>> unresolved_conflicts = {};
 
         // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
         MultiAgentConstraintsCollective constraints_collectives;
+
+        /// @brief Required for FocalQueue
+        /// @return 
+        virtual double getLowerBound() const override {
+            assert(sum_of_costs > 0.0);
+            return sum_of_costs;
+        }
     };
 
     /// @brief The open list. We set it to a deque for fast pop_front().
-    using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-    OpenList open_;
+    // using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+    // OpenList open_;
+
+    struct MainQueueCompare {
+        bool operator()(const SearchState& s1, const SearchState& s2) const {
+            if (s1.f == s2.f)
+                return s1.g < s2.g;
+            return s1.f < s2.f;
+        }
+    };
+    AbstractQueue<SearchState>* open_;
+    // SimpleQueue<SearchState, SearchStateCompare> open_;
 
     // The states that have been created.
     std::vector<SearchState*> states_;

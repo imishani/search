@@ -69,9 +69,9 @@ int main(int argc, char** argv) {
 		("help", "produce help message")
 
 		// params for the input instance and experiment settings
-        ("workspace_path,-d", po::value<string>()->default_value("/../"), "search directory")
-		("map_file_path,m", po::value<string>()->required(), "map file path")
-        ("agent_file_path,a", po::value<string>()->required(), "agent file path")
+        ("workspace_path,-d", po::value<string>()->default_value("/../"), "relative path to search directory from executable")
+		("map_file_path,m", po::value<string>()->required(), "relative map file path from search directory")
+        ("agent_file_path,a", po::value<string>()->required(), "relative agent file path from search directory")
 		("num_agents,n", po::value<int>()->required(), "number of agents")
         ("high_level_suboptimality,sub", po::value<double>()->default_value(1.0), 
                     "high level suboptimality, default value of 1 is identical to CBS")
@@ -94,7 +94,6 @@ int main(int argc, char** argv) {
     std::cout << "Current path is : " << full_path.string() << std::endl;
 
     int num_agents = vm["num_agents"].as<int>();
-    bool useECBS = (vm["high_level_suboptimality"].as<double>() > 1.0);
     const string PATH_TO_WORKSPACE = full_path.string() + vm["workspace_path"].as<string>();
 
     MAPFInstance instance;
@@ -122,10 +121,10 @@ int main(int argc, char** argv) {
 
     // Now, use the action spaces to create the planner. The planner itself creates derived classes for each of the action spaces, called ConstrainedActionSpace.
     ims::CBS* planner;
+    bool useECBS = (vm["high_level_suboptimality"].as<double>() > 1.0);
     if (!useECBS) {
         // Construct the parameters.
         ims::CBSParams params;
-        params.low_level_heuristic_ptrs;
         for (int i {0}; i < num_agents; i++){
             params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
         }
@@ -134,7 +133,7 @@ int main(int argc, char** argv) {
     }
     else {
         ims::ECBSParams params;
-        params.low_level_heuristic_ptrs;
+        params.high_level_suboptimality = vm["high_level_suboptimality"].as<double>();
         for (int i {0}; i < num_agents; i++){
             params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
         }
