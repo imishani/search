@@ -80,6 +80,8 @@ struct ECBSParams : public CBSParams {
 
     /// @brief The weight of the number of conflicts in the f value of the high level nodes.
     double weight_num_conflicts = 1.0;
+
+    double high_level_suboptimality = 2.0;
 };
 
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
@@ -123,6 +125,22 @@ public:
     bool plan(MultiAgentPaths& paths);
 
 protected:
+
+    /// @brief The search state compare struct.
+    struct ECBSFocalCompare{
+        bool operator()(const SearchState& s1, const SearchState& s2) const{
+            if (s1.unresolved_conflicts.size() == s2.unresolved_conflicts.size()) {
+                if (s1.f == s2.f) {
+                    if (s1.g == s2.g) {
+                        return s1.state_id < s2.state_id;
+                    }
+                    return s1.g < s2.g;
+                }
+                return s1.f < s2.f;
+            }
+            return s1.unresolved_conflicts.size() < s2.unresolved_conflicts.size();
+        }
+    };
 
     /// @brief Generate descendents of a state, a key method in most search algorithms.
     /// @param state_id

@@ -7,3 +7,5 @@ cmake-build-rosrelease/
 cmake-build-rosdebug/
 build*/
 .vscode/
+
+domains/2d_mapf/datasets/

@@ -55,8 +55,9 @@
 
 int main(int argc, char** argv) {
 
-    if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <map_file> <num_agents> <scale> <path>" << std::endl;
+    if (argc < 5) {
+        std::cout << "Not enough arguments provided: Expected 4 but got " << argc-1 << std::endl;
+        std::cout << "Usage: " << argv[0] << " <map_file> <num_agents> <scale> <ECBS_suboptimality>" << std::endl;
         return 0;
     }
     std::vector<std::string> maps;
@@ -88,6 +89,7 @@ int main(int argc, char** argv) {
     int map_index = std::stoi(argv[1]);
     int num_agents = std::stoi(argv[2]);
     int scale = std::stoi(argv[3]);
+    double high_level_suboptimality = std::stod(argv[4]);
     std::string path = starts_goals_path[map_index];
     std::string map_file = maps[map_index];
 
@@ -109,6 +111,7 @@ int main(int argc, char** argv) {
     for (int i {0}; i < num_agents; i++){
         params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
     }
+    params.high_level_suboptimality = high_level_suboptimality;
 
     // Construct the scene and the action space.
     scene2DRob scene (map);

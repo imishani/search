@@ -41,6 +41,8 @@ ims::ECBS::ECBS(const ims::ECBSParams& params) : params_(params), CBS(params) {}
 void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
+    // open_ = new SimpleQueue<SearchState, SearchStateCompare>();
+    open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, ECBSFocalCompare>();
     agent_action_space_ptrs_ = action_space_ptrs;
 
     // Check if the inputs are valid.
@@ -109,10 +111,14 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
     double start_soc = std::accumulate(initial_paths_costs.begin(), initial_paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
     int start_num_conflicts = start_->unresolved_conflicts.size();
     start_->f = start_soc + params_.weight_num_conflicts * start_num_conflicts;
+    start_->sum_of_costs = start_soc;
     start_->setOpen();
 
     // Push the initial CBS state to the open list.
-    open_.push(start_);
+    open_->push(start_);
+    // Required to push into focal queue
+    // double lower_bound = open_->getLowerBound();
+    // open_->updateWithBound(params_.high_level_suboptimality * lower_bound);
 
     // Show the initial paths.
     std::cout << "Initial paths:" << std::endl;
@@ -137,15 +143,17 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
 bool ims::ECBS::plan(MultiAgentPaths& paths) {
     startTimer();
     int iter{0};
-    while (!open_.empty() && !isTimeOut()) {
+    double lower_bound = open_->getLowerBound();
+    open_->updateWithBound(params_.high_level_suboptimality * lower_bound);
+    while (!open_->empty() && !isTimeOut()) {
         // Report progress every 100 iterations
         if (iter % 1000 == 0) {
-            std::cout << "ECBS CT open size: " << open_.size() << std::endl;
+            std::cout << "ECBS CT open size: " << open_->size() << std::endl;
         }
 
         // Get the state of least cost.
-        auto state = open_.min();
-        open_.pop();
+        auto state = open_->min();
+        open_->pop();
 
         // Set the state to closed.
         state->setClosed();
@@ -167,6 +175,8 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
         expand(state->state_id);
         ++iter;
 
+        double lower_bound = open_->getLowerBound();
+        open_->updateWithBound(params_.high_level_suboptimality * lower_bound);
     }
     getTimeFromStart(stats_.time);
     return false;
@@ -174,6 +184,8 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
 
 void ims::ECBS::expand(int state_id) {
     auto state = getSearchState(state_id);
+    // std::cout << "Expanding state: soc = " << state->sum_of_costs << " f=" << state->f 
+    //             << " num_conflicts=" << state->unresolved_conflicts.size() << std::endl;
     std::vector<int> successors;
     std::vector<double> costs;
 
@@ -243,13 +255,13 @@ void ims::ECBS::expand(int state_id) {
         std::cout << "New state soc: " << new_state_soc << std::endl;
         std::cout << "New state num conflicts: " << new_state->unresolved_conflicts.size() << std::endl;
 
-        new_state->f = new_state_soc + params_.weight_num_conflicts * new_state->unresolved_conflicts.size(); /////////////////////////////////////////////
-
+        new_state->f = new_state_soc; // + params_.weight_num_conflicts * new_state->unresolved_conflicts.size(); /////////////////////////////////////////////
+        new_state->sum_of_costs = new_state_soc;
         // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
         new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
 
         // Push the new state to the open list.
-        open_.push(new_state);
+        open_->push(new_state);
         new_state->setOpen();
 
         // Delete the previous state but keep the entry in the states_ vector.
