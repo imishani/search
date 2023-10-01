@@ -42,6 +42,7 @@
 #include <search/planners/multi_agent/cbs.hpp>
 
 #include "collision_checker_2d.h"
+// #include <search/domains/2d_environment/collision_checker_2d.h>
 
 struct actionType2dRob : public ims::ActionType {
     actionType2dRob() : ims::ActionType() {
@@ -54,7 +55,6 @@ struct actionType2dRob : public ims::ActionType {
     }
 
     std::vector<Action> getPrimActions() override {
-        std::vector<Action> actions;
         return this->action_deltas;
     }
 

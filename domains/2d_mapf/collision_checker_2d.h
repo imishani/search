@@ -62,7 +62,7 @@ bool CollisionChecker2D::isCellValid(double row, double col) {
     if (row < 0 || row >= m_num_rows || col < 0 || col >= m_num_cols) {
         return false;
     }
-    return !m_occupancy_map[row][col];
+    return !m_occupancy_map[int(row)][int(col)];
 }
 
 double CollisionChecker2D::getCellCost(double row, double col) {
