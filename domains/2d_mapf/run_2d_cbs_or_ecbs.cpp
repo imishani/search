@@ -57,8 +57,8 @@
 
 
 /// Example runs:
-/// For custom datasets: ./run_2d_cbs_or_ecbs -m 6 -a ignore -n 4 -sub 1.1
-/// For mapf datasets: ./run_2d_cbs_or_ecbs --map_file_path=domains/2d_mapf/datasets/mapf-map/den312d.map 
+/// For custom datasets: ./run_2d_mapf_cbs_or_ecbs -m 6 -a ignore -n 4 -h 1.1
+/// For mapf datasets: ./run_2d_mapf_cbs_or_ecbs --map_file_path=domains/2d_mapf/datasets/mapf-map/den312d.map 
 ///                         -a domains/2d_mapf/datasets/scen-random/den312d-random-1.scen -n 10
 ///                         --high_level_suboptimality=1.5
 int main(int argc, char** argv) {
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
 		("map_file_path,m", po::value<string>()->required(), "relative map file path from search directory")
         ("agent_file_path,a", po::value<string>()->required(), "relative agent file path from search directory")
 		("num_agents,n", po::value<int>()->required(), "number of agents")
-        ("high_level_suboptimality,sub", po::value<double>()->default_value(1.0), 
+        ("high_level_suboptimality,-h", po::value<double>()->default_value(1.0), 
                     "high level suboptimality, default value of 1 is identical to CBS")
         ;
 
@@ -96,30 +96,25 @@ int main(int argc, char** argv) {
     int num_agents = vm["num_agents"].as<int>();
     const string PATH_TO_WORKSPACE = full_path.string() + vm["workspace_path"].as<string>();
 
+    // Load the instance, handles parsing the map and agent files.
     MAPFInstance instance;
     instance.loadInstanceFromArguments(PATH_TO_WORKSPACE, vm["map_file_path"].as<string>(), 
                                             vm["agent_file_path"].as<string>(), num_agents);
-
-    // Construct the planner.
-    std::cout << "Constructing planner..." << std::endl;
-
-    // Construct the scene and the action space.
-    actionType2dRob action_type;
-
-    // Construct the parameters.
     std::vector<StateType> start_state_vals = instance.getStartsWithTime();
     std::vector<StateType> goal_state_vals = instance.getGoalsWithTime();
 
-    // Now we have all the star and end configurations of the agents stored in start_state_vals and goal_state_vals.
+    // Now we have all the start and end configurations of the agents stored in start_state_vals and goal_state_vals.
     // Let's create an action space for each agent.
     std::cout << "Creating action spaces..." << std::endl;
+    actionType2dRob action_type;
     std::vector<std::shared_ptr<ims::ConstrainedActionSpace>> action_spaces;
     for (int i {0}; i < num_agents; i++){
         action_spaces.emplace_back(std::make_shared<ConstrainedActionSpace2dRob>(instance.getCC(), action_type));
         std::cout << "Action space " << i << " created." << std::endl;
     }
 
-    // Now, use the action spaces to create the planner. The planner itself creates derived classes for each of the action spaces, called ConstrainedActionSpace.
+    // Construct the planner.
+    std::cout << "Constructing planner..." << std::endl;
     ims::CBS* planner;
     bool useECBS = (vm["high_level_suboptimality"].as<double>() > 1.0);
     if (!useECBS) {
@@ -132,6 +127,7 @@ int main(int argc, char** argv) {
         planner = new ims::CBS(params);
     }
     else {
+        // Construct the parameters.
         ims::ECBSParams params;
         params.high_level_suboptimality = vm["high_level_suboptimality"].as<double>();
         for (int i {0}; i < num_agents; i++){
@@ -139,7 +135,6 @@ int main(int argc, char** argv) {
         }
         planner = new ims::ECBS(params);
     }
-    // ims::CBS planner(params);
     planner->initializePlanner(action_spaces, start_state_vals, goal_state_vals);
 
     // Plan.
@@ -174,8 +169,11 @@ int main(int argc, char** argv) {
     // Save the paths to a paths.yaml file.
     std::ofstream fout("paths.yaml");
     // Merge the full_path and the map path, adjusting for '../' in the map path.
-    std::string map_global_path = (boost::filesystem::weakly_canonical(boost::filesystem::current_path() / boost::filesystem::path(instance.m_map_file))).string();
-     
+    // std::string map_global_path = (boost::filesystem::weakly_canonical(boost::filesystem::current_path() / boost::filesystem::path(instance.m_map_file))).string();
+    string map_global_path = boost::filesystem::weakly_canonical(instance.m_map_file).string();
+    // string map_global_path = (boost::filesystem::weakly_canonical(boost::filesystem::current_path() / boost::filesystem::path(instance.m_map_file))).string();
+    
+
     fout << "map_path: \"" << map_global_path << "\"" << std::endl;
     fout << "paths: [ " << std::endl;
     for (int i {0}; i < num_agents; i++){

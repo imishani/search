@@ -18,7 +18,7 @@ public:
     string m_map_file;
     void loadInstanceFromArguments(const string& workspace_path, const string& map_file, 
                     const string& agent_file, int num_agents);
-    void loadCustomInstance(int map_index, int num_agents);
+    void loadCustomInstance(const string& workspace_path, int map_index, int num_agents);
     void loadBenchmarkInstance(const string& map_file, 
                 const string& agent_file, int num_agents);
 
@@ -54,7 +54,7 @@ vector<StateType> MAPFInstance::addToEnd(const vector<StateType>& states, double
 void MAPFInstance::loadInstanceFromArguments(const string& workspace_path,
                 const string& map_file, const string& agent_file, int num_agents) {
     if (is_number(map_file)) {
-        loadCustomInstance(std::stoi(map_file), num_agents);
+        loadCustomInstance(workspace_path, std::stoi(map_file), num_agents);
     }
     else {
         string map_path = workspace_path + map_file;
@@ -120,31 +120,31 @@ void MAPFInstance::loadBenchmarkInstance(const string& map_file,
 }
 
 const vector<string> idxToMapName = {
-    "../domains/2d_robot_nav/data/hrt201n/hrt201n.map",
-    "../domains/2d_robot_nav/data/den501d/den501d.map",
-    "../domains/2d_robot_nav/data/den520d/den520d.map",
-    "../domains/2d_robot_nav/data/ht_chantry/ht_chantry.map",
-    "../domains/2d_robot_nav/data/brc203d/brc203d.map",
-    "../domains/2d_mapf/data/corridor10/corridor10.map",
-    "../domains/2d_mapf/data/corridor20/corridor20.map",
-    "../domains/2d_mapf/data/clutter32/clutter32.map",
-    "../domains/2d_mapf/data/hallway_6/hallway_6.map"
+    "domains/2d_robot_nav/data/hrt201n/hrt201n.map",
+    "domains/2d_robot_nav/data/den501d/den501d.map",
+    "domains/2d_robot_nav/data/den520d/den520d.map",
+    "domains/2d_robot_nav/data/ht_chantry/ht_chantry.map",
+    "domains/2d_robot_nav/data/brc203d/brc203d.map",
+    "domains/2d_mapf/data/corridor10/corridor10.map",
+    "domains/2d_mapf/data/corridor20/corridor20.map",
+    "domains/2d_mapf/data/clutter32/clutter32.map",
+    "domains/2d_mapf/data/hallway_6/hallway_6.map"
 };
 const vector<string> idxToStartGoal = {
-    "../domains/2d_robot_nav/data/hrt201n/",
-    "../domains/2d_robot_nav/data/den501d/",
-    "../domains/2d_robot_nav/data/den520d/",
-    "../domains/2d_robot_nav/data/ht_chantry/",
-    "../domains/2d_robot_nav/data/brc203d/",
-    "../domains/2d_mapf/data/corridor10/",
-    "../domains/2d_mapf/data/corridor20/",
-    "../domains/2d_mapf/data/clutter32/",
-    "../domains/2d_mapf/data/hallway_6/"
+    "domains/2d_robot_nav/data/hrt201n/",
+    "domains/2d_robot_nav/data/den501d/",
+    "domains/2d_robot_nav/data/den520d/",
+    "domains/2d_robot_nav/data/ht_chantry/",
+    "domains/2d_robot_nav/data/brc203d/",
+    "domains/2d_mapf/data/corridor10/",
+    "domains/2d_mapf/data/corridor20/",
+    "domains/2d_mapf/data/clutter32/",
+    "domains/2d_mapf/data/hallway_6/"
 };
 
-void MAPFInstance::loadCustomInstance(int map_index, int num_agents) {
-    string path = idxToStartGoal[map_index];
-    m_map_file = idxToMapName[map_index];
+void MAPFInstance::loadCustomInstance(const string& workspace_path, int map_index, int num_agents) {
+    string path = workspace_path + idxToStartGoal[map_index];
+    m_map_file = workspace_path + idxToMapName[map_index];
 
     ///////////////////////// Load the map /////////////////////////
     m_collision_checker = std::make_shared<CollisionChecker2D>();
