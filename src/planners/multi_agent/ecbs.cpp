@@ -35,14 +35,20 @@
 #include <search/planners/wastar.hpp>
 #include <search/planners/multi_agent/ecbs.hpp>
 
-ims::ECBS::ECBS(const ims::ECBSParams& params) : params_(params), CBS(params) {}
+ims::ECBS::ECBS(const ims::ECBSParams& params) : params_(params), CBS(params) {
+    // Create the open list.
+    open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, ECBSFocalCompare>();
+}
 
 
 void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
-    // Store the action spaces. This must happen before checking for the validity of the start and end states.
-    // open_ = new SimpleQueue<SearchState, SearchStateCompare>();
+
+    // Create the open list. This list is created in the constructor and reset here.
+    delete open_;
     open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, ECBSFocalCompare>();
+
+    // Store the action spaces. This must happen before checking for the validity of the start and end states.
     agent_action_space_ptrs_ = action_space_ptrs;
 
     // Check if the inputs are valid.

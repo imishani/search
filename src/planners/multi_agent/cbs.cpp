@@ -35,11 +35,19 @@
 #include <search/planners/astar.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
 
-ims::CBS::CBS(const ims::CBSParams& params) : params_(params), BestFirstSearch(params) {}
+ims::CBSBase::CBSBase(const CBSParams& params): BestFirstSearch(params) {}
+
+ims::CBS::CBS(const ims::CBSParams& params) : params_(params), CBSBase(params) {
+    open_ = new SimpleQueue<SearchState, SearchStateCompare>();
+}
+
 
 void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
+    // Reset the open list. Do this by deleteing it and creating it again. TODO(yoraish): add `clear` method to our custom queues.
+    delete open_;
     open_ = new SimpleQueue<SearchState, SearchStateCompare>();
+
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
     agent_action_space_ptrs_ = action_space_ptrs;
 
@@ -101,20 +109,6 @@ void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSp
 
     // Push the initial CBS state to the open list.
     open_->push(start_);
-
-    // Show the initial paths.
-    std::cout << "Initial paths:" << std::endl;
-    for (auto& path : start_->paths) {
-        std::cout << "Agent " << path.first << ": \n";
-        for (auto state : path.second) {
-            std::cout << "    [";
-            for (auto val : state) {
-                std::cout << val << ", ";
-            }
-            std::cout << "], \n";
-        }
-        std::cout << std::endl;
-    }
 }
 
 void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
