@@ -42,7 +42,6 @@
 #include <search/planners/multi_agent/cbs.hpp>
 
 #include "collision_checker_2d.h"
-// #include <search/domains/2d_environment/collision_checker_2d.h>
 
 struct actionType2dRob : public ims::ActionType {
     actionType2dRob() : ims::ActionType() {
@@ -71,15 +70,13 @@ struct actionType2dRob : public ims::ActionType {
 
 class ConstrainedActionSpace2dRob : public ims::ConstrainedActionSpace {
 private:
-    // std::shared_ptr<scene2DRob> env_;
-    std::shared_ptr<CollisionChecker2D> m_cc2d;
+    std::shared_ptr<CollisionChecker2D> cc2d_;
     std::shared_ptr<actionType2dRob> action_type_;
 
 public:
     ConstrainedActionSpace2dRob(const std::shared_ptr<CollisionChecker2D>& cc2d,
                                 const actionType2dRob& actions_ptr) : ims::ConstrainedActionSpace() {
-        // this->env_ = std::make_shared<scene2DRob>(env);
-        this->m_cc2d = cc2d;
+        this->cc2d_ = cc2d;
         this->action_type_ = std::make_shared<actionType2dRob>(actions_ptr);
     }
 
@@ -109,16 +106,7 @@ public:
         // TODO: Change col row to row col
         double col = state_val[0];
         double row = state_val[1];
-        return m_cc2d->isCellValid(row, col);
-        // if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]) {
-        //     return false;
-        // }
-
-        // auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
-        // if (map_val == 100) {
-        //     return false;
-        // }
-        // return true;
+        return cc2d_->isCellValid(row, col);
     }
 
     bool isSatisfyingConstraints(const StateType& state_val, const StateType& next_state_val) {

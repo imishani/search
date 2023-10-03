@@ -6,30 +6,33 @@
 #include <search/common/types.hpp>
 #include "collision_checker_2d.h"
 
+/// @brief Helper class that loads MAPF instances from files.
+/// @note This class is used for loading the map and agents from a file.
+/// @note Handles parsing custom and benchmark instances.
 class MAPFInstance {
 private:
-    std::shared_ptr<CollisionChecker2D> m_collision_checker;
-    vector<StateType> m_starts;
-    vector<StateType> m_goals;
+    std::shared_ptr<CollisionChecker2D> collision_checker_;
+    vector<StateType> starts_;
+    vector<StateType> goals_;
 
     vector<StateType> addToEnd(const vector<StateType>& states, double val);
 
 public:
-    string m_map_file;
+    string map_file_;
     void loadInstanceFromArguments(const string& workspace_path, const string& map_file, 
                     const string& agent_file, int num_agents);
     void loadCustomInstance(const string& workspace_path, int map_index, int num_agents);
     void loadBenchmarkInstance(const string& map_file, 
                 const string& agent_file, int num_agents);
 
-    std::shared_ptr<CollisionChecker2D> getCC() {return m_collision_checker;}
-    vector<StateType> getRawStarts() {return m_starts;}
-    vector<StateType> getRawGoals() {return m_goals;}
-    vector<StateType> getStartsWithTime() {return addToEnd(m_starts, 0);}
-    vector<StateType> getGoalsWithTime() {return addToEnd(m_goals, -1);}
+    std::shared_ptr<CollisionChecker2D> getCC() {return collision_checker_;}
+    vector<StateType> getRawStarts() {return starts_;}
+    vector<StateType> getRawGoals() {return goals_;}
+    vector<StateType> getStartsWithTime() {return addToEnd(starts_, 0);}
+    vector<StateType> getGoalsWithTime() {return addToEnd(goals_, -1);}
 };
 
-/// @brief Returns if a string is a number or not
+/// @brief Returns if a string is a number or not.
 /// @param s 
 /// @return
 /// @note https://stackoverflow.com/questions/4654636/how-to-determine-if-a-string-is-a-number-with-c 
@@ -66,11 +69,11 @@ void MAPFInstance::loadInstanceFromArguments(const string& workspace_path,
 
 void MAPFInstance::loadBenchmarkInstance(const string& map_file, 
                                     const string& agent_file, int num_agents) {
-    m_map_file = map_file;
+    map_file_ = map_file;
 
     ///////////////////////// Load the map /////////////////////////
-    m_collision_checker = std::make_shared<CollisionChecker2D>();
-    m_collision_checker->loadMap(m_map_file);
+    collision_checker_ = std::make_shared<CollisionChecker2D>();
+    collision_checker_->loadMap(map_file_);
 
     ///////////////////////// Load the agents /////////////////////////
     /// Copied from EECBS Instance::loadAgents
@@ -99,11 +102,11 @@ void MAPFInstance::loadBenchmarkInstance(const string& map_file,
         int col = atoi((*beg).c_str());
         beg++;
         int row = atoi((*beg).c_str());
-        if (!m_collision_checker->isCellValid(row, col)) {
+        if (!collision_checker_->isCellValid(row, col)) {
             throw std::runtime_error("Error: goal " + std::to_string(row) 
                         + ", " + std::to_string(col) + " is not valid");
         }
-        m_starts.push_back({col*1.0, row*1.0});
+        starts_.push_back({col*1.0, row*1.0});
 
         // read goal [row,col] for agent i
         beg++;
@@ -111,11 +114,11 @@ void MAPFInstance::loadBenchmarkInstance(const string& map_file,
         beg++;
         row = atoi((*beg).c_str());
         // goal_locations[i] = linearizeCoordinate(row, col);
-        if (!m_collision_checker->isCellValid(row, col)) {
+        if (!collision_checker_->isCellValid(row, col)) {
             throw std::runtime_error("Error: goal " + std::to_string(row) 
                         + ", " + std::to_string(col) + " is not valid");
         }
-        m_goals.push_back({col*1.0, row*1.0});
+        goals_.push_back({col*1.0, row*1.0});
     }
 }
 
@@ -144,11 +147,11 @@ const vector<string> idxToStartGoal = {
 
 void MAPFInstance::loadCustomInstance(const string& workspace_path, int map_index, int num_agents) {
     string path = workspace_path + idxToStartGoal[map_index];
-    m_map_file = workspace_path + idxToMapName[map_index];
+    map_file_ = workspace_path + idxToMapName[map_index];
 
     ///////////////////////// Load the map /////////////////////////
-    m_collision_checker = std::make_shared<CollisionChecker2D>();
-    m_collision_checker->loadMap(m_map_file);
+    collision_checker_ = std::make_shared<CollisionChecker2D>();
+    collision_checker_->loadMap(map_file_);
 
     ///////////////////////// Load the agents /////////////////////////
     std::ifstream starts_fin(path + "nav2d_starts.txt");
@@ -167,17 +170,17 @@ void MAPFInstance::loadCustomInstance(const string& workspace_path, int map_inde
             start.push_back(val_start);
             goal.push_back(val_goal);
         }
-        if (!m_collision_checker->isCellValid(start[1], start[0])) {
+        if (!collision_checker_->isCellValid(start[1], start[0])) {
             throw std::runtime_error("Error: start " + std::to_string(start[0]) 
                         + ", " + std::to_string(start[1]) + " is not valid");
         }
-        if (!m_collision_checker->isCellValid(goal[1], goal[0])) {
+        if (!collision_checker_->isCellValid(goal[1], goal[0])) {
             throw std::runtime_error("Error: goal " + std::to_string(goal[0]) 
                         + ", " + std::to_string(goal[1]) + " is not valid");
         }
 
-        m_starts.push_back(start);
-        m_goals.push_back(goal);
+        starts_.push_back(start);
+        goals_.push_back(goal);
 
         double cost, length;
         starts_fin >> cost;

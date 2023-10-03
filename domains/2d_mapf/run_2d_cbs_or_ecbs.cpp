@@ -52,7 +52,6 @@
 // Note(yoraish): Leaving quotation marks include since it is a local file for the example.
 #include "action_space_2d_rob.hpp"
 #include "../2d_robot_nav/utils.hpp"
-// #include "collision_checker_2d.h"
 #include "instance.h"
 
 
@@ -169,9 +168,9 @@ int main(int argc, char** argv) {
     // Save the paths to a paths.yaml file.
     std::ofstream fout("paths.yaml");
     // Merge the full_path and the map path, adjusting for '../' in the map path.
-    // std::string map_global_path = (boost::filesystem::weakly_canonical(boost::filesystem::current_path() / boost::filesystem::path(instance.m_map_file))).string();
-    string map_global_path = boost::filesystem::weakly_canonical(instance.m_map_file).string();
-    // string map_global_path = (boost::filesystem::weakly_canonical(boost::filesystem::current_path() / boost::filesystem::path(instance.m_map_file))).string();
+    // std::string map_global_path = (boost::filesystem::weakly_canonical(boost::filesystem::current_path() / boost::filesystem::path(instance.map_file_))).string();
+    string map_global_path = boost::filesystem::weakly_canonical(instance.map_file_).string();
+    // string map_global_path = (boost::filesystem::weakly_canonical(boost::filesystem::current_path() / boost::filesystem::path(instance.map_file_))).string();
     
 
     fout << "map_path: \"" << map_global_path << "\"" << std::endl;

@@ -38,17 +38,13 @@
 
 namespace ims {
 class SceneInterface {
-    public:
+public:
 
-        /// @brief Constructor
-        SceneInterface() = default;
+    /// @brief Constructor
+    SceneInterface() = default;
 
-        /// @brief Destructor
-        virtual ~SceneInterface() = default;
-
-//        /// @brief Initialize the scene
-//        virtual void initializeScene() = 0;
-
+    /// @brief Destructor
+    virtual ~SceneInterface() = default;
 };
 
 }
