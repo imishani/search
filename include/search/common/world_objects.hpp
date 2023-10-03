@@ -43,7 +43,8 @@
 
 enum class WorldObjectType{
     UNKNOWN,
-    SPHERE
+    SPHERE,
+    BOX
 };
 
 struct WorldObject{
@@ -62,6 +63,21 @@ struct SphereWorldObject : public WorldObject{
 
     SphereWorldObject(Eigen::Vector3d origin, double radius, std::string name) : origin(origin), radius(radius) {
         type = WorldObjectType::SPHERE;
+        this->name = name;
+    }
+};
+
+struct BoxWorldObject : public WorldObject{
+    Eigen::Vector3d origin;
+    Eigen::Vector3d size;
+    std::string name;
+
+    BoxWorldObject(Eigen::Vector3d origin, Eigen::Vector3d size) : origin(origin), size(size) {
+        type = WorldObjectType::BOX;
+    }
+
+    BoxWorldObject(Eigen::Vector3d origin, Eigen::Vector3d size, std::string name) : origin(origin), size(size) {
+        type = WorldObjectType::BOX;
         this->name = name;
     }
 };

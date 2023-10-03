@@ -123,6 +123,10 @@ void ims::EAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<int> 
         search_state->h = computeHeuristic(state_id);
         // Set the f value.
         search_state->f = search_state->g + params_.epsilon*search_state->h;
+        // Set the c value: collective conflict-inducing cost.
+        // double transition_c_cost = action_space_ptr_->getTransitionConflictCost(prev_state_id, state_id);
+        // search_state->c = getSearchState(search_state->parent_id)->c + transition_c_cost;
+
         // Add the state to the open list if it is not already there.
         // TODO(yoraish): does it makes sense to update states already in open? This may assign currently "good" state-parents to "bad" ones instead. For now, any state in open is not changed.
         if (!open_.contains(search_state)){
