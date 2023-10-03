@@ -63,7 +63,7 @@ public:
     /// @brief Destructor
     ~ConstrainedActionSpace() = default;
 
-
+    /// @brief If a given configuration is valid with respect to the constraints. 
     virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) = 0;
 
 };
