@@ -36,10 +36,12 @@ public:
     virtual T* min() const;
     virtual void pop();
     virtual void push(T* e);
+    virtual void update(T* e);
     virtual void erase(T* e);
     virtual bool contains(T* e) const;
     virtual bool empty() const;
     virtual size_t size() const;
+    virtual void clear();
 };
 
 } // namespace smpl

@@ -24,6 +24,12 @@ public:
     virtual void erase(T* e) = 0;
     virtual bool empty() const = 0;
     virtual size_t size() const = 0;
+    virtual void clear() = 0;
+
+    // /// @brief Updates the e_existing to e_new if e_new is better.
+    // /// @param e 
+    // /// @return true if e_new is better than e_existing.
+    // virtual bool isNewBetter(T* e_existing, T* e_new) = 0;
 
     /// @brief Updates the queue to only consider elements that satisfy the lower bound.
     /// @param lower_bound_threshold is the absolute value, not a suboptimality factor, queue
@@ -47,10 +53,10 @@ template <class T, class CompareMain>
 class SimpleQueue : public AbstractQueue<T> {
 private:
     smpl::IntrusiveHeapWrapper<T, CompareMain> m_open;
+    // CompareMain m_comp;
 
 public:
-    SimpleQueue() = default;
-    virtual ~SimpleQueue() = default;
+    // SimpleQueue(CompareMain comp) : m_comp(comp) {}
 
     virtual T* min() const override;
     virtual void pop() override;
@@ -58,6 +64,12 @@ public:
     virtual void erase(T* e) override;
     virtual bool empty() const override;
     virtual size_t size() const override;
+    virtual void clear() override;
+
+    // /// @brief Returns true if e_new is better than e_existing based on focal comparator.
+    // /// @param e_existing element in queue
+    // /// @param e_new element to compare against
+    // virtual bool isNewBetter(T* e_existing, T* e_new) override;
 
     /// @brief Updates the queue to only consider elements that satisfy the lower bound.
     /// @param lower_bound_threshold 
@@ -79,14 +91,26 @@ class FocalQueue : public AbstractQueue<T> {
 private:
     smpl::IntrusiveHeapWrapper<T, CompareMain> m_waitlist;
     smpl::IntrusiveHeapWrapper<T, CompareFocal> m_focal;
+    // CompareMain m_comp_main;
+    // CompareFocal m_comp_focal;
 
 public:
+    // FocalQueue(CompareMain comp_main, CompareFocal comp_focal)
+    //     : m_comp_main(comp_main), m_comp_focal(comp_focal) {}
+
     virtual T* min() const override;
     virtual void pop() override;
     virtual void push(T* e) override;
     virtual void erase(T* e) override;
     virtual bool empty() const override;
     virtual size_t size() const override;
+    virtual void clear() override;
+
+    // /// @brief Returns true if e_new is better than e_existing based on focal comparator.
+    // /// @param e_existing 
+    // /// @param e_new 
+    // /// @return 
+    // virtual bool isNewBetter(T* e_existing, T* e_new) override;
 
     /// @brief Updates queue to add more elements to focal list which satisfy lower bound threshold.
     /// @param lower_bound_threshold is the absolute value, not a suboptimality factor, queue
@@ -116,6 +140,7 @@ public:
     virtual void erase(T* e) override;
     virtual bool empty() const override;
     virtual size_t size() const override;
+    virtual void clear() override;
 
     /// @brief Updates focal queue to add more elements satisfying lower bound threshold.
     /// @param lower_bound_threshold is the absolute value, not a suboptimality factor, queue

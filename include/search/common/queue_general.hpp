@@ -39,6 +39,15 @@ size_t SimpleQueue<T, CompareMain>::size() const {
     return m_open.size();
 }
 
+template <class T, class CompareMain>
+void SimpleQueue<T, CompareMain>::clear() {
+    m_open.clear();
+}
+
+// template <class T, class CompareMain>
+// bool SimpleQueue<T, CompareMain>::isNewBetter(T* e_existing, T* e_new) {
+//     return m_comp(*e_new, *e_existing);
+// }
 
 template <class T, class CompareMain>
 void SimpleQueue<T, CompareMain>::updateWithBound(double lower_bound) {
@@ -86,6 +95,17 @@ template <class T, class CompareMain, class CompareFocal>
 size_t FocalQueue<T, CompareMain, CompareFocal>::size() const {
     return m_focal.size();
 }
+
+template <class T, class CompareMain, class CompareFocal>
+void FocalQueue<T, CompareMain, CompareFocal>::clear() {
+    m_focal.clear();
+    m_waitlist.clear();
+}
+
+// template <class T, class CompareMain, class CompareFocal>
+// bool FocalQueue<T, CompareMain, CompareFocal>::isNewBetter(T* e_existing, T* e_new) {
+//     return m_comp_focal(*e_new, *e_existing);
+// }
 
 template <class T, class CompareMain, class CompareFocal>
 void FocalQueue<T, CompareMain, CompareFocal>::updateWithBound(double lower_bound) {
@@ -138,6 +158,12 @@ bool FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::empty() const {
 template <class T, class CompareMain, class CompareFocal>
 size_t FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::size() const {
     return m_focalQ.size();
+}
+
+template <class T, class CompareMain, class CompareFocal>
+void FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::clear() {
+    m_anchorQ.clear();
+    m_focalQ.clear();
 }
 
 template <class T, class CompareMain, class CompareFocal>

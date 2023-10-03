@@ -39,6 +39,7 @@
 #include <vector>
 #include <limits>
 #include <unordered_map>
+#include <string>
 #include <boost/functional/hash.hpp>
 
 // Constants
@@ -65,6 +66,9 @@ const double PI = 3.14159265358979323846;
 #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
 
 // Typedefs
+using std::vector;
+using std::string;
+using std::unordered_map;
 using StateType = std::vector<double>;
 using PathType = std::vector<StateType>;
 using Action = std::vector<double>;
