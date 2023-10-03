@@ -69,7 +69,7 @@ namespace ims{
 
         friend class AStar; friend class wAStar;
         friend class BFS; friend class ARAStar;
-        friend class plannerZero; friend class CBS;
+        friend class plannerZero; friend class CBS; friend class CBSBase;
         friend class CBSPrivateGrids;
         friend class CBSSphere3d;
         friend class ECBS;

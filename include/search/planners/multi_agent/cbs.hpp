@@ -50,10 +50,10 @@
 #include <search/planners/wastar.hpp>
 #include <search/planners/best_first_search.hpp>
 #include <search/common/conflict_conversions.hpp>
+#include <search/common/queue_general.h>
 
 #include "search/action_space/constrained_action_space.hpp"
 
-#include <search/common/queue_general.h>
 
 namespace ims {
 
@@ -88,14 +88,43 @@ using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsColle
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
 /// @brief Base class for all CBS variants. Defines some required methods.
-class CBSBase {
-protected:
+class CBSBase: public BestFirstSearch {
 public:
     /// @brief Get the conflict types requested by the algorithm.
-    CBSBase() = default;
+    explicit CBSBase(const CBSParams& params);
     ~CBSBase() = default;
     /// @return The conflict types.
     virtual std::vector<ConflictType> getConflictTypes() = 0;
+
+protected:
+
+    // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
+    /// @brief The search state.
+    struct SearchState : public ims::BestFirstSearch::SearchState, public SearchStateLowerBoundMixin {
+        // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
+        MultiAgentPaths paths;
+
+        // The path costs.
+        std::unordered_map<int, double> paths_costs;
+        double sum_of_costs = 0.0;
+        std::unordered_map<int, std::vector<double>> paths_transition_costs;
+
+        // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
+        std::vector<std::shared_ptr<Conflict>> unresolved_conflicts = {};
+
+        // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
+        MultiAgentConstraintsCollective constraints_collectives;
+
+        /// @brief Required for FocalQueue
+        /// @return 
+        virtual double getLowerBound() const override {
+            assert(sum_of_costs > 0.0);
+            return sum_of_costs;
+        }
+    };
+
+    // The base CBS class holds an abstract queue. The queue is instantiated in the constructor of the derived classes and reset in the initializePlanner() method.
+    AbstractQueue<SearchState>* open_;
 };
 
 // ==========================
@@ -103,8 +132,9 @@ public:
 // ==========================
 /// @class CBS class.
 /// @brief The CBS algorithm.
-class CBS : public BestFirstSearch, public CBSBase {
+class CBS : public CBSBase {
 private:
+
 public:
     /// @brief Constructor
     /// @param params The parameters
@@ -133,43 +163,6 @@ public:
     bool plan(MultiAgentPaths& paths);
 
 protected:
-    // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
-    /// @brief The search state.
-    struct SearchState : public ims::BestFirstSearch::SearchState, public LowerBoundMixin {
-        // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
-        MultiAgentPaths paths;
-
-        // The path costs.
-        std::unordered_map<int, double> paths_costs;
-        double sum_of_costs = 0.0;
-
-        // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
-        std::vector<std::shared_ptr<Conflict>> unresolved_conflicts = {};
-
-        // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
-        MultiAgentConstraintsCollective constraints_collectives;
-
-        /// @brief Required for FocalQueue
-        /// @return 
-        virtual double getLowerBound() const override {
-            assert(sum_of_costs > 0.0);
-            return sum_of_costs;
-        }
-    };
-
-    /// @brief The open list. We set it to a deque for fast pop_front().
-    // using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-    // OpenList open_;
-
-    struct MainQueueCompare {
-        bool operator()(const SearchState& s1, const SearchState& s2) const {
-            if (s1.f == s2.f)
-                return s1.g < s2.g;
-            return s1.f < s2.f;
-        }
-    };
-    AbstractQueue<SearchState>* open_;
-    // SimpleQueue<SearchState, SearchStateCompare> open_;
 
     // The states that have been created.
     std::vector<SearchState*> states_;
