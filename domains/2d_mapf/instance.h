@@ -4,14 +4,14 @@
 #include <memory>
 #include <fstream>
 #include <search/common/types.hpp>
-#include "collision_checker_2d.h"
+#include "scene_interface_2d_grid.hpp"
 
 /// @brief Helper class that loads MAPF instances from files.
 /// @note This class is used for loading the map and agents from a file.
 /// @note Handles parsing custom and benchmark instances.
 class MAPFInstance {
 private:
-    std::shared_ptr<CollisionChecker2D> collision_checker_;
+    std::shared_ptr<SceneInterface2DGrid> collision_checker_;
     vector<StateType> starts_;
     vector<StateType> goals_;
 
@@ -25,7 +25,7 @@ public:
     void loadBenchmarkInstance(const string& map_file, 
                 const string& agent_file, int num_agents);
 
-    std::shared_ptr<CollisionChecker2D> getCC() {return collision_checker_;}
+    std::shared_ptr<SceneInterface2DGrid> getSceneInterface2D() {return collision_checker_;}
     vector<StateType> getRawStarts() {return starts_;}
     vector<StateType> getRawGoals() {return goals_;}
     vector<StateType> getStartsWithTime() {return addToEnd(starts_, 0);}
@@ -72,7 +72,7 @@ void MAPFInstance::loadBenchmarkInstance(const string& map_file,
     map_file_ = map_file;
 
     ///////////////////////// Load the map /////////////////////////
-    collision_checker_ = std::make_shared<CollisionChecker2D>();
+    collision_checker_ = std::make_shared<SceneInterface2DGrid>();
     collision_checker_->loadMap(map_file_);
 
     ///////////////////////// Load the agents /////////////////////////
@@ -150,7 +150,7 @@ void MAPFInstance::loadCustomInstance(const string& workspace_path, int map_inde
     map_file_ = workspace_path + idxToMapName[map_index];
 
     ///////////////////////// Load the map /////////////////////////
-    collision_checker_ = std::make_shared<CollisionChecker2D>();
+    collision_checker_ = std::make_shared<SceneInterface2DGrid>();
     collision_checker_->loadMap(map_file_);
 
     ///////////////////////// Load the agents /////////////////////////

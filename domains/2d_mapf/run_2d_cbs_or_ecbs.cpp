@@ -108,13 +108,13 @@ int main(int argc, char** argv) {
     actionType2dRob action_type;
     std::vector<std::shared_ptr<ims::ConstrainedActionSpace>> action_spaces;
     for (int i {0}; i < num_agents; i++){
-        action_spaces.emplace_back(std::make_shared<ConstrainedActionSpace2dRob>(instance.getCC(), action_type));
+        action_spaces.emplace_back(std::make_shared<ConstrainedActionSpace2dRob>(instance.getSceneInterface2D(), action_type));
         std::cout << "Action space " << i << " created." << std::endl;
     }
 
     // Construct the planner.
     std::cout << "Constructing planner..." << std::endl;
-    ims::CBS* planner;
+    ims::CBS* planner; // Required to make a pointer for changing between CBS/ECBS using inheritance.
     bool useECBS = (vm["high_level_suboptimality"].as<double>() > 1.0);
     if (!useECBS) {
         // Construct the parameters.

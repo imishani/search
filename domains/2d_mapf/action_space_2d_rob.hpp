@@ -38,10 +38,9 @@
 #include "search/action_space/action_space.hpp"
 #include <search/common/conflicts.hpp>
 #include "search/action_space/constrained_action_space.hpp"
-#include <search/common/scene_interface.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
 
-#include "collision_checker_2d.h"
+#include "scene_interface_2d_grid.hpp"
 
 struct actionType2dRob : public ims::ActionType {
     actionType2dRob() : ims::ActionType() {
@@ -70,11 +69,11 @@ struct actionType2dRob : public ims::ActionType {
 
 class ConstrainedActionSpace2dRob : public ims::ConstrainedActionSpace {
 private:
-    std::shared_ptr<CollisionChecker2D> cc2d_;
+    std::shared_ptr<SceneInterface2DGrid> cc2d_;
     std::shared_ptr<actionType2dRob> action_type_;
 
 public:
-    ConstrainedActionSpace2dRob(const std::shared_ptr<CollisionChecker2D>& cc2d,
+    ConstrainedActionSpace2dRob(const std::shared_ptr<SceneInterface2DGrid>& cc2d,
                                 const actionType2dRob& actions_ptr) : ims::ConstrainedActionSpace() {
         this->cc2d_ = cc2d;
         this->action_type_ = std::make_shared<actionType2dRob>(actions_ptr);
