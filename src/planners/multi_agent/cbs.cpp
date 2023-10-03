@@ -39,11 +39,19 @@
 // Global for cbs or not.
 bool IS_CONFLICT_CREATION_CBS = true;
 
-ims::CBS::CBS(const ims::CBSParams& params) : params_(params), BestFirstSearch(params) {}
+ims::CBSBase::CBSBase(const CBSParams& params): BestFirstSearch(params) {}
+
+ims::CBS::CBS(const ims::CBSParams& params) : params_(params), CBSBase(params) {
+    open_ = new SimpleQueue<SearchState, SearchStateCompare>();
+}
+
 
 void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
+    // Reset the open list. Do this by deleteing it and creating it again. TODO(yoraish): add `clear` method to our custom queues.
+    delete open_;
     open_ = new SimpleQueue<SearchState, SearchStateCompare>();
+
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
     agent_action_space_ptrs_ = action_space_ptrs;
 
@@ -119,7 +127,7 @@ void ims::CBS::createRootInOpenList(){
     // <<< REMOVE REMOVE REMOVE
 
     // Push the initial CBS state to the open list.
-    open_.push(start_);
+    open_->push(start_);
 }
 
 void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
@@ -151,7 +159,7 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
     while (!open_->empty() && !isTimeOut()) {
         // Report progress every 100 iterations
         if (iter % 10 == 0) {
-            std::cout << "CBS CT open size: " << open_.size() << std::endl;
+            std::cout << "CBS CT open size: " << open_->size() << std::endl;
         }
 
         // Get the state of least cost.
