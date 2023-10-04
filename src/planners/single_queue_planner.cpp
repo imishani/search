@@ -10,13 +10,7 @@ void SingleQueuePlanner::initializePlanner(const std::shared_ptr<ActionSpace> &a
     // Clear both.
     action_space_ptr_->resetPlanningData();
     resetPlanningData();
-
-    // Create queue if it doesn't exist, clear if it does.
-    if (main_queue_ == nullptr) {
-        createQueue();
-    } else {
-        main_queue_->clear();
-    }
+    main_queue_->clear();
 
     if (goals.empty() || starts.empty()) {
         throw std::runtime_error("Starts or goals are empty");
@@ -65,7 +59,7 @@ bool SingleQueuePlanner::plan(std::vector<StateType>& path) {
             addToExpanded(state);
         }
 
-        if (isGoalState(state->robot_state_id)){
+        if (isGoalState(state)){
             // getTimeFromStart(stats_.time);
             reconstructPath(state->search_id, path);
             // stats_.cost = state->g;

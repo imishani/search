@@ -17,7 +17,9 @@ public:
     };
 
     explicit SQWAStar(SQWAStarParams* params) : 
-        m_params_(params), heuristic_(params->heuristic) {}
+            m_params_(params), heuristic_(params->heuristic) {
+        createQueue();
+    }
 
 
 protected:
@@ -38,17 +40,6 @@ protected:
             return f1 < f2;
         }
     };
-
-    // void populateSearchState(GenericSearchState* state, 
-    //                     GenericSearchState* parent, double cost) override {
-    //     WAStarSearchState* ss = dynamic_cast<WAStarSearchState*>(state);
-    //     if (ss == nullptr) {
-    //         throw std::runtime_error("GenericSearchState to WAStarSearchState cast failed");
-    //     }
-    //     StateType robot_state = action_space_ptr_->getRobotState(state->robot_state_id)->state;
-    //     heuristic_->getHeuristic(robot_state, ss->h); // Populates ss->h with heuristic value.
-    //     ss->f = ss->g + m_params_->heuristic_weight * ss->h;
-    // }
 
     GenericSearchState* createNewSearchState(int robot_state_id,
                                         GenericSearchState* parent, double cost) override {

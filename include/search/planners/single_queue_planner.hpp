@@ -64,8 +64,8 @@ protected:
     virtual bool skipAsAlreadyExpanded(GenericSearchState* state) = 0;
     virtual void addToExpanded(GenericSearchState* state) = 0;
     virtual void createQueue() = 0;
-    virtual bool isGoalState(int state_id) {
-        return std::find(goals_.begin(), goals_.end(), state_id) != goals_.end();
+    virtual bool isGoalState(GenericSearchState* state) {
+        return std::find(goals_.begin(), goals_.end(), state->robot_state_id) != goals_.end();
     }
 
 
