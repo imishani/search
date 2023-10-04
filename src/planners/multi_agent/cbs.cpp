@@ -219,10 +219,6 @@ void ims::CBS::expand(int state_id) {
 
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
         new_state->paths[agent_id].clear();
-        std::cout << "Replanning for agent " << agent_id << " with constraints: " << std::endl;
-        for (auto& constraint : new_state->constraints_collectives[agent_id].getConstraints()){
-            std::cout << constraint->toString() << std::endl;
-        }
         agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
         new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.cost;
         new_state->f = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
