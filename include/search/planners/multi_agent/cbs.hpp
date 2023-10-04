@@ -54,7 +54,6 @@
 
 #include "search/action_space/constrained_action_space.hpp"
 
-
 namespace ims {
 
 // ==========================
@@ -81,12 +80,18 @@ struct CBSParams : public BestFirstSearchParams {
     double weight_low_level_heuristic = 1.0;
 };
 
+// ==========================
+// Type definitions.
+// ==========================
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
 using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
 
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
+// ==========================
+// Related classes: CBSBase
+// ==========================
 /// @brief Base class for all CBS variants. Defines some required methods.
 class CBSBase: public BestFirstSearch {
 public:
@@ -123,7 +128,7 @@ protected:
         }
     };
 
-    // The base CBS class holds an abstract queue. The queue is instantiated in the constructor of the derived classes and reset in the initializePlanner() method.
+    // The base CBS class holds an abstract queue. The queue is instantiated in the constructor of the derived classes and reset in the initializePlanner() method of each derived class.
     AbstractQueue<SearchState>* open_;
 };
 
@@ -166,7 +171,6 @@ public:
     bool plan(MultiAgentPaths& paths);
 
 protected:
-
     // The states that have been created.
     std::vector<SearchState*> states_;
 

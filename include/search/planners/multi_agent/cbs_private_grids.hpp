@@ -50,6 +50,7 @@
 #include <search/planners/astar.hpp>
 #include <search/planners/best_first_search.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
+#include <search/common/conflict_conversions.hpp>
 
 #include "search/action_space/constrained_action_space.hpp"
 

@@ -156,7 +156,6 @@ protected:
     // The search parameters.
     ECBSParams params_;
 
-
 };
 
 }  // namespace ims
