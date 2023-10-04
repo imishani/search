@@ -70,11 +70,10 @@ namespace ims{
         friend class AStar; friend class wAStar; friend class EAwAStarUniformCost;
         friend class BFS; friend class ARAStar;
         friend class plannerZero; friend class CBS; friend class CBSBase;
-        friend class CBSPrivateGrids;
         friend class CBSSphere3d;
         friend class ECBS;
         friend class EACBS;
-        friend class EAECBS; friend class EAECBSPrivateGrids;
+        friend class EAECBS;
 
         /// @brief The search state.
         struct SearchState: public ims::SearchState {

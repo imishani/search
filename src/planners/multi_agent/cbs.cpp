@@ -181,7 +181,6 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
                                                         getConflictTypes()   ,
                                                         1, 
                                                         agent_names_);
-            std::cout << "Solution has " << state->unresolved_conflicts.size() << " conflicts" << std::endl;
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             ++get_paths_conflicts_counter;
             sum_of_get_path_conflict_time += std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
@@ -254,10 +253,6 @@ void ims::CBS::expand(int state_id) {
 
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
         new_state->paths[agent_id].clear();
-        std::cout << "Replanning for agent " << agent_id << " with constraints: " << std::endl;
-        for (auto& constraint : new_state->constraints_collectives[agent_id].getConstraints()){
-            std::cout << constraint->toString() << std::endl;
-        }
         agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
         new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.transition_costs;
         new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.cost;
