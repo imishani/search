@@ -22,8 +22,6 @@ add_library(search SHARED
         src/planners/arastar.cpp
         src/planners/bfs.cpp
         src/planners/multi_agent/cbs.cpp
-        src/planners/multi_agent/eacbs.cpp
-        src/planners/multi_agent/eaecbs.cpp
         src/planners/multi_agent/cbs_sphere3d.cpp
         src/planners/multi_agent/ecbs.cpp
         src/common/bfs3d.cpp
