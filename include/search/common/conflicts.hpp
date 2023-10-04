@@ -66,8 +66,12 @@ struct Conflict {
     /// @brief Getter method for all the member variables.
     // virtual std::vector<int> getMemberVariables() const = 0;
 
+    /// @brief Get a string describing the conflict.
+    virtual std::string toString() const = 0;
+
     /// @brief The type of the conflict.
     ConflictType type;
+
 };
 
 // ==========================
