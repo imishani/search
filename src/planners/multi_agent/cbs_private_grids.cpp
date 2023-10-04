@@ -52,16 +52,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             if (vertex_conflict_ptr == nullptr) {
                 throw std::runtime_error("Conflict is a vertex conflict, but could not be converted to a VertexConflict.");
             }
-
-            // For each affected agent (2, in CBS), create a new constraint, and down the line a search state for each as well.
-            for (int agent_id : vertex_conflict_ptr->agent_ids) {
-
-                // Create a new vertex constraint.
-                VertexConstraint constraint = VertexConstraint(vertex_conflict_ptr->state);
-
-                // Update the constraints collective to also include the new constraint.
-                agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexConstraint>(constraint)});
-            }
+            ims::conflict_conversions::vertexConflictToVertexConstraints(vertex_conflict_ptr, agent_constraints);
         }
 
         // ===========================
@@ -75,22 +66,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             if (edge_conflict_ptr == nullptr) {
                 throw std::runtime_error("Conflict is an edge conflict, but could not be converted to an EdgeConflict.");
             }
-
-            // We have exactly two affected agents. Call them agent_a and agent_b. The conflict is 'a' moving 'from_state' to 'to_state' and 'b' moving 'to_state' to 'from_state', with time decremented and incremented by 1, respectively.
-            int agent_a = edge_conflict_ptr->agent_id_from;
-            int agent_b = edge_conflict_ptr->agent_id_to;
-
-            // Create a new edge constraint.
-            EdgeConstraint constraint_a = EdgeConstraint(edge_conflict_ptr->from_state, edge_conflict_ptr->to_state);
-            StateType from_state_b = edge_conflict_ptr->to_state;
-            from_state_b.back() -= 1;
-            StateType to_state_b = edge_conflict_ptr->from_state;
-            to_state_b.back() += 1;
-            EdgeConstraint constraint_b = EdgeConstraint(from_state_b, to_state_b);
-
-            // Add to the constraints object.
-            agent_constraints.emplace_back(agent_a, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint_a)});
-            agent_constraints.emplace_back(agent_b, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint_b)});
+            ims::conflict_conversions::edgeConflictToEdgeConstraints(edge_conflict_ptr, agent_constraints);
         }
 
         // ===========================

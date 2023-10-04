@@ -35,6 +35,9 @@
 #ifndef SEARCH_COMMON_CONFLICT_CONVERSIONS_HPP
 #define SEARCH_COMMON_CONFLICT_CONVERSIONS_HPP
 
+// General includes.
+#include <iostream> 
+
 // Project includes.
 #include <search/common/conflicts.hpp>
 #include <search/common/constraints.hpp>

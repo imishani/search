@@ -276,7 +276,7 @@ public:
                     if (paths->at(i)[t_i][0] == paths->at(j)[t_j][0] && paths->at(i)[t_i][1] == paths->at(j)[t_j][1]) {
                         // If they are, then add a conflict to the vector.
                         StateType conflict_state = {paths->at(i)[t_i][0], paths->at(i)[t_i][1], (double)t};
-                        std::shared_ptr<ims::VertexConflict> conflict_ptr = std::make_shared<ims::VertexConflict>(conflict_state, std::vector<int>{i, j});
+                        std::shared_ptr<ims::VertexConflict> conflict_ptr = std::make_shared<ims::VertexConflict>(std::vector<StateType>{conflict_state, conflict_state}, std::vector<int>{i, j});
                         conflicts_ptrs.push_back(conflict_ptr);
 
                         if (conflicts_ptrs.size() >= max_conflicts) {
@@ -288,7 +288,19 @@ public:
                     if (t < paths->at(i).size() - 1 && t < paths->at(j).size() - 1) {
                         if (paths->at(i)[t][0] == paths->at(j)[t + 1][0] && paths->at(i)[t][1] == paths->at(j)[t + 1][1] && paths->at(i)[t + 1][0] == paths->at(j)[t][0] && paths->at(i)[t + 1][1] == paths->at(j)[t][1]) {
                             // If they are, then add a conflict to the vector.
-                            std::shared_ptr<ims::EdgeConflict> conflict = std::make_shared<ims::EdgeConflict>(paths->at(i)[t], paths->at(i)[t + 1], i, j);
+                            int agent_id_from = i;
+                            StateType conflict_state_i_from = {paths->at(i)[t][0], paths->at(i)[t][1], (double)t};
+                            StateType conflict_state_i_to = {paths->at(i)[t + 1][0], paths->at(i)[t + 1][1], (double)(t + 1)};
+
+                            int agent_id_to = j;
+                            StateType conflict_state_j_from = {paths->at(j)[t][0], paths->at(j)[t][1], (double)t};
+                            StateType conflict_state_j_to = {paths->at(j)[t + 1][0], paths->at(j)[t + 1][1], (double)(t + 1)};
+
+                            std::vector<StateType> states_from = {conflict_state_i_from, conflict_state_j_from};
+                            std::vector<StateType> states_to = {conflict_state_i_to, conflict_state_j_to};
+                            std::vector<int> agent_ids = {agent_id_from, agent_id_to};
+
+                            std::shared_ptr<ims::EdgeConflict> conflict = std::make_shared<ims::EdgeConflict>(states_from, states_to, agent_ids);
                             conflicts_ptrs.push_back(conflict);
 
                             if (conflicts_ptrs.size() >= max_conflicts) {
