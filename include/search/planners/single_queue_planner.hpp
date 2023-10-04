@@ -15,10 +15,13 @@ namespace ims{
 
 /// @class SingleQueuePlanner class.
 /// @brief A general planner that uses a single Queue class
-class SingleQueuePlanner : public Planner {
+class SingleQueuePlanner {
 public:
+    SingleQueuePlanner() = default;
+    virtual ~SingleQueuePlanner() = default;
+
     /// @brief The search state
-    struct GenericSearchState {
+    struct GenericSearchState : public LowerBoundMixin {
         int robot_state_id;
         int search_id;
         int parent_id;
@@ -27,6 +30,7 @@ public:
         GenericSearchState(int robot_state_id, int search_id, int parent_id, double g):
                 robot_state_id(robot_state_id), search_id(search_id), parent_id(parent_id), g(g) {}
         virtual ~GenericSearchState() = default;
+        virtual double getLowerBound() const override { return g; }
     };
 
     /// @brief Initialize the planner
@@ -57,11 +61,12 @@ protected:
     vector<GenericSearchState*> states_;
     AbstractQueue<GenericSearchState>* main_queue_ = nullptr;
 
-    virtual void populateSearchState(GenericSearchState* state, 
-                    GenericSearchState* parent, double cost) = 0;
     virtual bool skipAsAlreadyExpanded(GenericSearchState* state) = 0;
     virtual void addToExpanded(GenericSearchState* state) = 0;
     virtual void createQueue() = 0;
+    virtual bool isGoalState(int state_id) {
+        return std::find(goals_.begin(), goals_.end(), state_id) != goals_.end();
+    }
 
 
     /// @brief Get the state by id
@@ -70,13 +75,37 @@ protected:
     /// @note Use this function only if you are sure that the state exists.
     GenericSearchState* getSearchState(int state_id);
 
-    GenericSearchState* SingleQueuePlanner::createNewSearchState(int robot_state_id,
-                                        GenericSearchState* parent, double cost);
+    virtual GenericSearchState* createNewSearchState(int robot_state_id,
+                                        GenericSearchState* parent, double cost) = 0;
 
     /// @brief Expand the current state
     void expand(int state_id);
 
     void reconstructPath(int goal_state_id, std::vector<StateType>& path);
+
+    /////////////////////////////////////////
+    /////// Timing Functions ////////////////
+
+    /// @brief start the timer
+    void startTimer() { t_start_ = std::chrono::steady_clock::now(); }
+
+    void getTimeFromStart(double &elapsed_time) {
+        auto t_end = std::chrono::steady_clock::now();
+        double scaler = 1e9;
+        elapsed_time = (double)std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_start_).count();
+        elapsed_time /= scaler;
+    }
+
+    bool isTimeOut() {
+        double elapsed_time;
+        getTimeFromStart(elapsed_time);
+        return elapsed_time > time_limit_;
+    }
+    
+    double time_limit_ = 1000;
+    std::vector<int> goals_;
+    std::chrono::time_point<std::chrono::steady_clock> t_start_;
+    std::shared_ptr<ActionSpace> action_space_ptr_;
 };
 
 }  // namespace ims

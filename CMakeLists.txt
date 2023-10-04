@@ -30,6 +30,7 @@ add_library(search SHARED
         src/planners/egraph_wastar.cpp
         src/common/experience_graph.cpp
         src/common/conflict_conversions.cpp
+        src/planners/single_queue_planner.cpp
 )
 
 set($(PROJECT_NAME)_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
@@ -59,6 +60,9 @@ target_link_libraries(run_2d_rob_nav_bfs search ${OpenCV_LIBS} ${Boost_LIBRARIES
 
 add_executable(run_2d_rob_nav_wastar domains/2d_robot_nav/run_2d_wastar.cpp)
 target_link_libraries(run_2d_rob_nav_wastar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+
+add_executable(run_2d_rob_nav_sq_wastar domains/2d_robot_nav/run_2d_sq_wastar.cpp)
+target_link_libraries(run_2d_rob_nav_sq_wastar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
 add_executable(run_2d_rob_nav_arastar domains/2d_robot_nav/run_2d_arastar.cpp)
 target_link_libraries(run_2d_rob_nav_arastar search ${OpenCV_LIBS} ${Boost_LIBRARIES})

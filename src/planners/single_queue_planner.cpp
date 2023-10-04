@@ -30,7 +30,7 @@ void SingleQueuePlanner::initializePlanner(const std::shared_ptr<ActionSpace> &a
     }
     int goal_robot_state_id = action_space_ptr_->getOrCreateRobotState(goals[0]);
     GenericSearchState* goal_ = createNewSearchState(goal_robot_state_id, nullptr, 0);
-    // goals_.push_back(goal_->search_id);
+    goals_.push_back(goal_->robot_state_id);
     goal_->parent_id = PARENT_TYPE(GOAL);
 
 
@@ -42,7 +42,6 @@ void SingleQueuePlanner::initializePlanner(const std::shared_ptr<ActionSpace> &a
         // Evaluate the start state
         int start_robot_state_ind_ = action_space_ptr_->getOrCreateRobotState(start);
         GenericSearchState* start_ss = createNewSearchState(start_robot_state_ind_, nullptr, 0);
-        // auto start_ = getOrCreateSearchState(start_ind_);
         start_ss->parent_id = PARENT_TYPE(START);
         start_ss->g = 0;
         main_queue_->push(start_ss);
@@ -54,7 +53,7 @@ bool SingleQueuePlanner::plan(std::vector<StateType>& path) {
     int iter {0};
     while (!main_queue_->empty() && !isTimeOut()){
         // report progress every 1000 iterations
-        if (iter % 100000 == 0){
+        if (iter % 100 == 0){
             std::cout << "open size: " << main_queue_->size() << std::endl;
         }
         GenericSearchState* state = main_queue_->min();
@@ -66,18 +65,18 @@ bool SingleQueuePlanner::plan(std::vector<StateType>& path) {
             addToExpanded(state);
         }
 
-        if (isGoalState(state->search_id)){
-            getTimeFromStart(stats_.time);
+        if (isGoalState(state->robot_state_id)){
+            // getTimeFromStart(stats_.time);
             reconstructPath(state->search_id, path);
-            stats_.cost = state->g;
-            stats_.path_length = (int)path.size();
-            stats_.num_generated = (int)action_space_ptr_->states_.size();
+            // stats_.cost = state->g;
+            // stats_.path_length = (int)path.size();
+            // stats_.num_generated = (int)action_space_ptr_->states_.size();
             return true;
         }
         expand(state->search_id);
         ++iter;
     }
-    getTimeFromStart(stats_.time);
+    // getTimeFromStart(stats_.time);
     return false;
 }
 
@@ -96,7 +95,7 @@ void SingleQueuePlanner::expand(int search_id){
         GenericSearchState* successor = createNewSearchState(robot_state_id, state, cost);
 
         // Skip if we have expanded better version of this search state
-        if (params_->skipAsAlreadyExpanded(successor)) {
+        if (skipAsAlreadyExpanded(successor)) {
             // delete successor; // Would want to do this but will cause issues with state_.
             continue;
         }
@@ -104,7 +103,7 @@ void SingleQueuePlanner::expand(int search_id){
             main_queue_->push(successor);
         }
     }
-    stats_.num_expanded++;
+    // stats_.num_expanded++;
 }
 
 
@@ -124,9 +123,11 @@ void SingleQueuePlanner::resetPlanningData(){
         delete state_;
     }
     states_.clear();
-    main_queue_->clear();
+    if (main_queue_ != nullptr) {
+        main_queue_->clear();
+    }
     goals_.clear();
-    stats_ = PlannerStats();
+    // stats_ = PlannerStats();
 }
 
 SingleQueuePlanner::GenericSearchState* SingleQueuePlanner::getSearchState(int state_id) {
@@ -134,23 +135,22 @@ SingleQueuePlanner::GenericSearchState* SingleQueuePlanner::getSearchState(int s
     return states_[state_id];
 }
 
-SingleQueuePlanner::GenericSearchState* SingleQueuePlanner::createNewSearchState(int robot_state_id,
-                                        GenericSearchState* parent, double cost) {
-    GenericSearchState* succ;
-    if (parent == nullptr) {
-        succ = new GenericSearchState(/*robot_state_id*/ robot_state_id, 
-                                /*search_id=*/ states_.size(), /*parent_id=*/ PARENT_TYPE(UNSET), 
-                                /*g=*/-1);
-    } else {
-        succ = new GenericSearchState(/*robot_state_id*/ robot_state_id, 
-                                /*search_id=*/ states_.size(), /*parent_id=*/ parent->search_id, 
-                                /*g=*/parent->g + cost);
-    }
-    // Populate here, specific per application. Requires casting here.
-    populateSearchState(succ, parent, cost);
-    states_.push_back(succ);
-    return succ;
-}
+// SingleQueuePlanner::GenericSearchState* SingleQueuePlanner::createNewSearchState(int robot_state_id,
+//                                         GenericSearchState* parent, double cost) {
+//     GenericSearchState* succ;
+//     if (parent == nullptr) {
+//         succ = new GenericSearchState(/*robot_state_id*/ robot_state_id, 
+//                                 /*search_id=*/ states_.size(), /*parent_id=*/ PARENT_TYPE(UNSET), 
+//                                 /*g=*/-1);
+//     } else {
+//         succ = new GenericSearchState(/*robot_state_id*/ robot_state_id, 
+//                                 /*search_id=*/ states_.size(), /*parent_id=*/ parent->search_id, 
+//                                 /*g=*/parent->g + cost);
+//     }
+//     // Populate here, specific per application. Requires casting here.
+//     states_.push_back(succ);
+//     return succ;
+// }
 
 
 } // namespace ims
