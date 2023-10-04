@@ -58,23 +58,6 @@ void vertexConflictToVertexConstraints(const VertexConflict * vertex_conflict_pt
 void edgeConflictToEdgeConstraints(const EdgeConflict * edge_conflict_ptr,
                                         std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
 
-
-/// @brief Convert a private grids vertex conflict to a vertex constraint.
-/// @param private_grids_vertex_conflict_ptr
-/// @return
-/// @note This function adds pairs of <agent_id, constraints> to the agent_constraints vector.
-void privateGridsVertexConflictToVertexConstraints(const PrivateGridsVertexConflict * private_grids_vertex_conflict_ptr, 
-                                       std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
-
-
-/// @brief Convert a private grids edge conflict to an edge constraint.
-/// @param private_grids_edge_conflict_ptr
-/// @return
-/// @note This function adds pairs of <agent_id, constraints> to the agent_constraints vector.
-void privateGridsEdgeConflictToEdgeConstraints(const PrivateGridsEdgeConflict * private_grids_edge_conflict_ptr,
-                                        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
-
-
 /// @brief Convert a point3d conflict to a sphere3d constraint.
 /// @param private_grids_edge_conflict_ptr
 /// @return
