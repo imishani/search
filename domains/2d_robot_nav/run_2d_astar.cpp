@@ -106,8 +106,8 @@ int main(int argc, char** argv) {
     // initialize the heuristic
     ims::AStarParams params (heuristic);
     // construct the scene and the action space
-    scene2DRob scene (map);
-    actionType2dRob action_type;
+    Scene2DRob scene (map);
+    ActionType2dRob action_type;
     for (int i {0}; i < starts.size(); i++){
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;

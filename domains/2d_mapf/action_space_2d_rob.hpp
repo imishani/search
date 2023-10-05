@@ -38,24 +38,13 @@
 #include "search/action_space/action_space.hpp"
 #include <search/common/conflicts.hpp>
 #include "search/action_space/constrained_action_space.hpp"
-#include <search/common/scene_interface.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
 
-class scene2DRob : public ims::SceneInterface {
-public:
-    explicit scene2DRob(std::vector<std::vector<int>>& map_) : ims::SceneInterface() {
-        std::cout << "Creating scene with map of shape " << map_.size() << ", " << map_[0].size() << std::endl;
-        this->map = &map_;
-        this->map_size = {(*map).size(), (*map)[0].size()};
-    }
+#include "scene_interface_2d_rob.hpp"
 
-    std::vector<std::vector<int>>* map;
-    std::vector<size_t> map_size;
-};
-
-struct actionType2dRob : public ims::ActionType {
-    actionType2dRob() : ims::ActionType() {
-        this->name = "actionType2dRob";
+struct ActionType2dRob : public ims::ActionType {
+    ActionType2dRob() : ims::ActionType() {
+        this->name = "ActionType2dRob";
         this->num_actions = 5;
         this->action_names = {"N", "E", "S", "W", "Wait"};
         this->action_costs = {1, 1, 1, 1, 1};
@@ -64,7 +53,6 @@ struct actionType2dRob : public ims::ActionType {
     }
 
     std::vector<Action> getPrimActions() override {
-        std::vector<Action> actions;
         return this->action_deltas;
     }
 
@@ -81,14 +69,14 @@ struct actionType2dRob : public ims::ActionType {
 
 class ConstrainedActionSpace2dRob : public ims::ConstrainedActionSpace {
 private:
-    std::shared_ptr<scene2DRob> env_;
-    std::shared_ptr<actionType2dRob> action_type_;
+    std::shared_ptr<Scene2DRob> env_;
+    std::shared_ptr<ActionType2dRob> action_type_;
 
 public:
-    ConstrainedActionSpace2dRob(const scene2DRob& env,
-                                const actionType2dRob& actions_ptr) : ims::ConstrainedActionSpace() {
-        this->env_ = std::make_shared<scene2DRob>(env);
-        this->action_type_ = std::make_shared<actionType2dRob>(actions_ptr);
+    ConstrainedActionSpace2dRob(const std::shared_ptr<Scene2DRob>& env,
+                                const ActionType2dRob& actions_ptr) : ims::ConstrainedActionSpace() {
+        this->env_ = env;
+        this->action_type_ = std::make_shared<ActionType2dRob>(actions_ptr);
     }
 
     void getActions(int state_id,
@@ -114,15 +102,10 @@ public:
     }
 
     bool isStateValid(const StateType& state_val) override {
-        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]) {
-            return false;
-        }
-
-        auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
-        if (map_val == 100) {
-            return false;
-        }
-        return true;
+        // TODO: Change col row to row col
+        double col = state_val[0];
+        double row = state_val[1];
+        return env_->isCellValid(row, col);
     }
 
     bool isSatisfyingConstraints(const StateType& state_val, const StateType& next_state_val) {

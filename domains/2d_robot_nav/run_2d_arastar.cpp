@@ -97,8 +97,8 @@ int main(int argc, char** argv) {
     ims::ARAStarParams params (heuristic, init_epsilon, 10.0);
     params.ara_time_limit = 0.0005;
     // construct the scene and the action space
-    scene2DRob scene (map);
-    actionType2dRob action_type;
+    Scene2DRob scene (map);
+    ActionType2dRob action_type;
     for (int i {0}; i < starts.size(); i++){
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;

@@ -39,9 +39,9 @@
 #include <search/common/scene_interface.hpp>
 
 
-class scene2DRob : public ims::SceneInterface {
+class Scene2DRob : public ims::SceneInterface {
 public:
-    explicit scene2DRob(std::vector<std::vector<int>> &map_) : ims::SceneInterface(){
+    explicit Scene2DRob(std::vector<std::vector<int>> &map_) : ims::SceneInterface(){
         map = &map_;
         map_size = {map->size(), map[0].size()};
     }
@@ -50,10 +50,10 @@ public:
     std::vector<size_t> map_size;
 };
 
-struct actionType2dRob : public ims::ActionType {
+struct ActionType2dRob : public ims::ActionType {
 
-    actionType2dRob() : ims::ActionType() {
-        name = "actionType2dRob";
+    ActionType2dRob() : ims::ActionType() {
+        name = "ActionType2dRob";
         num_actions = 8;
         action_names = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
         action_costs = {1, 1.414, 1, 1.414, 1, 1.414, 1, 1.414};
@@ -80,14 +80,14 @@ struct actionType2dRob : public ims::ActionType {
 class actionSpace2dRob : public ims::ActionSpace {
 
 protected:
-    std::shared_ptr<scene2DRob> env_;
-    std::shared_ptr<actionType2dRob> action_type_;
+    std::shared_ptr<Scene2DRob> env_;
+    std::shared_ptr<ActionType2dRob> action_type_;
 
 public:
-    actionSpace2dRob(const scene2DRob& env,
-                     const actionType2dRob& actions_ptr) : ims::ActionSpace(){
-        this->env_ = std::make_shared<scene2DRob>(env);
-        this->action_type_ = std::make_shared<actionType2dRob>(actions_ptr);
+    actionSpace2dRob(const Scene2DRob& env,
+                     const ActionType2dRob& actions_ptr) : ims::ActionSpace(){
+        this->env_ = std::make_shared<Scene2DRob>(env);
+        this->action_type_ = std::make_shared<ActionType2dRob>(actions_ptr);
     }
 
     void getActions(int state_id,

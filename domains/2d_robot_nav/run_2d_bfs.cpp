@@ -98,8 +98,8 @@ int main(int argc, char** argv) {
     ims::BFSParams params;
 
     // Construct the scene and the action space.
-    scene2DRob scene (map);
-    actionType2dRob action_type;
+    Scene2DRob scene (map);
+    ActionType2dRob action_type;
 
     for (int i {0}; i < starts.size(); i++){
         // Round the start and goal to the nearest integer.

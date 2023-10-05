@@ -152,7 +152,7 @@ public:
     /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
     /// @param starts The start states for all agents.
     /// @param goals The goal states for all agents.
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
+    virtual void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                            const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief Initialize the planner and set the agent names.
@@ -160,7 +160,7 @@ public:
     /// @param agent_names The names of the agents.
     /// @param starts The start states for all agents.
     /// @param goals The goal states for all agents.
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    virtual void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief  Initialize the conflict tree. This is done by computing a single-agent path for each agent and storing them in a search state in the CT.
     virtual void createRootInOpenList();
@@ -168,7 +168,7 @@ public:
     /// @brief plan a path
     /// @param path The path
     /// @return whether the plan was successful or not
-    bool plan(MultiAgentPaths& paths);
+    virtual bool plan(MultiAgentPaths& paths);
 
 protected:
     // The states that have been created.
