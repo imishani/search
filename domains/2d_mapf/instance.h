@@ -1,17 +1,51 @@
+/*
+ * Copyright (C) 2023, Rishi V.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of the Carnegie Mellon University nor the names of its
+ *       contributors may be used to endorse or promote products derived from
+ *       this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+/*!
+ * \file   instance.hpp
+ * \author Rishi V. (...@cmu.edu)
+ * \date   Oct 04 2023
+ */
+
 #pragma once
 
 #include<boost/tokenizer.hpp> // For parsing
 #include <memory>
 #include <fstream>
 #include <search/common/types.hpp>
-#include "scene_interface_2d_grid.hpp"
+#include "scene_interface_2d_rob.hpp"
 
 /// @brief Helper class that loads MAPF instances from files.
 /// @note This class is used for loading the map and agents from a file.
 /// @note Handles parsing custom and benchmark instances.
 class MAPFInstance {
 private:
-    std::shared_ptr<SceneInterface2DGrid> collision_checker_;
+    std::shared_ptr<Scene2DRob> collision_checker_;
     vector<StateType> starts_;
     vector<StateType> goals_;
 
@@ -25,7 +59,7 @@ public:
     void loadBenchmarkInstance(const string& map_file, 
                 const string& agent_file, int num_agents);
 
-    std::shared_ptr<SceneInterface2DGrid> getSceneInterface2D() {return collision_checker_;}
+    std::shared_ptr<Scene2DRob> getSceneInterface2D() {return collision_checker_;}
     vector<StateType> getRawStarts() {return starts_;}
     vector<StateType> getRawGoals() {return goals_;}
     vector<StateType> getStartsWithTime() {return addToEnd(starts_, 0);}
@@ -72,7 +106,7 @@ void MAPFInstance::loadBenchmarkInstance(const string& map_file,
     map_file_ = map_file;
 
     ///////////////////////// Load the map /////////////////////////
-    collision_checker_ = std::make_shared<SceneInterface2DGrid>();
+    collision_checker_ = std::make_shared<Scene2DRob>();
     collision_checker_->loadMap(map_file_);
 
     ///////////////////////// Load the agents /////////////////////////
@@ -150,7 +184,7 @@ void MAPFInstance::loadCustomInstance(const string& workspace_path, int map_inde
     map_file_ = workspace_path + idxToMapName[map_index];
 
     ///////////////////////// Load the map /////////////////////////
-    collision_checker_ = std::make_shared<SceneInterface2DGrid>();
+    collision_checker_ = std::make_shared<Scene2DRob>();
     collision_checker_->loadMap(map_file_);
 
     ///////////////////////// Load the agents /////////////////////////

@@ -40,7 +40,7 @@
 #include "search/action_space/constrained_action_space.hpp"
 #include <search/planners/multi_agent/cbs.hpp>
 
-#include "scene_interface_2d_grid.hpp"
+#include "scene_interface_2d_rob.hpp"
 
 struct actionType2dRob : public ims::ActionType {
     actionType2dRob() : ims::ActionType() {
@@ -69,13 +69,13 @@ struct actionType2dRob : public ims::ActionType {
 
 class ConstrainedActionSpace2dRob : public ims::ConstrainedActionSpace {
 private:
-    std::shared_ptr<SceneInterface2DGrid> cc2d_;
+    std::shared_ptr<Scene2DRob> env_;
     std::shared_ptr<actionType2dRob> action_type_;
 
 public:
-    ConstrainedActionSpace2dRob(const std::shared_ptr<SceneInterface2DGrid>& cc2d,
+    ConstrainedActionSpace2dRob(const std::shared_ptr<Scene2DRob>& env,
                                 const actionType2dRob& actions_ptr) : ims::ConstrainedActionSpace() {
-        this->cc2d_ = cc2d;
+        this->env_ = env;
         this->action_type_ = std::make_shared<actionType2dRob>(actions_ptr);
     }
 
@@ -105,7 +105,7 @@ public:
         // TODO: Change col row to row col
         double col = state_val[0];
         double row = state_val[1];
-        return cc2d_->isCellValid(row, col);
+        return env_->isCellValid(row, col);
     }
 
     bool isSatisfyingConstraints(const StateType& state_val, const StateType& next_state_val) {

@@ -168,6 +168,7 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
             stats_.cost = state->f;
             paths = state->paths;
             stats_.num_expanded = iter;
+            stats_.suboptimality = params_.high_level_suboptimality;
             return true;
         }
 

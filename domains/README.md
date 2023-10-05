@@ -17,13 +17,13 @@ where:
 
 
 ## Example 2: 2D Conflict-Based Search (CBS)
-From your `build` directory, run the following to generate your solution. To run a custom map using int indexes for specific custom maps:
+From your `build` directory, run the following command to run the algorithm. To use a custom map, ( specified using integer identifiers) for specific custom maps:
 ```
 ./run_2d_mapf_cbs_or_ecbs -m 6 -a ignore -n 4 -h 1.1
 ```
-Or to run an mapf benchmark map, first download the maps and random scenarios from [Moving AI's MAPF benchmark](https://movingai.com/benchmarks/mapf.html). Create a `datasets` folder in 2d_mapf and unzip these files into `datasets/mapf-map/` and `datasets/scen-random/`. Then you should be able to run: 
+Or to run an mapf benchmark map, first download the maps and random scenarios from [Moving AI's MAPF benchmark](https://movingai.com/benchmarks/mapf.html). Create a `datasets` folder in 2d_mapf and unzip these files into `datasets/mapf-map/` and `datasets/scen-random/`. We provide an example already there. Then you should be able to run commands like:
 ```
-./run_2d_mapf_cbs_or_ecbs --map_file_path=domains/2d_mapf/datasets/mapf-map/den312d.map -a domains/2d_mapf/datasets/scen-random/den312d-random-1.scen -n 10 --high_level_suboptimality=1.5
+./run_2d_mapf_cbs_or_ecbs --map_file_path=domains/2d_mapf/datasets/mapf-map/Boston_0_256.map -a domains/2d_mapf/datasets/scen-random/Boston_0_256.map.scen -n 10 --high_level_suboptimality=1.5
 ```
 
 You can visualize it by then running
