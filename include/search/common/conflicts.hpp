@@ -96,7 +96,7 @@ struct VertexConflict : public Conflict {
 
     std::string toString() const override {
         std::string str = "Vertex conflict at states: ";
-        for (const auto& s : states) {
+        for (const StateType& s : states) {
             for (const auto& ss : s) {
                 str += std::to_string(ss) + " ";
             }
@@ -129,21 +129,21 @@ struct EdgeConflict : public Conflict {
 
     std::string toString() const override {
         std::string str = "Edge conflict at states: ";
-        for (const auto& s : from_states) {
+        for (const StateType& s : from_states) {
             for (const auto& ss : s) {
                 str += std::to_string(ss) + " ";
             }
             str += "and ";
         }
         str += "and ";
-        for (const auto& s : to_states) {
+        for (const StateType& s : to_states) {
             for (const auto& ss : s) {
                 str += std::to_string(ss) + " ";
             }
             str += "and ";
         }
         str += "for agents: ";
-        for (const auto& a : agent_ids) {
+        for (const int& a : agent_ids) {
             str += std::to_string(a) + " ";
         }
         return str;
