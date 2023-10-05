@@ -45,7 +45,7 @@
 /// @note Handles parsing custom and benchmark instances.
 class MAPFInstance {
 private:
-    std::shared_ptr<Scene2DRob> collision_checker_;
+    std::shared_ptr<Scene2DRob> scene_;
     vector<StateType> starts_;
     vector<StateType> goals_;
 
@@ -59,7 +59,7 @@ public:
     void loadBenchmarkInstance(const string& map_file, 
                 const string& agent_file, int num_agents);
 
-    std::shared_ptr<Scene2DRob> getSceneInterface2D() {return collision_checker_;}
+    std::shared_ptr<Scene2DRob> getSceneInterface2D() {return scene_;}
     vector<StateType> getRawStarts() {return starts_;}
     vector<StateType> getRawGoals() {return goals_;}
     vector<StateType> getStartsWithTime() {return addToEnd(starts_, 0);}
@@ -100,14 +100,13 @@ void MAPFInstance::loadInstanceFromArguments(const string& workspace_path,
     }
 }
 
-
 void MAPFInstance::loadBenchmarkInstance(const string& map_file, 
                                     const string& agent_file, int num_agents) {
     map_file_ = map_file;
 
     ///////////////////////// Load the map /////////////////////////
-    collision_checker_ = std::make_shared<Scene2DRob>();
-    collision_checker_->loadMap(map_file_);
+    scene_ = std::make_shared<Scene2DRob>();
+    scene_->loadMap(map_file_);
 
     ///////////////////////// Load the agents /////////////////////////
     /// Copied from EECBS Instance::loadAgents
@@ -136,7 +135,7 @@ void MAPFInstance::loadBenchmarkInstance(const string& map_file,
         int col = atoi((*beg).c_str());
         beg++;
         int row = atoi((*beg).c_str());
-        if (!collision_checker_->isCellValid(row, col)) {
+        if (!scene_->isCellValid(row, col)) {
             throw std::runtime_error("Error: goal " + std::to_string(row) 
                         + ", " + std::to_string(col) + " is not valid");
         }
@@ -148,7 +147,7 @@ void MAPFInstance::loadBenchmarkInstance(const string& map_file,
         beg++;
         row = atoi((*beg).c_str());
         // goal_locations[i] = linearizeCoordinate(row, col);
-        if (!collision_checker_->isCellValid(row, col)) {
+        if (!scene_->isCellValid(row, col)) {
             throw std::runtime_error("Error: goal " + std::to_string(row) 
                         + ", " + std::to_string(col) + " is not valid");
         }
@@ -184,8 +183,8 @@ void MAPFInstance::loadCustomInstance(const string& workspace_path, int map_inde
     map_file_ = workspace_path + idxToMapName[map_index];
 
     ///////////////////////// Load the map /////////////////////////
-    collision_checker_ = std::make_shared<Scene2DRob>();
-    collision_checker_->loadMap(map_file_);
+    scene_ = std::make_shared<Scene2DRob>();
+    scene_->loadMap(map_file_);
 
     ///////////////////////// Load the agents /////////////////////////
     std::ifstream starts_fin(path + "nav2d_starts.txt");
@@ -204,11 +203,11 @@ void MAPFInstance::loadCustomInstance(const string& workspace_path, int map_inde
             start.push_back(val_start);
             goal.push_back(val_goal);
         }
-        if (!collision_checker_->isCellValid(start[1], start[0])) {
+        if (!scene_->isCellValid(start[1], start[0])) {
             throw std::runtime_error("Error: start " + std::to_string(start[0]) 
                         + ", " + std::to_string(start[1]) + " is not valid");
         }
-        if (!collision_checker_->isCellValid(goal[1], goal[0])) {
+        if (!scene_->isCellValid(goal[1], goal[0])) {
             throw std::runtime_error("Error: goal " + std::to_string(goal[0]) 
                         + ", " + std::to_string(goal[1]) + " is not valid");
         }

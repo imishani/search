@@ -42,9 +42,9 @@
 
 #include "scene_interface_2d_rob.hpp"
 
-struct actionType2dRob : public ims::ActionType {
-    actionType2dRob() : ims::ActionType() {
-        this->name = "actionType2dRob";
+struct ActionType2dRob : public ims::ActionType {
+    ActionType2dRob() : ims::ActionType() {
+        this->name = "ActionType2dRob";
         this->num_actions = 5;
         this->action_names = {"N", "E", "S", "W", "Wait"};
         this->action_costs = {1, 1, 1, 1, 1};
@@ -70,13 +70,13 @@ struct actionType2dRob : public ims::ActionType {
 class ConstrainedActionSpace2dRob : public ims::ConstrainedActionSpace {
 private:
     std::shared_ptr<Scene2DRob> env_;
-    std::shared_ptr<actionType2dRob> action_type_;
+    std::shared_ptr<ActionType2dRob> action_type_;
 
 public:
     ConstrainedActionSpace2dRob(const std::shared_ptr<Scene2DRob>& env,
-                                const actionType2dRob& actions_ptr) : ims::ConstrainedActionSpace() {
+                                const ActionType2dRob& actions_ptr) : ims::ConstrainedActionSpace() {
         this->env_ = env;
-        this->action_type_ = std::make_shared<actionType2dRob>(actions_ptr);
+        this->action_type_ = std::make_shared<ActionType2dRob>(actions_ptr);
     }
 
     void getActions(int state_id,

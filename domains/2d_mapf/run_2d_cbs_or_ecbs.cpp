@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
     // Now we have all the start and end configurations of the agents stored in start_state_vals and goal_state_vals.
     // Let's create an action space for each agent.
     std::cout << "Creating action spaces..." << std::endl;
-    actionType2dRob action_type;
+    ActionType2dRob action_type;
     std::vector<std::shared_ptr<ims::ConstrainedActionSpace>> action_spaces;
     for (int i {0}; i < num_agents; i++){
         action_spaces.emplace_back(std::make_shared<ConstrainedActionSpace2dRob>(instance.getSceneInterface2D(), action_type));
@@ -193,6 +193,7 @@ int main(int argc, char** argv) {
     fout << "]" << std::endl;
     fout.close();
 
+    delete planner;
     return 0;
 }
 
