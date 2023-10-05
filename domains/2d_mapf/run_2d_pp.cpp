@@ -114,8 +114,9 @@ int main(int argc, char** argv) {
     }
 
     // Construct the scene and the action space.
-    scene2DRob scene (map);
-    actionType2dRob action_type;
+    std::shared_ptr<Scene2DRob> scene = std::make_shared<Scene2DRob>();
+    scene->loadMap(map_file);
+    ActionType2dRob action_type;
 
     // Construct the parameters.
     std::vector<StateType> start_state_vals;
