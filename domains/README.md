@@ -17,11 +17,17 @@ where:
 
 
 ## Example 2: 2D Conflict-Based Search (CBS)
-From your `build` directory, run the following command:
+From your `build` directory, run the following command to run the algorithm. To use a custom map, ( specified using integer identifiers) for specific custom maps:
 ```
-./run_2d_mapf_cbs 6 4 1 && python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 2 && open paths.gif
+./run_2d_mapf_cbs_or_ecbs -m 6 -a ignore -n 4 -h 1.1
 ```
-OR
+Or to run an mapf benchmark map, first download the maps and random scenarios from [Moving AI's MAPF benchmark](https://movingai.com/benchmarks/mapf.html). Create a `datasets` folder in 2d_mapf and unzip these files into `datasets/mapf-map/` and `datasets/scen-random/`. We provide an example already there. Then you should be able to run commands like:
 ```
-./run_2d_mapf_cbs 6 4 1 && python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 2 && xdg-open paths.gif
+./run_2d_mapf_cbs_or_ecbs --map_file_path=domains/2d_mapf/datasets/mapf-map/Boston_0_256.map -a domains/2d_mapf/datasets/scen-random/Boston_0_256.map.scen -n 10 --high_level_suboptimality=1.5
 ```
+
+You can visualize it by then running
+```
+python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 2
+```
+and viewing `path.gif` in your build directory.
