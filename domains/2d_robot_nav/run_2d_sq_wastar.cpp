@@ -49,6 +49,7 @@
 #include "utils.hpp"
 
 #include "search/planners/single_queue_wastar.hpp"
+#include "search/planners/single_queue_focal.hpp"
 
 int main(int argc, char** argv) {
 
@@ -115,12 +116,15 @@ int main(int argc, char** argv) {
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
 
         std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
-        std::shared_ptr<actionSpace2dRob> ActionSpace2 = std::make_shared<actionSpace2dRob>(scene, action_type);
-        ims::SQWAStar::SQWAStarParams params (epsilon, heuristic);
+        // std::shared_ptr<actionSpace2dRob> ActionSpace2 = std::make_shared<actionSpace2dRob>(scene, action_type);
+        // ims::SQWAStar::SQWAStarParams params (epsilon, heuristic);
+        // ims::WAStarSettings params(epsilon, heuristic, ActionSpace);
+        ims::FocalSearchSettings params(epsilon, heuristic, ActionSpace);
         // construct planner
         // ims::wAStar planner(params);
         heuristic->setGoal(const_cast<StateType &>(goals[i]));
-        ims::SQWAStar planner(&params);
+        // ims::SQWAStar planner(&params);
+        ims::SingleQueuePlanner planner(&params);
         // catch the exception if the start or goal is not valid
         // try {
         planner.initializePlanner(ActionSpace, starts[i], goals[i]);

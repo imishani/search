@@ -23,7 +23,8 @@ void SingleQueuePlanner::initializePlanner(const std::shared_ptr<ActionSpace> &a
         throw std::runtime_error("Goal state is not valid");
     }
     int goal_robot_state_id = action_space_ptr_->getOrCreateRobotState(goals[0]);
-    GenericSearchState* goal_ = createNewSearchState(goal_robot_state_id, nullptr, 0);
+    GenericSearchState* goal_ = settings_->createNewSearchState(goal_robot_state_id, nullptr, 0);
+    addNewSearchState(goal_);
     goals_.push_back(goal_->robot_state_id);
     goal_->parent_id = PARENT_TYPE(GOAL);
 
@@ -35,7 +36,8 @@ void SingleQueuePlanner::initializePlanner(const std::shared_ptr<ActionSpace> &a
         }
         // Evaluate the start state
         int start_robot_state_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-        GenericSearchState* start_ss = createNewSearchState(start_robot_state_ind_, nullptr, 0);
+        GenericSearchState* start_ss = settings_->createNewSearchState(start_robot_state_ind_, nullptr, 0);
+        addNewSearchState(start_ss);
         start_ss->parent_id = PARENT_TYPE(START);
         start_ss->g = 0;
         main_queue_->push(start_ss);
@@ -53,10 +55,10 @@ bool SingleQueuePlanner::plan(std::vector<StateType>& path) {
         GenericSearchState* state = main_queue_->min();
         main_queue_->pop();
         // Skip if we have expanded better version of this search state
-        if (skipAsAlreadyExpanded(state)) {
+        if (settings_->skipAsAlreadyExpanded(state)) {
             continue;
         } else {
-            addToExpanded(state);
+            settings_->addToExpanded(state);
         }
 
         if (isGoalState(state)){
@@ -86,14 +88,15 @@ void SingleQueuePlanner::expand(int search_id){
     for (size_t i {0} ; i < successors.size() ; ++i){
         int robot_state_id = successors[i];
         double cost = costs[i];
-        GenericSearchState* successor = createNewSearchState(robot_state_id, state, cost);
-
+        GenericSearchState* successor = settings_->createNewSearchState(robot_state_id, state, cost);
+        
         // Skip if we have expanded better version of this search state
-        if (skipAsAlreadyExpanded(successor)) {
-            // delete successor; // Would want to do this but will cause issues with state_.
+        if (settings_->skipAsAlreadyExpanded(successor)) {
+            delete successor; // Remove as don't need, benefit of separate addSearchState()
             continue;
         }
         else {
+            addNewSearchState(successor);
             main_queue_->push(successor);
         }
     }
@@ -127,6 +130,11 @@ void SingleQueuePlanner::resetPlanningData(){
 SingleQueuePlanner::GenericSearchState* SingleQueuePlanner::getSearchState(int state_id) {
     assert(state_id < states_.size() && state_id >= 0);
     return states_[state_id];
+}
+
+void SingleQueuePlanner::addNewSearchState(GenericSearchState* search_state) {
+    search_state->setSearchId(states_.size());
+    states_.push_back(search_state);
 }
 
 // SingleQueuePlanner::GenericSearchState* SingleQueuePlanner::createNewSearchState(int robot_state_id,

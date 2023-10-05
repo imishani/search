@@ -13,13 +13,11 @@
 
 namespace ims{
 
+
 /// @class SingleQueuePlanner class.
 /// @brief A general planner that uses a single Queue class
 class SingleQueuePlanner {
 public:
-    SingleQueuePlanner() = default;
-    virtual ~SingleQueuePlanner() = default;
-
     /// @brief The search state
     struct GenericSearchState : public LowerBoundMixin {
         int robot_state_id;
@@ -27,11 +25,25 @@ public:
         int parent_id;
         double g;
 
-        GenericSearchState(int robot_state_id, int search_id, int parent_id, double g):
-                robot_state_id(robot_state_id), search_id(search_id), parent_id(parent_id), g(g) {}
+        GenericSearchState(int robot_state_id, int parent_id, double g):
+                robot_state_id(robot_state_id), parent_id(parent_id), g(g) {}
         virtual ~GenericSearchState() = default;
         virtual double getLowerBound() const override { return g; }
+        void setSearchId(int search_id) { this->search_id = search_id; }
     };
+
+    struct SingleQueueSettings {
+        virtual bool skipAsAlreadyExpanded(GenericSearchState* state) = 0;
+        virtual void addToExpanded(GenericSearchState* state) = 0;
+        virtual AbstractQueue<GenericSearchState>* createQueue() = 0;
+        virtual GenericSearchState* createNewSearchState(int robot_state_id,
+                                        GenericSearchState* parent, double cost) = 0;
+    };
+
+    SingleQueuePlanner(SingleQueueSettings* settings) : settings_(settings),
+                        main_queue_(settings->createQueue()) {}
+    virtual ~SingleQueuePlanner() = default;
+
 
     /// @brief Initialize the planner
     /// @param action_space_ptr The action space
@@ -57,14 +69,17 @@ public:
 
     void resetPlanningData();
 
-protected:
+private:
+    SingleQueueSettings* settings_;
+
+    double time_limit_ = 1000;
+    std::chrono::time_point<std::chrono::steady_clock> t_start_;
+    std::vector<int> goals_;
+    std::shared_ptr<ActionSpace> action_space_ptr_;
     vector<GenericSearchState*> states_;
     AbstractQueue<GenericSearchState>* main_queue_ = nullptr;
 
-    virtual bool skipAsAlreadyExpanded(GenericSearchState* state) = 0;
-    virtual void addToExpanded(GenericSearchState* state) = 0;
-    virtual void createQueue() = 0;
-    virtual bool isGoalState(GenericSearchState* state) {
+    bool isGoalState(GenericSearchState* state) {
         return std::find(goals_.begin(), goals_.end(), state->robot_state_id) != goals_.end();
     }
 
@@ -74,9 +89,7 @@ protected:
     /// @return The state
     /// @note Use this function only if you are sure that the state exists.
     GenericSearchState* getSearchState(int state_id);
-
-    virtual GenericSearchState* createNewSearchState(int robot_state_id,
-                                        GenericSearchState* parent, double cost) = 0;
+    void addNewSearchState(GenericSearchState* search_state);
 
     /// @brief Expand the current state
     void expand(int state_id);
@@ -102,10 +115,6 @@ protected:
         return elapsed_time > time_limit_;
     }
     
-    double time_limit_ = 1000;
-    std::vector<int> goals_;
-    std::chrono::time_point<std::chrono::steady_clock> t_start_;
-    std::shared_ptr<ActionSpace> action_space_ptr_;
 };
 
 }  // namespace ims
