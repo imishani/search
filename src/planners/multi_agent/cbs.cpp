@@ -49,9 +49,8 @@ ims::CBS::CBS(const ims::CBSParams& params) : params_(params), CBSBase(params) {
 void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
     // Reset the open list. Do this by deleteing it and creating it again. TODO(yoraish): add `clear` method to our custom queues.
-    delete open_;
-    open_ = new SimpleQueue<SearchState, SearchStateCompare>();
-
+    open_->clear();
+    
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
     agent_action_space_ptrs_ = action_space_ptrs;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023, Itamar Mishani
+ * Copyright (C) 2023, Yorai Shaoul
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,28 +27,27 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   best_first_search.hpp
- * \author Itamar Mishani (imishani@cmu.edu)
- * \date   3/29/23
-*/
+ * \file   focal_search.cpp
+ * \author Yorai Shaoul (yorai@cmu.edu)
+ * \date   Oct 05 2023
+ */
 
-#include <search/planners/best_first_search.hpp>
+#include <search/planners/focal_search/focal_search.hpp>
 
-
-ims::BestFirstSearch::BestFirstSearch(const BestFirstSearchParams &params) : Planner(params) {
+ims::FocalSearch::FocalSearch(const FocalSearchParams &params) : Planner(params), params_(params) {
     heuristic_ = params.heuristic_;
 }
 
-ims::BestFirstSearch::~BestFirstSearch() {
+ims::FocalSearch::~FocalSearch() {
     for (auto &state : states_) {
         delete state;
     }
 }
 
-void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpace> &action_space_ptr,
                                              const std::vector<StateType> &starts,
                                              const std::vector<StateType> &goals) {
-    // space pointer
+    // Action space pointer.
     action_space_ptr_ = action_space_ptr;
     // Clear both.
     action_space_ptr_->resetPlanningData();
@@ -77,15 +76,19 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> 
         start_->parent_id = PARENT_TYPE(START);
         heuristic_->setStart(const_cast<StateType &>(start));
         start_->g = 0;
+        start_->c = 0;
         start_->f = computeHeuristic(start_ind_);
         open_.push(start_);
         start_->setOpen();
     }
+
+    // Instantiate the duplicate states vector.
+    initializeDuplicateStatesVector();
 }
 
-void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpace>& action_space_ptr,
                                              const StateType& start, const StateType& goal) {
-    // space pointer
+    // Action space pointer.
     action_space_ptr_ = action_space_ptr;
     // Clear both.
     action_space_ptr_->resetPlanningData();
@@ -109,19 +112,25 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace>&
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
     heuristic_->setGoal(const_cast<StateType &>(goal));
-    // Evaluate the start state
+
+    // Evaluate the start state.
     start_->g = 0;
+    start_->c = 0;
     start_->f = computeHeuristic(start_ind_);
     open_.push(start_);
     start_->setOpen();
+
+
+    // Instantiate the duplicate states vector.
+    initializeDuplicateStatesVector();
 }
 
-auto ims::BestFirstSearch::getSearchState(int state_id) -> ims::BestFirstSearch::SearchState*{
+auto ims::FocalSearch::getSearchState(int state_id) -> ims::FocalSearch::SearchState*{
     assert(state_id < states_.size() && state_id >= 0);
     return states_[state_id];
 }
 
-auto ims::BestFirstSearch::getOrCreateSearchState(int state_id) -> ims::BestFirstSearch::SearchState * {
+auto ims::FocalSearch::getOrCreateSearchState(int state_id) -> ims::FocalSearch::SearchState * {
     if (state_id >= states_.size()){
         states_.resize(state_id + 1, nullptr);
     }
@@ -133,8 +142,50 @@ auto ims::BestFirstSearch::getOrCreateSearchState(int state_id) -> ims::BestFirs
     return states_[state_id];
 }
 
+auto ims::FocalSearch::getDuplicateSearchState(int duplicate_state_id) -> ims::FocalSearch::SearchState*{
+    assert(-duplicate_state_id < duplicate_states_.size() && duplicate_state_id < 0);
+    return duplicate_states_.at(-duplicate_state_id);
+}
 
-double ims::BestFirstSearch::computeHeuristic(int state_id) {
+ims::FocalSearch::SearchState* ims::FocalSearch::createDuplicateSearchStateFromAnchorId(int anchor_state_id){
+    // Determine the new search state id. It will be a negative number.
+    int new_duplicate_state_id = -1 * duplicate_states_.size();
+    duplicate_states_.resize(duplicate_states_.size() + 1, nullptr);
+
+    // Make sure that this id is not already in use.
+    assert(duplicate_states_[-new_duplicate_state_id] == nullptr);
+    
+    // Create a new search state.
+    auto new_duplicate_state = new SearchState;
+
+    // Set the new id of the state.
+    new_duplicate_state->state_id = new_duplicate_state_id;
+
+    // Add it to the list of duplicate states.
+    duplicate_states_[-new_duplicate_state_id] = new_duplicate_state;
+
+    // Update the map from duplicate state ids to anchor state ids.
+    state_id_to_anchor_state_id_[-new_duplicate_state_id] = anchor_state_id;
+
+    // Return the new state.
+    return duplicate_states_[-new_duplicate_state_id];
+}
+
+void ims::FocalSearch::setDuplicateStateVals(int duplicate_state_id, int parent_id, double cost, double subcost) {
+    auto duplicate_state = getDuplicateSearchState(duplicate_state_id);
+    duplicate_state->parent_id = parent_id;
+    duplicate_state->c = subcost;
+    duplicate_state->f = cost;
+}
+
+
+void ims::FocalSearch::initializeDuplicateStatesVector(){
+    // Populate the duplicate_states_vector with nullptrs for all the reserved negative-valued indices. TODO(yoraish): this is a hack.
+    int num_reserved_negative_state_ids = -PARENT_TYPE(UNSET) + 1;
+    duplicate_states_.resize(num_reserved_negative_state_ids, nullptr);
+}
+
+double ims::FocalSearch::computeHeuristic(int state_id) {
     double dist;
     auto s = action_space_ptr_->getRobotState(state_id);
     if (!heuristic_->getHeuristic(s->state, dist))
@@ -143,7 +194,7 @@ double ims::BestFirstSearch::computeHeuristic(int state_id) {
         return dist;
 }
 
-double ims::BestFirstSearch::computeHeuristic(int s1_id, int s2_id) {
+double ims::FocalSearch::computeHeuristic(int s1_id, int s2_id) {
     double dist;
     auto s1 = action_space_ptr_->getRobotState(s1_id);
     auto s2 = action_space_ptr_->getRobotState(s2_id);
@@ -154,7 +205,7 @@ double ims::BestFirstSearch::computeHeuristic(int s1_id, int s2_id) {
 }
 
 
-bool ims::BestFirstSearch::plan(std::vector<StateType>& path) {
+bool ims::FocalSearch::plan(std::vector<StateType>& path) {
     startTimer();
     int iter {0};
     while (!open_.empty() && !isTimeOut()){
@@ -162,9 +213,15 @@ bool ims::BestFirstSearch::plan(std::vector<StateType>& path) {
         if (iter % 100000 == 0){
             std::cout << "open size: " << open_.size() << std::endl;
         }
+        
+        // Get the state with the lowest f value from the open list and remove it.
         auto state  = open_.min();
         open_.pop();
+
+        // Set it to closed.
         state->setClosed();
+
+        // Check if this is a goal state.
         if (isGoalState(state->state_id)){
             goal_ = state->state_id;
             getTimeFromStart(stats_.time);
@@ -172,24 +229,43 @@ bool ims::BestFirstSearch::plan(std::vector<StateType>& path) {
             stats_.cost = state->g;
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();
+            stats_.focal_suboptimality = params_.focal_suboptimality;
             return true;
         }
+
+        // If it is not a goal state, then expand it.
         expand(state->state_id);
         ++iter;
+
+        // Reorder the open list.
+        double open_list_f_lower_bound = open_.getLowerBound();
+        open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
     }
+
     getTimeFromStart(stats_.time);
     return false;
 }
 
-void ims::BestFirstSearch::expand(int state_id){
+void ims::FocalSearch::expand(int state_id){
+
     auto state = getSearchState(state_id);
+    
     std::vector<int> successors;
-    std::vector<double> costs; // In this case we use the "cost" as the new f value
-    action_space_ptr_->getSuccessors(state->state_id, successors, costs);
+    // In this case we use the "cost" as the new f value and the "subcost" as the new c value.
+    // In other algorithms, the cost is a g-cost and it is added to the previous g value, and the subcost is similarly added to the previous c value.
+    std::vector<double> costs;  
+    std::vector<double> subcosts;
+    action_space_ptr_->getSuccessors(state->state_id, successors, costs, subcosts);
+    
     for (size_t i {0} ; i < successors.size() ; ++i){
         int successor_id = successors[i];
         double cost = costs[i];
+        double subcost = subcosts[i];
         auto successor = getOrCreateSearchState(successor_id);
+
+        // If the successor is already closed, skip it.
+        // Another variant of this algorithm would be to create a new search state for the successor and add it to the open list.
+
         if (successor->in_closed){
             continue;
         }
@@ -197,10 +273,11 @@ void ims::BestFirstSearch::expand(int state_id){
             if (successor->f > cost){
                 successor->parent_id = state->state_id;
                 successor->f = cost;
+                successor->c = subcost;
                 open_.update(successor);
             }
         } else {
-            setStateVals(successor->state_id, state->state_id, cost);
+            setStateVals(successor->state_id, state->state_id, cost, subcost);
             open_.push(successor);
             successor->setOpen();
         }
@@ -209,14 +286,15 @@ void ims::BestFirstSearch::expand(int state_id){
 }
 
 
-void ims::BestFirstSearch::setStateVals(int state_id, int parent_id, double cost) {
+void ims::FocalSearch::setStateVals(int state_id, int parent_id, double cost, double subcost) {
     auto state_ = getSearchState(state_id);
     state_->parent_id = parent_id;
+    state_->c = subcost;
     state_->f = cost;
 }
 
 
-void ims::BestFirstSearch::reconstructPath(std::vector<StateType>& path) {
+void ims::FocalSearch::reconstructPath(std::vector<StateType>& path) {
     SearchState* state = getSearchState(goal_);
     while (state->parent_id != -1){
         path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
@@ -227,7 +305,7 @@ void ims::BestFirstSearch::reconstructPath(std::vector<StateType>& path) {
 }
 
 
-void ims::BestFirstSearch::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
+void ims::FocalSearch::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
     path.clear();
     costs.clear();
 
@@ -249,7 +327,7 @@ void ims::BestFirstSearch::reconstructPath(std::vector<StateType>& path, std::ve
 }
 
 
-bool ims::BestFirstSearch::isGoalState(int s_id) {
+bool ims::FocalSearch::isGoalState(int s_id) {
     if (std::any_of(goals_.begin(), goals_.end(), [&s_id](int goal_ind) {return s_id == goal_ind;})){
         return true;
     }
@@ -261,7 +339,7 @@ bool ims::BestFirstSearch::isGoalState(int s_id) {
 }
 
 
-void ims::BestFirstSearch::resetPlanningData() {
+void ims::FocalSearch::resetPlanningData() {
     for (auto state : states_){
         delete state;
     }
@@ -270,5 +348,5 @@ void ims::BestFirstSearch::resetPlanningData() {
 
     goals_.clear();
     goal_ = -1;
-    stats_ = PlannerStats();
+    stats_ = FocalSearchPlannerStats();
 }

@@ -22,17 +22,19 @@ add_library(search SHARED
         src/planners/eawastar.cpp
         src/planners/arastar.cpp
         src/planners/bfs.cpp
+        src/planners/egraph_wastar.cpp
+        src/planners/focal_search/focal_search.cpp
+        src/planners/focal_search/focal_wastar.cpp
         src/planners/multi_agent/cbs.cpp
         src/planners/multi_agent/eacbs.cpp
         src/planners/multi_agent/eaecbs.cpp
         src/planners/multi_agent/cbs_sphere3d.cpp
         src/planners/multi_agent/ecbs.cpp
-        src/common/bfs3d.cpp
-        src/planners/egraph_wastar.cpp
         src/planners/multi_agent/prioritized_planning.cpp
         src/common/experience_graph.cpp
         src/common/conflict_conversions.cpp
-)
+        src/common/bfs3d.cpp
+        )
 
 set($(PROJECT_NAME)_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
 #set($(PROJECT_NAME)_INCLUDE_DIR include)
@@ -67,6 +69,9 @@ target_link_libraries(run_2d_rob_nav_arastar search ${OpenCV_LIBS} ${Boost_LIBRA
 
 add_executable(run_2d_rob_nav_wastar_local_heu domains/2d_robot_nav/run_2d_wastar_local_heu.cpp)
 target_link_libraries(run_2d_rob_nav_wastar_local_heu search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+
+add_executable(run_2d_rob_nav_wastar_focal domains/2d_robot_nav/run_2d_wastar_focal.cpp)
+target_link_libraries(run_2d_rob_nav_wastar_focal search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_cbs_or_ecbs domains/2d_mapf/run_2d_cbs_or_ecbs.cpp)
 target_link_libraries(run_2d_mapf_cbs_or_ecbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})

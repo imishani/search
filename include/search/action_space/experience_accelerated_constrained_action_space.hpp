@@ -48,16 +48,16 @@
 #include "search/common/conflicts.hpp"
 #include "search/common/experiences.hpp"
 #include <search/action_space/constrained_action_space.hpp>
-#include <search/action_space/action_space_experience_acceleratable_mixin.hpp>
+#include <search/action_space/experience_accelerated_action_space.hpp>
 
 namespace ims {
 
 /// @brief Base class for ActionSpaces with constraints.
 /// @details This is a constrained action space extended to be "Experience Acceleratable" using a mixin. We add this mixin to a constrained action space and not adding both the "Constrainable" and the "ExperienceAcceleratable" mixins separately because we want to make sure that this class could be a derived class from a constrained action space.
-class ExperienceAcceleratedConstrainedActionSpace : public ConstrainedActionSpace, public ActionSpaceExperienceAcceleratableMixin {
+class ExperienceAcceleratedConstrainedActionSpace : virtual public ConstrainedActionSpace, public ExperienceAcceleratedActionSpace {
 public:
     /// @brief Constructor.
-    explicit ExperienceAcceleratedConstrainedActionSpace(): ConstrainedActionSpace(), ActionSpaceExperienceAcceleratableMixin() {
+    explicit ExperienceAcceleratedConstrainedActionSpace(): ConstrainedActionSpace(), ExperienceAcceleratedActionSpace() {
         std::cout << "ExperienceAcceleratedConstrainedActionSpace: Constructor" << std::endl;
         experiences_collective_ptr_ = std::make_shared<ExperiencesCollective>();
     }
@@ -105,27 +105,7 @@ public:
         return state_id;
     }
 
-    // A method that guarantees any state passed does creates a new state_id or reuses one that is not the goal.
-    inline int getOrCreateRobotStateNonGoal(const StateType& state_val) {
-        // Check if the state exists
-        auto *curr_state = new ims::RobotState;
-
-        // If that failed, then we should check if the state exists at the current time.
-        curr_state->state = state_val;
-        auto it = state_to_id_.find(curr_state);
-        if (it != state_to_id_.end()) {
-            delete curr_state;
-            return it->second;
-        }
-
-        // If we do not have any memory of a state like this, with or without time set to -1, then we should create a new state.
-        states_.push_back(curr_state);
-        int state_id = (int)states_.size() - 1;
-        state_to_id_[curr_state] = state_id;
-        return state_id;
-    }
-
-    /// @brief To comply with the ActionSpaceExperienceAcceleratableMixin interface.
+    /// @brief To comply with the ExperienceAcceleratedActionSpace interface.
     /// @param state_id The state to get the valid experience subpaths for.
     /// @param subpaths The vector of subpaths -- to be updated with the subpaths.
     inline void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs) {

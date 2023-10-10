@@ -40,13 +40,11 @@ ims::ECBS::ECBS(const ims::ECBSParams& params) : params_(params), CBS(params) {
     open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, ECBSFocalCompare>();
 }
 
-
 void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
 
     // Create the open list. This list is created in the constructor and reset here.
-    delete open_;
-    open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, ECBSFocalCompare>();
+    open_->clear();
 
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
     agent_action_space_ptrs_ = action_space_ptrs;
@@ -160,6 +158,7 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
     int iter{0};
     double lower_bound = open_->getLowerBound();
     open_->updateWithBound(params_.high_level_suboptimality * lower_bound);
+    
     while (!open_->empty() && !isTimeOut()) {
         // Report progress every 100 iterations
         if (iter % 1000 == 0) {

@@ -31,9 +31,7 @@
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   July 10 2023
  */
-
-#ifndef SEARCH_CONSTRAINEDSEARCH_HPP
-#define SEARCH_CONSTRAINEDSEARCH_HPP
+#pragma once
 
 // standard includes
 #include <functional>
@@ -44,30 +42,25 @@
 #include "action_space.hpp"
 #include "search/heuristics/base_heuristic.hpp"
 #include "search/planners/planner.hpp"
-#include "search/common/constraints.hpp"
-#include "search/common/conflicts.hpp"
-#include "mixin/action_space_constrainable_mixin.hpp"
+#include "mixin/action_space_subcost_mixin.hpp"
 
 namespace ims {
 
 /// @brief Base class for ActionSpaces with constraints.
 /// @details This is an actions space extended to be "Constrainable" using a mixin.
-class ConstrainedActionSpace : virtual public ActionSpace, public ActionSpaceConstrainableMixin{
+class SubcostActionSpace : virtual public ActionSpace, public ActionSpaceSubcostMixin{
 public:
     /// @brief Constructor
-    explicit ConstrainedActionSpace(): ActionSpace(), ActionSpaceConstrainableMixin() {
-        std::cout << "ConstrainedActionSpace: Constructor" << std::endl;
-        constraints_collective_ptr_ = std::make_shared<ConstraintsCollective>();
+    explicit SubcostActionSpace(): ActionSpace(), ActionSpaceSubcostMixin() {
     }
 
     /// @brief Destructor
-    ~ConstrainedActionSpace() = default;
+    ~SubcostActionSpace() = default;
 
-    /// @brief If a given configuration is valid with respect to the constraints. 
-    virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) = 0;
+    // Make both the base and the overloaded versions of getSuccessors available.
+    using ActionSpaceSubcostMixin::getSuccessors;
+    using ActionSpace::getSuccessors;
 
 };
 
 }  // namespace ims
-
-#endif  // SEARCH_CONSTRAINEDSEARCH_HPP

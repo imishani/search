@@ -23,6 +23,8 @@ public:
     virtual void push(T* e) = 0;
     virtual void erase(T* e) = 0;
     virtual bool empty() const = 0;
+    virtual void clear() = 0;
+    virtual void update(T* e) = 0;
     virtual size_t size() const = 0;
 
     /// @brief Updates the queue to only consider elements that satisfy the lower bound.
@@ -57,6 +59,8 @@ public:
     virtual void push(T* e) override;
     virtual void erase(T* e) override;
     virtual bool empty() const override;
+    virtual void clear() override;
+    virtual void update(T* e) override;
     virtual size_t size() const override;
 
     /// @brief Updates the queue to only consider elements that satisfy the lower bound.
@@ -86,6 +90,8 @@ public:
     virtual void push(T* e) override;
     virtual void erase(T* e) override;
     virtual bool empty() const override;
+    virtual void clear() override;
+    virtual void update(T* e) override;
     virtual size_t size() const override;
 
     /// @brief Updates queue to add more elements to focal list which satisfy lower bound threshold.
@@ -115,6 +121,8 @@ public:
     virtual void push(T* e) override;
     virtual void erase(T* e) override;
     virtual bool empty() const override;
+    virtual void clear() override;
+    virtual void update(T* e) override;
     virtual size_t size() const override;
 
     /// @brief Updates focal queue to add more elements satisfying lower bound threshold.

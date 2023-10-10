@@ -1,3 +1,4 @@
+#pragma once
 #include <search/common/queue_general.h>
 
 namespace ims {
@@ -35,10 +36,19 @@ bool SimpleQueue<T, CompareMain>::empty() const {
 }
 
 template <class T, class CompareMain>
+void SimpleQueue<T, CompareMain>::clear() {
+    m_open.clear();
+}
+
+template <class T, class CompareMain>
+void SimpleQueue<T, CompareMain>::update(T* e) {
+    m_open.update(e);
+}
+
+template <class T, class CompareMain>
 size_t SimpleQueue<T, CompareMain>::size() const {
     return m_open.size();
 }
-
 
 template <class T, class CompareMain>
 void SimpleQueue<T, CompareMain>::updateWithBound(double lower_bound) {
@@ -80,6 +90,30 @@ void FocalQueue<T, CompareMain, CompareFocal>::erase(T* e) {
 template <class T, class CompareMain, class CompareFocal>
 bool FocalQueue<T, CompareMain, CompareFocal>::empty() const {
     return m_focal.empty();
+}
+
+template <class T, class CompareMain, class CompareFocal>
+void FocalQueue<T, CompareMain, CompareFocal>::clear() {
+    m_focal.clear();
+    m_waitlist.clear();
+}
+
+template <class T, class CompareMain, class CompareFocal>
+void FocalQueue<T, CompareMain, CompareFocal>::update(T* e){
+    bool updated_at_least_one = false;
+    if (m_focal.contains(e)){
+        m_focal.update(e);
+        updated_at_least_one = true;
+    }
+
+    if (m_waitlist.contains(e)){
+        m_waitlist.update(e);
+        updated_at_least_one = true;
+    }
+
+    if (!updated_at_least_one){
+        throw std::runtime_error("Element not found in focal queue");
+    }
 }
 
 template <class T, class CompareMain, class CompareFocal>
@@ -136,6 +170,17 @@ bool FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::empty() const {
 }
 
 template <class T, class CompareMain, class CompareFocal>
+void FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::clear() {
+    m_focalQ.clear();
+    m_anchorQ.clear();
+}
+
+template <class T, class CompareMain, class CompareFocal>
+void FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::update(T* e) {
+    m_focalQ.update(e);
+    m_anchorQ.update(e);
+}
+template <class T, class CompareMain, class CompareFocal>
 size_t FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::size() const {
     return m_focalQ.size();
 }
@@ -149,8 +194,5 @@ template <class T, class CompareMain, class CompareFocal>
 double FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::getLowerBound() const {
     return m_anchorQ.getLowerBound();
 }
-
-
-
 
 } // Namespace ims

@@ -149,37 +149,6 @@ auto ims::wAStar::getOrCreateSearchState(int state_id) -> ims::wAStar::SearchSta
     return states_[state_id];
 }
 
-// void ims::wAStar::addValidSubpathToOpenList(const std::vector<StateType> & states, const std::vector<double> & costs){
-//     // First get the search state associated with the first state in the subpath.
-//     // We require that the first state in the subpath already exists in the action space and has a valid id and parent state. This is necessary for determining the g values and parent ids of the rest of the states in the subpath.
-//     int state_id = action_space_ptr_->getRobotStateId(states[0]);
-//     SearchState* search_state = getSearchState(state_id);
-//     int prev_state_id = state_id;
-
-//     // Now, add the rest of the states to the open list.
-//     for (size_t i = 1; i < states.size(); ++i){
-//         // Get the state id.
-//         int state_id = action_space_ptr_->getOrCreateRobotState(states[i]);
-//         // Get the search state.
-//         SearchState* search_state = getOrCreateSearchState(state_id);
-//         // Set the parent id.
-//         search_state->parent_id = prev_state_id;
-//         // Set the g value.
-//         search_state->g = getSearchState(search_state->parent_id)->g + costs[i-1];
-//         // Set the h value.
-//         search_state->h = computeHeuristic(state_id);
-//         // Set the f value.
-//         search_state->f = search_state->g + params_.epsilon*search_state->h;
-//         // Add the state to the open list.
-//         open_.push(search_state);
-//         // Set the state to be open.
-//         search_state->setOpen();
-//         // Update the previous state id.
-//         prev_state_id = state_id;
-//     }
-// }
-
-
 bool ims::wAStar::plan(std::vector<StateType>& path) {
     startTimer();
     int iter {0};

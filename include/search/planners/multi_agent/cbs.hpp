@@ -97,7 +97,12 @@ class CBSBase: public BestFirstSearch {
 public:
     /// @brief Get the conflict types requested by the algorithm.
     explicit CBSBase(const CBSParams& params);
-    ~CBSBase() = default;
+
+    /// @brief Destructor.
+    ~CBSBase(){
+        delete open_;
+    }
+
     /// @return The conflict types.
     virtual std::vector<ConflictType> getConflictTypes() = 0;
 

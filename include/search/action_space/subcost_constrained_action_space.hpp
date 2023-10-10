@@ -27,13 +27,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   constrained_search.hpp
+ * \file   subcost_constrained_action_space.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
- * \date   July 10 2023
+ * \date   Oct 05 2023
  */
-
-#ifndef SEARCH_CONSTRAINEDSEARCH_HPP
-#define SEARCH_CONSTRAINEDSEARCH_HPP
+#pragma once
 
 // standard includes
 #include <functional>
@@ -46,28 +44,22 @@
 #include "search/planners/planner.hpp"
 #include "search/common/constraints.hpp"
 #include "search/common/conflicts.hpp"
-#include "mixin/action_space_constrainable_mixin.hpp"
+#include "constrained_action_space.hpp"
+#include "subcost_action_space.hpp"
 
 namespace ims {
 
 /// @brief Base class for ActionSpaces with constraints.
 /// @details This is an actions space extended to be "Constrainable" using a mixin.
-class ConstrainedActionSpace : virtual public ActionSpace, public ActionSpaceConstrainableMixin{
+class SubcostConstrainedActionSpace : public ConstrainedActionSpace, public SubcostActionSpace{ 
 public:
     /// @brief Constructor
-    explicit ConstrainedActionSpace(): ActionSpace(), ActionSpaceConstrainableMixin() {
-        std::cout << "ConstrainedActionSpace: Constructor" << std::endl;
-        constraints_collective_ptr_ = std::make_shared<ConstraintsCollective>();
-    }
+    explicit SubcostConstrainedActionSpace(): ConstrainedActionSpace(), SubcostActionSpace() {};
 
     /// @brief Destructor
-    ~ConstrainedActionSpace() = default;
-
-    /// @brief If a given configuration is valid with respect to the constraints. 
-    virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) = 0;
+    ~SubcostConstrainedActionSpace() = default;
 
 };
 
 }  // namespace ims
 
-#endif  // SEARCH_CONSTRAINEDSEARCH_HPP

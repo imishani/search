@@ -31,9 +31,7 @@
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   August 10 2023
  */
-
-#ifndef SEARCH_ACTIONSPACECONSTRAINABLEMIXIN_HPP
-#define SEARCH_ACTIONSPACECONSTRAINABLEMIXIN_HPP
+#pragma once
 
 // standard includes
 #include <functional>
@@ -102,4 +100,3 @@ public:
 
 }  // namespace ims
 
-#endif  // SEARCH_ACTIONSPACECONSTRAINABLEMIXIN_HPP

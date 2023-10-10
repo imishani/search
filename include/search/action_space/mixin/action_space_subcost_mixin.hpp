@@ -27,13 +27,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   constrained_search.hpp
+ * \file   action_space_subcost_mixin.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
- * \date   July 10 2023
+ * \date   Oct 05 2023
  */
 
-#ifndef SEARCH_CONSTRAINEDSEARCH_HPP
-#define SEARCH_CONSTRAINEDSEARCH_HPP
+#pragma once
 
 // standard includes
 #include <functional>
@@ -41,33 +40,32 @@
 #include <utility>
 
 // project includes
-#include "action_space.hpp"
-#include "search/heuristics/base_heuristic.hpp"
-#include "search/planners/planner.hpp"
-#include "search/common/constraints.hpp"
-#include "search/common/conflicts.hpp"
-#include "mixin/action_space_constrainable_mixin.hpp"
+#include <search/action_space/action_space.hpp>
+#include <search/heuristics/base_heuristic.hpp>
+#include <search/planners/planner.hpp>
 
 namespace ims {
 
-/// @brief Base class for ActionSpaces with constraints.
-/// @details This is an actions space extended to be "Constrainable" using a mixin.
-class ConstrainedActionSpace : virtual public ActionSpace, public ActionSpaceConstrainableMixin{
+/// @brief A trait class (mixin) for allowing an ActionSpace to return a subcost in addition to a cost for each successor transition.
+class ActionSpaceSubcostMixin {
 public:
     /// @brief Constructor
-    explicit ConstrainedActionSpace(): ActionSpace(), ActionSpaceConstrainableMixin() {
-        std::cout << "ConstrainedActionSpace: Constructor" << std::endl;
-        constraints_collective_ptr_ = std::make_shared<ConstraintsCollective>();
-    }
+    explicit ActionSpaceSubcostMixin() = default;
 
     /// @brief Destructor
-    ~ConstrainedActionSpace() = default;
+    ~ActionSpaceSubcostMixin() = default;
 
-    /// @brief If a given configuration is valid with respect to the constraints. 
-    virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) = 0;
-
+    /// @brief Overrides the getSuccessors method of ActionSpace to return a subcost in addition to a cost for each successor transition.
+    /// @details This method is used to get the successors of a given state.
+    /// @param state The state for which we want to get the successors.
+    /// @param successors The vector of successors to be filled.
+    /// @param costs The vector of costs to be filled.
+    /// @param subcosts The vector of subcosts to be filled.
+    virtual bool getSuccessors(int curr_state_ind,
+                                   std::vector<int>& successors,
+                                   std::vector<double>& costs, 
+                                   std::vector<double> &subcosts) = 0;
 };
 
 }  // namespace ims
 
-#endif  // SEARCH_CONSTRAINEDSEARCH_HPP

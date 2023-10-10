@@ -36,7 +36,7 @@
 #define SEARCH_SEARCH_INCLUDE_SEARCH_ACTION_SPACE_EGRAPH_ACTION_SPACE_HPP_
 
 #include "action_space.hpp"
-#include "action_space_mixin.hpp"
+#include "mixin/action_space_egraph_mixin.hpp"
 
 namespace ims {
 
