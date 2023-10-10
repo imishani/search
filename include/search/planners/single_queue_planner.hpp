@@ -20,10 +20,10 @@ class SingleQueuePlanner {
 public:
     /// @brief The search state
     struct GenericSearchState : public LowerBoundMixin {
-        int robot_state_id;
-        int search_id;
-        int parent_id;
-        double g;
+        int robot_state_id = -1234;
+        int search_id = -1235;
+        int parent_id = -1236;
+        double g = -1237;
 
         GenericSearchState(int robot_state_id, int parent_id, double g):
                 robot_state_id(robot_state_id), parent_id(parent_id), g(g) {}
@@ -33,16 +33,18 @@ public:
     };
 
     struct SingleQueueSettings {
+        virtual ~SingleQueueSettings() = default;
         virtual bool skipAsAlreadyExpanded(GenericSearchState* state) = 0;
         virtual void addToExpanded(GenericSearchState* state) = 0;
-        virtual AbstractQueue<GenericSearchState>* createQueue() = 0;
+        virtual AbstractQueue<GenericSearchState>* getQueue() = 0;
+        virtual void updateQueue() = 0;
         virtual GenericSearchState* createNewSearchState(int robot_state_id,
                                         GenericSearchState* parent, double cost) = 0;
     };
 
     SingleQueuePlanner(SingleQueueSettings* settings) : settings_(settings),
-                        main_queue_(settings->createQueue()) {}
-    virtual ~SingleQueuePlanner() = default;
+                        main_queue_(settings->getQueue()) {}
+    virtual ~SingleQueuePlanner();
 
 
     /// @brief Initialize the planner

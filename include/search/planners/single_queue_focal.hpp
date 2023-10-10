@@ -19,6 +19,11 @@ public:
                         double f, double h, double c) :
             GenericSearchState(robot_state_id, parent_id, g),
             f(f), h(h), c(c) {}
+        ~FocalSearchState() override = default;
+
+        // double getLowerBound() const override { 
+        //     return g + h; 
+        // }
     };
 
     struct CompareFocalSearchState {
@@ -38,10 +43,13 @@ public:
         }
     };
     
-    explicit FocalSearchSettings(double heuristic_weight, BaseHeuristic* heuristic,
+    explicit FocalSearchSettings(double focal_suboptimality, double heuristic_weight, BaseHeuristic* heuristic,
                                 const std::shared_ptr<ActionSpace>& action_space_ptr) : 
+                focal_suboptimality_(focal_suboptimality),
                 heuristic_weight_(heuristic_weight), heuristic_(heuristic),
-                action_space_ptr_(action_space_ptr) {}
+                action_space_ptr_(action_space_ptr) {
+        main_queue_ = new FocalAndAnchorQueueWrapper<GenericSearchState, CompareMainQueue, CompareFocalSearchState>();
+    }
 
     bool skipAsAlreadyExpanded(GenericSearchState* state) override {
         return false;
@@ -51,28 +59,36 @@ public:
         // Do nothing.
     }
 
-    AbstractQueue<GenericSearchState>* createQueue() override {
-        return new FocalAndAnchorQueueWrapper<GenericSearchState, CompareMainQueue, CompareFocalSearchState>();
+    AbstractQueue<GenericSearchState>* getQueue() override {
+        return main_queue_;
+    }
+
+    void updateQueue() override {
+        double lb = main_queue_->getLowerBound();
+        main_queue_->updateWithBound(lb * focal_suboptimality_);
+        std::cout << lb << std::endl;
     }
 
     GenericSearchState* createNewSearchState(int robot_state_id,
                                         GenericSearchState* parent, double cost) override {
         FocalSearchState* succ;
         if (parent == nullptr) {
+            assert(cost == 0);
             succ = new FocalSearchState(/*robot_state_id*/ robot_state_id, 
                                     /*parent_id=*/ PARENT_TYPE(UNSET), 
-                                    /*g=*/-1, /*f=*/ -1, /*h=*/ -1, /*c=*/ -1);
+                                    /*g=*/ 0, /*f=*/ 0, /*h=*/ 0, /*c=*/ 0);
         } else {
             FocalSearchState* real_parent = dynamic_cast<FocalSearchState*>(parent);
             double next_g_val = real_parent->g + cost;
-            double h_val;
+            double h_val = 0;
             heuristic_->getHeuristic(action_space_ptr_->getRobotState(robot_state_id)->state, h_val);
             double f_val = real_parent->g + cost + heuristic_weight_ * h_val;
-            double c_val = real_parent->c + 1; // TODO - get collision count
+            double c_val = real_parent->c + cost + heuristic_weight_ * h_val; // TODO - get collision count
             succ = new FocalSearchState(/*robot_state_id*/ robot_state_id, 
                                     /*parent_id=*/ parent->search_id, 
                                     /*g=*/ next_g_val, /*f=*/ f_val, /*h=*/ h_val, /*c=*/ c_val);
         }
+        return succ;
     }
 
     double focal_suboptimality_;
@@ -80,6 +96,7 @@ public:
     std::unordered_set<int> expanded_robot_states_;
     BaseHeuristic* heuristic_;
     std::shared_ptr<ActionSpace> action_space_ptr_;
+    FocalAndAnchorQueueWrapper<GenericSearchState, CompareMainQueue, CompareFocalSearchState>* main_queue_;
 };
 
 // class SQFocalSearch : public SingleQueuePlanner {

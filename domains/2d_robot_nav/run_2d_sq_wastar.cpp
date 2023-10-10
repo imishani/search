@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
     // construct planner params
     auto* heuristic = new ims::EuclideanHeuristic();
 
-    double epsilon = 10.0;
+    double epsilon = 5;
 
     // construct the scene and the action space
     scene2DRob scene (map);
@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
         // std::shared_ptr<actionSpace2dRob> ActionSpace2 = std::make_shared<actionSpace2dRob>(scene, action_type);
         // ims::SQWAStar::SQWAStarParams params (epsilon, heuristic);
         // ims::WAStarSettings params(epsilon, heuristic, ActionSpace);
-        ims::FocalSearchSettings params(epsilon, heuristic, ActionSpace);
+        ims::FocalSearchSettings params(1, epsilon, heuristic, ActionSpace);
         // construct planner
         // ims::wAStar planner(params);
         heuristic->setGoal(const_cast<StateType &>(goals[i]));
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
         std::vector<StateType> path_;
         if (!planner.plan(path_)) {
             std::cout << "No path found!" << std::endl;
-//            return 0;
+            continue;
         }
         else
             std::cout << "Path found!" << std::endl;

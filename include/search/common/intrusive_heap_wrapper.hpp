@@ -74,6 +74,7 @@ void IntrusiveHeapWrapper<T, Compare>::clear() {
     for (auto& pair : m_map) {
         delete pair.second;
     }
+    m_map.clear();
 }
 
 

@@ -2,6 +2,10 @@
 
 namespace ims {
 
+SingleQueuePlanner::~SingleQueuePlanner() {
+    resetPlanningData();
+}
+
 void SingleQueuePlanner::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                     const std::vector<StateType> &starts,
                                     const std::vector<StateType> &goals) {
@@ -23,10 +27,11 @@ void SingleQueuePlanner::initializePlanner(const std::shared_ptr<ActionSpace> &a
         throw std::runtime_error("Goal state is not valid");
     }
     int goal_robot_state_id = action_space_ptr_->getOrCreateRobotState(goals[0]);
-    GenericSearchState* goal_ = settings_->createNewSearchState(goal_robot_state_id, nullptr, 0);
-    addNewSearchState(goal_);
-    goals_.push_back(goal_->robot_state_id);
-    goal_->parent_id = PARENT_TYPE(GOAL);
+    goals_.push_back(goal_robot_state_id);
+    // GenericSearchState* goal_ = settings_->createNewSearchState(goal_robot_state_id, nullptr, 0);
+    // addNewSearchState(goal_);
+    // goals_.push_back(goal_->robot_state_id);
+    // goal_->parent_id = PARENT_TYPE(GOAL);
 
 
     for (const StateType &start : starts) {
@@ -47,6 +52,7 @@ void SingleQueuePlanner::initializePlanner(const std::shared_ptr<ActionSpace> &a
 bool SingleQueuePlanner::plan(std::vector<StateType>& path) {
     startTimer();
     int iter {0};
+    settings_->updateQueue();
     while (!main_queue_->empty() && !isTimeOut()){
         // report progress every 1000 iterations
         if (iter % 100 == 0){
@@ -70,7 +76,13 @@ bool SingleQueuePlanner::plan(std::vector<StateType>& path) {
             return true;
         }
         expand(state->search_id);
+        settings_->updateQueue();
         ++iter;
+    }
+    if (main_queue_->empty()){
+        std::cout << "Queue is empty" << std::endl;
+    } else {
+        std::cout << "Time out" << std::endl;
     }
     // getTimeFromStart(stats_.time);
     return false;
