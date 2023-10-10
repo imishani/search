@@ -154,15 +154,6 @@ private:
     /// @return The state
     auto getOrCreateSearchState(int state_id) -> SearchState*;
 
-    /// @brief Create a duplicate search state for a state with a given anchor state id.
-    virtual SearchState* createDuplicateSearchStateFromAnchorId(int anchor_state_id);
-
-    /// @brief Get a duplicate state by its duplicate state id.
-    virtual SearchState* getDuplicateSearchState(int duplicate_state_id);
-
-    /// @brief Set the values for a duplicate state.
-    virtual void setDuplicateStateVals(int duplicate_state_id, int parent_id, double cost, double subcost);
-
 public:
     /// @brief Constructor
     /// @param params The parameters
@@ -224,8 +215,6 @@ protected:
 
     bool isGoalState(int state_id) override;
 
-    void initializeDuplicateStatesVector();
-
     BaseHeuristic* heuristic_ = nullptr;
 
     // The action space.
@@ -233,12 +222,6 @@ protected:
 
     // The stats.
     FocalSearchPlannerStats stats_;
-
-    /// @brief A map between each state id to its anchor state id. When allowing duplicate states (aka more than one search state for a given state id from the action space), then we'll have to keep track of the anchor state id for backtracking the path.
-    std::unordered_map<int, int> state_id_to_anchor_state_id_;
-
-    /// @brief A collection of search states that are duplicates. The state ids of these states are negative of their index.
-    std::vector<SearchState*> duplicate_states_;
 
 };  // class FocalSearch
 

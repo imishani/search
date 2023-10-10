@@ -81,9 +81,6 @@ void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpac
         open_.push(start_);
         start_->setOpen();
     }
-
-    // Instantiate the duplicate states vector.
-    initializeDuplicateStatesVector();
 }
 
 void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpace>& action_space_ptr,
@@ -119,10 +116,6 @@ void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpac
     start_->f = computeHeuristic(start_ind_);
     open_.push(start_);
     start_->setOpen();
-
-
-    // Instantiate the duplicate states vector.
-    initializeDuplicateStatesVector();
 }
 
 auto ims::FocalSearch::getSearchState(int state_id) -> ims::FocalSearch::SearchState*{
@@ -140,49 +133,6 @@ auto ims::FocalSearch::getOrCreateSearchState(int state_id) -> ims::FocalSearch:
         states_[state_id]->state_id = state_id;
     }
     return states_[state_id];
-}
-
-auto ims::FocalSearch::getDuplicateSearchState(int duplicate_state_id) -> ims::FocalSearch::SearchState*{
-    assert(-duplicate_state_id < duplicate_states_.size() && duplicate_state_id < 0);
-    return duplicate_states_.at(-duplicate_state_id);
-}
-
-ims::FocalSearch::SearchState* ims::FocalSearch::createDuplicateSearchStateFromAnchorId(int anchor_state_id){
-    // Determine the new search state id. It will be a negative number.
-    int new_duplicate_state_id = -1 * duplicate_states_.size();
-    duplicate_states_.resize(duplicate_states_.size() + 1, nullptr);
-
-    // Make sure that this id is not already in use.
-    assert(duplicate_states_[-new_duplicate_state_id] == nullptr);
-    
-    // Create a new search state.
-    auto new_duplicate_state = new SearchState;
-
-    // Set the new id of the state.
-    new_duplicate_state->state_id = new_duplicate_state_id;
-
-    // Add it to the list of duplicate states.
-    duplicate_states_[-new_duplicate_state_id] = new_duplicate_state;
-
-    // Update the map from duplicate state ids to anchor state ids.
-    state_id_to_anchor_state_id_[-new_duplicate_state_id] = anchor_state_id;
-
-    // Return the new state.
-    return duplicate_states_[-new_duplicate_state_id];
-}
-
-void ims::FocalSearch::setDuplicateStateVals(int duplicate_state_id, int parent_id, double cost, double subcost) {
-    auto duplicate_state = getDuplicateSearchState(duplicate_state_id);
-    duplicate_state->parent_id = parent_id;
-    duplicate_state->c = subcost;
-    duplicate_state->f = cost;
-}
-
-
-void ims::FocalSearch::initializeDuplicateStatesVector(){
-    // Populate the duplicate_states_vector with nullptrs for all the reserved negative-valued indices. TODO(yoraish): this is a hack.
-    int num_reserved_negative_state_ids = -PARENT_TYPE(UNSET) + 1;
-    duplicate_states_.resize(num_reserved_negative_state_ids, nullptr);
 }
 
 double ims::FocalSearch::computeHeuristic(int state_id) {

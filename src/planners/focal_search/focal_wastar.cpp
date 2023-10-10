@@ -87,9 +87,6 @@ void ims::FocalwAStar::initializePlanner(const std::shared_ptr<SubcostActionSpac
         start_->setOpen();
     }
 
-    // Instantiate the duplicate states vector.
-    initializeDuplicateStatesVector();
-
     // Update stats suboptimality.
     this->stats_.suboptimality = params_.epsilon;
     this->stats_.focal_suboptimality = params_.focal_suboptimality;
@@ -133,9 +130,6 @@ void ims::FocalwAStar::initializePlanner(const std::shared_ptr<SubcostActionSpac
     start_->setOpen();
 
     open_.push(start_);
-
-    // Instantiate the duplicate states vector.
-    initializeDuplicateStatesVector();
 
     // Update stats suboptimality.
     this->stats_.suboptimality = params_.epsilon;
@@ -198,56 +192,34 @@ void ims::FocalwAStar::expand(int state_id){
         double subcost = subcosts[i];
         SearchState* successor = getOrCreateSearchState(successor_id);
 
-        // TODO(yoraish): distinguish between allowing duplicate states to not allowing it.
-        // We may want to have a duplicate state when the subcost is different. In this case, we want to add the state to the open list. We still need to keep track of "anchor state_id"s though, for backtracking the path.
-
-        // First, check if this successor search state is new. If so, proceed by adding this state to the states_ vector and the OPEN list.
-
         // If allowing to create duplicate states, then we need to check if the state already exists.
         if (!successor->in_closed && !successor->in_open){
             setStateVals(successor->state_id, state->state_id, cost, subcost);
             open_.push(successor);
             successor->setOpen();
-
-            // This is a new state with the id assigned by the action space, so it is an anchor state.
-            state_id_to_anchor_state_id_[successor->state_id] = successor->state_id;
         }
+
         // If the state is not new, then we need to check if the state already exists.
         else{
             // If the state is not a new state, then we have a few options options. 
-            // If we disallow duplicates:
-            //  1. If the state is in the closed list, then we do nothing.
-            //  2. If the state is in the open list, then we check if the new g value is lower than the current g value. If so, we update the state's parent and g value.
-            // If we allow duplicates:
-            //  0. Doing this for now: create a duplicate state  (negative index smaller than -1) and add it to the states_ vector and the open list.
-            if (!params_.allow_duplicate_states)
-            {
-                // If duplicates not allowed and the state is in the closed list, then we do nothing.
-                if (successor->in_closed){
-                    continue;
-                }
+            // If duplicates not allowed and the state is in the closed list, then we do nothing.
+            if (successor->in_closed){
+                continue;
+            }
 
-                // If duplicates not allowed and the state is in the open list, then we check if the new g,c values is lower than the current g,c values. If so, we update the state's parent and g value.
-                else if (successor->in_open){
-                    if (successor->g > state->g + cost && successor->c > state->c + subcost){
-                        successor->parent_id = state->state_id;
-                        successor->g = state->g + cost;
-                        successor->c = state->c + subcost;
-                        successor->f = successor->g + params_.epsilon*successor->h;
-                        open_.update(successor);
-                    }
-                }
-
-                else{
-                    throw std::runtime_error("Found successor node that is neither in the open list nor in the closed list and it missed the check.");
+            // If duplicates not allowed and the state is in the open list, then we check if the new g,c values is lower than the current g,c values. If so, we update the state's parent and g value.
+            else if (successor->in_open){
+                if (successor->g > state->g + cost && successor->c > state->c + subcost){
+                    successor->parent_id = state->state_id;
+                    successor->g = state->g + cost;
+                    successor->c = state->c + subcost;
+                    successor->f = successor->g + params_.epsilon * successor->h;
+                    open_.update(successor);
                 }
             }
-            // If duplicates are allowed, create a duplicate state and add it to the duplicate_states_ vector and the open list.
+
             else{
-                
-                // If duplicates are allowed, create a duplicate state and add it to the duplicate_states_ vector and the open list.
-                SearchState* duplicate_successor = createDuplicateSearchStateFromAnchorId(successor->state_id);
-                setStateVals(duplicate_successor->state_id, state->state_id, cost, subcost);
+                throw std::runtime_error("Found successor node that is neither in the open list nor in the closed list and is not new.");
             }
         }
     }

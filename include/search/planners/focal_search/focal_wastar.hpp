@@ -61,9 +61,6 @@ namespace ims{
         /// @brief The weight for the heuristic function.
         double epsilon;
 
-        /// @brief Whether allowing duplicate states or not.
-        bool allow_duplicate_states = true;
-
     };
 
     /// @class FocalwAStar class. Weighted A* algorithm with a FOCAL queue.
