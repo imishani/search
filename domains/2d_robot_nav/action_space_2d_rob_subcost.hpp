@@ -114,7 +114,9 @@ public:
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
                 costs.push_back(action_type_->action_costs[i]);
-                subcosts.push_back(0.0);
+                // A random subcost with value 0 or 1.
+                double random_subcost = ((double)rand() / RAND_MAX) < 0.5 ? 0 : 1;
+                subcosts.push_back(random_subcost);
             }
         }
         return true;

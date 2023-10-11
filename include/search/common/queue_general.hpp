@@ -89,7 +89,7 @@ void FocalQueue<T, CompareMain, CompareFocal>::erase(T* e) {
 
 template <class T, class CompareMain, class CompareFocal>
 bool FocalQueue<T, CompareMain, CompareFocal>::empty() const {
-    return m_focal.empty();
+    return m_focal.empty() && m_waitlist.empty();
 }
 
 template <class T, class CompareMain, class CompareFocal>
@@ -118,7 +118,7 @@ void FocalQueue<T, CompareMain, CompareFocal>::update(T* e){
 
 template <class T, class CompareMain, class CompareFocal>
 size_t FocalQueue<T, CompareMain, CompareFocal>::size() const {
-    return m_focal.size();
+    return m_focal.size() + m_waitlist.size();
 }
 
 template <class T, class CompareMain, class CompareFocal>

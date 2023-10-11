@@ -93,9 +93,10 @@ int main(int argc, char** argv) {
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
     auto* heuristic = new ims::EuclideanHeuristic();
-    double epsilon = 10.0;
-    double focal_suboptimatlity = 30.0;
+    double epsilon = 2.0;
+    double focal_suboptimatlity = 1.2;
     ims::FocalwAStarParams params (heuristic, focal_suboptimatlity, epsilon);
+    
     // construct the scene and the action space
     Scene2DRob scene (map);
     ActionType2dRob action_type;

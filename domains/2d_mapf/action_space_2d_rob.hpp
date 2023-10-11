@@ -37,7 +37,7 @@
 
 #include "search/action_space/action_space.hpp"
 #include <search/common/conflicts.hpp>
-#include "search/action_space/constrained_action_space.hpp"
+#include "search/action_space/subcost_constrained_action_space.hpp"
 #include <search/planners/multi_agent/cbs.hpp>
 
 #include "scene_interface_2d_rob.hpp"
@@ -67,14 +67,14 @@ struct ActionType2dRob : public ims::ActionType {
     std::vector<std::vector<double>> action_deltas;
 };
 
-class ConstrainedActionSpace2dRob : public ims::ConstrainedActionSpace {
+class ConstrainedActionSpace2dRob : public ims::SubcostConstrainedActionSpace {
 private:
     std::shared_ptr<Scene2DRob> env_;
     std::shared_ptr<ActionType2dRob> action_type_;
 
 public:
     ConstrainedActionSpace2dRob(const std::shared_ptr<Scene2DRob>& env,
-                                const ActionType2dRob& actions_ptr) : ims::ConstrainedActionSpace() {
+                                const ActionType2dRob& actions_ptr) : ims::SubcostConstrainedActionSpace() {
         this->env_ = env;
         this->action_type_ = std::make_shared<ActionType2dRob>(actions_ptr);
     }
@@ -235,6 +235,66 @@ public:
             }
         }
         return true;
+    }
+
+    // Get successors with subcosts. The subcosts are the number of conflicts that would be created on a transition to the successor.
+    bool getSuccessors(int curr_state_ind,
+                       std::vector<int>& successors,
+                       std::vector<double>& costs,
+                       std::vector<double>& subcosts) override {
+
+        auto curr_state = this->getRobotState(curr_state_ind);
+        
+        std::vector<ActionSequence> actions;
+        getActions(curr_state_ind, actions, false);
+        for (int i {0} ; i < actions.size() ; i++){
+            auto action = actions[i][0];
+            auto next_state_val = StateType(curr_state->state.size());
+            std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+
+            // Check for constraint satisfaction.
+            if (!isSatisfyingConstraints(curr_state->state, next_state_val)) {
+                continue;
+            }
+
+            // If the state successor is valid, then compute the number of conflicts that would be created on a transition to the successor and add it to the successors.
+            if (isStateValid(next_state_val)) {
+                int next_state_ind = getOrCreateRobotState(next_state_val);
+                successors.push_back(next_state_ind);
+                costs.push_back(action_type_->action_costs[i]);
+
+                // Compute the number of conflicts that would be created on a transition to the successor.
+                // Loop through the paths of all the other agents and check if the transition to the successor creates a conflict.
+                int num_conflicts = 0;
+                computeTransitionNumberConflicts(curr_state->state, next_state_val, num_conflicts);
+
+                // Set the subcost.
+                subcosts.push_back(num_conflicts);
+            }
+        }
+        return true;
+    }
+    
+    void computeTransitionNumberConflicts(const StateType& state, const StateType& next_state_val, int & num_conflicts){
+        for (auto other_agent_id_and_path : constraints_collective_ptr_->getConstraintsContext()->agent_paths) {
+            int other_agent_id = other_agent_id_and_path.first;
+            PathType other_agent_path = other_agent_id_and_path.second;
+
+            // Get the state of the other agent at the current time step. Get this from the constraints context.
+            // The check here is for vertex conflicts.
+            if (other_agent_path.empty()) {
+                continue;
+            }
+            TimeType other_agent_last_time = other_agent_path.back().back();
+            TimeType agent_time = next_state_val.back();
+            TimeType other_agent_time = std::min(other_agent_last_time, agent_time);
+            StateType other_agent_state = other_agent_path.at(other_agent_time);
+
+            // Check if the state is valid w.r.t the constraint.
+            if (next_state_val[0] == other_agent_state[0] && next_state_val[1] == other_agent_state[1]) {
+                num_conflicts++;
+            }
+        }
     }
 
     int getOrCreateRobotState(const StateType& state_val) override {

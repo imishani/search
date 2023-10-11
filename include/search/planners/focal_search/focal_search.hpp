@@ -190,6 +190,7 @@ public:
     void resetPlanningData() override;
 
     inline FocalSearchPlannerStats reportStats(){ return stats_;}
+    inline FocalSearchPlannerStats getStats(){ return stats_;}
 
 protected:
     /// @brief

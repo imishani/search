@@ -210,7 +210,7 @@ protected:
     /// @brief Checks that the start and goals states are valid. The checks are for time (all initial times are zero and all goal times are -1), for individual agents, and between agents.
     /// @param starts
     /// @param goals
-    void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    virtual void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief Get the conflict types requested by the algorithm.
     /// @return The conflict types.

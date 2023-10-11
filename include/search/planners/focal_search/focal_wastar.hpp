@@ -53,6 +53,7 @@ namespace ims{
                               double focal_suboptimality,
                               double epsilon) : FocalSearchParams(heuristic, focal_suboptimality) {
             this->epsilon = epsilon;
+            this->focal_suboptimality = focal_suboptimality;
         }
 
         /// @brief Destructor
@@ -60,7 +61,6 @@ namespace ims{
 
         /// @brief The weight for the heuristic function.
         double epsilon;
-
     };
 
     /// @class FocalwAStar class. Weighted A* algorithm with a FOCAL queue.

@@ -170,9 +170,15 @@ bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
         expand(state->state_id);
         ++iter;
         
-        // Reorder the open list.
+        // Check if the OPEN list is empty. If so, break.
+        if (open_.empty()){
+            break;
+        }
+
+        // Update the OPEN list.
         double open_list_f_lower_bound = open_.getLowerBound();
         open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
+
     }
     getTimeFromStart(stats_.time);
     return false;
@@ -192,34 +198,46 @@ void ims::FocalwAStar::expand(int state_id){
         double subcost = subcosts[i];
         SearchState* successor = getOrCreateSearchState(successor_id);
 
-        // If allowing to create duplicate states, then we need to check if the state already exists.
+        // If this state does not already exists, then we add it to the open list normally.
+        // if (states_.find(successor_id) == states_.end()){
         if (!successor->in_closed && !successor->in_open){
             setStateVals(successor->state_id, state->state_id, cost, subcost);
             open_.push(successor);
             successor->setOpen();
         }
 
-        // If the state is not new, then we need to check if the state already exists.
+        // If the state is not new, then we check if it passes the criterion for updating it either in the CLOSED list (update and insert to OPEN) or in the OPEN list (just update).
         else{
-            // If the state is not a new state, then we have a few options options. 
-            // If duplicates not allowed and the state is in the closed list, then we do nothing.
-            if (successor->in_closed){
-                continue;
-            }
+            // Compute the new tentative f, g, and c values.
+            double g_new = state->g + cost;
+            double c_new = state->c + subcost;
+            double f_new = g_new + params_.epsilon * successor->h;
 
-            // If duplicates not allowed and the state is in the open list, then we check if the new g,c values is lower than the current g,c values. If so, we update the state's parent and g value.
-            else if (successor->in_open){
-                if (successor->g > state->g + cost && successor->c > state->c + subcost){
-                    successor->parent_id = state->state_id;
-                    successor->g = state->g + cost;
-                    successor->c = state->c + subcost;
-                    successor->f = successor->g + params_.epsilon * successor->h;
+            // Check the update criterion.
+            if (f_new < successor->f || (f_new == successor->f && c_new < successor->c)){
+                // Update the state's parent and g value.
+                successor->parent_id = state->state_id;
+                successor->g = g_new;
+                successor->c = c_new;
+                successor->f = f_new;
+
+                // If the state is in the closed list, then we remove it from the closed list and insert it to the open list.
+                if (successor->in_closed){
+                    std::cout << "Updating state from closed list" << std::endl;
+                    successor->setOpen();
+                    open_.push(successor);
+                }
+
+                // If the state is in the open list, then we update its position in the open list.
+                else if (successor->in_open){
+                    // TODO(yoraish): this may not be needed, as the OPEN list will be reordered after the expansion anyway.
                     open_.update(successor);
                 }
-            }
 
-            else{
-                throw std::runtime_error("Found successor node that is neither in the open list nor in the closed list and is not new.");
+                // If the state is neither in the open list nor in the closed list, then we throw an error.
+                else{
+                    throw std::runtime_error("Found successor node that is neither in the open list nor in the closed list and is not new.");
+                }
             }
         }
     }
