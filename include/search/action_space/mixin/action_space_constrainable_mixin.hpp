@@ -86,8 +86,8 @@ public:
     /// @param time_start The start time from which to check for conflicts. Inclusive. -1 defaults to zero.
     /// @param time_end The end time until which to check for conflicts. Inclusive. -1 defaults to the end.
     virtual void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths, 
-                           std::vector<std::shared_ptr<Conflict>> &conflicts_ptrs, 
-                           const std::vector<ConflictType> &conflict_types,
+                           std::vector<std::shared_ptr<Conflict>>& conflicts_ptrs, 
+                           const std::vector<ConflictType>& conflict_types,
                            int max_conflicts, 
                            const std::vector<std::string> &names,
                            TimeType time_start = 0,

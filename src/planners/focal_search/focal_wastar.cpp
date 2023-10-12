@@ -223,7 +223,6 @@ void ims::FocalwAStar::expand(int state_id){
 
                 // If the state is in the closed list, then we remove it from the closed list and insert it to the open list.
                 if (successor->in_closed){
-                    std::cout << "Updating state from closed list" << std::endl;
                     successor->setOpen();
                     open_.push(successor);
                 }

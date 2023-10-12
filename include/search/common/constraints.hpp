@@ -331,6 +331,7 @@ struct ConstraintsContext {
 
     /// @brief Paths of other agents.
     MultiAgentPaths agent_paths = {};
+    std::vector<std::string> agent_names = {};
 
 };
 

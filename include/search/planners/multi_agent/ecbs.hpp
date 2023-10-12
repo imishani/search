@@ -91,6 +91,7 @@ using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 /// @brief The ECBS algorithm.
 class ECBS : public CBS {
 private:
+
 public:
     /// @brief Constructor
     /// @param params The parameters
@@ -126,6 +127,10 @@ public:
     /// @return whether the plan was successful or not
     bool plan(MultiAgentPaths& paths);
 
+    /// @brief Print the statistics of the search execution.
+    PlannerStats reportStats() const{
+        return stats_;
+    }
 protected:
 
     /// @brief The search state compare struct.
@@ -161,6 +166,9 @@ protected:
 
     // The action spaces for the individual agents.
     std::vector<std::shared_ptr<SubcostConstrainedActionSpace>> agent_action_space_ptrs_;
+
+    // Statistics.
+    FocalSearchPlannerStats stats_;
 
 };
 

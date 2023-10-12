@@ -39,19 +39,19 @@
 ims::EAECBS::EAECBS(const ims::EAECBSParams& params) : params_(params), ECBS(params) {}
 
 
-void ims::EAECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
+void ims::EAECBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs,
                         const std::vector<StateType>& starts, const std::vector<StateType>& goals){
     
-    // Cast the action spaces to ExperienceAcceleratedConstrainedActionSpace.
-    std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>> eac_action_space_ptrs;
+    // Cast the action spaces to SubcostExperienceAcceleratedConstrainedActionSpace.
+    std::vector<std::shared_ptr<SubcostExperienceAcceleratedConstrainedActionSpace>> eac_action_space_ptrs;
     for (auto& action_space_ptr : action_space_ptrs) {
-        eac_action_space_ptrs.push_back(std::dynamic_pointer_cast<ExperienceAcceleratedConstrainedActionSpace>(action_space_ptr));
+        eac_action_space_ptrs.push_back(std::dynamic_pointer_cast<SubcostExperienceAcceleratedConstrainedActionSpace>(action_space_ptr));
     }
 
     // Check that all casts succeeded.
     for (auto& action_space_ptr : eac_action_space_ptrs) {
         if (action_space_ptr == nullptr) {
-            throw std::runtime_error("Could not cast action space to ExperienceAcceleratedConstrainedActionSpace");
+            throw std::runtime_error("Could not cast action space to SubcostExperienceAcceleratedConstrainedActionSpace");
         }
     }
 
@@ -59,17 +59,17 @@ void ims::EAECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActio
     initializePlanner(eac_action_space_ptrs, starts, goals);
 }
 
-void ims::EAECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
-    // Cast the action spaces to ExperienceAcceleratedConstrainedActionSpace.
-    std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>> eac_action_space_ptrs;
+void ims::EAECBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
+    // Cast the action spaces to SubcostExperienceAcceleratedConstrainedActionSpace.
+    std::vector<std::shared_ptr<SubcostExperienceAcceleratedConstrainedActionSpace>> eac_action_space_ptrs;
     for (auto& action_space_ptr : action_space_ptrs) {
-        eac_action_space_ptrs.push_back(std::dynamic_pointer_cast<ExperienceAcceleratedConstrainedActionSpace>(action_space_ptr));
+        eac_action_space_ptrs.push_back(std::dynamic_pointer_cast<SubcostExperienceAcceleratedConstrainedActionSpace>(action_space_ptr));
     }
 
     // Check that all casts succeeded.
     for (auto& action_space_ptr : eac_action_space_ptrs) {
         if (action_space_ptr == nullptr) {
-            throw std::runtime_error("Could not cast action space to ExperienceAcceleratedConstrainedActionSpace");
+            throw std::runtime_error("Could not cast action space to SubcostExperienceAcceleratedConstrainedActionSpace");
         }
     }
 
@@ -77,13 +77,13 @@ void ims::EAECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActio
     initializePlanner(eac_action_space_ptrs, agent_names, starts, goals);
 }
 
-void ims::EAECBS::initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
+void ims::EAECBS::initializePlanner(std::vector<std::shared_ptr<SubcostExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
                         agent_names_ = agent_names;
                         EAECBS::initializePlanner(action_space_ptrs, starts, goals);
                         }
 
 
-void ims::EAECBS::initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs,
+void ims::EAECBS::initializePlanner(std::vector<std::shared_ptr<SubcostExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
     agent_action_space_ptrs_ = action_space_ptrs;

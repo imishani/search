@@ -46,10 +46,10 @@ namespace ims {
 
 /// @brief Base class for ActionSpaces with constraints.
 /// @details This is an actions space extended to be "Constrainable" using a mixin.
-class SubcostExperienceAcceleratedConstrainedActionSpace : public ExperienceAcceleratedConstrainedActionSpace, public SubcostActionSpace{ 
+class SubcostExperienceAcceleratedConstrainedActionSpace : public ExperienceAcceleratedConstrainedActionSpace{//, public SubcostActionSpace{ 
 public:
     /// @brief Constructor
-    explicit SubcostExperienceAcceleratedConstrainedActionSpace(): ConstrainedActionSpace(), SubcostActionSpace() {};
+    explicit SubcostExperienceAcceleratedConstrainedActionSpace(): ExperienceAcceleratedConstrainedActionSpace(){};//, SubcostActionSpace() {};
 
     /// @brief Destructor
     ~SubcostExperienceAcceleratedConstrainedActionSpace() = default;

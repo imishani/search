@@ -51,8 +51,8 @@
 #include <search/planners/best_first_search.hpp>
 #include <search/planners/multi_agent/ecbs.hpp>
 #include <search/planners/multi_agent/eacbs.hpp>
-
-#include "search/action_space/constrained_action_space.hpp"
+#include <search/action_space/constrained_action_space.hpp>
+#include <search/action_space/subcost_experience_accelerated_constrained_action_space.hpp>
 
 namespace ims {
 
@@ -85,12 +85,11 @@ public:
     /// @brief Destructor
     ~EAECBS() override = default;
 
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
+    void initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs,
                            const std::vector<StateType>& starts, const std::vector<StateType>& goals);
-    void initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs,
-                           const std::vector<StateType>& starts, const std::vector<StateType>& goals);
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
-    void initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    void initializePlanner(std::vector<std::shared_ptr<SubcostExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    void initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    void initializePlanner(std::vector<std::shared_ptr<SubcostExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief plan a path
     /// @param path The path
@@ -137,7 +136,7 @@ protected:
     ECBSParams params_;
 
     // The action spaces for the individual agents.
-    std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>> agent_action_space_ptrs_;
+    std::vector<std::shared_ptr<SubcostExperienceAcceleratedConstrainedActionSpace>> agent_action_space_ptrs_;
 
     // The low-level planners.
     std::vector<std::shared_ptr<EAwAStarUniformCost>> agent_planner_ptrs_;

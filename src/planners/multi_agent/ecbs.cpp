@@ -245,7 +245,8 @@ void ims::ECBS::expand(int state_id) {
         // Update the action-space with the constraints and their context (the paths of the other agents).
         std::shared_ptr<ConstraintsCollective> constraints_collective_ptr = std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]);
         std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
-        context_ptr->agent_paths = new_state->paths; // Do not include the paths of the agent that is being replanned-for.
+        context_ptr->agent_paths = new_state->paths;
+        context_ptr->agent_names = agent_names_;
         constraints_collective_ptr->setContext(context_ptr);
         agent_action_space_ptrs_[agent_id]->setConstraintsCollective(constraints_collective_ptr);
 
