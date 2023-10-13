@@ -37,7 +37,6 @@
 ims::ECBS::ECBS(const ims::ECBSParams& params) : params_(params), CBS(params) {
     // Create the open list.
     open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, ECBSFocalCompare>();
-
 }
 
 void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs,
@@ -127,7 +126,7 @@ void ims::ECBS::createRootInOpenList() {
     open_->push(start_);
     // Required to push into focal queue
     // double lower_bound = open_->getLowerBound();
-    // open_->updateWithBound(params_.high_level_suboptimality * lower_bound);
+    // open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
 
     // Show the initial paths.
     std::cout << "Initial paths:" << std::endl;
@@ -157,7 +156,7 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
 
     int iter{0};
     double lower_bound = open_->getLowerBound();
-    open_->updateWithBound(params_.high_level_suboptimality * lower_bound);
+    open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
 
     while (!open_->empty() && !isTimeOut()) {
         // Report progress every 100 iterations
@@ -182,7 +181,7 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
             stats_.cost = state->f;
             paths = state->paths;
             stats_.num_expanded = iter;
-            stats_.suboptimality = params_.high_level_suboptimality;
+            stats_.suboptimality = params_.high_level_focal_suboptimality;
             return true;
         }
 
@@ -191,7 +190,7 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
         ++iter;
 
         double lower_bound = open_->getLowerBound();
-        open_->updateWithBound(params_.high_level_suboptimality * lower_bound);
+        open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
     }
     getTimeFromStart(stats_.time);
     return false;

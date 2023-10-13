@@ -36,7 +36,9 @@
 #include <search/planners/multi_agent/eaecbs.hpp>
 #include <search/planners/multi_agent/eacbs.hpp>
 
-ims::EAECBS::EAECBS(const ims::EAECBSParams& params) : params_(params), ECBS(params) {}
+ims::EAECBS::EAECBS(const ims::EAECBSParams& params) : params_(params), ECBS(params) {
+    open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, EACBSFocalCompare>();
+}
 
 
 void ims::EAECBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs,
@@ -105,9 +107,9 @@ void ims::EAECBS::initializePlanner(std::vector<std::shared_ptr<SubcostExperienc
 
     // Create all the low-level planners.
     for (size_t i{0}; i < starts.size(); ++i) {
-        ims::EAwAStarUniformCostParams eawastar_params_(params_.low_level_heuristic_ptrs[i], params_.weight_low_level_heuristic);
+        ims::FocalEAwAStarUniformCostParams eawastar_params_(params_.low_level_heuristic_ptrs[i], params_.low_level_focal_suboptimality, params_.weight_low_level_heuristic);
         
-        agent_planner_ptrs_.push_back(std::make_shared<ims::EAwAStarUniformCost>(eawastar_params_));
+        agent_planner_ptrs_.push_back(std::make_shared<ims::FocalEAwAStarUniformCost>(eawastar_params_));
     }
 }
 
@@ -130,9 +132,12 @@ void ims::EAECBS::createRootInOpenList() {
         initial_paths[i] = path;
 
         // Compute the cost of the path.
-        initial_paths_costs[i] = agent_planner_ptrs_[i]->stats_.cost;
-        initial_paths_transition_costs[i] = agent_planner_ptrs_[i]->stats_.transition_costs;
+        initial_paths_costs[i] = agent_planner_ptrs_[i]->getStats().cost;
+        initial_paths_transition_costs[i] = agent_planner_ptrs_[i]->getStats().transition_costs;
     }
+
+    // Report that the initial paths were found.
+    std::cout << "Initial paths found." << std::endl;
 
 
     // Create the initial EACBS state to the open list. This planner does not interface with an action space, so it does not call the getOrCreateRobotState to retrieve a new-state index. But rather decides on a new index directly and creates a search-state index with the getOrCreateSearchState method. Additionally, there is no goal specification for EACBS, so we do not have a goal state.
@@ -154,27 +159,30 @@ void ims::EAECBS::createRootInOpenList() {
     // Set the cost of the CBSState start_.
     double start_soc = std::accumulate(initial_paths_costs.begin(), initial_paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
     int start_num_conflicts = start_->unresolved_conflicts.size();
-    start_->f = start_soc + params_.weight_num_conflicts * start_num_conflicts;
+    start_->f = start_soc;
+    start_->sum_of_costs = start_soc;
     start_->setOpen();
 
     // Push the initial EACBS state to the open list.
-    open_.push(start_);
-
+    open_->push(start_);
 }
 
 bool ims::EAECBS::plan(MultiAgentPaths& paths) {
     startTimer();
     int iter{0};
     createRootInOpenList();
-    while (!open_.empty() && !isTimeOut()) {
+    double lower_bound = open_->getLowerBound();
+    open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
+
+    while (!open_->empty() && !isTimeOut()) {
         // Report progress every 100 iterations
         if (iter % 1000 == 0) {
-            std::cout << "EAECBS CT open size: " << open_.size() << std::endl;
+            std::cout << "EAECBS CT open size: " << open_->size() << std::endl;
         }
 
         // Get the state of least cost.
-        auto state = open_.min();
-        open_.pop();
+        auto state = open_->min();
+        open_->pop();
 
         // Set the state to closed.
         state->setClosed();
@@ -189,6 +197,7 @@ bool ims::EAECBS::plan(MultiAgentPaths& paths) {
             stats_.cost = state->f;
             paths = state->paths;
             stats_.num_expanded = iter;
+            stats_.suboptimality = params_.high_level_focal_suboptimality;
             return true;
         }
 
@@ -196,6 +205,8 @@ bool ims::EAECBS::plan(MultiAgentPaths& paths) {
         expand(state->state_id);
         ++iter;
 
+        double lower_bound = open_->getLowerBound();
+        open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
     }
     getTimeFromStart(stats_.time);
     return false;
@@ -253,6 +264,7 @@ void ims::EAECBS::expand(int state_id) {
         new_state->paths_costs = state->paths_costs;
         new_state->paths_transition_costs = state->paths_transition_costs;
         new_state->f = state->f;
+        new_state->sum_of_costs = state->sum_of_costs;
         new_state->constraints_collectives = state->constraints_collectives;
         new_state->experiences_collectives = state->experiences_collectives;
         // NOTE(yoraish): we do not copy over the conflicts, since they will be recomputed in the new state. We could consider keeping a history of conflicts in the search state, with new conflicts being marked as such.
@@ -260,13 +272,17 @@ void ims::EAECBS::expand(int state_id) {
         // Update the constraints collective to also include the new constraint.
         new_state->constraints_collectives[agent_id].addConstraints(constraint_ptr);
         
-        // update the action-space.
-        agent_action_space_ptrs_[agent_id]->setConstraintsCollective(std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]));
+        // Update the action-space. Start with the constraints and their context.
+        std::shared_ptr<ConstraintsCollective> constraints_collective_ptr = std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]);
+        std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
+        context_ptr->agent_paths = new_state->paths;
+        context_ptr->agent_names = agent_names_;
+        constraints_collective_ptr->setContext(context_ptr);
+        agent_action_space_ptrs_[agent_id]->setConstraintsCollective(constraints_collective_ptr);
 
         /////////////////////////////////////////////
         // Update the experiences collective.
         /////////////////////////////////////////////
-    
         // if (is_experience_shared_across_ct_){
             // agent_action_space_ptrs_[agent_id]->addTimedExperienceToExperiencesCollective(std::make_shared<Experience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
         // }
@@ -290,8 +306,12 @@ void ims::EAECBS::expand(int state_id) {
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
         new_state->paths[agent_id].clear();
         agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
-        new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.transition_costs;
-        new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.cost;
+        new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().transition_costs;
+        new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().cost;
+
+        // Get the sum of costs for the new state.
+        double new_state_soc = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
+        new_state->sum_of_costs = new_state_soc;
 
         // If there is no path for this agent, then this is not a valid state. Discard it.
         if (new_state->paths[agent_id].empty()) {
@@ -301,8 +321,7 @@ void ims::EAECBS::expand(int state_id) {
 
         // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
         new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
-        // Get the sum of costs for the new state.
-        double new_state_soc = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
+
 
         // Get any conflicts between the newly computed paths.
         // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the ECBS class, and then passed to the action_space.
@@ -315,21 +334,20 @@ void ims::EAECBS::expand(int state_id) {
         std::cout << "New state soc: " << new_state_soc << std::endl;
         std::cout << "New state num conflicts: " << new_state->unresolved_conflicts.size() << std::endl;
 
-        new_state->f = new_state_soc + params_.weight_num_conflicts * new_state->unresolved_conflicts.size(); /////////////////////////////////////////////
+        new_state->f = new_state_soc;
 
         // Add a random number between zero and one to f.
         // new_state->f += (double)rand() / RAND_MAX; // Uncomment for nitro boost.
 
 
         // Push the new state to the open list.
-        open_.push(new_state);
+        open_->push(new_state);
         new_state->setOpen();
 
         // Delete the previous state but keep the entry in the states_ vector.
         // state = nullptr;
     }
 }
-
 
 void ims::EAECBS::verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
     // Check all goals have starts.

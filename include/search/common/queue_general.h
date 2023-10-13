@@ -26,6 +26,7 @@ public:
     virtual void clear() = 0;
     virtual void update(T* e) = 0;
     virtual size_t size() const = 0;
+    virtual bool contains(T* e) const = 0;
 
     /// @brief Updates the queue to only consider elements that satisfy the lower bound.
     /// @param lower_bound_threshold is the absolute value, not a suboptimality factor, queue
@@ -62,6 +63,7 @@ public:
     virtual void clear() override;
     virtual void update(T* e) override;
     virtual size_t size() const override;
+    virtual bool contains(T* e) const override;
 
     /// @brief Updates the queue to only consider elements that satisfy the lower bound.
     /// @param lower_bound_threshold 
@@ -93,6 +95,7 @@ public:
     virtual void clear() override;
     virtual void update(T* e) override;
     virtual size_t size() const override;
+    virtual bool contains(T* e) const override;
 
     /// @brief Updates queue to add more elements to focal list which satisfy lower bound threshold.
     /// @param lower_bound_threshold is the absolute value, not a suboptimality factor, queue
@@ -124,6 +127,7 @@ public:
     virtual void clear() override;
     virtual void update(T* e) override;
     virtual size_t size() const override;
+    virtual bool contains(T* e) const override;
 
     /// @brief Updates focal queue to add more elements satisfying lower bound threshold.
     /// @param lower_bound_threshold is the absolute value, not a suboptimality factor, queue

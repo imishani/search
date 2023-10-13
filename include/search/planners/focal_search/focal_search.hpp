@@ -71,7 +71,7 @@ struct FocalSearchPlannerStats : public PlannerStats {
 /// @brief A general search algorithm that uses heuristics and g values to find the optimal path
 class FocalSearch : public Planner {
 private:
-    friend class FocalwAStar;
+    friend class FocalwAStar; friend class FocalEAwAStarUniformCost;
 
     /// @brief The search state.
     struct SearchState : public ims::SearchState, ims::SearchStateLowerBoundMixin {

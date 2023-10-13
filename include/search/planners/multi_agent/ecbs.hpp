@@ -74,7 +74,7 @@ struct ECBSParams : public CBSParams {
     /// @brief The weight of the number of conflicts in the f value of the high level nodes.
     double weight_num_conflicts = 1.0;
 
-    double high_level_suboptimality = 2.0;
+    double high_level_focal_suboptimality = 2.0;
     double low_level_focal_suboptimality = 2.0;
 };
 
@@ -91,7 +91,6 @@ using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 /// @brief The ECBS algorithm.
 class ECBS : public CBS {
 private:
-
 public:
     /// @brief Constructor
     /// @param params The parameters

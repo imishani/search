@@ -61,6 +61,11 @@ double SimpleQueue<T, CompareMain>::getLowerBound() const {
     return m_open.min()->getLowerBound();
 }
 
+template <class T, class CompareMain>
+bool SimpleQueue<T, CompareMain>::contains(T* e) const {
+    return m_open.contains(e);
+}
+
 ///////////////////////////////////////////////////////////////
 ////////////////////// FocalQueue below ///////////////////////
 
@@ -134,6 +139,10 @@ double FocalQueue<T, CompareMain, CompareFocal>::getLowerBound() const {
     throw std::runtime_error("getLowerBound() not supported for Focal Queue");
 }
 
+template <class T, class CompareMain, class CompareFocal>
+bool FocalQueue<T, CompareMain, CompareFocal>::contains(T* e) const {
+    return m_focal.contains(e) || m_waitlist.contains(e);
+}
 
 
 ///////////////////////////////////////////////////////////////
@@ -193,6 +202,11 @@ void FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::updateWithBound(d
 template <class T, class CompareMain, class CompareFocal>
 double FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::getLowerBound() const {
     return m_anchorQ.getLowerBound();
+}
+
+template <class T, class CompareMain, class CompareFocal>
+bool FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::contains(T* e) const {
+    return m_focalQ.contains(e);
 }
 
 } // Namespace ims

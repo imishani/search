@@ -59,7 +59,7 @@
 /// For custom datasets: ./run_2d_mapf_cbs_or_ecbs -m 6 -a ignore -n 4 -h 1.1
 /// For mapf datasets: ./run_2d_mapf_cbs_or_ecbs --map_file_path=domains/2d_mapf/datasets/mapf-map/den312d.map 
 ///                         -a domains/2d_mapf/datasets/scen-random/den312d-random-1.scen -n 10
-///                         --high_level_suboptimality=1.5
+///                         --high_level_focal_suboptimality=1.5
 int main(int argc, char** argv) {
     namespace po = boost::program_options;
     // Declare the supported options.
@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
 		("map_file_path,m", po::value<string>()->required(), "relative map file path from search directory")
         ("agent_file_path,a", po::value<string>()->required(), "relative agent file path from search directory")
 		("num_agents,n", po::value<int>()->required(), "number of agents")
-        ("high_level_suboptimality,-h", po::value<double>()->default_value(1.0), 
+        ("high_level_focal_suboptimality,-h", po::value<double>()->default_value(1.0), 
                     "high level suboptimality, default value of 1 is identical to CBS")
         ;
 
@@ -85,8 +85,8 @@ int main(int argc, char** argv) {
 	}
 
     po::notify(vm);
-	if (vm["high_level_suboptimality"].as<double>() < 1) {
-		throw std::invalid_argument("high_level_suboptimality must be >= 1");
+	if (vm["high_level_focal_suboptimality"].as<double>() < 1) {
+		throw std::invalid_argument("high_level_focal_suboptimality must be >= 1");
 	}
 
     boost::filesystem::path full_path( boost::filesystem::current_path() );
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
 
     // Construct the planner.
     std::cout << "Constructing planner..." << std::endl;
-    bool useECBS = (vm["high_level_suboptimality"].as<double>() > 1.0);
+    bool useECBS = (vm["high_level_focal_suboptimality"].as<double>() > 1.0);
 
     ims::MultiAgentPaths paths;
     PlannerStats stats;
@@ -145,9 +145,9 @@ int main(int argc, char** argv) {
 
         // Construct the parameters.
         ims::ECBSParams params;
-        params.high_level_suboptimality = vm["high_level_suboptimality"].as<double>();
-        params.low_level_focal_suboptimality = params.high_level_suboptimality;
-        params.weight_low_level_heuristic = params.high_level_suboptimality;
+        params.high_level_focal_suboptimality = vm["high_level_focal_suboptimality"].as<double>();
+        params.low_level_focal_suboptimality = params.high_level_focal_suboptimality;
+        params.weight_low_level_heuristic = params.high_level_focal_suboptimality;
         
         for (int i {0}; i < num_agents; i++){
             params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);

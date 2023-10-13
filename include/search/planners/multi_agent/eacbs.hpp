@@ -130,13 +130,14 @@ public:
 protected:
     // The searchState struct. Keeps track of the state id, parent id, and cost. In EACBS, we also add the constraints and paths.
     /// @brief The search state.
-    struct SearchState : public ims::BestFirstSearch::SearchState {
+    struct SearchState : public ims::BestFirstSearch::SearchState, public SearchStateLowerBoundMixin {
         // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
         MultiAgentPaths paths;
 
         // The path costs.
         std::unordered_map<int, double> paths_costs;
         std::unordered_map<int, std::vector<double>> paths_transition_costs;
+        double sum_of_costs = 0.0;
 
         // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For EACBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
         std::vector<std::shared_ptr<Conflict>> unresolved_conflicts = {};
@@ -146,6 +147,13 @@ protected:
 
         // The low level experiences collecitve. This is a map from agent id to experience collective.
         MultiAgentExperiencesCollective experiences_collectives;
+
+        /// @brief Get the cost of the state.
+        /// @return 
+        virtual double getLowerBound() const override {
+            assert(sum_of_costs > 0.0);
+            return sum_of_costs;
+        }
     };
 
     /// @brief The open list. We set it to a deque for fast pop_front().

@@ -47,7 +47,7 @@
 #include <search/common/conflicts.hpp>
 #include <search/common/constraints.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
-#include <search/planners/wastar.hpp>
+#include <search/planners/focal_search/focal_eawastar.hpp>
 #include <search/planners/best_first_search.hpp>
 #include <search/planners/multi_agent/ecbs.hpp>
 #include <search/planners/multi_agent/eacbs.hpp>
@@ -103,9 +103,26 @@ protected:
 
     struct SearchState: public EACBS::SearchState{};
 
-    /// @brief The open list. We set it to a deque for fast pop_front().
-    using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-    OpenList open_;
+    /// @brief The search state compare struct.
+    struct EACBSFocalCompare{
+        bool operator()(const SearchState& s1, const SearchState& s2) const{
+            if (s1.unresolved_conflicts.size() == s2.unresolved_conflicts.size()) {
+                if (s1.f == s2.f) {
+                    if (s1.g == s2.g) {
+                        return s1.state_id < s2.state_id;
+                    }
+                    return s1.g < s2.g;
+                }
+                return s1.f < s2.f;
+            }
+            return s1.unresolved_conflicts.size() < s2.unresolved_conflicts.size();
+        }
+    };
+
+    // /// @brief The open list. We set it to a deque for fast pop_front().
+    // using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+    // OpenList open_;
+    FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, EACBSFocalCompare>* open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, EACBSFocalCompare>();
 
     // The states that have been created.
     std::vector<SearchState*> states_;
@@ -139,7 +156,7 @@ protected:
     std::vector<std::shared_ptr<SubcostExperienceAcceleratedConstrainedActionSpace>> agent_action_space_ptrs_;
 
     // The low-level planners.
-    std::vector<std::shared_ptr<EAwAStarUniformCost>> agent_planner_ptrs_;
+    std::vector<std::shared_ptr<FocalEAwAStarUniformCost>> agent_planner_ptrs_;
 
 };
 

@@ -25,6 +25,7 @@ add_library(search SHARED
         src/planners/egraph_wastar.cpp
         src/planners/focal_search/focal_search.cpp
         src/planners/focal_search/focal_wastar.cpp
+        src/planners/focal_search/focal_eawastar.cpp
         src/planners/multi_agent/cbs.cpp
         src/planners/multi_agent/eacbs.cpp
         src/planners/multi_agent/eaecbs.cpp

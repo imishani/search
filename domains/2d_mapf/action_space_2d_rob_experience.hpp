@@ -226,8 +226,8 @@ public:
 
                 // Compute the number of conflicts that would be created on a transition to the successor.
                 // Loop through the paths of all the other agents and check if the transition to the successor creates a conflict.
-                int num_conflicts = 0;
-                computeTransitionNumberConflicts(curr_state->state, next_state_val, num_conflicts);
+                double num_conflicts = 0;
+                computeTransitionConflictsCost(curr_state->state, next_state_val, num_conflicts);
 
                 // Set the subcost.
                 subcosts.push_back(num_conflicts);
@@ -236,7 +236,7 @@ public:
         return true;
     }
 
-    void computeTransitionNumberConflicts(const StateType& state, const StateType& next_state_val, int & num_conflicts){
+    void computeTransitionConflictsCost(const StateType& state, const StateType& next_state_val, double & num_conflicts) override {
         for (auto other_agent_id_and_path : constraints_collective_ptr_->getConstraintsContext()->agent_paths) {
             int other_agent_id = other_agent_id_and_path.first;
             PathType other_agent_path = other_agent_id_and_path.second;
