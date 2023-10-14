@@ -63,21 +63,21 @@ public:
         experiences_collective_ptr_ = expriences_collective;
     }
 
-    void addExperienceToExperiencesCollective(const std::shared_ptr<Experience>& experience) {
-        experiences_collective_ptr_->addExperience(experience);
+    void addPathExperienceToExperiencesCollective(const std::shared_ptr<PathExperience>& experience) {
+        experiences_collective_ptr_->addPathExperience(experience);
     }
 
-    void addTimedExperienceToExperiencesCollective(const std::shared_ptr<Experience>& experience) {
+    void addTimedPathExperienceToExperiencesCollective(const std::shared_ptr<PathExperience>& experience) {
         PathType path_wo_time = experience->getPath(); // A copy of the path that will be modified to remove the time component.
         for (auto& state : path_wo_time) {
             state.pop_back();
         }
-        std::shared_ptr<Experience> experience_wo_time = std::make_shared<Experience>(path_wo_time, experience->getPathTransitionCosts());
-        experiences_collective_ptr_->addExperience(experience_wo_time);
+        std::shared_ptr<PathExperience> experience_wo_time = std::make_shared<PathExperience>(path_wo_time, experience->getPathTransitionCosts());
+        experiences_collective_ptr_->addPathExperience(experience_wo_time);
     }
 
     /// @brief Clear the experiences.
-    void clearExperiences() { experiences_collective_ptr_->clear(); }
+    void clearPathExperiences() { experiences_collective_ptr_->clear(); }
 
     /// @brief Set the experiences context.
     /// @param context The experiences context to set.
@@ -87,6 +87,15 @@ public:
 
     /// @brief Get subpaths that are valid for the given state. These are all the suffixes of the path experiences that include the given state, starting from this state. 
     void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs);
+
+    /// @brief Get successors with experience acceleration.
+    /// @param state_id The state id.
+    /// @param successors The successors to be updated.
+    /// @param costs The costs to be updated.
+    virtual bool getSuccessorsExperienceAccelerated(int state_id, std::vector<int>& successors, std::vector<double>& costs){
+        throw std::runtime_error("getSuccessorsExperienceAccelerated not implemented for this action space.");
+    }
+
     
     // Member variables.
     /// @brief The experiences.

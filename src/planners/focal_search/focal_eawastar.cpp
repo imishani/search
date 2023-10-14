@@ -157,7 +157,8 @@ void ims::FocalEAwAStarUniformCost::expand(int state_id){
     std::vector<double> costs;
     std::vector<double> subcosts;
 
-    action_space_ptr_->getSuccessors(state->state_id, successors, costs, subcosts);
+    action_space_ptr_->getSuccessorsExperienceAccelerated(state->state_id, successors, costs, subcosts);
+
     for (size_t i {0} ; i < successors.size() ; ++i){
         int successor_id = successors[i];
         double cost = costs[i];

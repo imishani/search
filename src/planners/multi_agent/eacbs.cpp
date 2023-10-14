@@ -257,17 +257,17 @@ void ims::EACBS::expand(int state_id) {
         // NOTE(yoraish): if we do not want to share experiences across CT subtrees, then we should work in the same way as the constraints (keep track of experiences in the search state, and update (set) the action space with the experiences stored in the search state (not to add to them)).
         
         // if (is_experience_shared_across_ct_){
-            // agent_action_space_ptrs_[agent_id]->addTimedExperienceToExperiencesCollective(std::make_shared<Experience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+            // agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
         // }
 
         // if (is_experience_only_previous_path_){
-        //     // agent_action_space_ptrs_[agent_id]->clearExperiences();
-        //     // agent_action_space_ptrs_[agent_id]->addTimedExperienceToExperiencesCollective(std::make_shared<Experience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+        //     // agent_action_space_ptrs_[agent_id]->clearPathExperiences();
+        //     // agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
         // }
 
         bool is_experience_ct_branch_ = true;
         if (is_experience_ct_branch_){
-            new_state->experiences_collectives[agent_id].addTimedExperience(std::make_shared<Experience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+            new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
 
             // Update the action-space with the updated experiences.
             agent_action_space_ptrs_[agent_id]->setExperiencesCollective(std::make_shared<ExperiencesCollective>(new_state->experiences_collectives[agent_id]));

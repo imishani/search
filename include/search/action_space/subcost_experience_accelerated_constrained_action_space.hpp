@@ -110,13 +110,21 @@ public:
                     int state_id = getOrCreateRobotStateNonGoal(robot_state); // This is also SLOW apparently.
                     valid_state_ids_for_reuse.push_back(state_id);
 
-                    // Keep track of the transition costs.
-                    valid_states_for_reuse_costs.push_back(subexperiences_transition_costs[i][state_ix]);
-
                     // Compute the transition subcosts, as induced by the conflicts that the transition would cause.
+                    // QUESTION(yoraish): STOP EXPERIENCES WHEN TRANSITION CONFLICT COST IS NON ZERO?
                     double transition_conflict_cost = 0;
                     computeTransitionConflictsCost(robot_state, next_robot_state, transition_conflict_cost);
-                    valid_states_for_reuse_subcosts.push_back(transition_conflict_cost);
+                    
+                    if (transition_conflict_cost > 0) {
+                        // If the transition conflict cost is non zero, then we should not add any more states to the prefix.
+                        break;
+                    }
+                    else{
+                        // Keep track of the transition costs.
+                        valid_states_for_reuse_costs.push_back(subexperiences_transition_costs[i][state_ix]);
+                        valid_states_for_reuse_subcosts.push_back(transition_conflict_cost);
+                    }
+
 
                 } else {
                     // If not, break and add the data to our returned objects.
@@ -144,7 +152,12 @@ public:
         }
     }
 
-
+    virtual bool getSuccessorsExperienceAccelerated(int curr_state_ind,
+                                std::vector<int> &successors,
+                                std::vector<double>& costs,
+                                std::vector<double>& subcosts) {
+        throw std::runtime_error("getSuccessorsExperienceAccelerated not implemented for abstract SubcostExperienceAcceleratedConstrainedActionSpace");
+        }
 
 };
 

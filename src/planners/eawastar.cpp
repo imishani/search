@@ -144,7 +144,8 @@ void ims::EAwAStarUniformCost::expand(int state_id){
     auto state_ = getSearchState(state_id);
     std::vector<int> successors;
     std::vector<double> costs;
-    action_space_ptr_->getSuccessors(state_->state_id, successors, costs);
+    action_space_ptr_->getSuccessorsExperienceAccelerated(state_->state_id, successors, costs);
+    // action_space_ptr_->getSuccessors(state_->state_id, successors, costs);
     for (size_t i {0} ; i < successors.size() ; ++i){
         int successor_id = successors[i];
         double cost = costs[i];

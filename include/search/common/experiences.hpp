@@ -42,16 +42,36 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <map>
+// #include <boost/functional/hash.hpp>
 
 // Project includes.
 #include <search/common/types.hpp>
+
+
+// Define a custom hash function for a pair of vectors using Boost
+namespace std {
+    template <>
+    struct hash< std::pair< StateType, StateType > > {
+        using argument_type = std::pair<StateType, StateType>;
+        using result_type = std::size_t;
+        
+        result_type operator()(const argument_type& p) const {
+            size_t seed = 0;
+            boost::hash_combine(seed, p.first);
+            boost::hash_combine(seed, p.second);
+            return seed;
+        }
+    };
+}
 
 namespace ims {
 
 enum class ExperienceType {
     UNSET = -1,
     PATH = 0,
+    TRANSITION = 1,
 };
 
 /// @brief Base class for all search experiences.
@@ -69,8 +89,8 @@ struct ExperienceBase {
     ExperienceType type;
 };
 
-/// @brief path experience. We simply call this Experience, instead of PathExperience, since this is the most common type of experience when working in motion planning.
-struct Experience : public ExperienceBase {
+/// @brief path experience PathExperience. This is one of the most common type of experience when working in motion planning.
+struct PathExperience : public ExperienceBase {
     /// @brief The path.
     PathType path_;
 
@@ -78,16 +98,16 @@ struct Experience : public ExperienceBase {
     std::vector<double> path_transition_costs_;
 
     /// @brief Constructor
-    explicit Experience(const PathType& path, const std::vector<double>& path_transition_costs) : path_(path), path_transition_costs_(path_transition_costs), ExperienceBase() {
+    explicit PathExperience(const PathType& path, const std::vector<double>& path_transition_costs) : path_(path), path_transition_costs_(path_transition_costs), ExperienceBase() {
         type = ExperienceType::PATH;
     }
 
     /// @brief Virtual destructor.
-    ~Experience() override = default;
+    ~PathExperience() override = default;
 
     /// @brief Get a string with information about the experience.
     std::string toString() const override {
-        std::string str = "Experience: ";
+        std::string str = "PathExperience: ";
         for (const auto& state : path_) {
             str += "[";
             for (auto val : state) {
@@ -108,6 +128,51 @@ struct Experience : public ExperienceBase {
     /// @return The path transition costs.
     const std::vector<double>& getPathTransitionCosts() const {
         return path_transition_costs_;
+    }
+};
+
+
+/// @brief path experience PathExperience. This is one of the most common type of experience when working in motion planning.
+struct TransitionExperience : public ExperienceBase {
+    /// @brief The states involved in the transition. Note that these states are usually not timed.
+    StateType state_from_;
+    StateType state_to_;
+    bool is_valid_ = true;
+
+    /// @brief The path transition costs.
+    std::vector<double> path_transition_costs_;
+
+    /// @brief Constructor
+    explicit TransitionExperience(const StateType& state_from, const StateType& state_to, const bool is_valid) : state_from_(state_from), state_to_(state_to), is_valid_(is_valid), ExperienceBase() {
+        type = ExperienceType::TRANSITION;
+    }
+
+    explicit TransitionExperience(const std::pair<StateType, StateType>& state_pair, const bool is_valid) : state_from_(state_pair.first), state_to_(state_pair.second), is_valid_(is_valid), ExperienceBase() {
+        type = ExperienceType::TRANSITION;
+    }
+
+    /// @brief Virtual destructor.
+    ~TransitionExperience() override = default;
+
+    /// @brief Get a string with information about the experience.
+    std::string toString() const override {
+        std::string str = "TransitionExperience: [";
+        for (double val : state_from_) {
+            str += std::to_string(val) + " ";
+        }
+        str += "] -> [";
+        for (double val : state_to_) {
+            str += std::to_string(val) + " ";
+        }
+        str += "]\n";
+        return str;
+    }
+
+    /// @brief Get the involved states.
+    /// @return 
+    void getStates(StateType& state_from, StateType& state_to) const {
+        state_from = state_from_;
+        state_to = state_to_;
     }
 };
 
@@ -135,39 +200,39 @@ struct ExperiencesCollective {
     // Setters.
     /// @brief Set the experiences.
     /// @param experiences The experiences to set.
-    void setExperiences(const std::vector<std::shared_ptr<Experience>>& experiences) {
-        experiences_ptrs_ = experiences;
+    void setPathExperiences(const std::vector<std::shared_ptr<PathExperience>>& experiences) {
+        path_experiences_ptrs_ = experiences;
 
         // Populate the map betwee states and experiences.
-        for (const auto& experience_ptr : experiences_ptrs_) {
+        for (const auto& experience_ptr : path_experiences_ptrs_) {
             for (const auto& state : experience_ptr->getPath()) {
-                state_to_experiences_ptrs_[state].push_back(experience_ptr);
+                state_to_path_experiences_ptrs_[state].push_back(experience_ptr);
             }
         }
     }
 
-    void addExperience(const std::shared_ptr<Experience>& experience) {
+    void addPathExperience(const std::shared_ptr<PathExperience>& experience) {
         // Check if this experience is new.
         // TODO(yoraish) IMPORTANT
 
-        experiences_ptrs_.push_back(experience);
+        path_experiences_ptrs_.push_back(experience);
         // Print the number of experiences.
-        std::cout << "ExperiencesCollective: Added experience. Number of experiences: " << experiences_ptrs_.size() << std::endl;
-        std::cout << "States in experiences map: " << state_to_experiences_ptrs_.size() << std::endl;
+        std::cout << "ExperiencesCollective: Added experience. Number of experiences: " << path_experiences_ptrs_.size() << std::endl;
+        std::cout << "States in experiences map: " << state_to_path_experiences_ptrs_.size() << std::endl;
 
         // Point each of the states in the experience to this experience.
         for (const auto& state : experience->getPath()) {
-            state_to_experiences_ptrs_[state].push_back(experience);
+            state_to_path_experiences_ptrs_[state].push_back(experience);
         }
     }
 
-    void addExperiences(const std::vector<std::shared_ptr<Experience>>& experiences) {
-        for (const std::shared_ptr<Experience>& experience_ptr : experiences) {
-            addExperience(experience_ptr);
+    void addPathExperiences(const std::vector<std::shared_ptr<PathExperience>>& experiences) {
+        for (const std::shared_ptr<PathExperience>& experience_ptr : experiences) {
+            addPathExperience(experience_ptr);
         }
     }
 
-    void addTimedExperience(const std::shared_ptr<Experience>& experience) {
+    void addTimedPathExperience(const std::shared_ptr<PathExperience>& experience) {
 
         // A copy of the path that will be modified to remove the time component and remove loops.
         PathType path_wo_time;
@@ -185,8 +250,8 @@ struct ExperiencesCollective {
         }
         path_transition_costs.back() = 0.0;
 
-        std::shared_ptr<Experience> experience_wo_time = std::make_shared<Experience>(path_wo_time, experience->getPathTransitionCosts());
-        addExperience(experience_wo_time);
+        std::shared_ptr<PathExperience> experience_wo_time = std::make_shared<PathExperience>(path_wo_time, experience->getPathTransitionCosts());
+        addPathExperience(experience_wo_time);
     }
 
     /// @brief Get the experiences that contain this state. These are subexperiences since those that are returned all begin with the query state. If they started before it, then only their suffixes are returned.
@@ -196,11 +261,11 @@ struct ExperiencesCollective {
     void getSubExperiencesFromState(const StateType& state, std::vector<PathType>& experience_subpaths, std::vector<std::vector<double>>&experience_subpaths_transition_costs) const {
 
         // Find all the experiences that contain this state. Return if there are none.
-        if (state_to_experiences_ptrs_.find(state) == state_to_experiences_ptrs_.end()) {
+        if (state_to_path_experiences_ptrs_.find(state) == state_to_path_experiences_ptrs_.end()) {
             return;
         }
 
-        std::vector<std::shared_ptr<Experience>> all_experiences_with_state = state_to_experiences_ptrs_.at(state);
+        std::vector<std::shared_ptr<PathExperience>> all_experiences_with_state = state_to_path_experiences_ptrs_.at(state);
 
         // Remove all prefixes in the experiences that come before this state.
         for (const auto& experience_ptr : all_experiences_with_state) {
@@ -212,7 +277,40 @@ struct ExperiencesCollective {
             experience_subpaths.push_back(PathType(experience_ptr->getPath().begin() + state_index, experience_ptr->getPath().end()));
             experience_subpaths_transition_costs.push_back(std::vector<double>(experience_ptr->getPathTransitionCosts().begin() + state_index, experience_ptr->getPathTransitionCosts().end()));
         }
+    }
 
+    /// @brief Add a transition to the experiences collective.
+    /// @param experience 
+    void addTransitionExperience(const std::shared_ptr<TransitionExperience>& experience) {
+        // Check if this experience is new.
+        // TODO (yoraish) IMPORTANT
+
+        transition_experiences_ptrs_.push_back(experience);
+
+        // Add this transition experience to the collection of transition experiences.
+        StateType state_from;
+        StateType state_to;
+        experience->getStates(state_from, state_to);
+
+        // Create a pair.
+        std::pair<StateType, StateType> state_pair = std::make_pair(state_from, state_to);
+
+        // Add to the collection.
+        transition_experiences_ptrs_.push_back(experience);
+        state_pair_to_transition_experience_ptr_[state_pair] = experience;
+    }
+
+    bool isTransitionInExperiences(const std::pair<StateType, StateType>& state_pair) const {
+        // Check if the pair is in the collection.
+        return state_pair_to_transition_experience_ptr_.find(state_pair) != state_pair_to_transition_experience_ptr_.end();
+    }
+
+    bool isTransitionValid(const std::pair<StateType, StateType>& state_pair) const {
+        // Check if the pair is in the collection.
+        assert(isTransitionInExperiences(state_pair));
+
+        // Check if the transition is valid.
+        return state_pair_to_transition_experience_ptr_.at(state_pair)->is_valid_;
     }
 
     /// @brief Set the experiences context.
@@ -228,8 +326,8 @@ struct ExperiencesCollective {
 
     /// @brief Clear the experiences.
     void clear() {
-        experiences_ptrs_.clear();
-        state_to_experiences_ptrs_.clear();
+        path_experiences_ptrs_.clear();
+        state_to_path_experiences_ptrs_.clear();
     }
 
     // Getters.
@@ -241,30 +339,32 @@ struct ExperiencesCollective {
 
     /// @brief Get the experiences.
     /// @return The experiences.
-    const std::vector<std::shared_ptr<Experience>>& getExperiences() const {
-        return experiences_ptrs_;
+    const std::vector<std::shared_ptr<PathExperience>>& getExperiences() const {
+        return path_experiences_ptrs_;
     }
 
     /// String.
     /// @brief Get a string with information about the experience.
     std::string toString() const {
         std::string str = "ExperiencesCollective: \n";
-        for (const auto& experience_ptr : experiences_ptrs_) {
+        for (const auto& experience_ptr : path_experiences_ptrs_) {
             str += "    " + experience_ptr->toString() + "\n";
         }
         return str;
     }
 
 private:
-    /// @brief Map from a timestep to a set of experience pointers.
-    std::unordered_map<StateType, std::vector<std::shared_ptr<Experience>>, StateTypeHash> state_to_experiences_ptrs_ = {};
+    /// @brief Map from a timestep to a set of path experience pointers.
+    std::unordered_map<StateType, std::vector<std::shared_ptr<PathExperience>>, StateTypeHash> state_to_path_experiences_ptrs_ = {};
+    std::unordered_map<std::pair<StateType, StateType>, std::shared_ptr<TransitionExperience>> state_pair_to_transition_experience_ptr_ = {};
 
     // Member Variables.
     /// @brief The type of the experience.
     std::shared_ptr<ExperiencesContext> context_ptr_ = std::make_shared<ExperiencesContext>();
 
-    /// @brief The type of the experience.
-    std::vector<std::shared_ptr<Experience>> experiences_ptrs_ = {};
+    /// @brief Keep track of all the path experiences that have been added.
+    std::vector<std::shared_ptr<PathExperience>> path_experiences_ptrs_ = {};
+    std::vector<std::shared_ptr<TransitionExperience>> transition_experiences_ptrs_ = {};
 };
 
 /// @brief An object for mapping [agent_ids] to a set of experiences collective.
