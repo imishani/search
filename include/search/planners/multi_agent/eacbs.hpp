@@ -108,7 +108,7 @@ public:
     /// @param goals The goal states for all agents.
     void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                            const std::vector<StateType>& starts, const std::vector<StateType>& goals);
-    void initializePlanner(std::vector<std::shared_ptr<SubcostExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs,
+    void initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs,
                            const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief Initialize the planner and set the agent names.
@@ -117,7 +117,7 @@ public:
     /// @param starts The start states for all agents.
     /// @param goals The goal states for all agents.
     void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
-    void initializePlanner(std::vector<std::shared_ptr<SubcostExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    void initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief Initialize the open list with a node including single-agent paths.
     void createRootInOpenList() override;
@@ -208,7 +208,7 @@ protected:
     EACBSParams params_;
 
     // The action spaces for the individual agents.
-    std::vector<std::shared_ptr<SubcostExperienceAcceleratedConstrainedActionSpace>> agent_action_space_ptrs_;
+    std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>> agent_action_space_ptrs_;
 
     // The low-level planners.
     std::vector<std::shared_ptr<EAwAStarUniformCost>> agent_planner_ptrs_;

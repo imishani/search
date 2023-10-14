@@ -178,7 +178,6 @@ public:
 
             subpaths.push_back(valid_state_ids_for_reuse);
             subpath_transition_costs.push_back(valid_states_for_reuse_costs);
-
         }
     }
 

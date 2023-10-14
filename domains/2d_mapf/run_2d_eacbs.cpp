@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
     // Now we have all the star and end configurations of the agents stored in start_state_vals and goal_state_vals.
     // Let's create an action space for each agent.
     std::cout << "Creating action spaces..." << std::endl;
-    std::vector<std::shared_ptr<ims::SubcostExperienceAcceleratedConstrainedActionSpace>> action_spaces;
+    std::vector<std::shared_ptr<ims::ExperienceAcceleratedConstrainedActionSpace>> action_spaces;
     for (int i {0}; i < num_agents; i++){
         action_spaces.emplace_back(std::make_shared<SubcostExperienceAcceleratedConstrainedActionSpace2dRob>(scene, action_type));
         std::cout << "Action space " << i << " created." << std::endl;

@@ -92,9 +92,7 @@ public:
     /// @param state_id The state id.
     /// @param successors The successors to be updated.
     /// @param costs The costs to be updated.
-    virtual bool getSuccessorsExperienceAccelerated(int state_id, std::vector<int>& successors, std::vector<double>& costs){
-        throw std::runtime_error("getSuccessorsExperienceAccelerated not implemented for this action space.");
-    }
+    virtual bool getSuccessorsExperienceAccelerated(int state_id, std::vector<int>& successors, std::vector<double>& costs) = 0;
 
     
     // Member variables.

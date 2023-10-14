@@ -245,6 +245,14 @@ public:
         return getSuccessors(curr_state_ind, successors, costs, subcosts);
     }
 
+    // Get successors with subcosts. The subcosts are the number of conflicts that would be created on a transition to the successor.
+    bool getSuccessorsExperienceAccelerated(int curr_state_ind,
+                       std::vector<int>& successors,
+                       std::vector<double>& costs) override {
+
+        return getSuccessors(curr_state_ind, successors, costs);
+    }
+
 
     void computeTransitionConflictsCost(const StateType& state, const StateType& next_state_val, double & num_conflicts) override {
         for (auto other_agent_id_and_path : constraints_collective_ptr_->getConstraintsContext()->agent_paths) {
