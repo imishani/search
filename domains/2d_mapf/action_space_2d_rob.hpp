@@ -94,7 +94,7 @@ public:
                 }
             }
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
-            // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
+            // In more complex cases, the sequence is longer - for example, when the action is an experience, a controller, or a trajectory.
             ActionSequence action_seq;
             action_seq.push_back(action);
             action_seqs.push_back(action_seq);

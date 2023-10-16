@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   cbs.hpp
+ * \file   cbs.cpp
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   07/07/23
  */

@@ -14,6 +14,10 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 
+# Link ompl.
+find_package(ompl REQUIRED)
+include_directories(${OMPL_INCLUDE_DIRS})
+
 add_library(search SHARED
         src/planners/best_first_search.cpp
         src/planners/dijkstra.cpp
@@ -32,6 +36,7 @@ add_library(search SHARED
         src/planners/multi_agent/cbs_sphere3d.cpp
         src/planners/multi_agent/ecbs.cpp
         src/planners/multi_agent/prioritized_planning.cpp
+        src/planners/sampling_based/drrt.cpp
         src/common/experience_graph.cpp
         src/common/conflict_conversions.cpp
         src/common/bfs3d.cpp
