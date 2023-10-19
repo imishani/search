@@ -32,7 +32,10 @@
  * \date   07/07/23
  */
 
+
+#include <deque>
 #include <search/planners/bfs.hpp>
+
 
 ims::BFS::BFS(const ims::BFSParams &params) : params_(params), BestFirstSearch(params) {}
 
