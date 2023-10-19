@@ -142,6 +142,13 @@ void ims::EACBS::createRootInOpenList() {
     start_->f = std::accumulate(initial_paths_costs.begin(), initial_paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
     start_->setOpen();
 
+    // Add the agent_names to the constraints collectives.
+    for (auto agent_id_and_constraints_collective : start_->constraints_collectives){
+        int agent_id = agent_id_and_constraints_collective.first;
+
+        start_->constraints_collectives.at(agent_id).getConstraintsContext()->agent_names = agent_names_;
+    }
+
     // Push the initial EACBS state to the open list.
     open_.push(start_);
 
@@ -250,8 +257,15 @@ void ims::EACBS::expand(int state_id) {
         // Update the constraints collective to also include the new constraint.
         new_state->constraints_collectives[agent_id].addConstraints(constraints_ptr);
 
-        // Update the action-space with the updated constraints.
-        agent_action_space_ptrs_[agent_id]->setConstraintsCollective(std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]));
+        // Update the action-space. Start with the constraints and their context.
+        std::shared_ptr<ConstraintsCollective> constraints_collective_ptr = std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]);
+        std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
+        // context_ptr->agent_paths = new_state->paths;
+        context_ptr->agent_names = agent_names_;
+        constraints_collective_ptr->setContext(context_ptr);
+        agent_action_space_ptrs_[agent_id]->setConstraintsCollective(constraints_collective_ptr);
+
+
 
         // Update the action-space with an experience yielded by the previous path of this agent. Notice that this is slightly different from what we do with constraints. With the constraints, we first update the constraints stored in the search state and then set this same constraints collective in the action space. With experiences though, we would like to (perhaps) reuse experiences from different CT nodes, so we directly add experiences to the action space, which is shared by all invocations be this agents' low-level planner across CT subtrees.
         // NOTE(yoraish): if we do not want to share experiences across CT subtrees, then we should work in the same way as the constraints (keep track of experiences in the search state, and update (set) the action space with the experiences stored in the search state (not to add to them)).

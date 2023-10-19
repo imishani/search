@@ -33,7 +33,9 @@ add_library(search SHARED
         src/planners/multi_agent/cbs.cpp
         src/planners/multi_agent/cbs_mp.cpp
         src/planners/multi_agent/eacbs.cpp
+        src/planners/multi_agent/eacbs_mp.cpp
         src/planners/multi_agent/eaecbs.cpp
+        src/planners/multi_agent/eaecbs_mp.cpp
         src/planners/multi_agent/cbs_sphere3d.cpp
         src/planners/multi_agent/ecbs.cpp
         src/planners/multi_agent/prioritized_planning.cpp

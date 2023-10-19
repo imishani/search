@@ -73,8 +73,8 @@ namespace ims{
         friend class CBSSphere3d;
         friend class CBSMP;
         friend class ECBS;
-        friend class EACBS;
-        friend class EAECBS;
+        friend class EACBS; friend class EACBSMP;
+        friend class EAECBS; friend class EAECBSMP;
 
         /// @brief The search state.
         struct SearchState: public ims::SearchState {
