@@ -261,17 +261,17 @@ void ims::EACBS::expand(int state_id) {
         // }
 
         // if (is_experience_only_previous_path_){
-        //     // agent_action_space_ptrs_[agent_id]->clearPathExperiences();
-        //     // agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+            agent_action_space_ptrs_[agent_id]->clearPathExperiences();
+            agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
         // }
 
-        bool is_experience_ct_branch_ = true;
-        if (is_experience_ct_branch_){
-            new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+        // bool is_experience_ct_branch_ = true;
+        // if (is_experience_ct_branch_){
+        //     new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
 
-            // Update the action-space with the updated experiences.
-            agent_action_space_ptrs_[agent_id]->setExperiencesCollective(std::make_shared<ExperiencesCollective>(new_state->experiences_collectives[agent_id]));
-        }
+        //     // Update the action-space with the updated experiences.
+        //     agent_action_space_ptrs_[agent_id]->setExperiencesCollective(std::make_shared<ExperiencesCollective>(new_state->experiences_collectives[agent_id]));
+        // }
 
 
         // Update the low-level planner for this agent.
@@ -354,6 +354,10 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
                 throw std::runtime_error("Conflict is an edge conflict, but could not be converted to an EdgeConflict.");
             }
             ims::conflict_conversions::edgeConflictToEdgeConstraints(edge_conflict_ptr, agent_constraints);
+        }
+
+        else {
+            throw std::runtime_error("Conflict type " + std::to_string(static_cast<int>(conflict_ptr->type)) + " is not supported by EACBS.");
         }
     }
 

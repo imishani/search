@@ -31,6 +31,7 @@ add_library(search SHARED
         src/planners/focal_search/focal_wastar.cpp
         src/planners/focal_search/focal_eawastar.cpp
         src/planners/multi_agent/cbs.cpp
+        src/planners/multi_agent/cbs_mp.cpp
         src/planners/multi_agent/eacbs.cpp
         src/planners/multi_agent/eaecbs.cpp
         src/planners/multi_agent/cbs_sphere3d.cpp
@@ -59,37 +60,37 @@ install(TARGETS search
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 add_executable(run_2d_rob_nav_astar domains/2d_robot_nav/run_2d_astar.cpp)
-target_link_libraries(run_2d_rob_nav_astar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_rob_nav_astar search ${OpenCV_LIBS} ${Boost_LIBRARIES} ${OMPL_LIBRARIES})
 
 add_executable(run_2d_rob_nav_dijkstra domains/2d_robot_nav/run_2d_dijkstra.cpp)
-target_link_libraries(run_2d_rob_nav_dijkstra search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_rob_nav_dijkstra search ${OpenCV_LIBS} ${Boost_LIBRARIES} ${OMPL_LIBRARIES})
 
 add_executable(run_2d_rob_nav_bfs domains/2d_robot_nav/run_2d_bfs.cpp)
-target_link_libraries(run_2d_rob_nav_bfs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_rob_nav_bfs search ${OpenCV_LIBS} ${Boost_LIBRARIES} ${OMPL_LIBRARIES})
 
 add_executable(run_2d_rob_nav_wastar domains/2d_robot_nav/run_2d_wastar.cpp)
-target_link_libraries(run_2d_rob_nav_wastar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_rob_nav_wastar search ${OpenCV_LIBS} ${Boost_LIBRARIES} ${OMPL_LIBRARIES})
 
 add_executable(run_2d_rob_nav_arastar domains/2d_robot_nav/run_2d_arastar.cpp)
-target_link_libraries(run_2d_rob_nav_arastar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_rob_nav_arastar search ${OpenCV_LIBS} ${Boost_LIBRARIES} ${OMPL_LIBRARIES})
 
 add_executable(run_2d_rob_nav_wastar_local_heu domains/2d_robot_nav/run_2d_wastar_local_heu.cpp)
-target_link_libraries(run_2d_rob_nav_wastar_local_heu search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_rob_nav_wastar_local_heu search ${OpenCV_LIBS} ${Boost_LIBRARIES} ${OMPL_LIBRARIES})
 
 add_executable(run_2d_rob_nav_wastar_focal domains/2d_robot_nav/run_2d_wastar_focal.cpp)
-target_link_libraries(run_2d_rob_nav_wastar_focal search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_rob_nav_wastar_focal search ${OpenCV_LIBS} ${Boost_LIBRARIES} ${OMPL_LIBRARIES})
 
 add_executable(run_2d_mapf_cbs_or_ecbs domains/2d_mapf/run_2d_cbs_or_ecbs.cpp)
-target_link_libraries(run_2d_mapf_cbs_or_ecbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_mapf_cbs_or_ecbs search ${OpenCV_LIBS} ${Boost_LIBRARIES} ${OMPL_LIBRARIES})
 
 add_executable(run_2d_mapf_eacbs domains/2d_mapf/run_2d_eacbs.cpp)
-target_link_libraries(run_2d_mapf_eacbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_mapf_eacbs search ${OpenCV_LIBS} ${Boost_LIBRARIES} ${OMPL_LIBRARIES})
 
 add_executable(run_2d_mapf_eaecbs domains/2d_mapf/run_2d_eaecbs.cpp)
-target_link_libraries(run_2d_mapf_eaecbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_mapf_eaecbs search ${OpenCV_LIBS} ${Boost_LIBRARIES} ${OMPL_LIBRARIES})
 
 add_executable(run_2d_mapf_pp domains/2d_mapf/run_2d_pp.cpp)
-target_link_libraries(run_2d_mapf_pp search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_mapf_pp search ${OpenCV_LIBS} ${Boost_LIBRARIES} ${OMPL_LIBRARIES})
 
 # Add an uninstall target.
 if(NOT TARGET uninstall)

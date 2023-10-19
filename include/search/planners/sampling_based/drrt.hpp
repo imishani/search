@@ -50,6 +50,9 @@
 #include <search/planners/sampling_based/sampling_based_planner.hpp>
 #include <search/action_space/roadmap_action_space.hpp>
 
+namespace bg = boost::geometry;
+namespace bgi = bg::index;
+
 namespace ims {
 
 // ==========================
@@ -96,6 +99,9 @@ private:
         double g = INF_DOUBLE;
         /// @brief The f value
         double f = INF_DOUBLE;
+
+        /// @brief The state ids of the individual agents that compose this composite state. These are ordered according to the agent ordering.
+        std::vector<int> agent_state_ids;
 
         void print() override{
             std::cout << "State: " << state_id << " Parent: " << parent_id << " g: " << g << " f: " << f << std::endl;
@@ -165,6 +171,28 @@ protected:
     SearchState* getSearchState(int state_id);
     SearchState* getOrCreateSearchState(int state_id);
 
+    /// @brief Sample a composite state.
+    /// @param sampled_composite_state The sampled composite state.
+    void sampleCompositeState(MultiAgentStateType& sampled_composite_state);
+
+    /// @brief Get the search state, from those existing, nearest to the sampled composite state.
+    /// @param composite_state The sampled composite state.
+    /// @param nearest_state The nearest state.
+    /// @param nearest_state_distance The distance to the nearest state.
+    void getNearestSearchState(const MultiAgentStateType& composite_state, SearchState*& nearest_state, double& nearest_state_distance);
+    void getNearestSearchStates(const MultiAgentStateType& composite_state, std::vector<SearchState*>& nearest_states, std::vector<double>& nearest_state_distance, int num_nearest_states);
+
+    /// @brief Distance function between two composite states.
+    double distanceCompositeStates(const MultiAgentStateType& composite_state_1, const MultiAgentStateType& composite_state_2);
+
+    /// @brief Convert a collection of agent state ids (ordered according to the agent ordering) to a composite state.
+    void agentStateIdsToCompositeState(const std::vector<int>& agent_state_ids, MultiAgentStateType& composite_state);
+
+    /// @brief Reconstruct a path from a state to the root, and return the reversed.
+    /// @param goal_state 
+    /// @param paths 
+    void reconstructPath(SearchState* goal_state, MultiAgentPaths& paths);
+
     /// Member variables.
     // The search parameters.
     dRRTParams params_;
@@ -184,6 +212,7 @@ protected:
 
     /// @brief The states.
     std::vector<SearchState*> states_;
+
 };
 
 }  // namespace ims

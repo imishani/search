@@ -38,11 +38,8 @@
 #include <algorithm>
 #include <utility>
 #include <unordered_set>
-#include <ompl/geometric/SimpleSetup.h>
-#include <ompl/geometric/planners/prm/PRM.h>
-#include <ompl/base/SpaceInformation.h>
-#include <ompl/base/spaces/RealVectorStateSpace.h>
-#include <ompl/datastructures/NearestNeighbors.h>
+#include <boost/geometry.hpp>
+#include <boost/geometry/index/rtree.hpp>
 
 // project includes
 #include "action_space.hpp"
@@ -55,6 +52,7 @@ namespace ims {
 /// @brief Base class for ActionSpaces with constraints.
 /// @details This is an actions space extended to be "Constrainable" using a mixin.
 class RoadmapActionSpace : virtual public ActionSpace{
+private:
 public:
     /// @brief Constructor
     explicit RoadmapActionSpace(): ActionSpace() {
@@ -76,42 +74,47 @@ public:
     }
 
     /// @brief Create a roadmap with a given timeout in seconds.
-    inline void createRoadmap(const double timeout){
-        std::cout << "RoadmapActionSpace: createRoadmap" << std::endl;
+    inline void createRoadmap(const StateType& start_state, const StateType& goal_state, int num_samples) {
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
         // Clear the roadmap.
         adjacency_mat_.clear();
-        kdtree_ptr_.reset();
+        sampled_states_.clear();
 
-        // The sampled states.  
-        std::vector<StateType> sampled_states;
+        // Create robot states for the start and goal.
+        int start_state_id = getOrCreateRobotState(start_state);
+        int goal_state_id =  getOrCreateRobotState(goal_state);
+
+        // Add the start and goal.
+        sampled_states_[start_state_id] = start_state;
+        sampled_states_[goal_state_id] = goal_state;
+        adjacency_mat_[start_state_id] = std::unordered_set<int>();
+        adjacency_mat_[goal_state_id] = std::unordered_set<int>();
 
         // Create the roadmap.
         while (true) {
-            // Check if the timeout has been reached.
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            double elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / 1000.0;
-            if (elapsed_time > timeout) {
+            // Check if enough states were sampled.
+            if (sampled_states_.size() >= num_samples) {
                 break;
             }
 
             // Sample a state.
             StateType state;
             sampleState(state);
-            sampled_states.push_back(state);
-            
+            int new_state_id = getOrCreateRobotState(state);
+            sampled_states_[new_state_id] = state;
+            adjacency_mat_[new_state_id] = std::unordered_set<int>();
         }
 
-        // Create a kd-tree for the roadmap and initialize the roadmap adjacency list.
-        int dim_state = sampled_states[0].size();
-        kdtree_ptr_ = std::make_shared<KDTree<StateType>>(sampled_states, dim_state);
-        adjacency_mat_.resize(sampled_states.size());
+        // Create the roadmap adjacency list.
+        int dim_state = sampled_states_[0].size();
 
         // Create a roadmap adjacency list for the roadmap alongside populating the states_ vector in the action space.
         int num_edges = 0;
-        for (int i = 0; i < sampled_states.size(); i++) {
-            bool is_edge_added = addStateToRoadmap(sampled_states[i]);
+        for (auto state_id_and_state_val : sampled_states_) {
+            int i = state_id_and_state_val.first;
+            StateType state = state_id_and_state_val.second;
+            bool is_edge_added = addStateToRoadmap(sampled_states_[i]);
 
             if (is_edge_added) {
                 num_edges++;
@@ -120,14 +123,40 @@ public:
 
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         num_edges /= 2;
-        std::cout << "Created a roadmap with " << sampled_states.size() << " states and " << num_edges << " edges in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / 1000.0 << " seconds." << std::endl; 
+        std::cout << "Created a roadmap with " << sampled_states_.size() << " states and " << num_edges << " edges in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / 1000.0 << " seconds." << std::endl;
+
+        // Verify that the start state has at least one neighbor.
+        if (adjacency_mat_[start_state_id].size() == 0) {
+            throw std::runtime_error("Start state has no neighbors.");
+        }
+
     }
 
     /// @brief Sample a valid state from the action space.
-    virtual void sampleState(StateType& state) const = 0;
+    virtual void sampleState(StateType& state) = 0;
+
+    /// @brief Get the state limits.
+    virtual void getStateLimits(std::vector<std::pair<double, double>>& state_limits) const = 0;
+    virtual int getStateDimensionality() const = 0;
 
     /// @brief Check if a state transition is valid.
     virtual bool isStateToStateValid(const StateType& state_from, const StateType& state_to) = 0;
+
+    /// @brief Check if a multiagent state transition is valid, and if it is also yield connecting path segments.
+    /// @param state_from The state from which to connect.
+    /// @param state_to The state to which to connect.
+    /// @param paths The paths to populate with connecting path segments.
+    /// @return True if the transition is valid, false otherwise.
+    virtual bool multiAgentStateToStateConnector(const MultiAgentStateType& state_from, const MultiAgentStateType& state_to, MultiAgentPaths paths, std::vector<std::string> agent_names) = 0;
+
+    inline double euclidean_distance(const StateType& point1, const StateType& point2){
+        double sum = 0;
+        for (int i = 0; i < point1.size(); i++){
+            sum += pow(point1[i] - point2[i], 2);
+        }
+        return sqrt(sum);
+    }
+
 
     /// @brief Add a state to the roadmap.
     bool addStateToRoadmap(const StateType& state){
@@ -136,38 +165,79 @@ public:
         int state_id = getOrCreateRobotState(state);
 
         // Find any neighbor state.
-        StateType nearest = kdtree_ptr_->nearestNeighbor(state);
-        double dist = kdtree_ptr_->euclidean_distance(state, nearest);
+        // Loop over all sampled states and find the nearest neighbor.
+        double nearest_state_dist = std::numeric_limits<double>::infinity();
 
-        // Get the state id of the nearest neighbor.
-        int nearest_id = getOrCreateRobotState(nearest);
+        // Keep a history of the nearest state ids.
+        int num_nearest_states_to_keep = 4;
+        std::deque<int> nearest_state_id_hist;
+        std::deque<StateType> nearest_state_hist;
 
-        // If the nearest neighbor is within the radius, then add it to the adjacency list.
-        if (dist < 0.1) {
-            // Check if the transition is valid w.r.t. static obstacles.            
-            if (!isStateToStateValid(state, nearest)) {
-                return false;
+
+        for(auto other_state_id_and_state_val : sampled_states_){
+            int other_state_id = other_state_id_and_state_val.first;
+            StateType other_state_val = other_state_id_and_state_val.second;
+
+            // Nearest is not self.
+            if (state_id == other_state_id) {
+                continue;
             }
 
-            // TODO(yoraish): check if the branching of the nodes is already too high.
+            double dist = euclidean_distance(state, other_state_val);
 
-            // Add the state to the adjacency list.
-            adjacency_mat_.at(nearest_id).insert(state_id);
-            adjacency_mat_.at(state_id).insert(nearest_id);
+            if (dist < nearest_state_dist && dist > 0.0) {
+                nearest_state_dist = dist;
+
+                // Add the nearest state to the history.
+                nearest_state_id_hist.push_back(other_state_id);
+                nearest_state_hist.push_back(other_state_val);
+
+                // Keep the history size bounded.
+                if (nearest_state_id_hist.size() > num_nearest_states_to_keep) {
+                    nearest_state_id_hist.pop_front();
+                    nearest_state_hist.pop_front();
+                }
+
+            }
+        }
+        
+        for (int i = 0; i < nearest_state_id_hist.size(); i++){
+            int nearest_state_id = nearest_state_id_hist[i];
+            StateType nearest_state = nearest_state_hist[i];
+
+            // Check if the transition is valid w.r.t. static obstacles.            
+            if (isStateToStateValid(state, nearest_state)) {
+
+                // TODO(yoraish): check if the branching of the nodes is already too high.
+
+                // Add the state to the adjacency list.
+                adjacency_mat_.at(nearest_state_id).insert(state_id);
+                adjacency_mat_.at(state_id).insert(nearest_state_id);
+            }
+        }
+        if (adjacency_mat_.at(state_id).size() > 0){
             return true;
         }
 
         return false;
     }
 
-private:
+    /// @brief Get the successor of a state that moves in a direction of a target state.
+    /// @param state_id 
+    /// @param state_id_succ 
+    /// @param state_target 
+    virtual void getSuccessorInDirection(int state_id, int& state_id_succ, StateType state_target) = 0;
 
+    // Members.
     /// @brief The roadmap vertices. Store it for efficient nearest neighbor lookup as a KD-tree.
     std::shared_ptr<KDTree<StateType>> kdtree_ptr_;
+    std::unordered_map<int, StateType>sampled_states_; 
 
     /// @brief The roadmap topology (connectivity, edges). Represented as an adjacency list, with each state_id mapping to a vector of state_ids.
-    std::vector<std::unordered_set<int>> adjacency_mat_;
+    std::unordered_map<int, std::unordered_set<int>> adjacency_mat_;
+
 };
+
 
 }  // namespace ims
 

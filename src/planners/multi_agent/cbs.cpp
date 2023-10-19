@@ -125,6 +125,13 @@ void ims::CBS::createRootInOpenList(){
     }
     // <<< REMOVE REMOVE REMOVE
 
+    // Add the agent_names to the constraints collectives.
+    for (auto agent_id_and_constraints_collective : start_->constraints_collectives){
+        int agent_id = agent_id_and_constraints_collective.first;
+
+        start_->constraints_collectives.at(agent_id).getConstraintsContext()->agent_names = agent_names_;
+    }
+
     // Push the initial CBS state to the open list.
     open_->push(start_);
 }
@@ -242,11 +249,14 @@ void ims::CBS::expand(int state_id) {
         // Update the constraints collective to also include the new constraint.
         new_state->constraints_collectives[agent_id].addConstraints(constraint_ptr);
 
-        // Print number of constraints in the node.
+        // Update the action-space. Start with the constraints and their context.
+        std::shared_ptr<ConstraintsCollective> constraints_collective_ptr = std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]);
+        std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
+        // context_ptr->agent_paths = new_state->paths;
+        context_ptr->agent_names = agent_names_;
+        constraints_collective_ptr->setContext(context_ptr);
+        agent_action_space_ptrs_[agent_id]->setConstraintsCollective(constraints_collective_ptr);
 
-        // update the action-space.
-        agent_action_space_ptrs_[agent_id]->setConstraintsCollective(std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]));
-    
         // Update the low-level planner for this agent.
         agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);
 
