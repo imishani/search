@@ -41,6 +41,21 @@
 #include <search/planners/wastar.hpp>
 #include <utility>
 
+bool getEuclideanHeuristic(const StateType& s1, const StateType& s2, double& dist) {
+    // check id the states are the same size
+    if (s1.size() != s2.size()) {
+            std::cout << "Error: The states are not the same size!" << std::endl;
+            return false;
+    }
+    else {
+        for (int i{0}; i < s1.size(); i++) {
+            dist += pow(s1[i] - s2[i], 2);
+        }
+        dist = sqrt(dist);
+        return true;
+    }        
+}
+
 /// @brief The standard heuristic functions
 namespace ims {
 
@@ -48,18 +63,7 @@ namespace ims {
 struct EuclideanHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
-        // check id the states are the same size
-        if (s1.size() != s2.size()) {
-            std::cout << "Error: The states are not the same size!" << std::endl;
-            return false;
-        }
-        else {
-            for (int i{0}; i < s1.size(); i++) {
-                dist += pow(s1[i] - s2[i], 2);
-            }
-            dist = sqrt(dist);
-            return true;
-        }
+       return getEuclideanHeuristic(s1, s2, dist);
     }
 };
 
@@ -71,18 +75,8 @@ struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
         StateType s2_no_time = s2;
         s1_no_time.pop_back();
         s2_no_time.pop_back();
-        // check id the states are the same size
-        if (s1_no_time.size() != s2_no_time.size()) {
-            std::cout << "Error: The states are not the same size!" << std::endl;
-            return false;
-        }
-        else {
-            for (int i{0}; i < s1_no_time.size(); i++) {
-                dist += pow(s1_no_time[i] - s2_no_time[i], 2);
-            }
-            dist = sqrt(dist);
-            return true;
-        }
+        
+        return getEuclideanHeuristic(s1_no_time, s2_no_time, dist);
     }
 };
 
