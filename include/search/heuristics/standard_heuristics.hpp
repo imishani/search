@@ -67,7 +67,7 @@ struct EuclideanHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief The Euclidean distance heuristic
+/// @brief The Euclidean distance heuristic with time removed from state
 struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -77,6 +77,19 @@ struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
         s2_no_time.pop_back();
         
         return getEuclideanHeuristic(s1_no_time, s2_no_time, dist);
+    }
+};
+
+/// @brief The Euclidean distance heuristic with theta removed from state
+struct EuclideanRemoveThetaHeuristic : public EuclideanHeuristic {
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        StateType s1_no_theta = s1;
+        StateType s2_no_theta = s2;
+        s1_no_theta.pop_back();
+        s2_no_theta.pop_back();
+        
+        return getEuclideanHeuristic(s1_no_theta, s2_no_theta, dist);
     }
 };
 
