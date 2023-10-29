@@ -64,20 +64,20 @@ struct ActionTypeRotation2dRob : public ims::ActionType {
         Action forward_prim;
         switch (curr_theta) {
             case 0: // Facing "Up"
-                foward_prim = {0, 1, 0}
+                forward_prim = {0, 1, 0};
                 break;
             case 1: // Facing "Right"
-                forward_prim = {1, 0, 0}
+                forward_prim = {1, 0, 0};
                 break;
             case 2: // Facing "Down"
-                forawrd_prim = {0, -1, 0}
+                forward_prim = {0, -1, 0};
                 break;
             case 3: // Facing "Left"
-                forward_prim = {-1, 0, 0}
+                forward_prim = {-1, 0, 0};
                 break;
         }
-        left_prim = {0, 0, -1}
-        right_prim = {0, 0, 1}
+        Action left_prim = {0, 0, -1};
+        Action right_prim = {0, 0, 1};
         std::vector<Action> action_prims = {forward_prim, left_prim, right_prim};
         return action_prims;
     }
@@ -109,14 +109,15 @@ public:
                     std::vector<ActionSequence> &action_seqs,
                     bool check_validity) override {
         ims::RobotState* curr_state = this->getRobotState(state_id);
-        std::vector<Action> actions = action_type_->getPrimActions(curr_state);
+        int curr_state_theta = (curr_state->state)[2];
+        std::vector<Action> actions = action_type_->getPrimActions(curr_state_theta);
         for (int i {0} ; i < action_type_->num_actions ; i++){
             Action action = actions[i];
             if (check_validity){
                 StateType next_state_val = StateType(curr_state->state.size());
                 std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
                 // keep theta value between 0 and 3
-                next_state_val[2] = next_state_val[2] % 4
+                next_state_val[2] = next_state_val[2] % 4;
                 if (!isStateValid(next_state_val)){
                     continue;
                 }
@@ -142,7 +143,7 @@ public:
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
             // keep theta value between 0 and 3
-            next_state_val[2] = next_state_val[2] % 4
+            next_state_val[2] = next_state_val[2] % 4;
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
