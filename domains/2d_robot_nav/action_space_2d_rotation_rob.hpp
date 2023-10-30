@@ -50,9 +50,9 @@ public:
     std::vector<size_t> map_size;
 };
 
-struct ActionTypeRotation2dRob : public ims::ActionType {
+struct ActionType2dRotationRob : public ims::ActionType {
 
-    ActionTypeRotation2dRob() : ims::ActionType() {
+    ActionType2dRotationRob() : ims::ActionType() {
         name = "ActionTypeRotation2dRob";
         num_actions = 3;
         action_names = {"F", "L", "R"};
@@ -92,17 +92,17 @@ struct ActionTypeRotation2dRob : public ims::ActionType {
     std::vector<double> action_costs;
 };
 
-class actionSpace2dRob : public ims::ActionSpace {
+class actionSpace2dRotationRob : public ims::ActionSpace {
 
 protected:
     std::shared_ptr<Scene2DRob> env_;
-    std::shared_ptr<ActionTypeRotation2dRob> action_type_;
+    std::shared_ptr<ActionType2dRotationRob> action_type_;
 
 public:
-    actionSpace2dRob(const Scene2DRob& env,
-                     const ActionTypeRotation2dRob& actions_ptr) : ims::ActionSpace(){
+    actionSpace2dRotationRob(const Scene2DRob& env,
+                     const ActionType2dRotationRob& actions_ptr) : ims::ActionSpace(){
         this->env_ = std::make_shared<Scene2DRob>(env);
-        this->action_type_ = std::make_shared<ActionTypeRotation2dRob>(actions_ptr);
+        this->action_type_ = std::make_shared<ActionType2dRotationRob>(actions_ptr);
     }
 
     void getActions(int state_id,

@@ -92,12 +92,12 @@ int main(int argc, char** argv) {
     // construct the planner
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
-    ims::EuclideanHeuristic* heuristic = new ims::EuclideanHeuristic();
+    ims::EuclideanRemoveThetaHeuristic* heuristic = new ims::EuclideanRemoveThetaHeuristic();
     double epsilon = 10.0;
     ims::wAStarParams params (heuristic, epsilon);
     // construct the scene and the action space
     Scene2DRob scene (map);
-    ActionType2dRob action_type;
+    ActionType2dRotationRob action_type;
     for (int i {0}; i < starts.size(); i++){
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
         std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
 
-        std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
+        std::shared_ptr<actionSpace2dRotationRob> ActionSpace = std::make_shared<actionSpace2dRotationRob>(scene, action_type);
         // construct planner
         ims::wAStar planner(params);
         // catch the exception if the start or goal is not valid
