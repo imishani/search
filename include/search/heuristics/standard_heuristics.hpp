@@ -41,7 +41,10 @@
 #include <search/planners/wastar.hpp>
 #include <utility>
 
-bool getEuclideanHeuristic(const StateType& s1, const StateType& s2, double& dist) {
+/// @brief The standard heuristic functions
+namespace ims {
+    
+    bool getEuclideanHeuristic(const StateType& s1, const StateType& s2, double& dist) {
     // check id the states are the same size
     if (s1.size() != s2.size()) {
             std::cout << "Error: The states are not the same size!" << std::endl;
@@ -55,9 +58,6 @@ bool getEuclideanHeuristic(const StateType& s1, const StateType& s2, double& dis
         return true;
     }        
 }
-
-/// @brief The standard heuristic functions
-namespace ims {
 
 /// @brief The Euclidean distance heuristic
 struct EuclideanHeuristic : public BaseHeuristic {

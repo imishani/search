@@ -60,7 +60,7 @@ struct ActionTypeRotation2dRob : public ims::ActionType {
         state_discretization_ = {1, 1};
     }
 
-    std::vector<Action> getPrimActions(int curr_theta) override{
+    std::vector<Action> getPrimActions(int curr_theta) {
         Action forward_prim;
         switch (curr_theta) {
             case 0: // Facing "Up"
@@ -117,7 +117,7 @@ public:
                 StateType next_state_val = StateType(curr_state->state.size());
                 std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
                 // keep theta value between 0 and 3
-                next_state_val[2] = next_state_val[2] % 4;
+                next_state_val[2] = double(int(next_state_val[2]) % 4);
                 if (!isStateValid(next_state_val)){
                     continue;
                 }
@@ -143,7 +143,7 @@ public:
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
             // keep theta value between 0 and 3
-            next_state_val[2] = next_state_val[2] % 4;
+            next_state_val[2] = double(int(next_state_val[2]) % 4);
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
