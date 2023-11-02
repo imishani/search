@@ -248,12 +248,11 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
     int iter = 0;
     while(true || !isTimeOut()){
         if (iter % 100 == 0){
-            std::cout << "Iteration: " << iter << std::endl;
+            std::cout << "Iteration: " << iter << " with " << states_.size() << " states.\n";
         }
             
-
         // Check if should try to connect to goal.
-        if (iter % 10 == 9){
+        if (iter % 50 == 9 && false){
             
             // Set the next state to be the goal state.
             std::vector<int> next_agent_state_ids(num_agents_, 0);
@@ -284,6 +283,7 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                     SearchState* new_state = getOrCreateSearchState(states_.size());
                     new_state->agent_state_ids = next_agent_state_ids;
                     new_state->parent_id = nearest_state->state_id;
+                    std::cout << "Adding state " << new_state->state_id << " with parent " << new_state->parent_id << "\n";
                     new_state->g = nearest_state->g + 1.0;
 
                     // Reconstruct path, this is a goal state.
@@ -292,6 +292,9 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                     // Update stats.
                     getTimeFromStart(stats_.time);
                     return true;
+                }
+                else {
+                    continue;
                 }
             }
         }
@@ -332,11 +335,46 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                 SearchState* new_state = getOrCreateSearchState(states_.size());
                 new_state->agent_state_ids = next_agent_state_ids;
                 new_state->parent_id = nearest_state->state_id;
-                new_state->g = nearest_state->g + 1.0;            
+                std::cout << "Adding state " << new_state->state_id << " with parent " << new_state->parent_id << "\n";
+                new_state->g = nearest_state->g + 1.0;
+
+                // Check if this new state can be conected directly to the goal.
+
+                // TEST TEST TEST
+                // Set the next state to be the goal state.
+                std::vector<int> goal_agent_state_ids(num_agents_, 0);
+                for (int agent_id{0}; agent_id < num_agents_; ++agent_id) {
+                    goal_agent_state_ids[agent_id] = agent_action_space_ptrs_[agent_id]->getRobotStateId(goals_[agent_id]);
+                }
+                MultiAgentStateType goal_composite_state;
+                agentStateIdsToCompositeState(goal_agent_state_ids, goal_composite_state);
+
+                MultiAgentStateType new_composite_state;
+                agentStateIdsToCompositeState(new_state->agent_state_ids, new_composite_state);
+
+                // Verify that this transition is valid and add it to the search tree if it is.
+                bool is_valid_transition = agent_action_space_ptrs_[0]->multiAgentStateToStateConnector(new_composite_state, goal_composite_state, transition_paths, agent_names_);
+                if (is_valid_transition) {
+                    // Add a new composite state to the tree.
+                    // NOTE: there is currently no use of the paths returned by the connector.
+                    SearchState* goal_state = getOrCreateSearchState(states_.size());
+                    goal_state->agent_state_ids = goal_agent_state_ids;
+                    goal_state->parent_id = new_state->state_id;
+                    std::cout << "Adding state " << new_state->state_id << " with parent " << new_state->parent_id << "\n";
+                    goal_state->g = new_state->g + 1.0;
+
+                    // Reconstruct path, this is a goal state.
+                    reconstructPath(goal_state, paths);
+
+                    // Update stats.
+                    getTimeFromStart(stats_.time);
+                    return true;
+                }
+                // END TEST TEST TEST
+
             }
         }
 
-    
     iter++;
     }
 

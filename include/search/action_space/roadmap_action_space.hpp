@@ -127,7 +127,12 @@ public:
 
         // Verify that the start state has at least one neighbor.
         if (adjacency_mat_[start_state_id].size() == 0) {
-            throw std::runtime_error("Start state has no neighbors.");
+            std::cout << RED << "Start state has no neighbors. Scraping the roadmap and starting over with more samples." << RESET << std::endl;
+
+            // Scrap the roadmap and start over with more samples.
+            adjacency_mat_.clear();
+            sampled_states_.clear();
+            createRoadmap(start_state, goal_state, num_samples * 2);
         }
 
     }
@@ -147,7 +152,7 @@ public:
     /// @param state_to The state to which to connect.
     /// @param paths The paths to populate with connecting path segments.
     /// @return True if the transition is valid, false otherwise.
-    virtual bool multiAgentStateToStateConnector(const MultiAgentStateType& state_from, const MultiAgentStateType& state_to, MultiAgentPaths paths, std::vector<std::string> agent_names) = 0;
+    virtual bool multiAgentStateToStateConnector(const MultiAgentStateType& state_from, const MultiAgentStateType& state_to, MultiAgentPaths& paths, std::vector<std::string> agent_names) = 0;
 
     inline double euclidean_distance(const StateType& point1, const StateType& point2){
         double sum = 0;

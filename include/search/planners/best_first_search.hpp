@@ -72,7 +72,7 @@ namespace ims{
         friend class plannerZero; friend class CBS; friend class CBSBase;
         friend class CBSSphere3d;
         friend class CBSMP;
-        friend class ECBS;
+        friend class ECBS; friend class ECBSMP;
         friend class EACBS; friend class EACBSMP;
         friend class EAECBS; friend class EAECBSMP;
 
