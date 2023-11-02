@@ -157,8 +157,16 @@ int main(int argc, char** argv) {
         }
     }
 
-    cv::namedWindow("Map", cv::WINDOW_NORMAL);
-    cv::imshow("Map", img);
+   //cv::namedWindow("Map", cv::WINDOW_NORMAL);
+    bool check = cv::imwrite("map.jpg", img);
+
+    if (check == false) { 
+        std::cout << "Mission - Saving the image, FAILED" << std::endl; 
+    } else {
+        std::cout << "Successfully saved the image. " << std::endl; 
+    }
+
+    // cv::imshow("Map", img);
     cv::waitKey(0);
 
     return 0;
