@@ -57,10 +57,39 @@ struct ActionType2dRotationRob : public ims::ActionType {
         num_actions = 3;
         action_names = {"F", "L", "R"};
         action_costs = {1, 1, 1};
+        action_prims = {};
         state_discretization_ = {1, 1};
     }
 
-    std::vector<Action> getPrimActions(int curr_theta) {
+    std::vector<Action> getPrimActions() override{
+        return action_prims;
+    }
+
+    void Discretization(StateType& state_des) override{
+        state_discretization_ = state_des;
+    }
+
+    std::string name;
+    int num_actions;
+    std::vector<std::string> action_names;
+    std::vector<double> action_costs;
+    std::vector<Action> action_prims;
+};
+
+class actionSpace2dRotationRob : public ims::ActionSpace {
+
+protected:
+    std::shared_ptr<Scene2DRob> env_;
+    std::shared_ptr<ActionType2dRotationRob> action_type_;
+
+public:
+    actionSpace2dRotationRob(const Scene2DRob& env,
+                     const ActionType2dRotationRob& actions_ptr) : ims::ActionSpace(){
+        this->env_ = std::make_shared<Scene2DRob>(env);
+        this->action_type_ = std::make_shared<ActionType2dRotationRob>(actions_ptr);
+    }
+
+    std::vector<Action> getPrimActionsFromTheta(int curr_theta) {
         Action forward_prim;
         switch (curr_theta) {
             case 0: // Facing "Up"
@@ -82,35 +111,12 @@ struct ActionType2dRotationRob : public ims::ActionType {
         return action_prims;
     }
 
-    void Discretization(StateType& state_des) override{
-        state_discretization_ = state_des;
-    }
-
-    std::string name;
-    int num_actions;
-    std::vector<std::string> action_names;
-    std::vector<double> action_costs;
-};
-
-class actionSpace2dRotationRob : public ims::ActionSpace {
-
-protected:
-    std::shared_ptr<Scene2DRob> env_;
-    std::shared_ptr<ActionType2dRotationRob> action_type_;
-
-public:
-    actionSpace2dRotationRob(const Scene2DRob& env,
-                     const ActionType2dRotationRob& actions_ptr) : ims::ActionSpace(){
-        this->env_ = std::make_shared<Scene2DRob>(env);
-        this->action_type_ = std::make_shared<ActionType2dRotationRob>(actions_ptr);
-    }
-
     void getActions(int state_id,
                     std::vector<ActionSequence> &action_seqs,
                     bool check_validity) override {
         ims::RobotState* curr_state = this->getRobotState(state_id);
         int curr_state_theta = (curr_state->state)[2];
-        std::vector<Action> actions = action_type_->getPrimActions(curr_state_theta);
+        std::vector<Action> actions = getPrimActionsFromTheta(curr_state_theta);
         for (int i {0} ; i < action_type_->num_actions ; i++){
             Action action = actions[i];
             if (check_validity){

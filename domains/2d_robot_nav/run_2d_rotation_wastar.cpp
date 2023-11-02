@@ -46,7 +46,7 @@
 // project includes
 #include <search/planners/wastar.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
-#include "action_space_2d_rob.hpp"
+#include "action_space_2d_rotation_rob.hpp"
 #include "utils.hpp"
 
 
@@ -116,6 +116,10 @@ int main(int argc, char** argv) {
         std::shared_ptr<actionSpace2dRotationRob> ActionSpace = std::make_shared<actionSpace2dRotationRob>(scene, action_type);
         // construct planner
         ims::wAStar planner(params);
+
+        // Add starting theta to start vetcor
+        starts[i].push_back(0);
+        goals[i].push_back(0);
         // catch the exception if the start or goal is not valid
         try {
             planner.initializePlanner(ActionSpace, starts[i], goals[i]);
