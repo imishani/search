@@ -77,6 +77,9 @@ struct dRRTParams : virtual public PlannerParams {
 
     /// @brief A priority ordering for planning the agents.
     std::vector<int> agent_priority_ordering = {};
+
+    /// @brief Whether to use an informed expansion policy (only expand towards a random sample if the previous extension was unsuccessful).
+    bool is_informed = false;
 };
 
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
@@ -170,6 +173,7 @@ protected:
 
     SearchState* getSearchState(int state_id);
     SearchState* getOrCreateSearchState(int state_id);
+    SearchState* getOrCreateSearchState(const std::vector<int> agent_state_ids);
 
     /// @brief Sample a composite state.
     /// @param sampled_composite_state The sampled composite state.
@@ -212,6 +216,7 @@ protected:
 
     /// @brief The states.
     std::vector<SearchState*> states_;
+
 
 };
 

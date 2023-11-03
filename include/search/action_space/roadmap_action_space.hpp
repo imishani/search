@@ -154,7 +154,7 @@ public:
     /// @return True if the transition is valid, false otherwise.
     virtual bool multiAgentStateToStateConnector(const MultiAgentStateType& state_from, const MultiAgentStateType& state_to, MultiAgentPaths& paths, std::vector<std::string> agent_names) = 0;
 
-    inline double euclidean_distance(const StateType& point1, const StateType& point2){
+    inline double euclideanDistance(const StateType& point1, const StateType& point2){
         double sum = 0;
         for (int i = 0; i < point1.size(); i++){
             sum += pow(point1[i] - point2[i], 2);
@@ -188,7 +188,7 @@ public:
                 continue;
             }
 
-            double dist = euclidean_distance(state, other_state_val);
+            double dist = euclideanDistance(state, other_state_val);
 
             if (dist < nearest_state_dist && dist > 0.0) {
                 nearest_state_dist = dist;
