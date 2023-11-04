@@ -156,17 +156,17 @@ int main(int argc, char** argv) {
             img.at<cv::Vec3b>((int)path_[j][1], (int)path_[j][0]) = cv::Vec3b(255,0,0);
         }
     }
-
-   //cv::namedWindow("Map", cv::WINDOW_NORMAL);
-    bool check = cv::imwrite("map.jpg", img);
+    
+    bool check = cv::imwrite(full_path.string() + "/run_2d_rotation_wastar_map.jpg", img);
 
     if (check == false) { 
         std::cout << "Mission - Saving the image, FAILED" << std::endl; 
     } else {
-        std::cout << "Successfully saved the image. " << std::endl; 
+        std::cout << "Successfully saved the image to " + full_path.string() + "/run_2d_rotation_wastar_map.jpg"<< std::endl; 
     }
 
-    // cv::imshow("Map", img);
+    cv::namedWindow("Map", cv::WINDOW_NORMAL);
+    cv::imshow("Map", img);
     cv::waitKey(0);
 
     return 0;
