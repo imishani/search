@@ -93,12 +93,12 @@ public:
     void getActions(int state_id,
                     std::vector<ActionSequence> &action_seqs,
                     bool check_validity) override {
-        auto actions = action_type_->getPrimActions();
+        ims::RobotState* curr_state = this->getRobotState(state_id);
+        std::vector<Action> actions = action_type_->getPrimActions();
         for (int i {0} ; i < action_type_->num_actions ; i++){
-            auto action = actions[i];
+            Action action = actions[i];
             if (check_validity){
-                auto curr_state = this->getRobotState(state_id);
-                auto next_state_val = StateType(curr_state->state.size());
+                StateType next_state_val = StateType(curr_state->state.size());
                 std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
                 if (!isStateValid(next_state_val)){
                     continue;
@@ -116,13 +116,13 @@ public:
     bool getSuccessors(int curr_state_ind,
                        std::vector<int>& successors,
                        std::vector<double>& costs) override{
-        auto curr_state = this->getRobotState(curr_state_ind);
+        ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
 
         for (int i {0} ; i < actions.size() ; i++){
-            auto action = actions[i][0];
-            auto next_state_val = StateType(curr_state->state.size());
+            StateType action = actions[i][0];
+            StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
 
             if (isStateValid(next_state_val)){
@@ -138,7 +138,7 @@ public:
         if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
             return false;
         }
-        auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
+        int map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
         if (map_val == 100){
             return false;
         }
