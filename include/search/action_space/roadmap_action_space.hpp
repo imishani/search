@@ -46,6 +46,7 @@
 #include <search/heuristics/base_heuristic.hpp>
 #include <search/planners/planner.hpp>
 #include <search/common/kdtree.hpp>
+#include <search/common/distance.hpp>
 
 namespace ims {
 
@@ -74,7 +75,7 @@ public:
     }
 
     /// @brief Create a roadmap with a given timeout in seconds.
-    inline void createRoadmap(const StateType& start_state, const StateType& goal_state, int num_samples) {
+    inline void createRoadmap(const StateType& start_state, const StateType& goal_state, int num_samples, int num_neighbors = 10, double radius = std::numeric_limits<double>::infinity()) {
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
         // Clear the roadmap.
@@ -114,15 +115,14 @@ public:
         for (auto state_id_and_state_val : sampled_states_) {
             int i = state_id_and_state_val.first;
             StateType state = state_id_and_state_val.second;
-            bool is_edge_added = addStateToRoadmap(sampled_states_[i]);
+            int num_edges_added = addStateToRoadmap(sampled_states_[i]);
 
-            if (is_edge_added) {
-                num_edges++;
+            if (num_edges_added  > 0) {
+                num_edges += num_edges_added;
             }
         }
 
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        num_edges /= 2;
         std::cout << "Created a roadmap with " << sampled_states_.size() << " states and " << num_edges << " edges in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() / 1000.0 << " seconds." << std::endl;
 
         // Verify that the start state has at least one neighbor.
@@ -154,17 +154,17 @@ public:
     /// @return True if the transition is valid, false otherwise.
     virtual bool multiAgentStateToStateConnector(const MultiAgentStateType& state_from, const MultiAgentStateType& state_to, MultiAgentPaths& paths, std::vector<std::string> agent_names) = 0;
 
-    inline double euclideanDistance(const StateType& point1, const StateType& point2){
-        double sum = 0;
-        for (int i = 0; i < point1.size(); i++){
-            sum += pow(point1[i] - point2[i], 2);
-        }
-        return sqrt(sum);
-    }
+    // inline double euclideanDistance(const StateType& point1, const StateType& point2){
+    //     double sum = 0;
+    //     for (int i = 0; i < point1.size(); i++){
+    //         sum += pow(point1[i] - point2[i], 2);
+    //     }
+    //     return sqrt(sum);
+    // }
 
 
-    /// @brief Add a state to the roadmap.
-    bool addStateToRoadmap(const StateType& state){
+    /// @brief Add a state to the roadmap. Returns the number of edges added.
+    int addStateToRoadmap(const StateType& state, int max_neighbors = 10, double radius = 2.0){
 
         // Create a robot state for the state.
         int state_id = getOrCreateRobotState(state);
@@ -174,7 +174,7 @@ public:
         double nearest_state_dist = std::numeric_limits<double>::infinity();
 
         // Keep a history of the nearest state ids.
-        int num_nearest_states_to_keep = 4;
+        int num_nearest_states_to_keep = max_neighbors;
         std::deque<int> nearest_state_id_hist;
         std::deque<StateType> nearest_state_hist;
 
@@ -190,7 +190,7 @@ public:
 
             double dist = euclideanDistance(state, other_state_val);
 
-            if (dist < nearest_state_dist && dist > 0.0) {
+            if (dist < nearest_state_dist && dist > 0.0 && dist < radius) {
                 nearest_state_dist = dist;
 
                 // Add the nearest state to the history.
@@ -221,10 +221,10 @@ public:
             }
         }
         if (adjacency_mat_.at(state_id).size() > 0){
-            return true;
+            return nearest_state_id_hist.size();
         }
 
-        return false;
+        return 0;
     }
 
     /// @brief Get the successor of a state that moves in a direction of a target state.

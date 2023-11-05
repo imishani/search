@@ -67,7 +67,7 @@ void ims::dRRT::initializePlanner(std::vector<std::shared_ptr<RoadmapActionSpace
     for (int agent_id{0}; agent_id < num_agents_; ++agent_id) {
         auto action_space_ptr = agent_action_space_ptrs_[agent_id];
         if (!action_space_ptr->hasNonEmptyRoadmap()) {
-            action_space_ptr->createRoadmap(starts_[agent_id], goals_[agent_id], 500);
+            action_space_ptr->createRoadmap(starts_[agent_id], goals_[agent_id], 2000, 10 , 1.0);
         }
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -76,6 +76,7 @@ void ims::dRRT::initializePlanner(std::vector<std::shared_ptr<RoadmapActionSpace
     // Create a root node in the search tree.
     SearchState* root = getOrCreateSearchState(0);
     root->parent_id = PARENT_TYPE(START);
+    root->g = 0.0;
 
     // The root node is a composite state of all the individual agents' start states. Get the state id for each agent on their individual roadmap.
     std::vector<int> agent_state_ids(num_agents_, 0);
@@ -93,6 +94,16 @@ void ims::dRRT::initializePlanner(std::vector<std::shared_ptr<RoadmapActionSpace
 auto ims::dRRT::getSearchState(int state_id) -> ims::dRRT::SearchState* {
     assert(state_id < states_.size() && state_id >= 0);
     return states_[state_id];
+}
+
+auto ims::dRRT::getSearchStateOrNull(const std::vector<int> agent_state_ids) -> ims::dRRT::SearchState* {
+    // Check all states for equality in the agent state ids.
+    for (auto& state : states_) {
+        if (state->agent_state_ids == agent_state_ids) {
+            return state;
+        }
+    }
+    return nullptr;
 }
 
 auto ims::dRRT::getOrCreateSearchState(int state_id) -> ims::dRRT::SearchState* {
@@ -141,12 +152,22 @@ double ims::dRRT::distanceCompositeStates(const MultiAgentStateType& composite_s
 
     for (auto agent_id_and_state : composite_state_1) {
         int agent_id = agent_id_and_state.first;   
-        for (int dim{0}; dim < composite_state_1.at(agent_id).size(); ++dim) {
-            distance += std::pow(composite_state_1.at(agent_id)[dim] - composite_state_2.at(agent_id)[dim], 2);
-        }
+        StateType state_1 = agent_id_and_state.second;
+        StateType state_2 = composite_state_2.at(agent_id);
+
+        distance += euclideanDistance(state_1, state_2);
     }
-    distance = std::sqrt(distance);
     return distance;
+}
+
+
+double ims::dRRT::distanceSearchStates(const SearchState* state_1, const SearchState* state_2){
+    // Compute the distance between two search states.
+    MultiAgentStateType composite_state_1;
+    MultiAgentStateType composite_state_2;
+    agentStateIdsToCompositeState(state_1->agent_state_ids, composite_state_1);
+    agentStateIdsToCompositeState(state_2->agent_state_ids, composite_state_2);
+    return distanceCompositeStates(composite_state_1, composite_state_2);
 }
 
 void ims::dRRT::getNearestSearchState(const MultiAgentStateType& composite_state, SearchState*& nearest_state, double& nearest_state_distance){
@@ -262,6 +283,32 @@ void ims::dRRT::reconstructPath(SearchState* goal_state, MultiAgentPaths& paths)
     }
 }
 
+void ims::dRRT::getCombinations(const std::vector<std::vector<int>>& vectors, std::vector<std::vector<int>>& combinations){
+    // Get all the combinations of a sequence of vectors.
+    // For example, if the input is [[1,2], [3,4], [5,6]], then the output is [[1,3,5], [1,3,6], [1,4,5], [1,4,6], [2,3,5], [2,3,6], [2,4,5], [2,4,6]].
+    // This is done iteratively.
+
+    // Initialize the combinations
+    combinations.clear();
+    combinations.push_back({});
+    std::vector<std::vector<int>> new_combinations;
+
+    // Iterate over all the vectors
+    for (auto vector : vectors) {
+        // Iterate over all the combinations
+        for (auto combination : combinations) {
+            // Iterate over all the elements in the vector
+            for (auto element : vector) {
+                // Add the element to the combination
+                new_combinations.push_back(combination);
+                new_combinations.back().push_back(element);
+            }
+        }
+        combinations = new_combinations;
+        new_combinations.clear();
+    }
+}
+
 bool ims::dRRT::plan(MultiAgentPaths& paths) {
     startTimer();
     int iter = 0;
@@ -278,7 +325,7 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
         //=================================
         // Connect to target.
         //=================================
-        if (iter % 50 == 0){
+        if (iter % params_.num_iters == 0){
             
             // Set the next state to be the goal state.
             std::vector<int> goal_agent_state_ids(num_agents_, 0);
@@ -291,6 +338,7 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
             // Iterate over all the nodes in the tree and keep track of the best parent, if one exists.
             SearchState* best_parent_tree_state = nullptr;
             double best_parent_distance = std::numeric_limits<double>::max();
+            double best_path_cost = std::numeric_limits<double>::max();
 
             for (SearchState* tree_state : states_) {
                 // Get the composite state of the node.
@@ -303,9 +351,10 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                 if (is_valid_transition) {
                     // Compute the distance between the sampled state and the state in the search tree.
                     double distance = distanceCompositeStates(tree_composite_state, goal_composite_state);
-
+                    double path_cost = tree_state->g + distance;
                     // Check if this is the nearest state.
-                    if (distance < best_parent_distance) {
+                    if (path_cost < best_path_cost) {
+                        best_path_cost = path_cost;
                         best_parent_tree_state = tree_state;
                         best_parent_distance = distance;
                     }
@@ -314,23 +363,39 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
 
             // If found some parent, connect it to the goal and return a path.
             if (best_parent_tree_state != nullptr) {
-                // NOTE: there is currently no use of the paths returned by the connector.
-                SearchState* goal_state = getOrCreateSearchState(goal_agent_state_ids);
-                goal_state->parent_id = best_parent_tree_state->state_id;
-                goal_state->g = best_parent_tree_state->g + best_parent_distance;
 
-                // Reconstruct path, this is a goal state.
-                std::cout << "Found a path after looking through tree of size " << states_.size() << std::endl;
-                reconstructPath(goal_state, paths);
+                // If the closest state is the actual goal state, then return a path from it.
+                if (best_parent_tree_state->agent_state_ids == goal_agent_state_ids) {
+                    // Reconstruct path, this is a goal state.
+                    std::cout << "Found a path after looking through tree of size " << states_.size() << std::endl;
+                    reconstructPath(best_parent_tree_state, paths);
 
-                // Update stats.
-                getTimeFromStart(stats_.time);
-                return true;
+                    // Update stats.
+                    getTimeFromStart(stats_.time);
+                    stats_.cost = best_parent_tree_state->g;
+                    return true;
+                }
+
+                else{
+                    // NOTE: there is currently no use of the paths returned by the connector.
+                    SearchState* goal_state = getOrCreateSearchState(goal_agent_state_ids);
+                    goal_state->parent_id = best_parent_tree_state->state_id;
+                    goal_state->g = best_parent_tree_state->g + best_parent_distance;
+
+                    // Reconstruct path, this is a goal state.
+                    std::cout << "Found a path after looking through tree of size " << states_.size() << std::endl;
+                    reconstructPath(goal_state, paths);
+
+                    // Update stats.
+                    getTimeFromStart(stats_.time);
+                    stats_.cost = goal_state->g;
+                    return true;
+                }
             }
         } 
         
         //=================================
-        // Expand dRRT*.
+        // Extend dRRT*.
         //=================================
         else{
             // Choose a sample. Either actually a sample or the goal state.
@@ -339,7 +404,11 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
             std::vector<int> nearest_agent_state_ids; // The state ids of the nearest state in the tree. May be the previously added state if that extension was successful.
             SearchState* nearest_state = nullptr; // The nearest state in the tree. May be the previously added state if that extension was successful.
 
+            //=================================
+            // Informed Extend.
+            //=================================
             if (params_.is_informed && recent_tree_extension_state != nullptr){
+                std::cout << GREEN << "Continuing an expansion train." << RESET << std::endl;
                 // If the last extension was successful, then set the sample a state to be the goal (target).
                 std::vector<int> next_agent_state_ids(num_agents_, 0);
                 for (int agent_id{0}; agent_id < num_agents_; agent_id++){
@@ -359,7 +428,11 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                     nearest_composite_state[agent_id] = agent_action_space_ptrs_[agent_id]->getRobotState(nearest_agent_state_ids[agent_id])->state;
                 }
             }
+            //=================================
+            // Regular Extend.
+            //=================================
             else{
+                std::cout << RED << "Starting a new expansion train." << RESET << std::endl;
                 // Sample a state from each agent's action space and stack them all, in order.
                 sampleCompositeState(sampled_composite_state);
 
@@ -374,40 +447,21 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                 agentStateIdsToCompositeState(nearest_agent_state_ids, nearest_composite_state);
             }
 
-            // // Sample a composite state.
-            // MultiAgentStateType sampled_composite_state;
-            // sampleCompositeState(sampled_composite_state);
-
-            // // Get the nearest composite state to the sampled state from the current search tree.
-            // double nearest_state_distance = std::numeric_limits<double>::max();
-            // SearchState* nearest_state = nullptr;
-            // getNearestSearchState(sampled_composite_state, nearest_state, nearest_state_distance);
-
-            // // From the nearest composite search state, get the individual agent state ids.
-            // std::vector<int> nearest_agent_state_ids = nearest_state->agent_state_ids;
-            // MultiAgentStateType nearest_composite_state;
-            // agentStateIdsToCompositeState(nearest_agent_state_ids, nearest_composite_state);
-
-            // For each agent, ask the action space to get its neighbor states. Among those, ask for their angles to the sampled state. The agent with the smallest angle is the one that will be used in the new composite state.
+            //=================================
+            // Continue Extend main.
+            //=================================
             std::vector<int> next_agent_state_ids(num_agents_, 0);
             for (int agent_id{0}; agent_id < num_agents_; agent_id++){
-                // if (params_.is_informed && recent_tree_extension_successful){
-                //     // The direction of the sample is the goal of each agent.
-                //     StateType goal_state = goals_[agent_id];
-                //     agent_action_space_ptrs_[agent_id]->getSuccessorInDirection(nearest_agent_state_ids[agent_id],  // Nearest on the single-agent roadmap. 
-                //                                                             next_agent_state_ids[agent_id],     // The next state id on the single-agent roadmap. To be populated.
-                //                                                             goal_state); // The goal state for the agent -> direction to determine successor.
-
-                // }
-                // else{
-                    // agent_action_space_ptrs_[agent_id]->getSuccessorInDirection(nearest_agent_state_ids[agent_id],  // Nearest on the single-agent roadmap. 
-                    //                                                         next_agent_state_ids[agent_id],     // The next state id on the single-agent roadmap. To be populated.
-                    //                                                         sampled_composite_state[agent_id]); // The sampled state for the agent.
-                // }
 
                 agent_action_space_ptrs_[agent_id]->getSuccessorInDirection(nearest_agent_state_ids[agent_id],  // Nearest on the single-agent roadmap. 
                                                                         next_agent_state_ids[agent_id],     // The next state id on the single-agent roadmap. To be populated.
                                                                         sampled_composite_state[agent_id]); // The sampled state for the agent.
+            }
+
+            // If the next state is the same as the nearest state, then continue.
+            if (next_agent_state_ids == nearest_agent_state_ids) {
+                recent_tree_extension_state = nullptr;
+                continue;
             }
 
             // Create the tentative new composite state.
@@ -423,25 +477,84 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                 double transition_cost = distanceCompositeStates(nearest_composite_state, next_composite_state);
                 SearchState* new_state = getOrCreateSearchState(next_agent_state_ids);
 
-                // Keep track of the most recent state added to the tree.
-                recent_tree_extension_state = new_state;
-
-                // If the new state is already in the tree, then check if the new path is better than the old one.
-                // TODOTODOTODO(yoraish)
-                // If this is not a new state, continue for now.
+                // If this is not a new state, check if setting the parent to the nearest state is better than the current parent.
                 if (new_state->parent_id != PARENT_TYPE(UNSET)) {
-                    recent_tree_extension_state = nullptr;
-                    continue;
+                    if (new_state->g > nearest_state->g + transition_cost) {
+                        new_state->parent_id = nearest_state->state_id;
+                        new_state->g = nearest_state->g + transition_cost;
+
+                        // Keep track of the most recent state added to the tree.
+                        recent_tree_extension_state = new_state;
+                    }
+                    else{
+                        recent_tree_extension_state = nullptr;
+                    }
+
+                    // Attempt to rewire the tree. Say we have a node called current_tree_node, and other nodes call neighbor_tree nodes.
+                    SearchState *current_tree_state = new_state;
+                    MultiAgentStateType current_composite_state;
+                    agentStateIdsToCompositeState(current_tree_state->agent_state_ids, current_composite_state);
+
+                    // This involves finding all the composite states made out of the combinations of the single-agent roadmap neighbors of the new state.
+                    std::unordered_map<int, std::vector<int>> agent_id_to_neighbor_state_ids(num_agents_);
+                    for (int agent_id{0}; agent_id < num_agents_; agent_id++){
+                        std::vector<double> costs;
+                        std::vector<int> neighbor_state_ids;
+                        agent_action_space_ptrs_[agent_id]->getSuccessors(current_tree_state->agent_state_ids[agent_id], neighbor_state_ids, costs);
+
+                        // Add the state ids of the neighbors.
+                        agent_id_to_neighbor_state_ids[agent_id] = neighbor_state_ids;
+                    }
+
+                    // Create lists with all the combinations of the neighbor state ids.
+                    std::vector<std::vector<int>> combinations;
+                    std::vector<std::vector<int>> vectors;
+                    for (int agent_id{0}; agent_id < num_agents_; agent_id++){
+                        vectors.push_back(agent_id_to_neighbor_state_ids[agent_id]);
+                    }
+                    getCombinations(vectors, combinations);
+
+                    // Iterate over all the combinations.
+                    for (auto combination : combinations) {
+                        // Check if this combination is a composite state in the tree.
+                        SearchState* neighbor_tree_state = getSearchStateOrNull(combination);
+                        if (neighbor_tree_state == nullptr) {
+                            // This combination is not a composite state in the tree.
+                            continue;
+                        }
+
+                        // Check if the current state is a better parent for the neighbor state.
+                        double neighbor_state_cost = neighbor_tree_state->g;
+                        MultiAgentStateType neighbor_composite_state;
+                        agentStateIdsToCompositeState(neighbor_tree_state->agent_state_ids, neighbor_composite_state);
+
+                        double new_neighbor_state_cost = current_tree_state->g + distanceCompositeStates(current_composite_state, neighbor_composite_state);
+
+                        if (new_neighbor_state_cost < neighbor_state_cost) {
+                            // Rewire the tree if the transition is valid.
+                            if (agent_action_space_ptrs_[0]->multiAgentStateToStateConnector(current_composite_state, next_composite_state, transition_paths, agent_names_)) {
+                                neighbor_tree_state->parent_id = current_tree_state->state_id;
+                                neighbor_tree_state->g = new_neighbor_state_cost;
+                            
+                                std::cout << "Rewired the tree. Reduced node cost from " << neighbor_state_cost << " to " << new_neighbor_state_cost << std::endl; 
+                            }
+                        }
+                    }
                 }
 
-                new_state->agent_state_ids = next_agent_state_ids;
-                new_state->parent_id = nearest_state->state_id;
-                new_state->g = nearest_state->g + transition_cost;
+                // If this is a new state, set the parent to the nearest state.
+                else{
+                    new_state->agent_state_ids = next_agent_state_ids;
+                    new_state->parent_id = nearest_state->state_id;
+                    new_state->g = nearest_state->g + transition_cost;
+
+                    // Keep track of the most recent state added to the tree.
+                    recent_tree_extension_state = new_state;
+                }
             }
             else{
                 recent_tree_extension_state = nullptr;
             }
-
         }
 
     iter++;

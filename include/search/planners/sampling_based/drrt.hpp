@@ -49,6 +49,7 @@
 #include <search/planners/multi_agent/multi_agent_planner.hpp>
 #include <search/planners/sampling_based/sampling_based_planner.hpp>
 #include <search/action_space/roadmap_action_space.hpp>
+#include <search/common/distance.hpp>
 
 namespace bg = boost::geometry;
 namespace bgi = bg::index;
@@ -80,6 +81,9 @@ struct dRRTParams : virtual public PlannerParams {
 
     /// @brief Whether to use an informed expansion policy (only expand towards a random sample if the previous extension was unsuccessful).
     bool is_informed = false;
+
+    /// @brief The number of iterations to go through between attempts to connect the goal to the tree.
+    int num_iters = 500;
 };
 
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
@@ -172,6 +176,7 @@ protected:
     void resetPlanningData() override;
 
     SearchState* getSearchState(int state_id);
+    SearchState* getSearchStateOrNull(const std::vector<int> agent_state_ids);
     SearchState* getOrCreateSearchState(int state_id);
     SearchState* getOrCreateSearchState(const std::vector<int> agent_state_ids);
 
@@ -186,6 +191,9 @@ protected:
     void getNearestSearchState(const MultiAgentStateType& composite_state, SearchState*& nearest_state, double& nearest_state_distance);
     void getNearestSearchStates(const MultiAgentStateType& composite_state, std::vector<SearchState*>& nearest_states, std::vector<double>& nearest_state_distance, int num_nearest_states);
 
+    /// @brief Distance function between two search states.
+    double distanceSearchStates(const SearchState* state_1, const SearchState* state_2);
+    
     /// @brief Distance function between two composite states.
     double distanceCompositeStates(const MultiAgentStateType& composite_state_1, const MultiAgentStateType& composite_state_2);
 
@@ -196,6 +204,11 @@ protected:
     /// @param goal_state 
     /// @param paths 
     void reconstructPath(SearchState* goal_state, MultiAgentPaths& paths);
+
+    /// @brief Get all the combinations of a sequence of vectors.
+    /// @param vectors The vectors.
+    /// @param combinations The combinations.
+    void getCombinations(const std::vector<std::vector<int>>& vectors, std::vector<std::vector<int>>& combinations);
 
     /// Member variables.
     // The search parameters.
