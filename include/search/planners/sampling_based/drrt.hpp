@@ -45,6 +45,7 @@
 // Project includes.
 #include <search/heuristics/standard_heuristics.hpp>
 #include <search/planners/wastar.hpp>
+#include <search/planners/dijkstra.hpp>
 #include <search/planners/best_first_search.hpp>
 #include <search/planners/multi_agent/multi_agent_planner.hpp>
 #include <search/planners/sampling_based/sampling_based_planner.hpp>
@@ -84,6 +85,15 @@ struct dRRTParams : virtual public PlannerParams {
 
     /// @brief The number of iterations to go through between attempts to connect the goal to the tree.
     int num_iters = 500;
+
+    /// @brief The number of nodes to sample in the roadmap.
+    int roadmap_num_nodes = 500;
+
+    /// @brief The number of nearest neighbors to consider when connecting a new node to the roadmap.
+    int roadmap_num_neighbors = 10;
+
+    /// @brief The radius to consider when connecting a new node to the roadmap.
+    int roadmap_neighbor_radius = 5.0;
 };
 
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
@@ -210,6 +220,11 @@ protected:
     /// @param combinations The combinations.
     void getCombinations(const std::vector<std::vector<int>>& vectors, std::vector<std::vector<int>>& combinations);
 
+    /// @brief Compute heuristics to the individual goal states on the roadmaps of the individual agents.
+    /// @param agent_start_state_ids The start state ids of the individual agents on their own roadmaps.
+    /// @param agent_goal_state_ids The goal state ids of the individual agents on their own roadmaps.
+    void computeAgentRoadmapHeuristics(const std::vector<int>& agent_start_state_ids, const std::vector<int>& agent_goal_state_ids);
+
     /// Member variables.
     // The search parameters.
     dRRTParams params_;
@@ -230,6 +245,8 @@ protected:
     /// @brief The states.
     std::vector<SearchState*> states_;
 
+    /// @brief The heuristic values for the individual agents' roadmaps. Mapping from agent id to a mapping from state id to heuristic value.
+    std::unordered_map<int, std::unordered_map<int, double>> agent_roadmap_heuristics_;
 
 };
 

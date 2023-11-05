@@ -127,6 +127,11 @@ namespace ims{
 
         /// @brief Reset the planner
         void resetPlanningData() override;
+
+        /// @brief Get all the search states.
+        /// @return The states.
+        auto getAllSearchStates() -> std::vector<SearchState*>;
+
         
     protected:
 

@@ -129,7 +129,6 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_s
     open_.push(start_);
     // update stats suboptimality
     stats_.suboptimality = params_.epsilon;
-
 }
 
 auto ims::wAStar::getSearchState(int state_id) -> ims::wAStar::SearchState * {
@@ -259,4 +258,8 @@ void ims::wAStar::resetPlanningData(){
     goals_.clear();
     goal_ = -1;
     stats_ = PlannerStats();
+}
+
+auto ims::wAStar::getAllSearchStates() -> std::vector<ims::wAStar::SearchState*> {
+    return states_;
 }

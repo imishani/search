@@ -125,6 +125,7 @@ namespace ims{
         OpenList open_;
 
         std::vector<SearchState*> states_;
+
         /// @brief Get the state by id
         /// @param state_id The id of the state
         /// @return The state

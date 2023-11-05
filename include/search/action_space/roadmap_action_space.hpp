@@ -233,6 +233,31 @@ public:
     /// @param state_target 
     virtual void getSuccessorInDirection(int state_id, int& state_id_succ, StateType state_target) = 0;
 
+    /// @brief Reset the planning data. In the roadmap case, this means that states_ is not cleared completely, but rather keeps the roadmap.
+    virtual void resetPlanningData() override {
+
+        // Create a copy of all the states that are in the roadmap.
+        std::vector<RobotState*> states_copy;
+        hash_map<StateKey*, int, StateHash, StateEqual> state_to_id_copy;
+
+        for (auto state :states_) {
+            if (sampled_states_.find(state_to_id_[state]) != sampled_states_.end()) {
+                states_copy.push_back(state);
+                state_to_id_copy[state] = state_to_id_[state];
+            }
+        }
+
+        // Clear the states_ vector.
+        states_.clear();
+        state_to_id_.clear();
+
+        // Copy the states back.
+        for (int i = 0; i < states_copy.size(); i++) {
+            states_.push_back(states_copy[i]);
+            state_to_id_[states_copy[i]] = state_to_id_copy[states_copy[i]];
+        }
+    }
+
     // Members.
     /// @brief The roadmap vertices. Store it for efficient nearest neighbor lookup as a KD-tree.
     std::shared_ptr<KDTree<StateType>> kdtree_ptr_;
@@ -240,8 +265,9 @@ public:
 
     /// @brief The roadmap topology (connectivity, edges). Represented as an adjacency list, with each state_id mapping to a vector of state_ids.
     std::unordered_map<int, std::unordered_set<int>> adjacency_mat_;
-
 };
+
+
 
 
 }  // namespace ims

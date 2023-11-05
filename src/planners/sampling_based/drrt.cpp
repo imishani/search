@@ -67,11 +67,21 @@ void ims::dRRT::initializePlanner(std::vector<std::shared_ptr<RoadmapActionSpace
     for (int agent_id{0}; agent_id < num_agents_; ++agent_id) {
         auto action_space_ptr = agent_action_space_ptrs_[agent_id];
         if (!action_space_ptr->hasNonEmptyRoadmap()) {
-            action_space_ptr->createRoadmap(starts_[agent_id], goals_[agent_id], 2000, 10 , 1.0);
+            action_space_ptr->createRoadmap(starts_[agent_id], goals_[agent_id], params_.roadmap_num_nodes, params_.roadmap_num_neighbors , params_.roadmap_neighbor_radius);
         }
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time to create roadmaps: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms" << std::endl;
+
+    // Compute a heuristic on the roadmaps. This populates the member variable agent_roadmap_heuristics_, which is a map between agent_state_id to a heuristic value.
+    std::vector<int> agent_start_state_ids;
+    std::vector<int> agent_goal_state_ids;
+    for (int agent_id{0}; agent_id < num_agents_; ++agent_id) {
+        agent_start_state_ids.push_back(agent_action_space_ptrs_[agent_id]->getRobotStateId(starts_[agent_id]));
+        agent_goal_state_ids.push_back(agent_action_space_ptrs_[agent_id]->getRobotStateId(goals_[agent_id]));
+    }
+
+    computeAgentRoadmapHeuristics(agent_start_state_ids, agent_goal_state_ids);
 
     // Create a root node in the search tree.
     SearchState* root = getOrCreateSearchState(0);
@@ -79,17 +89,65 @@ void ims::dRRT::initializePlanner(std::vector<std::shared_ptr<RoadmapActionSpace
     root->g = 0.0;
 
     // The root node is a composite state of all the individual agents' start states. Get the state id for each agent on their individual roadmap.
-    std::vector<int> agent_state_ids(num_agents_, 0);
-    for (int agent_id{0}; agent_id < num_agents_; ++agent_id) {
-        agent_state_ids[agent_id] = agent_action_space_ptrs_[agent_id]->getRobotStateId(starts_[agent_id]);
-    }
-    root->agent_state_ids = agent_state_ids;
+    root->agent_state_ids = agent_start_state_ids;
 }
 
 void ims::dRRT::initializePlanner(std::vector<std::shared_ptr<RoadmapActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
                         agent_names_ = agent_names;
                         initializePlanner(action_space_ptrs, starts, goals);
                         }
+
+void ims::dRRT::computeAgentRoadmapHeuristics(const std::vector<int>& agent_start_state_ids, const std::vector<int>& agent_goal_state_ids) {
+    // Compute a heuristic on the roadmaps. This populates the member variable agent_roadmap_heuristics_, which is a map between agent_state_id to a heuristic value.
+    for (int agent_id{0}; agent_id < num_agents_; ++agent_id) {
+        // Get the roadmap for the agent.
+        auto action_space_ptr = agent_action_space_ptrs_[agent_id];
+
+        // Cast to a roadmap action space.
+        auto roadmap_action_space_ptr = std::dynamic_pointer_cast<RoadmapActionSpace>(action_space_ptr);
+
+        // Get the start and goal state ids for the agent.
+        int agent_start_state_id = agent_start_state_ids[agent_id];
+        int agent_goal_state_id = agent_goal_state_ids[agent_id];
+
+        // Create a Dijkstra planner.
+        ims::DijkstraParams params;
+        params.heuristic_ = params_.low_level_heuristic_ptrs[agent_id];
+        ims::Dijkstra planner(params);
+
+        // Initialize the planner with the state value of the start and goal.From goal to start.
+        StateType start_state_val = roadmap_action_space_ptr->getRobotState(agent_start_state_id)->state;
+        StateType goal_state_val = roadmap_action_space_ptr->getRobotState(agent_goal_state_id)->state;
+
+        // Initialize the planner.
+        // TODO(yoraish): as a hack, I commented out the action-space reset from within the initialization function. This should not be done this way. 
+        planner.initializePlanner(roadmap_action_space_ptr, goal_state_val, start_state_val);
+
+        // Plan. The state ids used by the planner are the ones dictated by the roadmap action space.
+        planner.exhaustPlan();
+
+        // Get all the g-values of the backwards-Dijkstra. Those will act as the h-values for the roadmap.
+        std::unordered_map<int, double> agent_state_id_to_hval;
+        for (auto state : planner.getAllSearchStates() ) {
+            if (state == nullptr) {
+                continue;
+            }
+            agent_state_id_to_hval[state->state_id] = state->g;
+        }
+
+        // Store the heuristic.
+        agent_roadmap_heuristics_[agent_id] = agent_state_id_to_hval;
+
+
+        // TEST TEST TEST
+        std::cout << "The heuristic value for the start state is: " << agent_roadmap_heuristics_[agent_id][agent_start_state_id] << std::endl;
+        std::cout << "The heuristic value for the goal state is: " << agent_roadmap_heuristics_[agent_id][agent_goal_state_id] << std::endl;
+
+        // TEST TEST TEST
+    }
+
+
+}
 
 auto ims::dRRT::getSearchState(int state_id) -> ims::dRRT::SearchState* {
     assert(state_id < states_.size() && state_id >= 0);
@@ -403,6 +461,7 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
             MultiAgentStateType nearest_composite_state; // The nearest state in the tree. May be the previously added state if that extension was successful.
             std::vector<int> nearest_agent_state_ids; // The state ids of the nearest state in the tree. May be the previously added state if that extension was successful.
             SearchState* nearest_state = nullptr; // The nearest state in the tree. May be the previously added state if that extension was successful.
+            std::vector<int> next_agent_state_ids(num_agents_, 0);
 
             //=================================
             // Informed Extend.
@@ -410,7 +469,6 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
             if (params_.is_informed && recent_tree_extension_state != nullptr){
                 std::cout << GREEN << "Continuing an expansion train." << RESET << std::endl;
                 // If the last extension was successful, then set the sample a state to be the goal (target).
-                std::vector<int> next_agent_state_ids(num_agents_, 0);
                 for (int agent_id{0}; agent_id < num_agents_; agent_id++){
                     // The direction of the sample is the goal of each agent.
                     StateType goal_state = goals_[agent_id];
@@ -427,6 +485,43 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                 for (int agent_id{0}; agent_id < num_agents_; agent_id++){
                     nearest_composite_state[agent_id] = agent_action_space_ptrs_[agent_id]->getRobotState(nearest_agent_state_ids[agent_id])->state;
                 }
+
+                // for (int agent_id{0}; agent_id < num_agents_; agent_id++){
+
+                //     agent_action_space_ptrs_[agent_id]->getSuccessorInDirection(nearest_agent_state_ids[agent_id],  // Nearest on the single-agent roadmap. 
+                //                                                             next_agent_state_ids[agent_id],     // The next state id on the single-agent roadmap. To be populated.
+                //                                                             sampled_composite_state[agent_id]); // The sampled state for the agent.
+                // }
+
+                // Get the next state ids for each agent to be their successors minimizing the roadmap heuristic values.
+                for (int agent_id{0}; agent_id < num_agents_; agent_id++){
+                    // Get the roadmap heuristic for the agent.
+                    auto agent_roadmap_heuristic = agent_roadmap_heuristics_[agent_id];
+
+                    // Get the state id of the agent on the roadmap.
+                    int agent_state_id = nearest_agent_state_ids[agent_id];
+
+                    // Get the state of the agent on the roadmap.
+                    StateType agent_state = agent_action_space_ptrs_[agent_id]->getRobotState(agent_state_id)->state;
+
+                    // Get the successor with the lowest heuristic value.
+                    double lowest_h = std::numeric_limits<double>::max();
+                    int lowest_h_state_id = 0;
+                    std::vector<double> costs;
+                    std::vector<int> succ_state_ids;
+                    agent_action_space_ptrs_[agent_id]->getSuccessors(agent_state_id, succ_state_ids, costs);
+                    for (auto successor_state_id : succ_state_ids) {
+                        double h = agent_roadmap_heuristic[successor_state_id];
+                        if (h < lowest_h) {
+                            lowest_h = h;
+                            lowest_h_state_id = successor_state_id;
+                        }
+                    }
+
+                    // Set the next state id.
+                    next_agent_state_ids[agent_id] = lowest_h_state_id;
+                }
+
             }
             //=================================
             // Regular Extend.
@@ -445,21 +540,22 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                 // From the nearest composite search state, get the individual agent state ids.
                 nearest_agent_state_ids = nearest_state->agent_state_ids;
                 agentStateIdsToCompositeState(nearest_agent_state_ids, nearest_composite_state);
+
+                for (int agent_id{0}; agent_id < num_agents_; agent_id++){
+
+                    agent_action_space_ptrs_[agent_id]->getSuccessorInDirection(nearest_agent_state_ids[agent_id],  // Nearest on the single-agent roadmap. 
+                                                                            next_agent_state_ids[agent_id],     // The next state id on the single-agent roadmap. To be populated.
+                                                                            sampled_composite_state[agent_id]); // The sampled state for the agent.
+                }
             }
 
             //=================================
             // Continue Extend main.
             //=================================
-            std::vector<int> next_agent_state_ids(num_agents_, 0);
-            for (int agent_id{0}; agent_id < num_agents_; agent_id++){
-
-                agent_action_space_ptrs_[agent_id]->getSuccessorInDirection(nearest_agent_state_ids[agent_id],  // Nearest on the single-agent roadmap. 
-                                                                        next_agent_state_ids[agent_id],     // The next state id on the single-agent roadmap. To be populated.
-                                                                        sampled_composite_state[agent_id]); // The sampled state for the agent.
-            }
 
             // If the next state is the same as the nearest state, then continue.
             if (next_agent_state_ids == nearest_agent_state_ids) {
+                std::cout << "Next multi search state is the same as the nearest state." << std::endl;
                 recent_tree_extension_state = nullptr;
                 continue;
             }
