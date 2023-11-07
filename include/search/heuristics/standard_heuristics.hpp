@@ -43,21 +43,6 @@
 
 /// @brief The standard heuristic functions
 namespace ims {
-    
-    // bool getEuclideanHeuristic(const StateType& s1, const StateType& s2, double& dist) {
-    // // check id the states are the same size
-    //     if (s1.size() != s2.size()) {
-    //             std::cout << "Error: The states are not the same size!" << std::endl;
-    //             return false;
-    //     }
-    //     else {
-    //         for (int i{0}; i < s1.size(); i++) {
-    //             dist += pow(s1[i] - s2[i], 2);
-    //         }
-    //         dist = sqrt(dist);
-    //         return true;
-    //     }        
-    // }
 
 /// @brief The Euclidean distance heuristic
 struct EuclideanHeuristic : public BaseHeuristic {
@@ -85,18 +70,9 @@ struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
         StateType s2_no_time = s2;
         s1_no_time.pop_back();
         s2_no_time.pop_back();
-        
-        if (s1_no_time.size() != s2_no_time.size()) {
-                std::cout << "Error: The states are not the same size!" << std::endl;
-                return false;
-        }
-        else {
-            for (int i{0}; i < s1_no_time.size(); i++) {
-                dist += pow(s1_no_time[i] - s2_no_time[i], 2);
-            }
-            dist = sqrt(dist);
-            return true;
-        }    
+          
+        ims::EuclideanHeuristic euclidean_heuristic;
+        return euclidean_heuristic.getHeuristic(s1_no_time, s2_no_time, dist);
     }
 };
 
@@ -109,17 +85,8 @@ struct EuclideanRemoveThetaHeuristic : public EuclideanHeuristic {
         s1_no_theta.pop_back();
         s2_no_theta.pop_back();
         
-        if (s1_no_theta.size() != s2_no_theta.size()) {
-                std::cout << "Error: The states are not the same size!" << std::endl;
-                return false;
-        }
-        else {
-            for (int i{0}; i < s1_no_theta.size(); i++) {
-                dist += pow(s1_no_theta[i] - s2_no_theta[i], 2);
-            }
-            dist = sqrt(dist);
-            return true;
-        }    
+        ims::EuclideanHeuristic euclidean_heuristic; 
+        return euclidean_heuristic.getHeuristic(s1_no_theta, s2_no_theta, dist);
     }
 };
 
