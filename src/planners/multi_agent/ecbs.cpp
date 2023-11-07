@@ -78,6 +78,7 @@ void ims::ECBS::createRootInOpenList() {
     MultiAgentPaths initial_paths;
     std::unordered_map<int, double> initial_paths_costs;
     std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
+    std::unordered_map<int, double> initial_paths_lower_bounds;
     for (size_t i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
         agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
@@ -94,6 +95,7 @@ void ims::ECBS::createRootInOpenList() {
         // initial_paths_costs.insert(std::make_pair(i, agent_planner_ptrs_[i]->stats_.cost));
         initial_paths_costs[i] = agent_planner_ptrs_[i]->getStats().cost;
         initial_paths_transition_costs[i] = agent_planner_ptrs_[i]->getStats().transition_costs;
+        initial_paths_lower_bounds[i] = agent_planner_ptrs_[i]->getStats().lower_bound;
     }
 
     // Create the initial CBS state to the open list. This planner does not interface with an action space, so it does not call the getOrCreateRobotState to retrieve a new-state index. But rather decides on a new index directly and creates a search-state index with the getOrCreateSearchState method. Additionally, there is no goal specification for CBS, so we do not have a goal state.
@@ -118,8 +120,9 @@ void ims::ECBS::createRootInOpenList() {
     // Set the cost of the CBSState start_.
     double start_soc = std::accumulate(initial_paths_costs.begin(), initial_paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
     int start_num_conflicts = start_->unresolved_conflicts.size();
-    start_->f = start_soc + params_.weight_num_conflicts * start_num_conflicts;
+    start_->f = start_soc;
     start_->sum_of_costs = start_soc;
+    start_->sum_of_path_cost_lower_bounds = std::accumulate(initial_paths_lower_bounds.begin(), initial_paths_lower_bounds.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
     start_->setOpen();
 
     // Push the initial CBS state to the open list.
@@ -198,8 +201,6 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
 
 void ims::ECBS::expand(int state_id) {
     auto state = getSearchState(state_id);
-    // std::cout << "Expanding state: soc = " << state->sum_of_costs << " f=" << state->f 
-    //             << " num_conflicts=" << state->unresolved_conflicts.size() << std::endl;
     std::vector<int> successors;
     std::vector<double> costs;
 
@@ -256,6 +257,7 @@ void ims::ECBS::expand(int state_id) {
         agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
         new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().transition_costs;
         new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().cost;
+        new_state->path_cost_lower_bounds[agent_id] = agent_planner_ptrs_[agent_id]->getStats().lower_bound;
 
         // If there is no path for this agent, then this is not a valid state. Discard it.
         if (new_state->paths[agent_id].empty()) {
@@ -267,6 +269,7 @@ void ims::ECBS::expand(int state_id) {
         new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
         // Get the sum of costs for the new state.
         double new_state_soc = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
+        double new_state_lb = std::accumulate(new_state->path_cost_lower_bounds.begin(), new_state->path_cost_lower_bounds.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
 
         // Get any conflicts between the newly computed paths.
         // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the ECBS class, and then passed to the action_space.
@@ -276,8 +279,9 @@ void ims::ECBS::expand(int state_id) {
                                                        -1, // TODO(yoraish): get all the conflicts.
                                                        agent_names_);
 
-        new_state->f = new_state_soc; // + params_.weight_num_conflicts * new_state->unresolved_conflicts.size(); /////////////////////////////////////////////
+        new_state->f = new_state_soc;
         new_state->sum_of_costs = new_state_soc;
+        new_state->sum_of_path_cost_lower_bounds = new_state_lb;
         // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
         new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
 

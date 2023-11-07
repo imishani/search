@@ -65,6 +65,7 @@ struct FocalSearchParams : public PlannerParams {
 
 struct FocalSearchPlannerStats : public PlannerStats {
     double focal_suboptimality{1};  // AKA: epsilon
+    double lower_bound{0}; // A lower bound on the cost of the solution.
 };
 
 /// @class FocalSearch class.

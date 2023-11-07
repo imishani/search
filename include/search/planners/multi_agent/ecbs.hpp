@@ -71,9 +71,6 @@ struct ECBSParams : public CBSParams {
     /// @brief Exhaustive search flag. If true, the algorithm will continue to search until the goal is found or the open list is empty.
     bool exhaustive = false;
 
-    /// @brief The weight of the number of conflicts in the f value of the high level nodes.
-    double weight_num_conflicts = 1.0;
-
     double high_level_focal_suboptimality = 2.0;
     double low_level_focal_suboptimality = 2.0;
 };

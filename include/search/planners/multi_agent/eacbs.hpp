@@ -139,6 +139,10 @@ protected:
         std::unordered_map<int, std::vector<double>> paths_transition_costs;
         double sum_of_costs = 0.0;
 
+        // The lower bound on the cost of the solution. This is the sum of the lower bounds of the individual agents.
+        std::unordered_map<int, double> path_cost_lower_bounds;
+        double sum_of_path_cost_lower_bounds = 0.0;
+
         // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For EACBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
         std::vector<std::shared_ptr<Conflict>> unresolved_conflicts = {};
 
@@ -151,8 +155,8 @@ protected:
         /// @brief Get the cost of the state.
         /// @return 
         virtual double getLowerBound() const override {
-            assert(sum_of_costs > 0.0);
-            return sum_of_costs;
+            assert(sum_of_path_cost_lower_bounds > 0.0);
+            return sum_of_path_cost_lower_bounds;
         }
     };
 

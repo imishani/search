@@ -118,6 +118,7 @@ void ims::EAECBS::createRootInOpenList() {
     MultiAgentPaths initial_paths;
     std::unordered_map<int, double> initial_paths_costs;
     std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
+    std::unordered_map<int, double> initial_paths_lower_bounds;
 
     for (size_t i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
@@ -134,6 +135,7 @@ void ims::EAECBS::createRootInOpenList() {
         // Compute the cost of the path.
         initial_paths_costs[i] = agent_planner_ptrs_[i]->getStats().cost;
         initial_paths_transition_costs[i] = agent_planner_ptrs_[i]->getStats().transition_costs;
+        initial_paths_lower_bounds[i] = agent_planner_ptrs_[i]->getStats().lower_bound;
     }
 
     // Report that the initial paths were found.
@@ -161,6 +163,8 @@ void ims::EAECBS::createRootInOpenList() {
     int start_num_conflicts = start_->unresolved_conflicts.size();
     start_->f = start_soc;
     start_->sum_of_costs = start_soc;
+    start_->sum_of_path_cost_lower_bounds = std::accumulate(initial_paths_lower_bounds.begin(), initial_paths_lower_bounds.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
+
     start_->setOpen();
 
     // Push the initial EACBS state to the open list.
@@ -207,6 +211,7 @@ bool ims::EAECBS::plan(MultiAgentPaths& paths) {
 
         double lower_bound = open_->getLowerBound();
         open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
+        std::cout << "New HL node lower bound is " << state->getLowerBound() << " and the node cost is " << state->f << std::endl;
     }
     getTimeFromStart(stats_.time);
     return false;
@@ -308,10 +313,12 @@ void ims::EAECBS::expand(int state_id) {
         agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
         new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().transition_costs;
         new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().cost;
+        new_state->path_cost_lower_bounds[agent_id] = agent_planner_ptrs_[agent_id]->getStats().lower_bound;
 
         // Get the sum of costs for the new state.
         double new_state_soc = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
         new_state->sum_of_costs = new_state_soc;
+        double new_state_lb = std::accumulate(new_state->path_cost_lower_bounds.begin(), new_state->path_cost_lower_bounds.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
 
         // If there is no path for this agent, then this is not a valid state. Discard it.
         if (new_state->paths[agent_id].empty()) {
@@ -335,6 +342,7 @@ void ims::EAECBS::expand(int state_id) {
         std::cout << "New state num conflicts: " << new_state->unresolved_conflicts.size() << std::endl;
 
         new_state->f = new_state_soc;
+        new_state->sum_of_path_cost_lower_bounds = new_state_lb;
 
         // Add a random number between zero and one to f.
         // new_state->f += (double)rand() / RAND_MAX; // Uncomment for nitro boost.

@@ -162,6 +162,7 @@ bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
             stats_.cost = state->g;
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();            
+            stats_.lower_bound = std::min(open_.getLowerBound(), state->f) / params_.epsilon;
 
             return true;
         }
@@ -243,48 +244,6 @@ void ims::FocalwAStar::expand(int state_id){
     stats_.num_expanded++;
 }
 
-// TODO(yoraish): this is needed, put it back in the header file.
-// void ims::FocalwAStar::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
-//     path.clear();
-//     costs.clear();
-
-//     costs.push_back(0); // The goal state gets a transition cost of 0.
-//     SearchState* state_ = getSearchState(goal_);
-//     while (state_->parent_id != -1){
-//         path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-        
-//         // Get the transition cost. This is the difference between the g values of the current state and its parent.
-//         double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
-//         costs.push_back(transition_cost);
-
-//         state_ = getSearchState(state_->parent_id);
-//     }
-//     path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-
-//     std::reverse(path.begin(), path.end());
-//     std::reverse(costs.begin(), costs.end());   
-// }
-
-// void ims::FocalwAStar::reconstructPath(std::vector<StateType>& path) {
-//     SearchState* state_ = getSearchState(goal_);
-//     while (state_->parent_id != -1){
-//         path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-//         state_ = getSearchState(state_->parent_id);
-//     }
-//     path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-//     std::reverse(path.begin(), path.end());
-// }
-
-// void ims::FocalwAStar::resetPlanningData(){
-//     for (auto state_ : states_){
-//         delete state_;
-//     }
-//     states_.clear();
-//     open_.clear();
-//     goals_.clear();
-//     goal_ = -1;
-//     stats_ = PlannerStats();
-// }
 
 void ims::FocalwAStar::setStateVals(int state_id, int parent_id, double cost, double subcost)
 {

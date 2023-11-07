@@ -108,7 +108,6 @@ int main(int argc, char** argv) {
     for (int i {0}; i < num_agents; i++){
         params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
     }
-    params.weight_num_conflicts = 1.0;
 
     // Construct the scene and the action space.
     scene2DRob scene (map);

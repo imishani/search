@@ -49,10 +49,26 @@ double euclideanDistance(const StateType& point1, const StateType& point2){
 
 double euclideanDistanceRemoveTime (const StateType& point1, const StateType& point2){
     double sum = 0;
-    for (int i = 0; i < point1.size()-1; i++){
+    for (int i = 0; i < point1.size() - 1; i++){
         sum += pow(point1[i] - point2[i], 2);
     }
     return sqrt(sum);
+}
+
+double manhattanDistance(const StateType& point1, const StateType& point2){
+    double sum = 0;
+    for (int i = 0; i < point1.size(); i++){
+        sum += abs(point1[i] - point2[i]);
+    }
+    return sum;
+}
+
+double manhattanDistanceRemoveTime(const StateType& point1, const StateType& point2){
+    double sum = 0;
+    for (int i = 0; i < point1.size() - 1; i++){
+        sum += abs(point1[i] - point2[i]);
+    }
+    return sum;
 }
 
 }  // namespace ims

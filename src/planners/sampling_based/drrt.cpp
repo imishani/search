@@ -139,11 +139,10 @@ void ims::dRRT::computeAgentRoadmapHeuristics(const std::vector<int>& agent_star
         agent_roadmap_heuristics_[agent_id] = agent_state_id_to_hval;
 
 
-        // TEST TEST TEST
-        std::cout << "The heuristic value for the start state is: " << agent_roadmap_heuristics_[agent_id][agent_start_state_id] << std::endl;
-        std::cout << "The heuristic value for the goal state is: " << agent_roadmap_heuristics_[agent_id][agent_goal_state_id] << std::endl;
-
-        // TEST TEST TEST
+        // Make sure that the start state has a heuristic value of non-zero, that is, if it is connected to the goal.
+        if (start_state_val != goal_state_val){
+            assert (agent_roadmap_heuristics_[agent_id][agent_start_state_id] > 0.0);
+        }
     }
 
 
