@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
         std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
 
-        std::shared_ptr<actionSpace2dRotationRob> ActionSpace = std::make_shared<actionSpace2dRotationRob>(scene, action_type);
+        std::shared_ptr<ActionSpace2dRotationRob> ActionSpace = std::make_shared<ActionSpace2dRotationRob>(scene, action_type);
         // construct planner
         ims::wAStar planner(params);
 
