@@ -92,18 +92,20 @@ public:
     std::vector<Action> getPrimActionsFromTheta(int curr_theta) {
         Action forward_prim;
         switch (curr_theta) {
-            case 0: // Facing "Up"
-                forward_prim = {0, 1, 0};
-                break;
-            case 1: // Facing "Right"
+            case 0: // Increase column
                 forward_prim = {1, 0, 0};
                 break;
-            case 2: // Facing "Down"
+            case 1: // decrease row
                 forward_prim = {0, -1, 0};
                 break;
-            case 3: // Facing "Left"
+            case 2: // decrease column
                 forward_prim = {-1, 0, 0};
                 break;
+            case 3: // increase column
+                forward_prim = {0, 1, 0};
+                break;
+            default:
+                std::cout << "Theta is not valid!" << std::endl;
         }
         Action left_prim = {0, 0, -1};
         Action right_prim = {0, 0, 1};
@@ -123,7 +125,7 @@ public:
                 StateType next_state_val = StateType(curr_state->state.size());
                 std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
                 // keep theta value between 0 and 3
-                next_state_val[2] = double(int(next_state_val[2]) % 4);
+                next_state_val[2] = double((int(next_state_val[2])+4) % 4);
                 if (!isStateValid(next_state_val)){
                     continue;
                 }
@@ -149,7 +151,7 @@ public:
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
             // keep theta value between 0 and 3
-            next_state_val[2] = double(int(next_state_val[2]) % 4);
+            next_state_val[2] = double((int(next_state_val[2])+4) % 4);
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
@@ -164,7 +166,7 @@ public:
         if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1] || state_val[2] < 0 || state_val[2] > 3){
             return false;
         }
-        // checking for obstacle?
+        // checking for obstacle
         int map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
         if (map_val == 100){
             return false;
