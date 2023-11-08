@@ -50,56 +50,55 @@ public:
     std::vector<size_t> map_size;
 };
 
-struct ActionType2dRotationRob {
-
-    ActionType2dRotationRob() {
-        name = "ActionTypeRotation2dRob";
-        num_actions = 3;
-        action_names = {"F", "L", "R"};
-        action_costs = {1, 1, 1};
-    }
-
-    std::vector<Action> getPrimActionsFromTheta(int curr_theta) {
-        Action forward_prim;
-        switch (curr_theta) {
-            case 0: // Increase column
-                forward_prim = {1, 0, 0};
-                break;
-            case 1: // decrease row
-                forward_prim = {0, -1, 0};
-                break;
-            case 2: // decrease column
-                forward_prim = {-1, 0, 0};
-                break;
-            case 3: // increase column
-                forward_prim = {0, 1, 0};
-                break;
-            default:
-                std::cout << "Theta is not valid!" << std::endl;
-        }
-        Action left_prim = {0, 0, -1};
-        Action right_prim = {0, 0, 1};
-        std::vector<Action> action_prims = {forward_prim, left_prim, right_prim};
-        return action_prims;
-    }
-
-    std::string name;
-    int num_actions;
-    std::vector<std::string> action_names;
-    std::vector<double> action_costs;
-};
-
 class ActionSpace2dRotationRob : public ims::ActionSpace {
+    struct ActionType2dRotationRob {
+
+        ActionType2dRotationRob() {
+            name = "ActionTypeRotation2dRob";
+            num_actions = 3;
+            action_names = {"F", "L", "R"};
+            action_costs = {1, 1, 1};
+        }
+
+        std::vector<Action> getPrimActionsFromTheta(int curr_theta) {
+            Action forward_prim;
+            switch (curr_theta) {
+                case 0: // Increase column
+                    forward_prim = {1, 0, 0};
+                    break;
+                case 1: // decrease row
+                    forward_prim = {0, -1, 0};
+                    break;
+                case 2: // decrease column
+                    forward_prim = {-1, 0, 0};
+                    break;
+                case 3: // increase column
+                    forward_prim = {0, 1, 0};
+                    break;
+                default:
+                    std::cout << "Theta is not valid!" << std::endl;
+            }
+            Action left_prim = {0, 0, -1};
+            Action right_prim = {0, 0, 1};
+            std::vector<Action> action_prims = {forward_prim, left_prim, right_prim};
+            return action_prims;
+        }
+
+        std::string name;
+        int num_actions;
+        std::vector<std::string> action_names;
+        std::vector<double> action_costs;
+    };
 
 protected:
     std::shared_ptr<Scene2DRob> env_;
     std::shared_ptr<ActionType2dRotationRob> action_type_;
 
 public:
-    ActionSpace2dRotationRob(const Scene2DRob& env,
-                     const ActionType2dRotationRob& actions_ptr) : ims::ActionSpace(){
+    ActionSpace2dRotationRob(const Scene2DRob& env) : ims::ActionSpace(){
         this->env_ = std::make_shared<Scene2DRob>(env);
-        this->action_type_ = std::make_shared<ActionType2dRotationRob>(actions_ptr);
+        ActionType2dRotationRob action_type;
+        this->action_type_ = std::make_shared<ActionType2dRotationRob>(action_type);
     }
 
     void getActions(int state_id,
@@ -107,6 +106,7 @@ public:
                     bool check_validity) override {
         // validity is checked in the getSuccessors() function, no need to check validity in this function
         assert(check_validity == false);
+        
         ims::RobotState* curr_state = this->getRobotState(state_id);
         int curr_state_theta = (curr_state->state)[2];
         std::vector<Action> actions = action_type_->getPrimActionsFromTheta(curr_state_theta);
@@ -144,10 +144,16 @@ public:
     }
 
     bool isStateValid(const StateType& state_val) override{
-        // checking coordinate is on map and theta value is between 0 and 3
-        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1] || state_val[2] < 0 || state_val[2] > 3){
+        // checking coordinate is on map
+        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
             return false;
         }
+
+        // checking theta value is between 0 and 3
+        if (state_val[2] < 0 || state_val[2] > 3) {
+            return false;
+        }
+
         // checking for obstacle
         int map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
         if (map_val == 100){

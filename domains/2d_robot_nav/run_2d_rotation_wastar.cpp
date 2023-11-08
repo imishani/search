@@ -97,7 +97,6 @@ int main(int argc, char** argv) {
     ims::wAStarParams params (heuristic, epsilon);
     // construct the scene and the action space
     Scene2DRob scene (map);
-    ActionType2dRotationRob action_type;
     for (int i {0}; i < starts.size(); i++){
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
@@ -113,7 +112,7 @@ int main(int argc, char** argv) {
         std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
 
-        std::shared_ptr<ActionSpace2dRotationRob> ActionSpace = std::make_shared<ActionSpace2dRotationRob>(scene, action_type);
+        std::shared_ptr<ActionSpace2dRotationRob> ActionSpace = std::make_shared<ActionSpace2dRotationRob>(scene);
         // construct planner
         ims::wAStar planner(params);
 
