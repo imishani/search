@@ -48,6 +48,7 @@ namespace ims {
 struct EuclideanHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
+        // check id the states are the same size
        if (s1.size() != s2.size()) {
                 std::cout << "Error: The states are not the same size!" << std::endl;
                 return false;
@@ -58,7 +59,7 @@ struct EuclideanHeuristic : public BaseHeuristic {
             }
             dist = sqrt(dist);
             return true;
-        }    
+        }
     }
 };
 
