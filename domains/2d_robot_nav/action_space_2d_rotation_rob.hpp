@@ -105,20 +105,13 @@ public:
     void getActions(int state_id,
                     std::vector<ActionSequence> &action_seqs,
                     bool check_validity) override {
+        // validity is checked in the getSuccessors() function, no need to check validity in this function
+        assert(check_validity == false);
         ims::RobotState* curr_state = this->getRobotState(state_id);
         int curr_state_theta = (curr_state->state)[2];
         std::vector<Action> actions = action_type_->getPrimActionsFromTheta(curr_state_theta);
         for (int i {0} ; i < action_type_->num_actions ; i++){
             Action action = actions[i];
-            if (check_validity){
-                StateType next_state_val = StateType(curr_state->state.size());
-                std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-                // keep theta value between 0 and 3
-                next_state_val[2] = double((int(next_state_val[2])+4) % 4);
-                if (!isStateValid(next_state_val)){
-                    continue;
-                }
-            }
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
             // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
             ActionSequence action_seq;
