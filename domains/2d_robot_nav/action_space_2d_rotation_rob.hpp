@@ -63,7 +63,7 @@ class ActionSpace2dRotationRob : public ims::ActionSpace {
         std::vector<Action> getPrimActionsFromTheta(int curr_theta) {
             Action forward_prim;
             switch (curr_theta) {
-                case 0: // Increase column
+                case 0: // increase column
                     forward_prim = {1, 0, 0};
                     break;
                 case 1: // decrease row
