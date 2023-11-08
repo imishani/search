@@ -72,7 +72,7 @@ class ActionSpace2dRotationRob : public ims::ActionSpace {
                 case 2: // decrease column
                     forward_prim = {-1, 0, 0};
                     break;
-                case 3: // increase column
+                case 3: // increase row
                     forward_prim = {0, 1, 0};
                     break;
                 default:
