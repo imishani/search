@@ -549,6 +549,14 @@ struct ConstraintsCollective {
         if (t_from == -1 && t_to == -1) {
             return;
         }
+
+        // TODO(yoraish): Check if there are any existing constraints of the same type and at the same interval. If so, then we update them instead of adding a new constraint.
+        // for (const auto& existing_constraint_ptr : time_to_constraints_ptrs_[t_from]) {
+        //     if (existing_constraint_ptr->type == constraint->type && existing_constraint_ptr->getTimeInterval() == constraint->getTimeInterval()) {
+        //         existing_constraint_ptr.update(constraint);
+        //     }
+        // }
+
         for (TimeType t = t_from; t <= t_to; t++) {
             time_to_constraints_ptrs_[t].push_back(constraint);
 

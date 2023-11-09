@@ -129,6 +129,33 @@ public:
     }
 protected:
 
+
+    /// @brief The search state compare struct.
+    struct ECBSOpenCompare{
+        bool operator()(const SearchState& s1, const SearchState& s2) const{
+            double f1 = s1.f;
+            double f2 = s2.f;
+            double g1 = s1.g;
+            double g2 = s2.g;
+            double c1 = s1.unresolved_conflicts.size();
+            double c2 = s2.unresolved_conflicts.size();
+
+            if (f1 == f2) {
+                if (g1 == g2) {
+                    if (c1 == c2) {
+                        return s1.state_id < s2.state_id;
+                    } else {
+                        return c1 < c2;
+                    }
+                } else {
+                    return g1 < g2;
+                }
+            } else {
+                return f1 < f2;
+            }
+        }   
+    };
+
     /// @brief The search state compare struct.
     struct ECBSFocalCompare{
         bool operator()(const SearchState& s1, const SearchState& s2) const{

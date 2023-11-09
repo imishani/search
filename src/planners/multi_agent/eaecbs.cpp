@@ -37,7 +37,7 @@
 #include <search/planners/multi_agent/eacbs.hpp>
 
 ims::EAECBS::EAECBS(const ims::EAECBSParams& params) : params_(params), ECBS(params) {
-    open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, EACBSFocalCompare>();
+    open_ = new FocalAndAnchorQueueWrapper<SearchState, EACBSOpenCompare, EACBSFocalCompare>();
 }
 
 

@@ -132,6 +132,11 @@ public:
             // Scrap the roadmap and start over with more samples.
             adjacency_mat_.clear();
             sampled_states_.clear();
+            for (auto state : states_) {
+                state_to_id_.erase(state);
+                delete state;
+            }
+
             createRoadmap(start_state, goal_state, num_samples * 2);
         }
 

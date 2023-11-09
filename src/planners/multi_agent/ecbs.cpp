@@ -36,7 +36,7 @@
 
 ims::ECBS::ECBS(const ims::ECBSParams& params) : params_(params), CBS(params) {
     // Create the open list.
-    open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, ECBSFocalCompare>();
+    open_ = new FocalAndAnchorQueueWrapper<SearchState, ECBSOpenCompare, ECBSFocalCompare>();
 }
 
 void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs,

@@ -37,7 +37,7 @@
 #include <search/planners/multi_agent/eacbs.hpp>
 
 ims::EAECBSMP::EAECBSMP(const ims::EAECBSMPParams& params) : params_(params), EAECBS(params) {
-    open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, EACBSFocalCompare>();
+    open_ = new FocalAndAnchorQueueWrapper<SearchState, EACBSOpenCompare, EACBSFocalCompare>();
 }
 
 std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::EAECBSMP::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {

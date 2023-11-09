@@ -138,30 +138,46 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
         constraints_context_ptr->agent_paths[agent_id] = path;
         constraints_collective_ptr->setContext(constraints_context_ptr);
 
-
-        // Add constraints from the previously planned agent. Both vertex and edge constraints.
-        // for (TimeType t = 0; t < path.size(); ++t) {
-        //     // Add a constraint for avoiding the agent's path at all times.
-        //     // Starting with the edge constraint.
-        //     std::shared_ptr<VertexAvoidanceConstraint> constraint_ptr = std::make_shared<VertexAvoidanceConstraint>(agent_id, t, agent_names_[agent_id]);
-        //     constraints_collective_ptr->addConstraint(constraint_ptr);
-
-        //     // Now add the vertex constraint.
-        //     if (t > 0) {
-        //         std::shared_ptr<EdgeAvoidanceConstraint> constraint_ptr = std::make_shared<EdgeAvoidanceConstraint>(agent_id, t-1, t, agent_names_[agent_id]);
-        //         constraints_collective_ptr->addConstraint(constraint_ptr);
-        //     }
-
-        // }
-
         // Add a constraint for avoiding the agent at all times. Reminder: if we want the next planned agent to be disallowed from terminating the search before all other previous agent have terminated their motions, we need to specify a latest constraint time directly. This time is often used by planners to determine if a goal state can be found.
         std::shared_ptr<VertexAvoidanceConstraint> vertex_avoid_constraint_ptr = std::make_shared<VertexAvoidanceConstraint>(agent_id, -1, agent_names_[agent_id]);
-        constraints_collective_ptr->addConstraint(vertex_avoid_constraint_ptr);
         std::shared_ptr<EdgeAvoidanceConstraint> edge_avoid_constraint_ptr = std::make_shared<EdgeAvoidanceConstraint>(agent_id, -1, -1, agent_names_[agent_id]);
-        std::pair<int, int> interval = edge_avoid_constraint_ptr->getTimeInterval();
 
+        /*
+        // Uniquely in PP, if the constraints collective already has a vertex-avoid and/or edge-avoid constraints for this infinite time-interval, simply modify those to also include this agent.
+        bool found_vertex_avoid_constraint = false;
+        bool found_edge_avoid_constraint = false;
+        for (auto& constraint_ptr : constraints_collective_ptr->getConstraints()) {
+            if (constraint_ptr->type == ConstraintType::VERTEX_AVOIDANCE) {
+                auto found_vertex_avoid_constraint_ptr = std::dynamic_pointer_cast<VertexAvoidanceConstraint>(constraint_ptr);
+                if (found_vertex_avoid_constraint_ptr->getTimeInterval().first == -1 && found_vertex_avoid_constraint_ptr->getTimeInterval().second == -1) {
+                    found_vertex_avoid_constraint_ptr->agent_ids_to_avoid.push_back(agent_id);
+                    found_vertex_avoid_constraint_ptr->agent_names_to_avoid.push_back(agent_names_[agent_id]);
+                    found_vertex_avoid_constraint = true;
+                }
+            }
+            else if (constraint_ptr->type == ConstraintType::EDGE_AVOIDANCE) {
+                auto found_edge_avoid_constraint_ptr = std::dynamic_pointer_cast<EdgeAvoidanceConstraint>(constraint_ptr);
+                if (edge_avoid_constraint_ptr->getTimeInterval().first == -1 && found_edge_avoid_constraint_ptr->getTimeInterval().second == -1) {
+                    found_edge_avoid_constraint_ptr->agent_ids_to_avoid.push_back(agent_id);
+                    found_edge_avoid_constraint_ptr->agent_names_to_avoid.push_back(agent_names_[agent_id]);
+                    found_edge_avoid_constraint = true;
+                }
+            }
+        }
+
+        // If there were no updates in the constraints collective, then set the constraints.
+        if (!found_vertex_avoid_constraint) {
+            constraints_collective_ptr->addConstraint(vertex_avoid_constraint_ptr);
+        }
+        if (!found_edge_avoid_constraint) {
+            constraints_collective_ptr->addConstraint(edge_avoid_constraint_ptr);
+        }
+        */
+        // Originally, just add the constraints as is.
+        constraints_collective_ptr->addConstraint(vertex_avoid_constraint_ptr);
         constraints_collective_ptr->addConstraint(edge_avoid_constraint_ptr);
-        
+
+        std::pair<int, int> interval = edge_avoid_constraint_ptr->getTimeInterval();        
         constraints_collective_ptr->setLastConstraintTimeToAtLeast(path.size() - 1);
     }
         

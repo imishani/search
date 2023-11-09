@@ -104,6 +104,32 @@ protected:
     struct SearchState: public EACBS::SearchState{};
 
     /// @brief The search state compare struct.
+    struct EACBSOpenCompare: public ims::BestFirstSearch::SearchStateCompare {
+        bool operator()(const SearchState& s1, const SearchState& s2) const{
+            double f1 = s1.f;
+            double f2 = s2.f;
+            double g1 = s1.g;
+            double g2 = s2.g;
+            double c1 = s1.unresolved_conflicts.size();
+            double c2 = s2.unresolved_conflicts.size();
+
+            if (f1 == f2) {
+                if (g1 == g2) {
+                    if (c1 == c2) {
+                        return s1.state_id < s2.state_id;
+                    } else {
+                        return c1 < c2;
+                    }
+                } else {
+                    return g1 < g2;
+                }
+            } else {
+                return f1 < f2;
+            }
+        }   
+    };
+
+    /// @brief The search state compare struct.
     struct EACBSFocalCompare{
         bool operator()(const SearchState& s1, const SearchState& s2) const{
             if (s1.unresolved_conflicts.size() == s2.unresolved_conflicts.size()) {
@@ -122,7 +148,7 @@ protected:
     // /// @brief The open list. We set it to a deque for fast pop_front().
     // using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
     // OpenList open_;
-    FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, EACBSFocalCompare>* open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, EACBSFocalCompare>();
+    FocalAndAnchorQueueWrapper<SearchState, EACBSOpenCompare, EACBSFocalCompare>* open_ = new FocalAndAnchorQueueWrapper<SearchState, EACBSOpenCompare, EACBSFocalCompare>();
 
     // The states that have been created.
     std::vector<SearchState*> states_;
