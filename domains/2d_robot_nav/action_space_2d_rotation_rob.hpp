@@ -78,9 +78,9 @@ class ActionSpace2dRotationRob : public ims::ActionSpace {
                 default:
                     std::cout << "Theta is not valid!" << std::endl;
             }
-            Action left_prim = {0, 0, -1};
-            Action right_prim = {0, 0, 1};
-            std::vector<Action> action_prims = {forward_prim, left_prim, right_prim};
+            Action rotate_left_prim = {0, 0, 1};
+            Action rotate_right_prim = {0, 0, -1};
+            std::vector<Action> action_prims = {forward_prim, rotate_left_prim, rotate_right_prim};
             return action_prims;
         }
 
@@ -114,8 +114,7 @@ public:
             Action action = actions[i];
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
             // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
-            ActionSequence action_seq;
-            action_seq.push_back(action);
+            ActionSequence action_seq = {action};
             action_seqs.push_back(action_seq);
         }
     }
@@ -133,7 +132,7 @@ public:
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
             // keep theta value between 0 and 3
-            next_state_val[2] = double((int(next_state_val[2])+4) % 4);
+            next_state_val[2] = (int(next_state_val[2])+4) % 4;
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
