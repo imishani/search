@@ -45,7 +45,6 @@
 #include "action_space.hpp"
 #include <search/heuristics/base_heuristic.hpp>
 #include <search/planners/planner.hpp>
-#include <search/common/kdtree.hpp>
 #include <search/common/distance.hpp>
 
 namespace ims {
@@ -136,6 +135,7 @@ public:
                 state_to_id_.erase(state);
                 delete state;
             }
+            states_.clear();
 
             createRoadmap(start_state, goal_state, num_samples * 2);
         }
@@ -265,15 +265,11 @@ public:
 
     // Members.
     /// @brief The roadmap vertices. Store it for efficient nearest neighbor lookup as a KD-tree.
-    std::shared_ptr<KDTree<StateType>> kdtree_ptr_;
     std::unordered_map<int, StateType>sampled_states_; 
 
     /// @brief The roadmap topology (connectivity, edges). Represented as an adjacency list, with each state_id mapping to a vector of state_ids.
     std::unordered_map<int, std::unordered_set<int>> adjacency_mat_;
 };
-
-
-
 
 }  // namespace ims
 

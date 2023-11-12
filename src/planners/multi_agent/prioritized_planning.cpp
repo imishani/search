@@ -142,7 +142,6 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
         std::shared_ptr<VertexAvoidanceConstraint> vertex_avoid_constraint_ptr = std::make_shared<VertexAvoidanceConstraint>(agent_id, -1, agent_names_[agent_id]);
         std::shared_ptr<EdgeAvoidanceConstraint> edge_avoid_constraint_ptr = std::make_shared<EdgeAvoidanceConstraint>(agent_id, -1, -1, agent_names_[agent_id]);
 
-        /*
         // Uniquely in PP, if the constraints collective already has a vertex-avoid and/or edge-avoid constraints for this infinite time-interval, simply modify those to also include this agent.
         bool found_vertex_avoid_constraint = false;
         bool found_edge_avoid_constraint = false;
@@ -172,10 +171,6 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
         if (!found_edge_avoid_constraint) {
             constraints_collective_ptr->addConstraint(edge_avoid_constraint_ptr);
         }
-        */
-        // Originally, just add the constraints as is.
-        constraints_collective_ptr->addConstraint(vertex_avoid_constraint_ptr);
-        constraints_collective_ptr->addConstraint(edge_avoid_constraint_ptr);
 
         std::pair<int, int> interval = edge_avoid_constraint_ptr->getTimeInterval();        
         constraints_collective_ptr->setLastConstraintTimeToAtLeast(path.size() - 1);
