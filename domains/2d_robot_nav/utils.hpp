@@ -74,6 +74,62 @@ std::vector<std::vector<int>> loadMap(const char *fname, cv::Mat& img,
     return scaled_map;
 }
 
+std::vector<std::vector<int>> loadCostMap(const char *fname, cv::Mat& img,
+                                      std::string& type, int& width,
+                                      int& height, int scale=1) {
+
+    std::vector<std::vector<int>> map;
+    FILE *f;
+    f = fopen(fname, "r");
+
+    if (f)
+    {
+        if (fscanf(f, "type octile\nheight %d\nwidth %d\nmap\n", &height, &width))
+        {
+            map.resize(width, std::vector<int>(height));
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    int d;
+                    fscanf(f, "%d", &d);
+                    map[x][y] = d;
+                }
+            }
+            
+        }
+
+        fclose(f);
+    }
+
+    std::vector<std::vector<int>> scaled_map;
+    int scaled_height = scale*height;
+    int scaled_width = scale*width;
+    scaled_map.resize(scaled_width, std::vector<int>(scaled_height));
+
+    for (int y = 0; y < scaled_height; y++)
+    {
+        for (int x = 0; x < scaled_width; x++)
+        {
+            scaled_map[x][y] = map[x/scale][y/scale];
+        }
+    }
+
+    img = cv::Mat(scaled_height, scaled_width, CV_8UC3);
+
+    for (int y = 0; y < scaled_height; y++)
+    {
+        for (int x = 0; x < scaled_width; x++)
+        {
+            int gray = 255 - (scaled_map[x][y] * 255 / 500);
+            img.at<cv::Vec3b>(y,x) = (scaled_map[x][y] >= 500) ? cv::Vec3b(0,0,0) : cv::Vec3b(gray,gray,gray);
+        }
+    }
+
+    return scaled_map;
+}
+
 void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, std::vector<std::vector<double>>& goals, int scale, int num_runs, const std::string& path)
 {
     std::ifstream starts_fin(path + "nav2d_starts.txt");

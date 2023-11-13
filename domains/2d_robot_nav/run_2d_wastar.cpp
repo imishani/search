@@ -66,12 +66,14 @@ int main(int argc, char** argv) {
     maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/den520d/den520d.map");
     maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/ht_chantry.map");
     maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/brc203d/brc203d.map");
+    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/costmap1/costmap1.map");
 
     std::vector<std::string> starts_goals_path = {full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/",
                                                   full_path.string() + "/../domains/2d_robot_nav/data/den501d/",
                                                   full_path.string() + "/../domains/2d_robot_nav/data/den520d/",
                                                   full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/",
                                                   full_path.string() + "/../domains/2d_robot_nav/data/brc203d/",
+                                                  full_path.string() + "/../domains/2d_robot_nav/data/costmap1/"
     };
 
     int map_index = std::stoi(argv[1]);
@@ -84,7 +86,7 @@ int main(int argc, char** argv) {
     std::string type;
     int width, height;
     cv::Mat img;
-    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), img, type, width, height, scale);
+    std::vector<std::vector<int>> map = loadCostMap(map_file.c_str(), img, type, width, height, scale);
 
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
