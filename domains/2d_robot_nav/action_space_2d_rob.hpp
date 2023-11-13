@@ -128,7 +128,7 @@ public:
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
+                costs.push_back(action_type_->action_costs[i] * getStateCost(next_state_val));
             }
         }
         return true;
@@ -138,12 +138,22 @@ public:
         if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
             return false;
         }
+<<<<<<< HEAD
         int map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
         if (map_val == 100){
+=======
+        auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
+        if (map_val >= 500){
+>>>>>>> 4c4a05b (Created costmap1 (space-separated integer map), created loadCostMap() function for parsing cost map, updated visualization to display cost heatmap)
             return false;
         }
         return true;
     }
+
+    int getStateCost(const StateType& state_val) {
+        auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
+        return map_val;
+    } 
 
     bool isPathValid(const PathType& path) override{
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
