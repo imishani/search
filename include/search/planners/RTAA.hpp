@@ -2,6 +2,7 @@
 #include <functional>
 // Standard includes
 #include <utility>
+#include<map>
 #include <algorithm>
 // project includes
 #include <search/planners/real_time_search_planner.hpp>
@@ -29,6 +30,8 @@ namespace ims{
 
         std::vector<SearchState*> close_;
 
+        std::map<SearchState*, double> heuristicDict;
+
         auto getSearchState(int state_id) -> SearchState*;
 
         auto getOrCreateSearchState(int state_id) -> SearchState*;
@@ -46,9 +49,17 @@ namespace ims{
         void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                const StateType& start, const StateType& goal) override;
 
+        void constructCurrentPath(int state_id, int target_id, std::vector<StateType>& path);
+        
         bool plan(std::vector<StateType> &path) override;
 
-        int updateH();
+        int updateHeurisiticRTAA();
+
+        int updateHeuristicLRTA()
+
+        auto executePartialPlan(auto start, std::vector<StateType>& path);
+
+        int budgetedPlan(auto start, std::vector<StateType>& path);
 
         /// @brief Reset the planner
         void resetPlanningData();

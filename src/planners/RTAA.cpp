@@ -7,11 +7,11 @@ ims::rtaaStar::rtaaStar(const realTimePlannerParams &params) : Planner(params){
     N = params.N_;
 }
 
-ims::rtaaStar::~rtaaStar() {
+ms::rtaaStar::~rtaaStar() {
     for (auto &state : states_){
         delete state;
     }
-}
+}i
 
 void ims::rtaaStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                              const std::vector<StateType> &starts,
@@ -106,21 +106,14 @@ auto ims::rtaaStar::getOrCreateSearchState(int state_id) -> ims::realTimePlanner
     return states_[state_id];
 }
 
-bool ims::rtaaStar::plan(std::vector<StateType>& path){
+
+int ims::rtaaStar::budgetedPlan(auto start, std::vector<StateType>& path){
     int count = 0;
     int iter {0};
-    startTimer();
-    auto start = start_;
-    while (!open_.empty() && !isTimeOut()){
-        auto state;
-        if (count == params_.N){
-            count = 0;
-            int sID = updateH();
-            constructCurrentPath(sID,start->state_id,path);
-            close_.clear();
-            state = getSearchState(sID);
-            start = state;
-        }else{
+    auto state = start;
+
+    while (!open_.empty() && !isTimeOut() && count < params_.N){
+        if (count != 0){
             state = open_.min();
             open_.pop();
         }
@@ -133,57 +126,112 @@ bool ims::rtaaStar::plan(std::vector<StateType>& path){
             stats_.cost = state->g;
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();
-            return true;            
+            return 1;
         }
         expand(state->state_id);
         ++iter;
         count++;
     }
-    getTimeFromStart(stats_.time);
-    return false;
-}
-
-int ims::rtaaStar::updateH(){
-    OpenList temp;
-    auto minState = open_.min();
-    double minCost = minState->f;
-    // while (!open_.empty()){
-    //     auto state = open_.min();
-    //     open_.pop();
-    //     auto parent = getSearchState(state->parent_id);
-    //     double cost = parent->g + 1 + state->h;
-    //     if (cost < minCost){
-    //         minCost = cost;
-    //         minState = state;
-    //     }
-    //     temp.push(state);
-    // }
-    // while (!temp.empty()){
-    //     open_.push(temp.min());
-    //     temp.pop();
-    // }
-    for (size_t i = 0; i < close_.size(); i++){
-        close_[i]->h = minCost - close_[i]->g;
+    if (!open_.empty() || !isTimeOut() ){
+        return -1;
     }
-    return minState->state_id;
+    return 0;
 }
 
-void ims::rtaaStar::constructCurrentPath(int state_id, int targetID, std::vector<StateType>& path){
-    std::vector<int> successors;
-    std::vector<double> costs;
-    int preLen = (int) path.size();
-    auto start = getSearchState(state_id);
-    while (start->state_id != targetID){
-        double maxH = 0;
-        action_space_ptr_->getSuccessors(start->state_id,successors,costs);
-        for(size_t i = 0; i < successors.size(); i++){
-            auto successor = getOrCreateSearchState(successors[i]);
-            if (successor->in_closed && successor->h > maxH){
-                maxH = h;
-                start = successor;
+auto ims::rtaaStar::executePartialPlan(auto start, std::vector<StateType>& path){
+    int sID = updateHeuristicRTAA();
+    constructCurrentPath(sID,start->state_id,path);
+    close_.clear();
+    return getSearchState(sID);
+}
+
+
+bool ims::rtaaStar::plan(std::vector<StateType>& path){
+    int count = 0;
+    int iter {0};
+    startTimer();
+    auto start = start_;
+    int res = 0;
+    while (res = 0){
+        res = budgetedPlan(start,path);
+        start = executePartialPlan(start, path);
+    }
+    if (res == 1){
+        return true;
+    }else{
+        getTimeFromStart(stats_.time);
+        return false;
+    }
+}
+
+int ims::rtaaStar::updateHeuristicRTAA(){
+    OpenList temp;
+    auto min_state = open_.min();
+    double min_cost = min_state->f;
+    for (size_t i = 0; i < close_.size(); i++){
+        auto itr = heuristicDict.find(close_[i]);
+        if (itr != heuristicDict.end()){
+            heuristicDict[close_[i]] = min_cost - close_[i]->g
+        }else{
+            heuristicDict.insert({close_[i],min_cost - close_[i]->g});
+        }
+    }
+    return min_state->state_id;
+}
+
+int ims::rtaaStar::updateHeuristicLRTA(){
+    std::map<SearchState*, double> closed_heu;
+    for (auto& item: close_)
+    {
+        closed_heu[item] = INF_DOUBLE;
+    }
+    std::map<SearchState*, double> h_value_record;
+    while (h_value_record != closed_heu){
+        h_value_record = closed_heu;
+        for (size_t i = 0; i < close_.size(); i++){
+            std::vector<double> f_neighbours;
+            std::vector<int> successors;
+            std::vector<double> costs;
+            action_space_ptr_->getSuccessors(close_[i]->state_id, successors, costs);
+            for(auto s_next : neighbours)
+            {
+                if (close_.find(close_.begin(), close_.end(), s_next) == close_.end())
+                {
+                    f_neighbours.push_back(costs[s_next] + computeHeuristic(s_next->state_id));
+                }
+                else
+                {
+                    f_neighbours.push_back(costs[s_next] + closed_heu[s_next]);
+                }
+                // We need to dereference the iterator to get the value, as min_element returns an iterator.
+                closed_heu[s] = *std::min_element(f_neighbours.begin(), f_neighbours.end());
             }
         }
-        path.push_back(action_space_ptr_->getRobotState(start->state_id)->state);
+    }
+    for (size_t i = 0; i < close_.size(); i++){
+        heuristicDict[close_[i]] = closed_heu[close[i]];
+    }
+    auto min_state = open_.min();
+    return min_state->state_id;
+}
+
+//@TODO: this can be done with backtracking instead
+void ims::rtaaStar::constructCurrentPath(int state_id, int target_id, std::vector<StateType>& path){
+    int preLen = (int) path.size();
+    auto start = getSearchState(state_id);
+    while (start->state_id != target_id){
+        path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
+        state = getSearchState(state->parent_id);
+        // double maxH = 0;
+        // action_space_ptr_->getSuccessors(start->state_id,successors,costs);
+        // for(size_t i = 0; i < successors.size(); i++){
+        //     auto successor = getOrCreateSearchState(successors[i]);
+        //     if (successor->in_closed && successor->h > maxH){
+        //         maxH = h;
+        //         start = successor;
+        //     }
+        // }
+        // path.push_back(action_space_ptr_->getRobotState(start->state_id)->state);
     }
     std::reverse(path.begin()+preLen, path.end());
 }
@@ -232,21 +280,18 @@ void ims::rtaaStar::setStateVals(int state_id, int parent_id, double cost){
 double ims::rtaaStar::computeHeuristic(int state_id) {
     double dist;
     auto s = action_space_ptr_->getRobotState(state_id);
-    if (!heuristic_->getHeuristic(s->state, dist))
-        throw std::runtime_error("Heuristic function failed");
-    else
-        return dist;
+    auto look_up = getSearchState(state_id);
+    if (heuristicDict.find(look_up) == heuristicDict.end()){
+        if (!heuristic_->getHeuristic(s->state, dist))
+            throw std::runtime_error("Heuristic function failed");
+        else
+            heuristicDict.insert({look_up, dist});
+            return dist;
+    }else{
+        return heurisiticDict[look_up];
+    }
 }
 
-double ims::rtaaStar::computeHeuristic(int s1_id, int s2_id) {
-    double dist;
-    auto s1 = action_space_ptr_->getRobotState(s1_id);
-    auto s2 = action_space_ptr_->getRobotState(s2_id);
-    if (!heuristic_->getHeuristic(s1->state, s2->state, dist))
-        throw std::runtime_error("Heuristic function failed");
-    else
-        return dist;
-}
 
 void ims::rtaaStar::reconstructPath(std::vector<StateType>& path) {
     SearchState* state = getSearchState(goal_);
