@@ -216,10 +216,7 @@ struct ExperiencesCollective {
         // TODO(yoraish) IMPORTANT
 
         path_experiences_ptrs_.push_back(experience);
-        // Print the number of experiences.
-        std::cout << "ExperiencesCollective: Added experience. Number of experiences: " << path_experiences_ptrs_.size() << std::endl;
-        std::cout << "States in experiences map: " << state_to_path_experiences_ptrs_.size() << std::endl;
-
+        
         // Point each of the states in the experience to this experience.
         for (const auto& state : experience->getPath()) {
             state_to_path_experiences_ptrs_[state].push_back(experience);

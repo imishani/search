@@ -124,6 +124,7 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
             // If the planning failed, return false.
             std::cout << RED << "Planning failed for agent " << agent_id << ", priority " << std::distance(params_.agent_priority_ordering.begin(), std::find(params_.agent_priority_ordering.begin(), params_.agent_priority_ordering.end(), agent_id)) << ". Prioritized planning failed." << RESET << std::endl;
             getTimeFromStart(stats_.time);
+            paths.clear();
             return false;
         }
 

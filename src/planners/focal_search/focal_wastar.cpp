@@ -161,8 +161,10 @@ bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
             reconstructPath(path, stats_.transition_costs);
             stats_.cost = state->g;
             stats_.path_length = (int)path.size();
-            stats_.num_generated = (int)action_space_ptr_->states_.size();            
-            stats_.lower_bound = std::min(open_.getLowerBound(), state->f) / params_.epsilon;
+            stats_.num_generated = (int)action_space_ptr_->states_.size();    
+
+            // TODO(yoraish): Get the non-weighted (g+h) minimal value from the OPEN list.
+            stats_.lower_bound = state->g;
 
             return true;
         }

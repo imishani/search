@@ -84,7 +84,10 @@ struct dRRTParams : virtual public PlannerParams {
     bool is_informed = false;
 
     /// @brief The number of iterations to go through between attempts to connect the goal to the tree.
-    int num_iters = 500;
+    int num_iters_goal_connect = 500;
+
+    /// @brief The number of seconds that must elapse before attempting to connect the goal to the tree.
+    double time_min = 0.0;
 
     /// @brief The number of nodes to sample in the roadmap.
     int roadmap_num_nodes = 500;
@@ -112,6 +115,8 @@ private:
 
         /// @brief The parent state
         int parent_id = UNSET;
+        /// @brief The child nodes. Needed to propagate changed costs.
+        std::set<int> child_ids;
         /// @brief The cost to come
         double g = INF_DOUBLE;
         /// @brief The f value
@@ -224,6 +229,9 @@ protected:
     /// @param agent_start_state_ids The start state ids of the individual agents on their own roadmaps.
     /// @param agent_goal_state_ids The goal state ids of the individual agents on their own roadmaps.
     void computeAgentRoadmapHeuristics(const std::vector<int>& agent_start_state_ids, const std::vector<int>& agent_goal_state_ids);
+
+    /// @brief Given a state, make sure that its entire subtree has correct g values.
+    void propagateGValues(SearchState* state);
 
     /// Member variables.
     // The search parameters.
