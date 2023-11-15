@@ -78,6 +78,8 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
                 default:
                     std::cout << "Theta is not valid!" << std::endl;
             }
+            // Need to update: turing will also affect x and y
+            // Need to create a path the rob will follow to turn and check that the path is valid
             Action rotate_left_prim = {0, 0, 1};
             Action rotate_right_prim = {0, 0, -1};
             std::vector<Action> action_prims = {forward_prim, rotate_left_prim, rotate_right_prim};
