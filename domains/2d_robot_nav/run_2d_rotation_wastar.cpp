@@ -28,8 +28,8 @@
  */
 /*!
  * \file   run_2d_wastar.cpp
- * \author Itamar Mishani (imishani@cmu.edu)
- * \date   3/28/23
+ * \author Carina Sanborn (czsanbor@andrew.cmu.edu)
+ * \date   11/14/23
 */
 
 
@@ -132,7 +132,6 @@ int main(int argc, char** argv) {
         std::vector<StateType> path_;
         if (!planner.plan(path_)) {
             std::cout << "No path found!" << std::endl;
-//            return 0;
         }
         else
             std::cout << "Path found!" << std::endl;
@@ -158,9 +157,9 @@ int main(int argc, char** argv) {
 
     std::string image_name = "/run_2d_rotation_wastar_map.jpg";
     
-    bool check = cv::imwrite(full_path.string() + image_name, img);
+    bool check_img_write = cv::imwrite(full_path.string() + image_name, img);
 
-    if (check == false) { 
+    if (check_img_write == false) { 
         std::cout << "Mission - Saving the image, FAILED" << std::endl; 
     } else {
         std::cout << "Successfully saved the image to " + full_path.string() + image_name << std::endl; 

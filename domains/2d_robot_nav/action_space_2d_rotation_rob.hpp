@@ -32,8 +32,7 @@
  * \date   10/25/23
 */
 
-#ifndef SEARCH_ACTIONSCENE2DROB_HPP
-#define SEARCH_ACTIONSCENE2DROB_HPP
+#pragma
 
 #include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
@@ -104,7 +103,7 @@ public:
     void getActions(int state_id,
                     std::vector<ActionSequence> &action_seqs,
                     bool check_validity) override {
-        // validity is checked in the getSuccessors() function, no need to check validity in this function
+        // Validity is checked in the getSuccessors() function, so no need to check validity in this function.
         assert(check_validity == false);
         
         ims::RobotState* curr_state = this->getRobotState(state_id);
@@ -131,7 +130,7 @@ public:
             StateType action = actions[i][0];
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-            // keep theta value between 0 and 3
+            // Keep theta value between 0 and 3.
             next_state_val[2] = (int(next_state_val[2])+4) % 4;
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
@@ -143,17 +142,17 @@ public:
     }
 
     bool isStateValid(const StateType& state_val) override{
-        // checking coordinate is on map
+        // Checking coordinate is on map.
         if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
             return false;
         }
 
-        // checking theta value is between 0 and 3
+        // Checking theta value is between 0 and 3.
         if (state_val[2] < 0 || state_val[2] > 3) {
             return false;
         }
 
-        // checking for obstacle
+        // Checking for obstacle.
         int map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
         if (map_val == 100){
             return false;
@@ -167,4 +166,4 @@ public:
 };
 
 
-#endif //SEARCH_ACTIONSCENE2DROB_HPP
+#pragma //SEARCH_ACTIONSCENE2DROB_HPP
