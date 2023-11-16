@@ -72,7 +72,7 @@ struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
         s1_no_time.pop_back();
         s2_no_time.pop_back();
           
-        return ims::EuclideanHeuristic::getHeuristic(s1_no_time, s2_no_time, dist);
+        return EuclideanHeuristic::getHeuristic(s1_no_time, s2_no_time, dist);
     }
 };
 
@@ -85,7 +85,7 @@ struct EuclideanRemoveThetaHeuristic : public EuclideanHeuristic {
         s1_no_theta.pop_back();
         s2_no_theta.pop_back();
 
-        return ims::EuclideanHeuristic::getHeuristic(s1_no_theta, s2_no_theta, dist);
+        return EuclideanHeuristic::getHeuristic(s1_no_theta, s2_no_theta, dist);
     }
 };
 
