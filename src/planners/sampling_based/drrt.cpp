@@ -406,13 +406,6 @@ void ims::dRRT::computeGValue(SearchState* state){
         // Compute the distance between the current state and the parent state.
         double distance = distanceSearchStates(current_state, parent_state);
 
-
-        std::cout << "ID and agent state ids: " << current_state->state_id << " [";
-        for (auto agent_state_id : current_state->agent_state_ids) {
-            std::cout << agent_state_id << " ";
-        }
-        std::cout << "] Parent ID: " << parent_state->state_id << " cost: " << distance << std::endl;
-
         // Add the distance to the g-value.
         state->g += distance;
 
@@ -498,9 +491,6 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                     SearchState* goal_state = getOrCreateSearchState(goal_agent_state_ids);
                     goal_state->parent_id = best_parent_tree_state->state_id;
                     goal_state->g = best_parent_tree_state->g + best_parent_distance;
-
-                    // Set this as a child of the parent.
-                    best_parent_tree_state->child_ids.insert(goal_state->state_id);
 
                     // Reconstruct path, this is a goal state.
                     std::cout << "Found a path after looking through tree of size " << states_.size() << std::endl;
@@ -644,18 +634,8 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
 
                     if (new_state->g > nearest_state->g + transition_cost) {
 
-                        // Unset this as a child of the previous parent.
-                        SearchState* previous_parent = getSearchState(new_state->parent_id);
-                        previous_parent->child_ids.erase(new_state->state_id);
-
                         new_state->parent_id = nearest_state->state_id;
                         new_state->g = nearest_state->g + transition_cost;
-
-                        // Set this as a child of the parent.
-                        nearest_state->child_ids.insert(new_state->state_id);
-
-                        // Propagate the cost change to all the children.
-                        propagateGValues(new_state);
 
                         // Keep track of the most recent state added to the tree.
                         recent_tree_extension_state = new_state;
@@ -670,9 +650,6 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                     new_state->agent_state_ids = next_agent_state_ids;
                     new_state->parent_id = nearest_state->state_id;
                     new_state->g = nearest_state->g + transition_cost;
-
-                    // Set child node.
-                    nearest_state->child_ids.insert(new_state->state_id);
 
                     // Keep track of the most recent state added to the tree.
                     recent_tree_extension_state = new_state;
@@ -724,21 +701,11 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                     if (new_neighbor_state_cost < neighbor_state_cost) {
                         // Rewire the tree if the transition is valid.
                         if (agent_action_space_ptrs_[0]->multiAgentStateToStateConnector(current_composite_state, next_composite_state, transition_paths, agent_names_)) {
-                            // Remove from the previous parent child list.
-                            SearchState* previous_parent_neighbor_tree_state = getSearchState(neighbor_tree_state->parent_id);
-                            previous_parent_neighbor_tree_state->child_ids.erase(neighbor_tree_state->state_id);
 
                             neighbor_tree_state->parent_id = current_tree_state->state_id;
                             neighbor_tree_state->g = new_neighbor_state_cost;
-
-                            // Set this as a child of the parent.
-                            current_tree_state->child_ids.insert(neighbor_tree_state->state_id);
                         
                             std::cout << "Rewired the tree. Reduced node cost from " << neighbor_state_cost << " to " << new_neighbor_state_cost << std::endl; 
-                            
-                            // Need to propagate the cost change to all the children.
-                            propagateGValues(neighbor_tree_state);
-
 
                         }
                     }
