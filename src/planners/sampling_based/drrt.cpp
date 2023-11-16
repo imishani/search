@@ -390,6 +390,37 @@ void ims::dRRT::propagateGValues(SearchState* state){
     }
 }
 
+void ims::dRRT::computeGValue(SearchState* state){
+    // Compute the g-value of a state. The g-value is the sum of the parent's g-value all the way to the root.
+    state->g = 0.0;
+    SearchState* current_state = state;
+    while (current_state->parent_id != PARENT_TYPE(START)) {
+        // Check if the parent is set.
+        if (current_state->parent_id == PARENT_TYPE(UNSET)) {
+            throw std::runtime_error("In compute g-value: parent of state " + std::to_string(current_state->state_id) + " is not set.");
+        }
+
+        // Get the parent state.
+        SearchState* parent_state = getSearchState(current_state->parent_id);
+
+        // Compute the distance between the current state and the parent state.
+        double distance = distanceSearchStates(current_state, parent_state);
+
+
+        std::cout << "ID and agent state ids: " << current_state->state_id << " [";
+        for (auto agent_state_id : current_state->agent_state_ids) {
+            std::cout << agent_state_id << " ";
+        }
+        std::cout << "] Parent ID: " << parent_state->state_id << " cost: " << distance << std::endl;
+
+        // Add the distance to the g-value.
+        state->g += distance;
+
+        // Set the current state to be the parent state.
+        current_state = parent_state;
+    }
+}
+
 bool ims::dRRT::plan(MultiAgentPaths& paths) {
     startTimer();
     int iter = 0;
@@ -435,6 +466,7 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                 if (is_valid_transition) {
                     // Compute the distance between the sampled state and the state in the search tree.
                     double distance = distanceCompositeStates(tree_composite_state, goal_composite_state);
+                    computeGValue(tree_state);
                     double path_cost = tree_state->g + distance;
                     // Check if this is the nearest state.
                     if (path_cost < best_path_cost) {
@@ -448,15 +480,16 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
             // If found some parent, connect it to the goal and return a path.
             if (best_parent_tree_state != nullptr) {
 
-                // If the closest state is the actual goal state, then return a path from it.
+                // If the closest state is the goal state itself (the transition just checked is from goal to itself), then return a path from it.
                 if (best_parent_tree_state->agent_state_ids == goal_agent_state_ids) {
+                    SearchState* goal_state = best_parent_tree_state;
                     // Reconstruct path, this is a goal state.
                     std::cout << "Found a path after looking through tree of size " << states_.size() << std::endl;
-                    reconstructPath(best_parent_tree_state, paths);
+                    reconstructPath(goal_state, paths);
 
                     // Update stats.
                     getTimeFromStart(stats_.time);
-                    stats_.cost = best_parent_tree_state->g;
+                    stats_.cost = goal_state->g; // Already updated in the search for best neighbor in tree to goal.
                     return true;
                 }
 
@@ -475,7 +508,7 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
 
                     // Update stats.
                     getTimeFromStart(stats_.time);
-                    stats_.cost = goal_state->g;
+                    stats_.cost = goal_state->g; // Already updated in the search for best neighbor in tree to goal.
                     return true;
                 }
             }
@@ -497,12 +530,12 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
             //=================================
             if (params_.is_informed && recent_tree_extension_state != nullptr){
                 std::cout << GREEN << "Continuing an expansion train." << RESET << std::endl;
-                // If the last extension was successful, then set the sample a state to be the goal (target).
-                for (int agent_id{0}; agent_id < num_agents_; agent_id++){
-                    // The direction of the sample is the goal of each agent.
-                    StateType goal_state = goals_[agent_id];
-                    sampled_composite_state[agent_id] = goal_state;
-                }
+                // If the last extension was successful, then extend the tree according to the individual roadmap heuristics.
+                // for (int agent_id{0}; agent_id < num_agents_; agent_id++){
+                //     // The direction of the sample is the goal of each agent.
+                //     StateType goal_state = goals_[agent_id];
+                //     sampled_composite_state[agent_id] = goal_state;
+                // }
 
                 // Set the nearest state to be the state previously added to the tree.
                 nearest_state = recent_tree_extension_state;
@@ -579,8 +612,10 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
             }
 
             //=================================
-            // Continue Extend main.
+            // Continue Extend main using the computed nearest and next states.
             //=================================
+            // Update the g-value of the nearest state. This may be redundant.
+            computeGValue(nearest_state);
 
             // If the next state is the same as the nearest state, then continue.
             if (next_agent_state_ids == nearest_agent_state_ids) {
@@ -604,6 +639,9 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
 
                 // If this is not a new state, check if setting the parent to the nearest state is better than the current parent.
                 if (new_state->parent_id != PARENT_TYPE(UNSET)) {
+                    // Update the g-value of the new state.
+                    computeGValue(new_state);
+
                     if (new_state->g > nearest_state->g + transition_cost) {
 
                         // Unset this as a child of the previous parent.
@@ -672,6 +710,9 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                         // This combination is not a composite state in the tree.
                         continue;
                     }
+
+                    // Update the g-value of the neighbor state.
+                    computeGValue(neighbor_tree_state);
 
                     // Check if the current state is a better parent for the neighbor state.
                     double neighbor_state_cost = neighbor_tree_state->g;

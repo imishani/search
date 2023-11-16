@@ -233,6 +233,9 @@ protected:
     /// @brief Given a state, make sure that its entire subtree has correct g values.
     void propagateGValues(SearchState* state);
 
+    /// @brief Given a state, compute its g-value by backtracking back to the root.
+    void computeGValue(SearchState* state);
+
     /// Member variables.
     // The search parameters.
     dRRTParams params_;
