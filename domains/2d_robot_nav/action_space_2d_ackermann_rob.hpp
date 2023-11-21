@@ -38,6 +38,9 @@
 #include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
 
+double speed = 1;
+double length = 1;
+double dt = 1;
 
 class Scene2DRob : public ims::SceneInterface {
 public:
@@ -55,34 +58,24 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
 
         ActionType2dAckermannRob() {
             name = "ActionTypeAckermann2dRob";
-            num_actions = 3;
-            action_names = {"F", "L", "R"};
-            action_costs = {1, 1, 1};
+            num_actions = 5;
+            action_names = {"Turn-40", "Turn-20", "Turn0", "Turn+20", "Turn+40"};
+            action_costs = {1, 1, 1, 1, 1};
         }
 
         std::vector<Action> getPrimActionsFromTheta(int curr_theta) {
-            Action forward_prim;
-            switch (curr_theta) {
-                case 0: // increase column
-                    forward_prim = {1, 0, 0};
-                    break;
-                case 1: // decrease row
-                    forward_prim = {0, -1, 0};
-                    break;
-                case 2: // decrease column
-                    forward_prim = {-1, 0, 0};
-                    break;
-                case 3: // increase row
-                    forward_prim = {0, 1, 0};
-                    break;
-                default:
-                    std::cout << "Theta is not valid!" << std::endl;
+            std::vector<Action> action_prims = {};
+            std::vector<int> steering_angles = {-40, -20, 0, 20, 40};
+            
+            for(int i = 0; i < this->num_actions; i++)
+            {
+                int steering_angle = steering_angles[i];
+                double delta_theta = (speed/length) * steering_angle * dt;
+                double approx_theta = (delta_theta/2) + curr_theta;
+                double delta_x = speed * cos(approx_theta) * dt;
+                double delta_y = speed * sin(approx_theta) * dt;
+                action_prims.push_back({delta_x, delta_y, delta_theta});
             }
-            // Need to update: turing will also affect x and y
-            // Need to create a path the rob will follow to turn and check that the path is valid
-            Action rotate_left_prim = {0, 0, 1};
-            Action rotate_right_prim = {0, 0, -1};
-            std::vector<Action> action_prims = {forward_prim, rotate_left_prim, rotate_right_prim};
             return action_prims;
         }
 
@@ -121,6 +114,16 @@ public:
         }
     }
 
+    int roundThetaToMultipleOf30(double theta) {
+         // Smaller multiple 
+        int a = (theta / 30) * 30; 
+        
+        // Larger multiple 
+        int b = a + 30; 
+    
+        // Return of closest of two 
+        return (theta - a > b - theta)? b : a; 
+    }
 
     bool getSuccessors(int curr_state_ind,
                        std::vector<int>& successors,
@@ -133,8 +136,13 @@ public:
             StateType action = actions[i][0];
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-            // keep theta value between 0 and 3
-            next_state_val[2] = (int(next_state_val[2])+4) % 4;
+            // Round next x val
+            next_state_val[0] = round(next_state_val[0]);
+            // Round next y val
+            next_state_val[1] = round(next_state_val[1]);
+            // Round next theta val
+            next_state_val[2] = (roundThetaToMultipleOf30(next_state_val[2]) + 360) % 360;
+
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
