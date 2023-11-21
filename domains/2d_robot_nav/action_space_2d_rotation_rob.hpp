@@ -32,7 +32,7 @@
  * \date   10/25/23
 */
 
-#pragma
+#pragma once 
 
 #include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
@@ -94,7 +94,7 @@ protected:
     std::shared_ptr<ActionType2dRotationRob> action_type_;
 
 public:
-    ActionSpace2dRotationRob(const Scene2DRob& env) : ims::ActionSpace(){
+    explicit ActionSpace2dRotationRob(const Scene2DRob& env) : ims::ActionSpace(){
         this->env_ = std::make_shared<Scene2DRob>(env);
         ActionType2dRotationRob action_type;
         this->action_type_ = std::make_shared<ActionType2dRotationRob>(action_type);
@@ -107,7 +107,7 @@ public:
         assert(check_validity == false);
         
         ims::RobotState* curr_state = this->getRobotState(state_id);
-        int curr_state_theta = (curr_state->state)[2];
+        int curr_state_theta = (int)(curr_state->state)[2];
         std::vector<Action> actions = action_type_->getPrimActionsFromTheta(curr_state_theta);
         for (int i {0} ; i < action_type_->num_actions ; i++){
             Action action = actions[i];
@@ -164,6 +164,3 @@ public:
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
     }
 };
-
-
-#pragma //SEARCH_ACTIONSCENE2DROB_HPP

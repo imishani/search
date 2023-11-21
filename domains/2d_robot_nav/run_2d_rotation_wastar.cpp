@@ -159,7 +159,7 @@ int main(int argc, char** argv) {
     
     bool check_img_write = cv::imwrite(full_path.string() + image_name, img);
 
-    if (check_img_write == false) { 
+    if (!check_img_write) { 
         std::cout << "Mission - Saving the image, FAILED" << std::endl; 
     } else {
         std::cout << "Successfully saved the image to " + full_path.string() + image_name << std::endl; 
