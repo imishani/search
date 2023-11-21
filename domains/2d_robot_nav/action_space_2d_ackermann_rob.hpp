@@ -29,7 +29,7 @@
 /*!
  * \file   action_space_rotation_2d_rob.hpp
  * \author Carina Sanborn (czsanbor@andrew.cmu.edu)
- * \date   10/25/23
+ * \date   11/20/23
 */
 
 #ifndef SEARCH_ACTIONSCENE2DROB_HPP
@@ -158,8 +158,8 @@ public:
             return false;
         }
 
-        // checking theta value is between 0 and 3
-        if (state_val[2] < 0 || state_val[2] > 3) {
+        // checking theta value is between 0 and 360
+        if (state_val[2] < 0 || state_val[2] > 360) {
             return false;
         }
 
