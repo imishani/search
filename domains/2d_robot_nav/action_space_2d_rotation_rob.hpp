@@ -27,13 +27,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   action_space_2d_rob.hpp
- * \author Itamar Mishani (imishani@cmu.edu)
- * \date   4/1/23
+ * \file   action_space_rotation_2d_rob.hpp
+ * \author Carina Sanborn (czsanbor@andrew.cmu.edu)
+ * \date   10/25/23
 */
 
-#ifndef SEARCH_ACTIONSCENE2DROB_HPP
-#define SEARCH_ACTIONSCENE2DROB_HPP
+#pragma once 
 
 #include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
@@ -50,64 +49,71 @@ public:
     std::vector<size_t> map_size;
 };
 
-struct ActionType2dRob : public ims::ActionType {
+class ActionSpace2dRotationRob : public ims::ActionSpace {
+    struct ActionType2dRotationRob {
 
-    ActionType2dRob() : ims::ActionType() {
-        name = "ActionType2dRob";
-        num_actions = 8;
-        action_names = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
-        action_costs = {1, 1.414, 1, 1.414, 1, 1.414, 1, 1.414};
-        action_prims = {{0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}, {-1, 1}};
-        state_discretization_ = {1, 1};
-    }
+        ActionType2dRotationRob() {
+            name = "ActionTypeRotation2dRob";
+            num_actions = 3;
+            action_names = {"F", "L", "R"};
+            action_costs = {1, 1, 1};
+        }
 
-    std::vector<Action> getPrimActions() override{
-        return action_prims;
-    }
+        std::vector<Action> getPrimActionsFromTheta(int curr_theta) {
+            Action forward_prim;
+            switch (curr_theta) {
+                case 0: // increase column
+                    forward_prim = {1, 0, 0};
+                    break;
+                case 1: // decrease row
+                    forward_prim = {0, -1, 0};
+                    break;
+                case 2: // decrease column
+                    forward_prim = {-1, 0, 0};
+                    break;
+                case 3: // increase row
+                    forward_prim = {0, 1, 0};
+                    break;
+                default:
+                    std::cout << "Theta is not valid!" << std::endl;
+            }
+            Action rotate_left_prim = {0, 0, 1};
+            Action rotate_right_prim = {0, 0, -1};
+            std::vector<Action> action_prims = {forward_prim, rotate_left_prim, rotate_right_prim};
+            return action_prims;
+        }
 
-    void Discretization(StateType& state_des) override{
-        state_discretization_ = state_des;
-    }
-
-    std::string name;
-    int num_actions;
-    std::vector<std::string> action_names;
-    std::vector<double> action_costs;
-    std::vector<Action> action_prims;
-
-};
-
-class actionSpace2dRob : public ims::ActionSpace {
+        std::string name;
+        int num_actions;
+        std::vector<std::string> action_names;
+        std::vector<double> action_costs;
+    };
 
 protected:
     std::shared_ptr<Scene2DRob> env_;
-    std::shared_ptr<ActionType2dRob> action_type_;
+    std::shared_ptr<ActionType2dRotationRob> action_type_;
 
 public:
-    actionSpace2dRob(const Scene2DRob& env,
-                     const ActionType2dRob& actions_ptr) : ims::ActionSpace(){
+    explicit ActionSpace2dRotationRob(const Scene2DRob& env) : ims::ActionSpace(){
         this->env_ = std::make_shared<Scene2DRob>(env);
-        this->action_type_ = std::make_shared<ActionType2dRob>(actions_ptr);
+        ActionType2dRotationRob action_type;
+        this->action_type_ = std::make_shared<ActionType2dRotationRob>(action_type);
     }
 
     void getActions(int state_id,
                     std::vector<ActionSequence> &action_seqs,
                     bool check_validity) override {
+        // Validity is checked in the getSuccessors() function, so no need to check validity in this function.
+        assert(check_validity == false);
+        
         ims::RobotState* curr_state = this->getRobotState(state_id);
-        std::vector<Action> actions = action_type_->getPrimActions();
+        int curr_state_theta = (int)(curr_state->state)[2];
+        std::vector<Action> actions = action_type_->getPrimActionsFromTheta(curr_state_theta);
         for (int i {0} ; i < action_type_->num_actions ; i++){
             Action action = actions[i];
-            if (check_validity){
-                StateType next_state_val = StateType(curr_state->state.size());
-                std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-                if (!isStateValid(next_state_val)){
-                    continue;
-                }
-            }
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
             // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
-            ActionSequence action_seq;
-            action_seq.push_back(action);
+            ActionSequence action_seq = {action};
             action_seqs.push_back(action_seq);
         }
     }
@@ -124,7 +130,8 @@ public:
             StateType action = actions[i][0];
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-
+            // Keep theta value between 0 and 3.
+            next_state_val[2] = (int(next_state_val[2])+4) % 4;
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
@@ -135,9 +142,17 @@ public:
     }
 
     bool isStateValid(const StateType& state_val) override{
+        // Checking coordinate is on map.
         if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
             return false;
         }
+
+        // Checking theta value is between 0 and 3.
+        if (state_val[2] < 0 || state_val[2] > 3) {
+            return false;
+        }
+
+        // Checking for obstacle.
         int map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
         if (map_val == 100){
             return false;
@@ -149,6 +164,3 @@ public:
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
     }
 };
-
-
-#endif //SEARCH_ACTIONSCENE2DROB_HPP

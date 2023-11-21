@@ -28,8 +28,8 @@
  */
 /*!
  * \file   run_2d_wastar.cpp
- * \author Itamar Mishani (imishani@cmu.edu)
- * \date   3/28/23
+ * \author Carina Sanborn (czsanbor@andrew.cmu.edu)
+ * \date   11/14/23
 */
 
 
@@ -46,7 +46,7 @@
 // project includes
 #include <search/planners/wastar.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
-#include "action_space_2d_rob.hpp"
+#include "action_space_2d_rotation_rob.hpp"
 #include "utils.hpp"
 
 
@@ -92,12 +92,11 @@ int main(int argc, char** argv) {
     // construct the planner
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
-    ims::EuclideanHeuristic* heuristic = new ims::EuclideanHeuristic();
+    ims::EuclideanRemoveThetaHeuristic* heuristic = new ims::EuclideanRemoveThetaHeuristic();
     double epsilon = 10.0;
     ims::wAStarParams params (heuristic, epsilon);
     // construct the scene and the action space
     Scene2DRob scene (map);
-    ActionType2dRob action_type;
     for (int i {0}; i < starts.size(); i++){
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
@@ -113,9 +112,13 @@ int main(int argc, char** argv) {
         std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
 
-        std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
+        std::shared_ptr<ActionSpace2dRotationRob> ActionSpace = std::make_shared<ActionSpace2dRotationRob>(scene);
         // construct planner
         ims::wAStar planner(params);
+
+        // Add starting theta to start vetcor
+        starts[i].push_back(0);
+        goals[i].push_back(0);
         // catch the exception if the start or goal is not valid
         try {
             planner.initializePlanner(ActionSpace, starts[i], goals[i]);
@@ -129,7 +132,6 @@ int main(int argc, char** argv) {
         std::vector<StateType> path_;
         if (!planner.plan(path_)) {
             std::cout << "No path found!" << std::endl;
-//            return 0;
         }
         else
             std::cout << "Path found!" << std::endl;
@@ -153,8 +155,8 @@ int main(int argc, char** argv) {
         }
     }
 
-    std::string image_name = "/run_2d_wastar_map.jpg";
-
+    std::string image_name = "/run_2d_rotation_wastar_map.jpg";
+    
     bool check_img_write = cv::imwrite(full_path.string() + image_name, img);
 
     if (!check_img_write) { 

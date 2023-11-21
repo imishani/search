@@ -63,7 +63,7 @@ struct EuclideanHeuristic : public BaseHeuristic {
     }
 };
 
-/// @brief The Euclidean distance heuristic
+/// @brief The Euclidean distance heuristic with time removed from state
 struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
@@ -71,18 +71,21 @@ struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
         StateType s2_no_time = s2;
         s1_no_time.pop_back();
         s2_no_time.pop_back();
-        // check id the states are the same size
-        if (s1_no_time.size() != s2_no_time.size()) {
-            std::cout << "Error: The states are not the same size!" << std::endl;
-            return false;
-        }
-        else {
-            for (int i{0}; i < s1_no_time.size(); i++) {
-                dist += pow(s1_no_time[i] - s2_no_time[i], 2);
-            }
-            dist = sqrt(dist);
-            return true;
-        }
+          
+        return EuclideanHeuristic::getHeuristic(s1_no_time, s2_no_time, dist);
+    }
+};
+
+/// @brief The Euclidean distance heuristic with theta removed from state
+struct EuclideanRemoveThetaHeuristic : public EuclideanHeuristic {
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        StateType s1_no_theta = s1;
+        StateType s2_no_theta = s2;
+        s1_no_theta.pop_back();
+        s2_no_theta.pop_back();
+
+        return EuclideanHeuristic::getHeuristic(s1_no_theta, s2_no_theta, dist);
     }
 };
 
