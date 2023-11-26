@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
 
         std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
-        // construct planner
+        // construct plannerm
         ims::Dijkstra planner(params);
         // catch the exception if the start or goal is not valid
         try {

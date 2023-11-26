@@ -51,7 +51,7 @@
 
 // Note(yoraish): Leaving quotation marks include since it is a local file for the example.
 #include "action_space_2d_rob.hpp"
-#include "../2d_robot_nav/utils.hpp"
+#include "utils.hpp"
 #include "instance.h"
 
 

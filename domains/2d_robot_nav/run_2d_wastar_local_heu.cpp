@@ -137,6 +137,7 @@ int main(int argc, char** argv) {
         }
         else
             std::cout << "Path found!" << std::endl;
+
         PlannerStats stats = planner.reportStats();
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
         std::cout << "cost: " << stats.cost << std::endl;
