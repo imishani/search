@@ -32,8 +32,7 @@
  * \date   11/20/23
 */
 
-#ifndef SEARCH_ACTIONSCENE2DROB_HPP
-#define SEARCH_ACTIONSCENE2DROB_HPP
+#pragma once
 
 #include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
@@ -90,7 +89,7 @@ protected:
     std::shared_ptr<ActionType2dAckermannRob> action_type_;
 
 public:
-    ActionSpace2dAckermannRob(const Scene2DRob& env) : ims::ActionSpace(){
+    explicit ActionSpace2dAckermannRob(const Scene2DRob& env) : ims::ActionSpace(){
         this->env_ = std::make_shared<Scene2DRob>(env);
         ActionType2dAckermannRob action_type;
         this->action_type_ = std::make_shared<ActionType2dAckermannRob>(action_type);
@@ -175,6 +174,3 @@ public:
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
     }
 };
-
-
-#endif //SEARCH_ACTIONSCENE2DROB_HPP
