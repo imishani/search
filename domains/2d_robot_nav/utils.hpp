@@ -18,9 +18,8 @@ double radsToDegs(double rads)
     return rads * 180.0 / M_PI;
 }
 
-std::vector<std::vector<int>> loadMap(const char *fname, cv::Mat& img,
-                                      std::string& type, int& width,
-                                      int& height, int scale=1) {
+std::vector<std::vector<int>> loadMap(const char *fname, std::string& type, 
+                                      int& width, int& height, bool cost_map=false) {
 
     std::vector<std::vector<int>> map;
     FILE *f;
@@ -36,12 +35,21 @@ std::vector<std::vector<int>> loadMap(const char *fname, cv::Mat& img,
             {
                 for (int x = 0; x < width; x++)
                 {
-                    char c;
-                    do {
-                        fscanf(f, "%c", &c);
-                    } while (isspace(c));
+                    if (cost_map) 
+                    {
+                        int d;
+                        fscanf(f, "%d", &d);
+                        map[x][y] = d;
+                    }
+                    else
+                    {
+                        char c;
+                        do {
+                            fscanf(f, "%c", &c);
+                        } while (isspace(c));
 
-                    map[x][y] = (c == '.' || c == 'G' || c == 'S' || c == 'T') ? 0 : 100;
+                        map[x][y] = (c == '.' || c == 'G' || c == 'S' || c == 'T') ? 0 : 100;
+                    }                    
                 }
             }
         }
@@ -49,61 +57,12 @@ std::vector<std::vector<int>> loadMap(const char *fname, cv::Mat& img,
         fclose(f);
     }
 
-    std::vector<std::vector<int>> scaled_map;
-    int scaled_height = scale*height;
-    int scaled_width = scale*width;
-    scaled_map.resize(scaled_width, std::vector<int>(scaled_height));
-
-    for (int y = 0; y < scaled_height; y++)
-    {
-        for (int x = 0; x < scaled_width; x++)
-        {
-            scaled_map[x][y] = map[x/scale][y/scale];
-        }
-    }
-
-    img = cv::Mat(scaled_height, scaled_width, CV_8UC3);
-
-    for (int y = 0; y < scaled_height; y++)
-    {
-        for (int x = 0; x < scaled_width; x++)
-        {
-            img.at<cv::Vec3b>(y,x) = (scaled_map[x][y] > 0) ? cv::Vec3b(0,0,0) : cv::Vec3b(255,255,255);
-        }
-    }
-
-    return scaled_map;
+    return map;
 }
 
-std::vector<std::vector<int>> loadCostMap(const char *fname, cv::Mat& img,
-                                      std::string& type, int& width,
-                                      int& height, int scale=1) {
-
-    std::vector<std::vector<int>> map;
-    FILE *f;
-    f = fopen(fname, "r");
-
-    if (f)
-    {
-        if (fscanf(f, "type octile\nheight %d\nwidth %d\nmap\n", &height, &width))
-        {
-            map.resize(width, std::vector<int>(height));
-
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    int d;
-                    fscanf(f, "%d", &d);
-                    map[x][y] = d;
-                }
-            }
-            
-        }
-
-        fclose(f);
-    }
-
+void map_to_image(cv::Mat *img, std::vector<std::vector<int>> map, int height, int width, 
+                  int scale, bool cost_map=false, int threshold=500) {
+    
     std::vector<std::vector<int>> scaled_map;
     int scaled_height = scale*height;
     int scaled_width = scale*width;
@@ -117,18 +76,23 @@ std::vector<std::vector<int>> loadCostMap(const char *fname, cv::Mat& img,
         }
     }
 
-    img = cv::Mat(scaled_height, scaled_width, CV_8UC3);
+    *img = cv::Mat(scaled_height, scaled_width, CV_8UC3);
 
     for (int y = 0; y < scaled_height; y++)
     {
         for (int x = 0; x < scaled_width; x++)
         {
-            int gray = 255 - (scaled_map[x][y] * 255 / 500);
-            img.at<cv::Vec3b>(y,x) = (scaled_map[x][y] >= 500) ? cv::Vec3b(0,0,0) : cv::Vec3b(gray,gray,gray);
+            if (cost_map) 
+            {
+                int gray = 255 - (scaled_map[x][y] * 255 / threshold);
+                (*img).at<cv::Vec3b>(y,x) = (scaled_map[x][y] >= threshold) ? cv::Vec3b(0,0,0) : cv::Vec3b(gray,gray,gray);
+            }
+            else 
+            {
+                (*img).at<cv::Vec3b>(y,x) = (scaled_map[x][y] > 0) ? cv::Vec3b(0,0,0) : cv::Vec3b(255,255,255);
+            }
         }
     }
-
-    return scaled_map;
 }
 
 void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, std::vector<std::vector<double>>& goals, int scale, int num_runs, const std::string& path)
@@ -174,17 +138,13 @@ void process_start_goal(std::vector<std::vector<int>> map, std::vector<double> *
     std::cout << "Goal value: " << map[(int)(*goal)[0]][(int)(*goal)[1]] << std::endl;
 }
 
-int find_plan(std::vector<std::vector<int>> map, ims::Planner *planner, 
-                                                        std::vector<double> *start, 
-                                                        std::vector<double> *goal,
-                                                        std::vector<StateType> *path_) {
-    Scene2DRob scene (map);
-    ActionType2dRob action_type;
-    std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
-        
+int find_plan(std::shared_ptr<actionSpace2dRob> ActionSpace, ims::Planner *planner, 
+                                                        std::vector<double> start, 
+                                                        std::vector<double> goal,
+                                                        std::vector<StateType> *path_) {        
     // catch the exception if the start or goal is not valid
     try {
-        planner -> initializePlanner(ActionSpace, *start, *goal);
+        planner -> initializePlanner(ActionSpace, start, goal);
     }
     catch (std::exception& e) {
         std::cout << "Start or goal is not valid!" << std::endl;
@@ -194,8 +154,8 @@ int find_plan(std::vector<std::vector<int>> map, ims::Planner *planner,
     std::cout << "Planning..." << std::endl;
     if (!planner -> plan(*path_)) {
         std::cout << "No path found!" << std::endl;
-        std::cout << "Rounded Start1: " << (*start)[0] << ", " << (*start)[1] << std::endl;
-        std::cout << "Rounded Goal1: " << (*goal)[0] << ", " << (*goal)[1] << std::endl;
+        std::cout << "Rounded Start1: " << start[0] << ", " << start[1] << std::endl;
+        std::cout << "Rounded Goal1: " << goal[0] << ", " << goal[1] << std::endl;
         return 1;
     }
     else

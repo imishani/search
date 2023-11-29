@@ -44,10 +44,17 @@ public:
     explicit Scene2DRob(std::vector<std::vector<int>> &map_) : ims::SceneInterface(){
         map = &map_;
         map_size = {map->size(), map[0].size()};
+        threshold = 500;
+    }
+    explicit Scene2DRob(std::vector<std::vector<int>> &map_, int t) : ims::SceneInterface(){
+        map = &map_;
+        map_size = {map->size(), map[0].size()};
+        threshold = t;
     }
 
     std::vector<std::vector<int>>* map;
     std::vector<size_t> map_size;
+    int threshold;
 };
 
 struct ActionType2dRob : public ims::ActionType {
@@ -139,7 +146,7 @@ public:
             return false;
         }
         auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
-        if (map_val >= 500){
+        if (map_val >= env_->threshold){
             return false;
         }
         return true;

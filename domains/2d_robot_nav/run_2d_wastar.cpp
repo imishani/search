@@ -80,7 +80,8 @@ int main(int argc, char** argv) {
 
     int map_index = std::stoi(argv[1]);
     int num_runs = std::stoi(argv[2]);
-    int scale = std::stoi(argv[3]); //
+    int scale = std::stoi(argv[3]);
+    int threshold = std::stoi(argv[4]); // threshold > 0
     std::string path = starts_goals_path[map_index];
 
     std::string map_file = maps[map_index];
@@ -88,7 +89,8 @@ int main(int argc, char** argv) {
     std::string type;
     int width, height;
     cv::Mat img;
-    std::vector<std::vector<int>> map = loadCostMap(map_file.c_str(), img, type, width, height, scale); //
+    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), type, width, height, true);
+    map_to_image(&img, map, height, width, scale, true, threshold);
 
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
@@ -99,13 +101,18 @@ int main(int argc, char** argv) {
     auto* heuristic = new ims::EuclideanHeuristic();
     double epsilon = 10.0;
     ims::wAStarParams params (heuristic, epsilon);
+
     // construct the scene and the action space
+    Scene2DRob scene (map, threshold);
+    ActionType2dRob action_type;
+    std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
+
     for (int i {0}; i < starts.size(); i++){
         process_start_goal(map, &(starts[i]), &(goals[i]));
         // construct planner
         ims::wAStar planner(params);
         std::vector<StateType> path_;
-        if (find_plan(map, &planner, &(starts[i]), &(goals[i]), &path_) != 0) {
+        if (find_plan(ActionSpace, &planner, starts[i], goals[i], &path_) != 0) {
             continue;
         }
         draw_paths(img, starts[i], goals[i], path_);

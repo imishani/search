@@ -94,7 +94,8 @@ int main(int argc, char** argv) {
     std::string type;
     int width, height;
     cv::Mat img;
-    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), img, type, width, height, scale);
+    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), type, width, height);
+    map_to_image(&img, map, height, width, scale);
 
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
@@ -105,81 +106,23 @@ int main(int argc, char** argv) {
     auto* heuristic = new ims::EuclideanHeuristic();
     // initialize the heuristic
     ims::AStarParams params (heuristic);
+
     // construct the scene and the action space
     Scene2DRob scene (map);
     ActionType2dRob action_type;
+    std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
+
     for (int i {0}; i < starts.size(); i++){
-        // round the start and goal to the nearest integer
-        std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
-        std::cout << "Goal: " << goals[i][0] << ", " << goals[i][1] << std::endl;
-        for (int j {0}; j < 2; j++){
-            starts[i][j] = std::round(starts[i][j]);
-            goals[i][j] = std::round(goals[i][j]);
-        }
-        std::cout << "Rounded Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
-        std::cout << "Rounded Goal: " << goals[i][0] << ", " << goals[i][1] << std::endl;
-
-        // print the value in the map
-        std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
-        std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
-
-        std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
+        process_start_goal(map, &(starts[i]), &(goals[i]));
         // construct planner
         ims::AStar planner(params);
-        // catch the exception if the start or goal is not valid
-        try {
-            planner.initializePlanner(ActionSpace, starts[i], goals[i]);
-        }
-        catch (std::exception& e) {
-            std::cout << "Start or goal is not valid!" << std::endl;
+        std::vector<StateType> path_;
+        if (find_plan(ActionSpace, &planner, starts[i], goals[i], &path_) != 0) {
             continue;
         }
-        // plan
-        std::cout << "Planning..." << std::endl;
-        std::vector<StateType> path_;
-        if (!planner.plan(path_)) {
-            std::cout << "No path found!" << std::endl;
-//            return 0;
-        }
-        else {
-            std::cout << "Path found!" << std::endl;
-            if (cache) {
-                // Save the path to a file as csv
-                std::string path_file = path + "experiences/" + "path_" + std::to_string(i) + ".csv";
-                std::ofstream file(path_file);
-                // header line
-                file << "Experience," << path_.size() << "," << 2 << std::endl;
-                // write the path
-                for (int j {0}; j < path_.size(); j++){
-                    file << path_[j][0] << "," << path_[j][1] << std::endl;
-                }
-                file.close();
-            }
-        }
-
-        PlannerStats stats = planner.reportStats();
-        std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
-        std::cout << "cost: " << stats.cost << std::endl;
-        std::cout << "Path length: " << path_.size() << std::endl;
-        std::cout << "Number of nodes expanded: " << stats.num_expanded << std::endl;
-        std::cout << "Number of nodes generated: " << stats.num_generated << std::endl;
-        std::cout << "suboptimality: " << stats.suboptimality << RESET << std::endl;
-
-        // draw the start in red and goal in green
-        img.at<cv::Vec3b>((int)starts[i][1], (int)starts[i][0]) = cv::Vec3b(0,0,255);
-        img.at<cv::Vec3b>((int)goals[i][1], (int)goals[i][0]) = cv::Vec3b(0,255,0);
-        cv::circle(img, cv::Point((int)starts[i][0], (int)starts[i][1]), 2, cv::Scalar(0,0,255), 1);
-        cv::circle(img, cv::Point((int)goals[i][0], (int)goals[i][1]), 2, cv::Scalar(0,255,0), 1);
-
-        // draw the path in blue but skip the start and goal
-        for (int j {1}; j < path_.size()-1; j++){
-            img.at<cv::Vec3b>((int)path_[j][1], (int)path_[j][0]) = cv::Vec3b(255,0,0);
-        }
+        draw_paths(img, starts[i], goals[i], path_);
     }
-
-    cv::namedWindow("Map", cv::WINDOW_NORMAL);
-    cv::imshow("Map", img);
-    cv::waitKey(0);
+    display_image(img);
 
     return 0;
 }
