@@ -80,7 +80,9 @@ int main(int argc, char** argv) {
 
     std::string type;
     int width, height;
-    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), type, width, height, scale);
+    cv::Mat img;
+    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), type, width, height);
+    map_to_image(&img, map, height, width, scale);
 
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
@@ -92,70 +94,24 @@ int main(int argc, char** argv) {
     double init_epsilon = 100.0;
     ims::ARAStarParams params (heuristic, init_epsilon, 10.0);
     params.ara_time_limit = 0.0005;
+    
     // construct the scene and the action space
     Scene2DRob scene (map);
     ActionType2dRob action_type;
 
-    // log the results
-    std::unordered_map<int, PlannerStats> logs;
-    std::unordered_map<int, PathType> paths;
+    std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
+
     for (int i {0}; i < starts.size(); i++){
-        // round the start and goal to the nearest integer
-        std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
-        std::cout << "Goal: " << goals[i][0] << ", " << goals[i][1] << std::endl;
-        for (int j {0}; j < 2; j++){
-            starts[i][j] = std::round(starts[i][j]);
-            goals[i][j] = std::round(goals[i][j]);
-        }
-        std::cout << "Rounded Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
-        std::cout << "Rounded Goal: " << goals[i][0] << ", " << goals[i][1] << std::endl;
-
-        // print the value in the map
-        std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
-        std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
-
-        std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
+        process_start_goal(map, &(starts[i]), &(goals[i]));
         // construct planner
         ims::ARAStar planner(params);
-        // catch the exception if the start or goal is not valid
-        try {
-            planner.initializePlanner(ActionSpace, starts[i], goals[i]);
-        }
-        catch (std::exception& e) {
-            std::cout << RED << "Start or goal is not valid!" <<RESET << std::endl;
-            continue;
-        }
-        // plan
-        std::cout << "Planning..." << std::endl;
         std::vector<StateType> path_;
-        if (!planner.plan(path_)) {
-            std::cout << RED << "No path found!" << RESET << std::endl;
+        if (find_plan(ActionSpace, &planner, starts[i], goals[i], &path_) != 0) {
             continue;
         }
-        else
-            std::cout << CYAN << "Path found!" << RESET << std::endl;
-
-        PlannerStats stats = planner.reportStats();
-        std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
-        std::cout << "cost: " << stats.cost << std::endl;
-        std::cout << "Path length: " << path_.size() << std::endl;
-        std::cout << "Number of nodes expanded: " << stats.num_expanded << std::endl;
-        std::cout << "Number of nodes generated: " << stats.num_generated << std::endl;
-        std::cout << "Suboptimality: " << stats.suboptimality << RESET << std::endl;
-        logs[i] = stats; // log the stats
-        paths[i] = path_; // log the path
+        draw_paths(img, starts[i], goals[i], path_);
     }
-
-    // save the logs to a temporary file
-    logStats(logs, map_index, "ARAstar");
-
-    std::string path_file = logPaths(paths, map_index, scale);
-
-    std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
-    std::string command = "python3 " + plot_path + " --filepath " + path_file;
-    std::cout << "Running the plot script..." << std::endl;
-
-    system(command.c_str());
+    display_image(img);
 
     return 0;
 }
