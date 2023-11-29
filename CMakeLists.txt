@@ -69,6 +69,9 @@ target_link_libraries(run_2d_rob_nav_arastar search ${OpenCV_LIBS} ${Boost_LIBRA
 add_executable(run_2d_rob_nav_wastar_local_heu domains/2d_robot_nav/run_2d_wastar_local_heu.cpp)
 target_link_libraries(run_2d_rob_nav_wastar_local_heu search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
+add_executable(run_2d_ackermann_rob_nav_wastar domains/2d_robot_nav/run_2d_ackermann_wastar.cpp)
+target_link_libraries(run_2d_ackermann_rob_nav_wastar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+
 add_executable(run_2d_mapf_cbs_or_ecbs domains/2d_mapf/run_2d_cbs_or_ecbs.cpp)
 target_link_libraries(run_2d_mapf_cbs_or_ecbs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
