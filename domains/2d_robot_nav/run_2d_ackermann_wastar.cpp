@@ -77,6 +77,7 @@ int main(int argc, char** argv) {
     int map_index = std::stoi(argv[1]);
     int num_runs = std::stoi(argv[2]);
     int scale = std::stoi(argv[3]);
+
     std::string path = starts_goals_path[map_index];
 
     std::string map_file = maps[map_index];
