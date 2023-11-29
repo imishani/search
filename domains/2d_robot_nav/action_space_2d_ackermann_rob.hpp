@@ -37,6 +37,8 @@
 #include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
 
+#define PI 3.14159265
+
 class Scene2DRob : public ims::SceneInterface {
 public:
     explicit Scene2DRob(std::vector<std::vector<int>> &map_) : ims::SceneInterface(){
@@ -48,42 +50,45 @@ public:
     std::vector<size_t> map_size;
 };
 
+/// @brief 
 class ActionSpace2dAckermannRob : public ims::ActionSpace {
     struct ActionType2dAckermannRob {
 
         ActionType2dAckermannRob(double s, double l, double d) {
-            name = "ActionTypeAckermann2dRob";
-            num_actions = 5;
-            action_names = {"Turn-40", "Turn-20", "Turn0", "Turn+20", "Turn+40"};
-            action_costs = {1, 1, 1, 1, 1};
-            speed = s;
-            length = l;
-            dt = d;
+            name_ = "ActionTypeAckermann2dRob";
+            num_actions_ = 5;
+            action_names_ = {"Turn-40", "Turn-20", "Turn0", "Turn+20", "Turn+40"};
+            action_costs_ = {1, 1, 1, 1, 1};
+            speed_ = s;
+            length_ = l;
+            dt_ = d;
         }
-
+        /// @brief 
+        /// @param curr_theta Current orientation of the robot. Theta = 0 corresponds to increasing column.
+        /// @return 
         std::vector<Action> getPrimActionsFromTheta(int curr_theta) {
             std::vector<Action> action_prims = {};
             std::vector<int> steering_angles = {40, 20, 0, -20, -40};
             
-            for(int i = 0; i < this->num_actions; i++)
+            for(int i = 0; i < num_actions_; i++)
             {
                 int steering_angle = steering_angles[i];
-                double delta_theta = (this->speed/this->length) * steering_angle * this->dt;
+                double delta_theta = (speed_/length_) * steering_angle * dt_;
                 double approx_theta = (delta_theta/2) + curr_theta;
-                double delta_x = this->speed * cos(approx_theta) * this->dt;
-                double delta_y = this->speed * sin(approx_theta) * this->dt;
+                double delta_x = speed_ * cos(approx_theta * PI / 180.0) * dt_;
+                double delta_y = speed_ * sin(approx_theta * PI / 180.0) * dt_;
                 action_prims.push_back({delta_x, delta_y, delta_theta});
             }
             return action_prims;
         }
 
-        std::string name;
-        int num_actions;
-        std::vector<std::string> action_names;
-        std::vector<double> action_costs;
-        double speed;
-        double length;
-        double dt;
+        std::string name_;
+        int num_actions_;
+        std::vector<std::string> action_names_;
+        std::vector<double> action_costs_;
+        double speed_;
+        double length_;
+        double dt_;
     };
 
 protected:
@@ -91,7 +96,7 @@ protected:
     std::shared_ptr<ActionType2dAckermannRob> action_type_;
 
 public:
-    explicit ActionSpace2dAckermannRob(const Scene2DRob& env, double speed = 1, double length = 1, double dt = 1) : ims::ActionSpace(){
+    explicit ActionSpace2dAckermannRob(const Scene2DRob& env, StateType state_discretization, double speed = 1, double length = 1, double dt = 1) : ims::ActionSpace(){
         this->env_ = std::make_shared<Scene2DRob>(env);
         ActionType2dAckermannRob action_type = ActionType2dAckermannRob(speed, length, dt);
         this->action_type_ = std::make_shared<ActionType2dAckermannRob>(action_type);
@@ -106,7 +111,7 @@ public:
         ims::RobotState* curr_state = this->getRobotState(state_id);
         int curr_state_theta = (curr_state->state)[2];
         std::vector<Action> actions = action_type_->getPrimActionsFromTheta(curr_state_theta);
-        for (int i {0} ; i < action_type_->num_actions ; i++){
+        for (int i {0} ; i < action_type_->num_actions_ ; i++){
             Action action = actions[i];
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
             // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
@@ -148,7 +153,7 @@ public:
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
+                costs.push_back(action_type_->action_costs_[i]);
             }
         }
         return true;
@@ -161,7 +166,7 @@ public:
         }
 
         // checking theta value is between 0 and 360
-        if (state_val[2] < 0 || state_val[2] > 360) {
+        if (state_val[2] < 0 || state_val[2] >= 360) {
             return false;
         }
 
