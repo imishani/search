@@ -221,7 +221,7 @@ public:
             StateType action = actions[i][0];
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-            if (isStateValid(next_state_val)){
+            if (isPathValid(getDiscretePointsOnLine(curr_state_val, next_state_val)) && isStateValid(next_state_val)) {
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
                 costs.push_back(action_type_->action_costs_[i]);
@@ -257,5 +257,30 @@ public:
     /// @return True if given path is valid, false otherwise.
     bool isPathValid(const PathType& path) override{
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
+    }
+
+    /// @brief Given two points on a grid, this function calculates the discretized points on the line segment that connects the points.
+    /// @param start The starting state of the line segment.
+    /// @param end The ending state of the line segment.
+    /// @return A list of discretized states (PathType) on the line segment.
+    PathType getDiscretePointsOnLine(StateType start, StateType end) {
+        double x1 = start[0];
+        double x2 = end[0];
+        double y1 = start[1];
+        double y2 = end[1];
+        double slope = (y2 - y1) / (x2 - x1);
+        double intercept = y1 - (slope * x1);
+
+        double x_discretion = this->action_type_->state_discretization_[0];
+        double y_discretion = this->action_type_->state_discretization_[1];
+        double delta_x = (x1 < x2) ? x_discretion : -1 * x_discretion;
+        
+        double theta = end[2];
+        PathType points = {};
+        for (double x = x1; x != x2; x += delta_x) {
+            double y = this->action_type_->roundByDiscretization(y_discretion, (x * slope) + intercept);
+            points.push_back({x, y, theta});
+        }
+        return points;
     }
 };
