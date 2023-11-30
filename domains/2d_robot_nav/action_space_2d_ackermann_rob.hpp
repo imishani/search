@@ -82,7 +82,8 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
                 double delta_theta = (speed_/length_) * steering_angle * dt_;
                 double approx_theta = (delta_theta/2) + curr_theta;
                 double delta_x = speed_ * cos(approx_theta * PI / 180.0) * dt_;
-                double delta_y = speed_ * sin(approx_theta * PI / 180.0) * dt_;
+                // Need to flip y (In 2D grid, the row increases as you move to the bottom of the grid).
+                double delta_y = -1 * speed_ * sin(approx_theta * PI / 180.0) * dt_;
                 action_prims.push_back({delta_x, delta_y, delta_theta});
             }
             return action_prims;
