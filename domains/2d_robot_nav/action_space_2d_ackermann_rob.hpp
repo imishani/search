@@ -87,11 +87,18 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
             }
             return action_prims;
         }
-
-        double roundByDiscretization(double discretization, double  num) {
+        
+        /// @brief Rounds the number to the nearest multiple of the discretization.
+        /// @param discretization The rounding factor.
+        /// @param num The number to be rounded.
+        /// @return The discretizaed version of the number.
+        double roundByDiscretization(double discretization, double num) {
             return round(num / discretization) * discretization; 
         }
 
+        /// @brief Discretizes each element in the action vector according to the state_discretion vector.
+        /// @param action A vector representing changes to x, y, theta for an action.
+        /// @return The discretixed version of the inputed action.
         Action discretizeAction(Action action) {
             Action discretized_action = {};
             for (int i = 0; i < action.size(); i++) {
@@ -100,6 +107,9 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
             return discretized_action;
         }
 
+        /// @brief Removes duplicate actions from a vector of actions.
+        /// @param actions A vector of actions (a.k.a a vector of vectors).
+        /// @return The input vector with all the duplicates removed.
         std::vector<Action> removeDuplicates(std::vector<Action> actions) {
             // Step 1: Sort the vector
             std::sort(actions.begin(), actions.end());
@@ -112,7 +122,9 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
             return actions;
         }
 
-        bool printMap(std::map<double, std::vector<Action>> map) {
+        /// @brief Iterates through the map to print each key-value pair.
+        /// @param map A map with a key type of double (theta) and value type of vector<Action> (action prims).
+        void printActionPrimsMap(std::map<double, std::vector<Action>> map) {
             for (const auto& pair : map) {
                 std::cout << "Key: " << pair.first << ", Values: ";
                 
@@ -127,9 +139,10 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
                 
                 std::cout << std::endl;
             }
-            return true;
         }
 
+        /// @brief Uses the state discretization of the action space to create a map from each possible theta value to a vector of unique action prims.
+        /// @return A map from each possible theta value to a vector of unique action prims.
         std::map<double, std::vector<Action>> makeActionPrimsMap() {
             std::map<double, std::vector<Action>> apm;
 
@@ -138,12 +151,12 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
                 for (int i = 0; i < action_prims.size(); i++) {
                     action_prims[i] = discretizeAction(action_prims[i]);
                 }
-                // remove duplicates
+
                 action_prims = removeDuplicates(action_prims);
 
                 apm[theta] = action_prims;
             }
-            printMap(apm);
+            printActionPrimsMap(apm);
             return apm;
         }
 
@@ -170,6 +183,10 @@ public:
         this->action_prims_map_ = action_type_->makeActionPrimsMap();
     }
 
+    /// @brief Determines the possible actions for a given state.
+    /// @param state_id The current state of the robot (x, y, theta).
+    /// @param action_seqs The vector to populated with possible actions for the robot to have from the given state.
+    /// @param check_validity Should be false, validity of the action is checked in the getSuccessors function.
     void getActions(int state_id,
                     std::vector<ActionSequence> &action_seqs,
                     bool check_validity) override {
@@ -188,6 +205,11 @@ public:
         }
     }
 
+    /// @brief Determines the possible successor states for a given state.
+    /// @param curr_state_ind The current state of the the robot (x, y, theta).
+    /// @param successors The vector to poputate with the successor states for the current state.
+    /// @param costs The vector to populate with the correspondings costs to move to each successor state.
+    /// @return True if the successor states and costs and successfully calculated.
     bool getSuccessors(int curr_state_ind,
                        std::vector<int>& successors,
                        std::vector<double>& costs) override{
