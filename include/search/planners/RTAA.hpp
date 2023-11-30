@@ -17,6 +17,7 @@ namespace ims{
     struct rtaaStarParams : public PlannerParams{
         explicit rtaaStarParams(BaseHeuristic* heuristic, int N): PlannerParams(){
             heuristic_ = heuristic;
+            time_limit_ = 10000;
             N_ = N;
         }
 
@@ -108,7 +109,7 @@ namespace ims{
 
         auto executePartialPlan(SearchState* start, std::vector<StateType>& path);
 
-        std::string budgetedPlan(SearchState* start, std::vector<StateType>& path);
+        std::string budgetedPopulateOpen(SearchState* start, std::vector<StateType>& path);
 
         /// @brief Reset the planner
         void resetPlanningData() override;
@@ -117,7 +118,7 @@ namespace ims{
 
     protected:
 
-        void setStateVals(int state_id, int parent_id, double cost);
+        void setSearchStateVals(int state_id, int parent_id, double cost) ;
 
         void expand(int state_id);
 

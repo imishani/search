@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
     // construct the planner
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
-    auto* heuristic = new ims::EuclideanHeuristic();
+    auto* heuristic = new ims::ManhattanHeuristic();
     // initialize the heuristic
     ims::rtaaStarParams params (heuristic,100);
     // construct the scene and the action space
@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
         cv::circle(img, cv::Point((int)goals[i][0], (int)goals[i][1]), 2, cv::Scalar(0,255,0), 1);
 
         // draw the path in blue but skip the start and goal
-        for (int j {1}; j < path_.size()-1; j++){
+        for (int j {1}; j < int(path_.size())-1; j++){
             img.at<cv::Vec3b>((int)path_[j][1], (int)path_[j][0]) = cv::Vec3b(255,0,0);
         }
     }
