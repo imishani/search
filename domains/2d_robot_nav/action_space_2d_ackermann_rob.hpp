@@ -50,22 +50,27 @@ public:
     std::vector<size_t> map_size;
 };
 
-/// @brief 
+/// @brief An ActionSpace for a robot that follows Ackermann Steering ("Car-like") Dynamics, i.e. the robot cannot turn in-place.
 class ActionSpace2dAckermannRob : public ims::ActionSpace {
     struct ActionType2dAckermannRob {
-
-        ActionType2dAckermannRob(double s, double l, double d) {
+        
+        /// @brief Constructor for ActionType2dAckermannRob.
+        /// @param s Speed of robot (default 1).
+        /// @param l Length of robot (default 1).
+        /// @param t Time for robot complete the action (default 1).
+        ActionType2dAckermannRob(double s, double l, double t) {
             name_ = "ActionTypeAckermann2dRob";
             num_actions_ = 5;
             action_names_ = {"Turn-40", "Turn-20", "Turn0", "Turn+20", "Turn+40"};
             action_costs_ = {1, 1, 1, 1, 1};
             speed_ = s;
             length_ = l;
-            dt_ = d;
+            dt_ = t;
         }
-        /// @brief 
+        
+        /// @brief Uses Ackermann steering to calculate the action primatives for a given theta.
         /// @param curr_theta Current orientation of the robot. Theta = 0 corresponds to increasing column.
-        /// @return 
+        /// @return A list of possible changes in x, y, and theta based on 5 different steering angles.
         std::vector<Action> getPrimActionsFromTheta(int curr_theta) {
             std::vector<Action> action_prims = {};
             std::vector<int> steering_angles = {40, 20, 0, -20, -40};
@@ -159,6 +164,9 @@ public:
         return true;
     }
 
+    /// @brief Determines if a given state is valid by checking the point is on the map, the theta is between 0 and 360, and the point is not on an obstacle.
+    /// @param state_val Contains the x, y, and theta 
+    /// @return True if the state is valid, false otherwise.
     bool isStateValid(const StateType& state_val) override{
         // checking coordinate is on map
         if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
@@ -178,6 +186,9 @@ public:
         return true;
     }
 
+    /// @brief Determines if all the states in a given path are valid.
+    /// @param path A vector of consecutive states that make up the path.
+    /// @return True if given path is valid, false otherwise.
     bool isPathValid(const PathType& path) override{
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
     }
