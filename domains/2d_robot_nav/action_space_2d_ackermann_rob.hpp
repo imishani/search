@@ -58,7 +58,7 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
         /// @param s Speed of robot (default 1).
         /// @param l Length of robot (default 1).
         /// @param t Time for robot complete the action (default 1).
-        ActionType2dAckermannRob(double s, double l, double t) {
+        ActionType2dAckermannRob(StateType state_discretization, double s, double l, double t) {
             name_ = "ActionTypeAckermann2dRob";
             num_actions_ = 5;
             action_names_ = {"Turn-40", "Turn-20", "Turn0", "Turn+20", "Turn+40"};
@@ -66,12 +66,13 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
             speed_ = s;
             length_ = l;
             dt_ = t;
+            state_discretization_ = state_discretization;
         }
         
         /// @brief Uses Ackermann steering to calculate the action primatives for a given theta.
         /// @param curr_theta Current orientation of the robot. Theta = 0 corresponds to increasing column.
         /// @return A list of possible changes in x, y, and theta based on 5 different steering angles.
-        std::vector<Action> getPrimActionsFromTheta(int curr_theta) {
+        std::vector<Action> getPrimActionsFromTheta(double curr_theta) {
             std::vector<Action> action_prims = {};
             std::vector<int> steering_angles = {40, 20, 0, -20, -40};
             
@@ -87,6 +88,33 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
             return action_prims;
         }
 
+        double roundByDiscretization(double discretization, double  num) {
+            return round(num / discretization) * discretization; 
+        }
+
+        Action discretizeAction(Action action) {
+            Action discretized_action = {};
+            for (int i = 0; i < action.size(); i++) {
+                discretized_action.push_back(roundByDiscretization(state_discretization_[i], action[i]));
+            }
+            return discretized_action;
+        }
+
+        std::map<double, std::vector<Action>> makeActionPrimsMap() {
+            std::map<double, std::vector<Action>> actions_prims_map;
+
+            for(double theta = 0.0; theta <= 360.0; theta += state_discretization_[2]){
+                std::vector<Action> action_prims = getPrimActionsFromTheta(theta);
+                for (int i = 0; i < action_prims.size(); i++) {
+                    action_prims[i] = discretizeAction(action_prims[i]);
+                }
+                // remove duplicates
+                action_prims = std::unique(action_prims.begin(), action_prims.end());
+                action_prims_map[theta] = action_prims;
+            }
+            return action_prims_map;
+        }
+
         std::string name_;
         int num_actions_;
         std::vector<std::string> action_names_;
@@ -94,17 +122,23 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
         double speed_;
         double length_;
         double dt_;
+        StateType state_discretization_;
     };
 
 protected:
     std::shared_ptr<Scene2DRob> env_;
     std::shared_ptr<ActionType2dAckermannRob> action_type_;
+    std::map<double, std::vector<Action>> action_prims_map_;
 
 public:
     explicit ActionSpace2dAckermannRob(const Scene2DRob& env, StateType state_discretization, double speed = 1, double length = 1, double dt = 1) : ims::ActionSpace(){
         this->env_ = std::make_shared<Scene2DRob>(env);
-        ActionType2dAckermannRob action_type = ActionType2dAckermannRob(speed, length, dt);
+        ActionType2dAckermannRob action_type = ActionType2dAckermannRob(state_discretization, speed, length, dt);
         this->action_type_ = std::make_shared<ActionType2dAckermannRob>(action_type);
+        this->action_prims_map_ = action_type_->makeActionPrimsMap();
+        for(const auto& elem : this->action_prims_map_) {
+            std::cout << elem.first << " " << elem.second <<  "\n";
+        }
     }
 
     void getActions(int state_id,
@@ -114,9 +148,9 @@ public:
         assert(check_validity == false);
         
         ims::RobotState* curr_state = this->getRobotState(state_id);
-        int curr_state_theta = (curr_state->state)[2];
-        std::vector<Action> actions = action_type_->getPrimActionsFromTheta(curr_state_theta);
-        for (int i {0} ; i < action_type_->num_actions_ ; i++){
+        double curr_state_theta = (curr_state->state)[2];
+        std::vector<Action> actions = this->action_prims_map_[curr_state_theta];
+        for (int i {0} ; i < actions.size(); i++){
             Action action = actions[i];
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
             // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
@@ -125,35 +159,17 @@ public:
         }
     }
 
-    int roundThetaToMultipleOf20(double theta) {
-         // Smaller multiple 
-        int a = (theta / 20) * 20; 
-        
-        // Larger multiple 
-        int b = a + 20; 
-    
-        // Return of closest of two 
-        return (theta - a > b - theta)? b : a; 
-    }
-
     bool getSuccessors(int curr_state_ind,
                        std::vector<int>& successors,
                        std::vector<double>& costs) override{
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         StateType curr_state_val = curr_state->state;
-        std::cout << "Curr State: " << "x: " << curr_state_val[0] << ", y: " << curr_state_val[1]<< ", theta: " << curr_state_val[2] << std::endl;
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
         for (int i {0} ; i < actions.size() ; i++){
             StateType action = actions[i][0];
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-            // Round next x val
-            next_state_val[0] = round(next_state_val[0]);
-            // Round next y val
-            next_state_val[1] = round(next_state_val[1]);
-            // Round next theta val
-            next_state_val[2] = (roundThetaToMultipleOf20(next_state_val[2]) + 360) % 360;
             std::cout << "Next State Val: " << "x: " << next_state_val[0] << ", y: " << next_state_val[1]<< ", theta: " << next_state_val[2] << std::endl; 
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);

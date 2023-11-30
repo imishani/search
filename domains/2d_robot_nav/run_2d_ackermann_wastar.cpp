@@ -112,8 +112,8 @@ int main(int argc, char** argv) {
         // print the value in the map
         std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
-
-        std::shared_ptr<ActionSpace2dAckermannRob> ActionSpace = std::make_shared<ActionSpace2dAckermannRob>(scene);
+        StateType state_discretization = {1, 1, 20};
+        std::shared_ptr<ActionSpace2dAckermannRob> ActionSpace = std::make_shared<ActionSpace2dAckermannRob>(scene, state_discretization);
         // construct planner
         ims::wAStar planner(params);
 
