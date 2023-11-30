@@ -100,8 +100,38 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
             return discretized_action;
         }
 
+        std::vector<Action> removeDuplicates(std::vector<Action> actions) {
+            // Step 1: Sort the vector
+            std::sort(actions.begin(), actions.end());
+
+            // Step 2: Use std::unique to rearrange the vector and get the end iterator of the unique elements
+            auto last = std::unique(actions.begin(), actions.end());
+
+            // Step 3: Erase the duplicates from the vector
+            actions.erase(last, actions.end());
+            return actions;
+        }
+
+        bool printMap(std::map<double, std::vector<Action>> map) {
+            for (const auto& pair : map) {
+                std::cout << "Key: " << pair.first << ", Values: ";
+                
+                // Print the vector of vectors associated with the current key
+                for (const auto& innerVector : pair.second) {
+                    std::cout << "[ ";
+                    for (const auto& value : innerVector) {
+                        std::cout << value << " ";
+                    }
+                    std::cout << "] ";
+                }
+                
+                std::cout << std::endl;
+            }
+            return true;
+        }
+
         std::map<double, std::vector<Action>> makeActionPrimsMap() {
-            std::map<double, std::vector<Action>> actions_prims_map;
+            std::map<double, std::vector<Action>> apm;
 
             for(double theta = 0.0; theta <= 360.0; theta += state_discretization_[2]){
                 std::vector<Action> action_prims = getPrimActionsFromTheta(theta);
@@ -109,10 +139,12 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
                     action_prims[i] = discretizeAction(action_prims[i]);
                 }
                 // remove duplicates
-                action_prims = std::unique(action_prims.begin(), action_prims.end());
-                action_prims_map[theta] = action_prims;
+                action_prims = removeDuplicates(action_prims);
+
+                apm[theta] = action_prims;
             }
-            return action_prims_map;
+            printMap(apm);
+            return apm;
         }
 
         std::string name_;
@@ -136,9 +168,6 @@ public:
         ActionType2dAckermannRob action_type = ActionType2dAckermannRob(state_discretization, speed, length, dt);
         this->action_type_ = std::make_shared<ActionType2dAckermannRob>(action_type);
         this->action_prims_map_ = action_type_->makeActionPrimsMap();
-        for(const auto& elem : this->action_prims_map_) {
-            std::cout << elem.first << " " << elem.second <<  "\n";
-        }
     }
 
     void getActions(int state_id,
@@ -170,7 +199,6 @@ public:
             StateType action = actions[i][0];
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-            std::cout << "Next State Val: " << "x: " << next_state_val[0] << ", y: " << next_state_val[1]<< ", theta: " << next_state_val[2] << std::endl; 
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
