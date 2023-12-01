@@ -36,8 +36,7 @@
 
 #include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
-
-#define PI 3.14159265
+#include "utils.hpp"
 
 class Scene2DRob : public ims::SceneInterface {
 public:
@@ -81,46 +80,12 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
                 int steering_angle = steering_angles[i];
                 double delta_theta = (speed_/length_) * steering_angle * dt_;
                 double approx_theta = (delta_theta/2) + curr_theta;
-                double delta_x = speed_ * cos(approx_theta * PI / 180.0) * dt_;
+                double delta_x = speed_ * cos(degsToRads(approx_theta)) * dt_;
                 // Need to flip y (In 2D grid, the row increases as you move to the bottom of the grid).
-                double delta_y = -1 * speed_ * sin(approx_theta * PI / 180.0) * dt_;
+                double delta_y = -1 * speed_ * sin(degsToRads(approx_theta)) * dt_;
                 action_prims.push_back({delta_x, delta_y, delta_theta});
             }
             return action_prims;
-        }
-        
-        /// @brief Rounds the number to the nearest multiple of the discretization.
-        /// @param discretization The rounding factor.
-        /// @param num The number to be rounded.
-        /// @return The discretizaed version of the number.
-        double roundByDiscretization(double discretization, double num) {
-            return round(num / discretization) * discretization; 
-        }
-
-        /// @brief Discretizes each element in the action vector according to the state_discretion vector.
-        /// @param action A vector representing changes to x, y, theta for an action.
-        /// @return The discretixed version of the inputed action.
-        Action discretizeAction(Action action) {
-            Action discretized_action = {};
-            for (int i = 0; i < action.size(); i++) {
-                discretized_action.push_back(roundByDiscretization(state_discretization_[i], action[i]));
-            }
-            return discretized_action;
-        }
-
-        /// @brief Removes duplicate actions from a vector of actions.
-        /// @param actions A vector of actions (a.k.a a vector of vectors).
-        /// @return The input vector with all the duplicates removed.
-        std::vector<Action> removeDuplicates(std::vector<Action> actions) {
-            // Step 1: Sort the vector
-            std::sort(actions.begin(), actions.end());
-
-            // Step 2: Use std::unique to rearrange the vector and get the end iterator of the unique elements
-            auto last = std::unique(actions.begin(), actions.end());
-
-            // Step 3: Erase the duplicates from the vector
-            actions.erase(last, actions.end());
-            return actions;
         }
 
         /// @brief Iterates through the map to print each key-value pair.
@@ -150,10 +115,10 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
             for(double theta = 0.0; theta <= 360.0; theta += state_discretization_[2]){
                 std::vector<Action> action_prims = getPrimActionsFromTheta(theta);
                 for (int i = 0; i < action_prims.size(); i++) {
-                    action_prims[i] = discretizeAction(action_prims[i]);
+                    action_prims[i] = discretizeAction(action_prims[i], state_discretization_);
                 }
 
-                action_prims = removeDuplicates(action_prims);
+                action_prims = removeDuplicateActions(action_prims);
 
                 apm[theta] = action_prims;
             }
@@ -222,7 +187,7 @@ public:
             StateType action = actions[i][0];
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-            if (isPathValid(getDiscretePointsOnLine(curr_state_val, next_state_val)) && isStateValid(next_state_val)) {
+            if (isPathValid(getDiscretePointsOnLine(curr_state_val, next_state_val, this->action_type_->state_discretization_)) && isStateValid(next_state_val)) {
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
                 costs.push_back(action_type_->action_costs_[i]);
@@ -258,30 +223,5 @@ public:
     /// @return True if given path is valid, false otherwise.
     bool isPathValid(const PathType& path) override{
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
-    }
-
-    /// @brief Given two points on a grid, this function calculates the discretized points on the line segment that connects the points.
-    /// @param start The starting state of the line segment.
-    /// @param end The ending state of the line segment.
-    /// @return A list of discretized states (PathType) on the line segment.
-    PathType getDiscretePointsOnLine(StateType start, StateType end) {
-        double x1 = start[0];
-        double x2 = end[0];
-        double y1 = start[1];
-        double y2 = end[1];
-        double slope = (y2 - y1) / (x2 - x1);
-        double intercept = y1 - (slope * x1);
-
-        double x_discretion = this->action_type_->state_discretization_[0];
-        double y_discretion = this->action_type_->state_discretization_[1];
-        double delta_x = (x1 < x2) ? x_discretion : -1 * x_discretion;
-        
-        double theta = end[2];
-        PathType points = {};
-        for (double x = x1; x != x2; x += delta_x) {
-            double y = this->action_type_->roundByDiscretization(y_discretion, (x * slope) + intercept);
-            points.push_back({x, y, theta});
-        }
-        return points;
     }
 };

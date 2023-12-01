@@ -17,6 +17,11 @@ double radsToDegs(double rads)
     return rads * 180.0 / M_PI;
 }
 
+double degsToRads(double degs)
+{
+    return degs * M_PI / 180.0;
+}
+
 std::vector<std::vector<int>> loadMap(const char *fname, cv::Mat& img,
                                       std::string& type, int& width,
                                       int& height, int scale=1) {
@@ -98,6 +103,67 @@ void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, std::vect
         starts_fin >> cost;
         starts_fin >> length;
     }
+}
+
+/// @brief Rounds the number to the nearest multiple of the discretization.
+/// @param discretization The rounding factor.
+/// @param num The number to be rounded.
+/// @return The discretizaed version of the number.
+double roundByDiscretization(double discretization, double num) {
+    return round(num / discretization) * discretization; 
+}
+
+/// @brief Discretizes each element in the action vector according to the state_discretization vector.
+/// @param action A vector representing changes to x, y, theta for an action.
+/// @param state_discretization A vector contains the numbers each state value should be rounded to the closest multiple of.
+/// @return The discretixed version of the inputed action.
+Action discretizeAction(Action action, StateType state_discretization) {
+    Action discretized_action = {};
+    for (int i = 0; i < action.size(); i++) {
+        discretized_action.push_back(roundByDiscretization(state_discretization[i], action[i]));
+    }
+    return discretized_action;
+}
+
+/// @brief Removes duplicate actions from a vector of actions.
+/// @param actions A vector of actions (a.k.a a vector of vectors).
+/// @return The input vector with all the duplicates removed.
+std::vector<Action> removeDuplicateActions(std::vector<Action> actions) {
+    // Step 1: Sort the vector
+    std::sort(actions.begin(), actions.end());
+
+    // Step 2: Use std::unique to rearrange the vector and get the end iterator of the unique elements
+    auto last = std::unique(actions.begin(), actions.end());
+
+    // Step 3: Erase the duplicates from the vector
+    actions.erase(last, actions.end());
+    return actions;
+}
+
+/// @brief Given two points on a grid, this function calculates the discretized points on the line segment that connects the points.
+/// @param start The starting state of the line segment.
+/// @param end The ending state of the line segment.
+/// @param state_discretization A vector contains the numbers each state value should be rounded to the closest multiple of.
+/// @return A list of discretized states (PathType) on the line segment.
+PathType getDiscretePointsOnLine(StateType start, StateType end, StateType state_discretization) {
+    double x1 = start[0];
+    double x2 = end[0];
+    double y1 = start[1];
+    double y2 = end[1];
+    double slope = (y2 - y1) / (x2 - x1);
+    double intercept = y1 - (slope * x1);
+
+    double x_discretion = state_discretization[0];
+    double y_discretion = state_discretization[1];
+    double delta_x = (x1 < x2) ? x_discretion : -1 * x_discretion;
+    
+    double theta = end[2];
+    PathType points = {};
+    for (double x = x1; x != x2; x += delta_x) {
+        double y = roundByDiscretization(y_discretion, (x * slope) + intercept);
+        points.push_back({x, y, theta});
+    }
+    return points;
 }
 
 
