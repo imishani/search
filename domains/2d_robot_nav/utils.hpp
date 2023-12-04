@@ -114,15 +114,15 @@ double roundByDiscretization(double discretization, double num) {
 }
 
 /// @brief Discretizes each element in the action vector according to the state_discretization vector.
-/// @param action A vector representing changes to x, y, theta for an action.
+/// @param state A vector representing the state of the robot.
 /// @param state_discretization A vector contains the numbers each state value should be rounded to the closest multiple of.
-/// @return The discretixed version of the inputed action.
-Action discretizeAction(Action action, StateType state_discretization) {
-    Action discretized_action = {};
-    for (int i = 0; i < action.size(); i++) {
-        discretized_action.push_back(roundByDiscretization(state_discretization[i], action[i]));
+/// @return The discretized version of the inputed state.
+StateType discretizeState(StateType state, StateType state_discretization) {
+    StateType discretized_state = {};
+    for (int i = 0; i < state.size(); i++) {
+        discretized_state.push_back(roundByDiscretization(state_discretization[i], state[i]));
     }
-    return discretized_action;
+    return discretized_state;
 }
 
 /// @brief Removes duplicate actions from a vector of actions.
@@ -150,17 +150,16 @@ PathType getDiscretePointsOnLine(StateType start, StateType end, StateType state
     double x2 = end[0];
     double y1 = start[1];
     double y2 = end[1];
-    double slope = (y2 - y1) / (x2 - x1);
-    double intercept = y1 - (slope * x1);
 
-    double x_discretion = state_discretization[0];
-    double y_discretion = state_discretization[1];
-    double delta_x = (x1 < x2) ? x_discretion : -1 * x_discretion;
+    double x_discretization = state_discretization[0];
+    double y_discretization = state_discretization[1];
+    double delta_t = x_discretization / abs(x2 - x1);
     
     double theta = end[2];
     PathType points = {};
-    for (double x = x1; x != x2; x += delta_x) {
-        double y = roundByDiscretization(y_discretion, (x * slope) + intercept);
+    for (double t = 0; t <= 1; t += delta_t) {
+        double x = roundByDiscretization(x_discretization, x1*t + x2*(1-t));
+        double y = roundByDiscretization(y_discretization, y1*t + y2*(1-t));
         points.push_back({x, y, theta});
     }
     return points;

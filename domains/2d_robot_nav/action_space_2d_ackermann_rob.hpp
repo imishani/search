@@ -57,7 +57,7 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
         /// @param s Speed of robot (default 1).
         /// @param l Length of robot (default 1).
         /// @param t Time for robot complete the action (default 1).
-        ActionType2dAckermannRob(StateType state_discretization, double s, double l, double t) {
+        ActionType2dAckermannRob(StateType state_discretization, double s, double l, double t, std::vector<int> steering_angles) {
             name_ = "ActionTypeAckermann2dRob";
             num_actions_ = 5;
             action_names_ = {"Turn-40", "Turn-20", "Turn0", "Turn+20", "Turn+40"};
@@ -66,6 +66,8 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
             length_ = l;
             dt_ = t;
             state_discretization_ = state_discretization;
+            steering_angles_ = steering_angles;
+            action_prims_map_ = makeActionPrimsMap();
         }
         
         /// @brief Uses Ackermann steering to calculate the action primatives for a given theta.
@@ -73,11 +75,10 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
         /// @return A list of possible changes in x, y, and theta based on 5 different steering angles.
         std::vector<Action> getPrimActionsFromTheta(double curr_theta) {
             std::vector<Action> action_prims = {};
-            std::vector<int> steering_angles = {40, 20, 0, -20, -40};
             
             for(int i = 0; i < num_actions_; i++)
             {
-                int steering_angle = steering_angles[i];
+                int steering_angle = steering_angles_[i];
                 double delta_theta = (speed_/length_) * steering_angle * dt_;
                 double approx_theta = (delta_theta/2) + curr_theta;
                 double delta_x = speed_ * cos(degsToRads(approx_theta)) * dt_;
@@ -112,10 +113,10 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
         std::map<double, std::vector<Action>> makeActionPrimsMap() {
             std::map<double, std::vector<Action>> apm;
 
-            for(double theta = 0.0; theta <= 360.0; theta += state_discretization_[2]){
+            for(double theta = 0.0; theta < 360.0; theta += state_discretization_[2]){
                 std::vector<Action> action_prims = getPrimActionsFromTheta(theta);
                 for (int i = 0; i < action_prims.size(); i++) {
-                    action_prims[i] = discretizeAction(action_prims[i], state_discretization_);
+                    action_prims[i] = discretizeState(action_prims[i], state_discretization_);
                 }
 
                 action_prims = removeDuplicateActions(action_prims);
@@ -134,6 +135,8 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
         double length_;
         double dt_;
         StateType state_discretization_;
+        std::vector<int> steering_angles_;
+        std::map<double, std::vector<Action>> action_prims_map_;
     };
 
 protected:
@@ -142,11 +145,10 @@ protected:
     std::map<double, std::vector<Action>> action_prims_map_;
 
 public:
-    explicit ActionSpace2dAckermannRob(const Scene2DRob& env, StateType state_discretization, double speed = 1, double length = 1, double dt = 1) : ims::ActionSpace(){
+    explicit ActionSpace2dAckermannRob(const Scene2DRob& env, StateType state_discretization, double speed = 1, double length = 1, double dt = 1, std::vector<int> steering_angles = {-40, -20, 0, 20, 40}) : ims::ActionSpace(){
         this->env_ = std::make_shared<Scene2DRob>(env);
-        ActionType2dAckermannRob action_type = ActionType2dAckermannRob(state_discretization, speed, length, dt);
+        ActionType2dAckermannRob action_type = ActionType2dAckermannRob(state_discretization, speed, length, dt, steering_angles);
         this->action_type_ = std::make_shared<ActionType2dAckermannRob>(action_type);
-        this->action_prims_map_ = action_type_->makeActionPrimsMap();
     }
 
     /// @brief Determines the possible actions for a given state.
@@ -159,9 +161,9 @@ public:
         // validity is checked in the getSuccessors() function, no need to check validity in this function
         assert(check_validity == false);
         
-        ims::RobotState* curr_state = this->getRobotState(state_id);
+        ims::RobotState* curr_state = getRobotState(state_id);
         double curr_state_theta = (curr_state->state)[2];
-        std::vector<Action> actions = this->action_prims_map_[curr_state_theta];
+        std::vector<Action> actions = action_type_->action_prims_map_[curr_state_theta];
         for (int i {0} ; i < actions.size(); i++){
             Action action = actions[i];
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
@@ -179,7 +181,7 @@ public:
     bool getSuccessors(int curr_state_ind,
                        std::vector<int>& successors,
                        std::vector<double>& costs) override{
-        ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
+        ims::RobotState* curr_state = getRobotState(curr_state_ind);
         StateType curr_state_val = curr_state->state;
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
@@ -187,7 +189,7 @@ public:
             StateType action = actions[i][0];
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-            if (isPathValid(getDiscretePointsOnLine(curr_state_val, next_state_val, this->action_type_->state_discretization_)) && isStateValid(next_state_val)) {
+            if (isPathValid(getDiscretePointsOnLine(curr_state_val, next_state_val, action_type_->state_discretization_)) && isStateValid(next_state_val)) {
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
                 costs.push_back(action_type_->action_costs_[i]);
