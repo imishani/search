@@ -164,7 +164,9 @@ bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
             stats_.num_generated = (int)action_space_ptr_->states_.size();    
 
             // TODO(yoraish): Get the non-weighted (g+h) minimal value from the OPEN list.
-            stats_.lower_bound = state->g;
+            // Since h is not in the same scale as g, then for now just use the g value of the goal state as a proxy for a lower bound. This is not crazy because most paths are of similar cost anyway.
+            stats_.lower_bound = state->g / params_.epsilon;
+
 
             return true;
         }
@@ -178,8 +180,8 @@ bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
             break;
         }
 
-        // Update the OPEN list.
-        double open_list_f_lower_bound = open_.getLowerBound();
+        // Update the OPEN list. Ensure that the focal bound is at least as large as the minimal f-value in the OPEN list.
+        open_list_f_lower_bound = open_.getLowerBound();
         open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
 
     }

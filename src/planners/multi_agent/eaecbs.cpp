@@ -119,11 +119,22 @@ void ims::EAECBS::createRootInOpenList() {
     std::unordered_map<int, double> initial_paths_costs;
     std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
     std::unordered_map<int, double> initial_paths_lower_bounds;
+    //LB-FIX 
+    double initial_sum_of_path_cost_lower_bounds{0.0};
 
     for (size_t i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
         agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
-        agent_planner_ptrs_[i]->plan(path);
+        bool is_plan_success = agent_planner_ptrs_[i]->plan(path);
+
+        // If there is no path for this agent, then this is not a valid state. Do not add a new state to the open list.
+        if (!is_plan_success) {
+            std::cout << RED << "No path found for agent " << i << " in the initial planning phase." << RESET << std::endl;
+            stats_.cost = -1;
+            stats_.time = -1;
+            return;
+        }
+
 
         // Fix the last path state to have a correct time and not -1.
         path.back().back() = path.size() - 1;
@@ -136,6 +147,8 @@ void ims::EAECBS::createRootInOpenList() {
         initial_paths_costs[i] = agent_planner_ptrs_[i]->getStats().cost;
         initial_paths_transition_costs[i] = agent_planner_ptrs_[i]->getStats().transition_costs;
         initial_paths_lower_bounds[i] = agent_planner_ptrs_[i]->getStats().lower_bound;
+        //LB-FIX 
+        initial_sum_of_path_cost_lower_bounds += initial_paths_lower_bounds[i];
     }
 
     // Report that the initial paths were found.
@@ -150,6 +163,10 @@ void ims::EAECBS::createRootInOpenList() {
     start_->parent_id = PARENT_TYPE(START);
     start_->paths = initial_paths;
     start_->paths_costs = initial_paths_costs;
+    //LB-FIX 
+    start_->path_cost_lower_bounds = initial_paths_lower_bounds;
+    //LB-FIX 
+    start_->sum_of_path_cost_lower_bounds = initial_sum_of_path_cost_lower_bounds;
     start_->paths_transition_costs = initial_paths_transition_costs;
 
     agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(start_->paths), 
@@ -175,6 +192,11 @@ bool ims::EAECBS::plan(MultiAgentPaths& paths) {
     startTimer();
     int iter{0};
     createRootInOpenList();
+    if (open_->empty()) {
+        std::cout << "No path found." << std::endl;
+        return false;
+    }
+    
     double lower_bound = open_->getLowerBound();
     open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
 
@@ -190,6 +212,8 @@ bool ims::EAECBS::plan(MultiAgentPaths& paths) {
 
         // Set the state to closed.
         state->setClosed();
+
+        std::cout << "Expanded CT node with soc " << state->sum_of_costs << " and " << state->unresolved_conflicts.size() << " conflicts." << std::endl;
 
         // Expand the state. This requires a check for conflicts (done right below), a branch if there are conflicts (converted to constraints, done in expand()), and a replan for each branch in light of the new constraints (also done in expand()). If no conflicts were found, then the state is a goal state, is set in goals_, and we return.
 
@@ -211,7 +235,7 @@ bool ims::EAECBS::plan(MultiAgentPaths& paths) {
 
         double lower_bound = open_->getLowerBound();
         open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
-        std::cout << "New HL node lower bound is " << state->getLowerBound() << " and the node cost is " << state->f << std::endl;
+        std::cout << "* FOCAL accepting states with f value at most " << params_.high_level_focal_suboptimality * lower_bound << std::endl;
     }
     getTimeFromStart(stats_.time);
     return false;
@@ -270,6 +294,8 @@ void ims::EAECBS::expand(int state_id) {
         new_state->paths_transition_costs = state->paths_transition_costs;
         new_state->f = state->f;
         new_state->sum_of_costs = state->sum_of_costs;
+        //LB-FIX 
+        new_state->path_cost_lower_bounds = state->path_cost_lower_bounds; ///////////// THIS>
         new_state->constraints_collectives = state->constraints_collectives;
         new_state->experiences_collectives = state->experiences_collectives;
         // NOTE(yoraish): we do not copy over the conflicts, since they will be recomputed in the new state. We could consider keeping a history of conflicts in the search state, with new conflicts being marked as such.

@@ -422,7 +422,7 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
     SearchState* recent_tree_extension_state = nullptr;
 
 
-    while(true || !isTimeOut()){
+    while(!isTimeOut()){
         if (iter % 100 == 0){
             std::cout << "Iteration: " << iter << " with " << states_.size() << " states.\n";
         }

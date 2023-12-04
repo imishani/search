@@ -82,8 +82,15 @@ void ims::ECBS::createRootInOpenList() {
     for (size_t i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
         agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
-        agent_planner_ptrs_[i]->plan(path);
+        bool is_plan_success = agent_planner_ptrs_[i]->plan(path);
 
+        // If there is no path for this agent, then this is not a valid state. Do not add a new state to the open list.
+        if (!is_plan_success) {
+            std::cout << RED << "No path found for agent " << i << " in the initial planning phase." << RESET << std::endl;
+            stats_.cost = -1;
+            stats_.time = -1;
+            return;
+        }
         // Fix the last path state to have a correct time and not -1.
         path.back().back() = path.size() - 1;
 
@@ -156,7 +163,11 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
     
     // Create the root node in the open list.
     createRootInOpenList();
-
+    if (open_->empty()) {
+        std::cout << "No path found." << std::endl;
+        return false;
+    }
+    
     int iter{0};
     double lower_bound = open_->getLowerBound();
     open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
