@@ -153,7 +153,15 @@ PathType getDiscretePointsOnLine(StateType start, StateType end, StateType state
 
     double x_discretization = state_discretization[0];
     double y_discretization = state_discretization[1];
-    double delta_t = x_discretization / abs(x2 - x1);
+    double delta_t;
+
+    if (x1 != x2) {
+        delta_t = x_discretization / abs(x2 - x1);
+    } else if (y1 != y2) {
+        delta_t = y_discretization / abs(y2 - y1);
+    } else { // start = end
+        return {start};
+    }
     
     double theta = end[2];
     PathType points = {};
