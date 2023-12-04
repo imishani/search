@@ -61,13 +61,14 @@ namespace ims {
             ara_time_limit = INF_DOUBLE; // default: no time limit
             expansions_limit = INF_INT; // default: no expansion limit
             curr_cost = INF_DOUBLE;
+            init_epsilon = initial_epsilon;
         }
 
         /// @brief Destructor
         ~ARAStarParams() override = default;
 
         int call_number;
-        double final_epsilon, epsilon_delta;
+        double final_epsilon, epsilon_delta, init_epsilon;
         double curr_cost;
 
         enum timing_types {TIME, EXPANSIONS, USER} type = TIME;
@@ -166,6 +167,8 @@ namespace ims {
 
         /// @brief Check if the search timed out based on time type
         bool timedOut();
+
+        void resetPlanningData() override;
 
         ARAStarParams params_;
 
