@@ -189,6 +189,7 @@ public:
             StateType action = actions[i][0];
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+            next_state_val[2] = double((int)(next_state_val[2] + 360) % 360);
             if (isPathValid(getDiscretePointsOnLine(curr_state_val, next_state_val, action_type_->state_discretization_)) && isStateValid(next_state_val)) {
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);

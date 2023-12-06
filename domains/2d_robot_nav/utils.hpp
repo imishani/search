@@ -145,7 +145,7 @@ std::vector<Action> removeDuplicateActions(std::vector<Action> actions) {
 /// @param end The ending state of the line segment.
 /// @param state_discretization A vector contains the numbers each state value should be rounded to the closest multiple of.
 /// @return A list of discretized states (PathType) on the line segment.
-PathType getDiscretePointsOnLine(StateType start, StateType end, StateType state_discretization) {
+PathType getDiscretePointsOnLine(const StateType& start, const StateType& end, const StateType& state_discretization) {
     double x1 = start[0];
     double x2 = end[0];
     double y1 = start[1];
@@ -153,21 +153,15 @@ PathType getDiscretePointsOnLine(StateType start, StateType end, StateType state
 
     double x_discretization = state_discretization[0];
     double y_discretization = state_discretization[1];
-    double delta_t;
-
-    if (x1 != x2) {
-        delta_t = x_discretization / abs(x2 - x1);
-    } else if (y1 != y2) {
-        delta_t = y_discretization / abs(y2 - y1);
-    } else { // start = end
-        return {start};
-    }
+    
+    double discretized_distance  = sqrt(pow(((x1 - x2)/x_discretization),2) + pow(((y1 - y2)/y_discretization),2));
+    double delta_t = 1 / (2 * discretized_distance);
     
     double theta = end[2];
     PathType points = {};
     for (double t = 0; t <= 1; t += delta_t) {
-        double x = roundByDiscretization(x_discretization, x1*t + x2*(1-t));
-        double y = roundByDiscretization(y_discretization, y1*t + y2*(1-t));
+        double x = x1*t + x2*(1-t);
+        double y = y1*t + y2*(1-t);
         points.push_back({x, y, theta});
     }
     return points;
