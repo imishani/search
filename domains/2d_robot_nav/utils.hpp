@@ -117,7 +117,7 @@ double roundByDiscretization(double discretization, double num) {
 /// @param state A vector representing the state of the robot.
 /// @param state_discretization A vector contains the numbers each state value should be rounded to the closest multiple of.
 /// @return The discretized version of the inputed state.
-StateType discretizeState(StateType state, StateType state_discretization) {
+StateType discretizeState(const StateType& state, const StateType& state_discretization) {
     StateType discretized_state = {};
     for (int i = 0; i < state.size(); i++) {
         discretized_state.push_back(roundByDiscretization(state_discretization[i], state[i]));

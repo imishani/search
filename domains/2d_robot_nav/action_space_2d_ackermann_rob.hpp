@@ -57,7 +57,7 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
         /// @param s Speed of robot (default 1).
         /// @param l Length of robot (default 1).
         /// @param t Time for robot complete the action (default 1).
-        ActionType2dAckermannRob(StateType state_discretization, double s, double l, double t, std::vector<int> steering_angles) {
+        ActionType2dAckermannRob(const StateType& state_discretization, double s, double l, double t, const std::vector<int> &steering_angles) {
             name_ = "ActionTypeAckermann2dRob";
             num_actions_ = 5;
             action_names_ = {"Turn-40", "Turn-20", "Turn0", "Turn+20", "Turn+40"};
@@ -91,7 +91,7 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
 
         /// @brief Iterates through the map to print each key-value pair.
         /// @param map A map with a key type of double (theta) and value type of vector<Action> (action prims).
-        void printActionPrimsMap(std::map<double, std::vector<Action>> map) {
+        void printActionPrimsMap(const std::map<double, std::vector<Action>> &map) {
             for (const auto& pair : map) {
                 std::cout << "Key: " << pair.first << ", Values: ";
                 
@@ -145,7 +145,7 @@ protected:
     std::map<double, std::vector<Action>> action_prims_map_;
 
 public:
-    explicit ActionSpace2dAckermannRob(const Scene2DRob& env, StateType state_discretization, double speed = 1, double length = 1, double dt = 1, std::vector<int> steering_angles = {-40, -20, 0, 20, 40}) : ims::ActionSpace(){
+    explicit ActionSpace2dAckermannRob(const Scene2DRob& env, const StateType& state_discretization, double speed = 1, double length = 1, double dt = 1, std::vector<int> steering_angles = {-40, -20, 0, 20, 40}) : ims::ActionSpace(){
         this->env_ = std::make_shared<Scene2DRob>(env);
         ActionType2dAckermannRob action_type = ActionType2dAckermannRob(state_discretization, speed, length, dt, steering_angles);
         this->action_type_ = std::make_shared<ActionType2dAckermannRob>(action_type);
