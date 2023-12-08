@@ -127,6 +127,9 @@ void ims::EAECBS::createRootInOpenList() {
         agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
         bool is_plan_success = agent_planner_ptrs_[i]->plan(path);
 
+        // Add the number of low level nodes to the counter.
+        stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[i]->getStats().num_expanded;
+
         // If there is no path for this agent, then this is not a valid state. Do not add a new state to the open list.
         if (!is_plan_success) {
             std::cout << RED << "No path found for agent " << i << " in the initial planning phase." << RESET << std::endl;
@@ -340,6 +343,9 @@ void ims::EAECBS::expand(int state_id) {
         new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().transition_costs;
         new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().cost;
         new_state->path_cost_lower_bounds[agent_id] = agent_planner_ptrs_[agent_id]->getStats().lower_bound;
+
+        // Add the number of low level nodes to the counter.
+        stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[agent_id]->getStats().num_expanded;
 
         // Get the sum of costs for the new state.
         double new_state_soc = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });

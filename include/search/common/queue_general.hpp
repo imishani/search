@@ -196,6 +196,10 @@ size_t FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::size() const {
 
 template <class T, class CompareMain, class CompareFocal>
 void FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::updateWithBound(double lower_bound) {
+    if (lower_bound < m_anchorQ.getLowerBound()){
+        lower_bound = m_anchorQ.getLowerBound();
+    }
+
     m_focalQ.updateWithBound(lower_bound);
 }
 

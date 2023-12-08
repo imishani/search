@@ -92,6 +92,9 @@ struct PlannerStats{
     int num_reopened {0};
 
     double suboptimality {1};  // AKA: epsilon
+
+    // Add a catch-all field for any other stats that might be useful.
+    std::unordered_map<std::string, double> bonus_stats;
 };
 
 template<class Key,

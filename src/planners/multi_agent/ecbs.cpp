@@ -37,6 +37,9 @@
 ims::ECBS::ECBS(const ims::ECBSParams& params) : params_(params), CBS(params) {
     // Create the open list.
     open_ = new FocalAndAnchorQueueWrapper<SearchState, ECBSOpenCompare, ECBSFocalCompare>();
+
+    // Create a stats field for the low-level planner nodes created.
+    stats_.bonus_stats["num_low_level_expanded"] = 0;
 }
 
 void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs,
@@ -83,6 +86,9 @@ void ims::ECBS::createRootInOpenList() {
         std::vector<StateType> path;
         agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
         bool is_plan_success = agent_planner_ptrs_[i]->plan(path);
+
+        // Add the number of low level nodes to the counter.
+        stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[i]->getStats().num_expanded;
 
         // If there is no path for this agent, then this is not a valid state. Do not add a new state to the open list.
         if (!is_plan_success) {
@@ -242,6 +248,8 @@ void ims::ECBS::expand(int state_id) {
         new_state->paths = state->paths;
         new_state->paths_costs = state->paths_costs;
         new_state->paths_transition_costs = state->paths_transition_costs;
+        //LB-FIX  
+        new_state->path_cost_lower_bounds = state->path_cost_lower_bounds;
         new_state->f = state->f;
         new_state->constraints_collectives = state->constraints_collectives;
 
@@ -269,6 +277,9 @@ void ims::ECBS::expand(int state_id) {
         new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().transition_costs;
         new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().cost;
         new_state->path_cost_lower_bounds[agent_id] = agent_planner_ptrs_[agent_id]->getStats().lower_bound;
+
+        // Add the number of low level nodes to the counter.
+        stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[agent_id]->getStats().num_expanded;
 
         // If there is no path for this agent, then this is not a valid state. Discard it.
         if (new_state->paths[agent_id].empty()) {

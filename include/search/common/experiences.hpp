@@ -203,10 +203,16 @@ struct ExperiencesCollective {
     void setPathExperiences(const std::vector<std::shared_ptr<PathExperience>>& experiences) {
         path_experiences_ptrs_ = experiences;
 
-        // Populate the map betwee states and experiences.
+        // Populate the map betwee states and experiences: point each of the states in the experience to this experience. 
         for (const auto& experience_ptr : path_experiences_ptrs_) {
+            // If a state appears multiple times in this experience, then skip it after the first time.
+            std::set<StateType> states_seen_in_experience;
             for (const auto& state : experience_ptr->getPath()) {
+                if (states_seen_in_experience.find(state) != states_seen_in_experience.end()) {
+                    continue;
+                }
                 state_to_path_experiences_ptrs_[state].push_back(experience_ptr);
+                states_seen_in_experience.insert(state);
             }
         }
     }
@@ -218,8 +224,14 @@ struct ExperiencesCollective {
         path_experiences_ptrs_.push_back(experience);
         
         // Point each of the states in the experience to this experience.
+        // Keep track of the states that have already been seen in this experience. This is to avoid adding the same experience multiple times for the same state.
+        std::set<StateType> states_seen_in_experience;
         for (const auto& state : experience->getPath()) {
+            if (states_seen_in_experience.find(state) != states_seen_in_experience.end()) {
+                continue;
+            }
             state_to_path_experiences_ptrs_[state].push_back(experience);
+            states_seen_in_experience.insert(state);
         }
     }
 

@@ -59,7 +59,7 @@ struct SearchState : public ::smpl::HeapElement {
     /// @class Planner Parameters abstract class
     struct PlannerParams{
         /// @brief Constructor
-        PlannerParams() : time_limit_(1000.0) {}
+        PlannerParams() : time_limit_(60.0) {}
 
         /// @brief Destructor
         virtual ~PlannerParams() = default;

@@ -93,6 +93,7 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
     // For each agent in the priority ordering, plan a path that respects the paths of the agents with higher priority.
     // Any computed path is stored in the `paths` variable, and downstream (lower-priority) agents must respect these paths. These will be specified to the single-agent planners via a constraint-context: asking each agent to avoid all other higher-priority agents at all timesteps.
     stats_.cost = 0;
+    stats_.bonus_stats["num_low_level_expanded"] = 0;
 
     std::shared_ptr<ConstraintsCollective> constraints_collective_ptr = std::make_shared<ConstraintsCollective>();
     std::shared_ptr<ConstraintsContext> constraints_context_ptr = std::make_shared<ConstraintsContext>();
@@ -119,6 +120,7 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
         std::vector<StateType> path;
         bool plan_success = planner_ptr->plan(path);
         stats_.cost += planner_ptr->reportStats().cost;
+        stats_.bonus_stats["num_low_level_expanded"] += planner_ptr->reportStats().num_expanded;
 
         if (!plan_success) {
             // If the planning failed, return false.
@@ -175,11 +177,18 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
 
         std::pair<int, int> interval = edge_avoid_constraint_ptr->getTimeInterval();        
         constraints_collective_ptr->setLastConstraintTimeToAtLeast(path.size() - 1);
+
+        if (isTimeOut()){
+            std::cout << RED << "Time out for agent " << agent_id << ", priority " << std::distance(params_.agent_priority_ordering.begin(), std::find(params_.agent_priority_ordering.begin(), params_.agent_priority_ordering.end(), agent_id)) << ". Prioritized planning failed." << RESET << std::endl;
+            getTimeFromStart(stats_.time);
+            paths.clear();
+            return false;
+        }
     }
         
     getTimeFromStart(stats_.time);
     
-    if (paths.size() == num_agents_) {
+    if (paths.size() == num_agents_ && !isTimeOut()) {
         return true;
     }
     else {

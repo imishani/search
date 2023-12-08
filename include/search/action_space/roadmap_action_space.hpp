@@ -137,7 +137,7 @@ public:
             }
             states_.clear();
 
-            createRoadmap(start_state, goal_state, num_samples * 2);
+            createRoadmap(start_state, goal_state, num_samples + 1000);
         }
 
     }

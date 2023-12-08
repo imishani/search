@@ -82,10 +82,18 @@ void ims::CBS::createRootInOpenList(){
     MultiAgentPaths initial_paths;
     std::unordered_map<int, double> initial_paths_costs;
     std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
+    //LB-FIX 
+    std::unordered_map<int, double> initial_paths_lower_bounds;
+    //LB-FIX 
+    double initial_sum_of_path_cost_lower_bounds{0.0};
+
     for (size_t i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
         agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
         bool is_plan_success = agent_planner_ptrs_[i]->plan(path);
+
+        // Add the number of low level nodes to the counter.
+        stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[i]->stats_.num_expanded;
 
         // If there is no path for this agent, then this is not a valid state. Do not add a new state to the open list.
         if (!is_plan_success) {
@@ -105,6 +113,11 @@ void ims::CBS::createRootInOpenList(){
         initial_paths_costs[i] = agent_planner_ptrs_[i]->stats_.cost;
         initial_paths_transition_costs[i] = agent_planner_ptrs_[i]->stats_.transition_costs;
 
+        // Compute the lower bound of the path.
+        //LB-FIX 
+        initial_paths_lower_bounds[i] = agent_planner_ptrs_[i]->stats_.cost;
+        //LB-FIX 
+        initial_sum_of_path_cost_lower_bounds += initial_paths_lower_bounds[i];
     }
 
     // Create the initial CBS state to the open list. This planner does not interface with an action space, so it does not call the getOrCreateRobotState to retrieve a new-state index. But rather decides on a new index directly and creates a search-state index with the getOrCreateSearchState method. Additionally, there is no goal specification for CBS, so we do not have a goal state.
@@ -115,6 +128,8 @@ void ims::CBS::createRootInOpenList(){
     start_->parent_id = PARENT_TYPE(START);
     start_->paths = initial_paths;
     start_->paths_costs = initial_paths_costs;
+    //LB-FIX 
+    start_->path_cost_lower_bounds = initial_paths_lower_bounds;
     start_->paths_transition_costs = initial_paths_transition_costs;
 
     // Set the cost of the CBSState start_.
@@ -250,6 +265,7 @@ void ims::CBS::expand(int state_id) {
         new_state->paths_costs = state->paths_costs;
         new_state->paths_transition_costs = state->paths_transition_costs;
         new_state->f = state->f;
+        new_state->path_cost_lower_bounds = state->path_cost_lower_bounds;
         new_state->constraints_collectives = state->constraints_collectives;
         // NOTE(yoraish): we do not copy over the conflicts, since they will be recomputed in the new state. We could consider keeping a history of conflicts in the search state, with new conflicts being marked as such.
 
@@ -273,6 +289,11 @@ void ims::CBS::expand(int state_id) {
         new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.transition_costs;
         new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.cost;
         new_state->f = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
+        new_state->path_cost_lower_bounds[agent_id] = agent_planner_ptrs_[agent_id]->stats_.cost;
+        new_state->sum_of_path_cost_lower_bounds = std::accumulate(new_state->path_cost_lower_bounds.begin(), new_state->path_cost_lower_bounds.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
+
+        // Add the number of low level nodes to the counter.
+        stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[agent_id]->stats_.num_expanded;
 
         // Add a random number between zero and one to f.
         // new_state->f += (double)rand() / RAND_MAX; // Uncomment for nitro boost.
