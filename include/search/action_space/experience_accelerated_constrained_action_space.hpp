@@ -91,6 +91,16 @@ public:
                 return it->second;
             }
         }
+        else{
+            // If cannot mark as goal, but is a goal, report that.
+            StateType state_val_wo_time = {state_val.begin(), state_val.end() - 1};
+            state_val_wo_time.push_back(-1);
+            curr_state->state = state_val_wo_time;
+            auto it = state_to_id_.find(curr_state);
+            if (it != state_to_id_.end()) {
+                std::cout << "ExperienceAcceleratedConstrainedActionSpace: getOrCreateRobotState: state is a goal, but cannot be marked as such. Time now is " << state_time << " and last constraint time is " << last_constraint_time << std::endl;
+            }
+        }
 
         // If that failed, then we should check if the state exists at the current time.
         curr_state->state = state_val;

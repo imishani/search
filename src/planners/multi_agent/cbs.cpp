@@ -82,9 +82,7 @@ void ims::CBS::createRootInOpenList(){
     MultiAgentPaths initial_paths;
     std::unordered_map<int, double> initial_paths_costs;
     std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
-    //LB-FIX 
     std::unordered_map<int, double> initial_paths_lower_bounds;
-    //LB-FIX 
     double initial_sum_of_path_cost_lower_bounds{0.0};
 
     for (size_t i{0}; i < num_agents_; ++i) {
@@ -114,9 +112,7 @@ void ims::CBS::createRootInOpenList(){
         initial_paths_transition_costs[i] = agent_planner_ptrs_[i]->stats_.transition_costs;
 
         // Compute the lower bound of the path.
-        //LB-FIX 
         initial_paths_lower_bounds[i] = agent_planner_ptrs_[i]->stats_.cost;
-        //LB-FIX 
         initial_sum_of_path_cost_lower_bounds += initial_paths_lower_bounds[i];
     }
 
@@ -128,7 +124,6 @@ void ims::CBS::createRootInOpenList(){
     start_->parent_id = PARENT_TYPE(START);
     start_->paths = initial_paths;
     start_->paths_costs = initial_paths_costs;
-    //LB-FIX 
     start_->path_cost_lower_bounds = initial_paths_lower_bounds;
     start_->paths_transition_costs = initial_paths_transition_costs;
 

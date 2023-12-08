@@ -248,7 +248,6 @@ void ims::ECBS::expand(int state_id) {
         new_state->paths = state->paths;
         new_state->paths_costs = state->paths_costs;
         new_state->paths_transition_costs = state->paths_transition_costs;
-        //LB-FIX  
         new_state->path_cost_lower_bounds = state->path_cost_lower_bounds;
         new_state->f = state->f;
         new_state->constraints_collectives = state->constraints_collectives;
