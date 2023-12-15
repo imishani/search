@@ -280,27 +280,37 @@ void ims::EACBS::expand(int state_id) {
         // Update the action-space with an experience yielded by the previous path of this agent. Notice that this is slightly different from what we do with constraints. With the constraints, we first update the constraints stored in the search state and then set this same constraints collective in the action space. With experiences though, we would like to (perhaps) reuse experiences from different CT nodes, so we directly add experiences to the action space, which is shared by all invocations be this agents' low-level planner across CT subtrees.
         // NOTE(yoraish): if we do not want to share experiences across CT subtrees, then we should work in the same way as the constraints (keep track of experiences in the search state, and update (set) the action space with the experiences stored in the search state (not to add to them)).
         
-        // if (is_experience_shared_across_ct_){
-            // agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
-        // }
+        switch (experience_reuse_type_) {
+            case ExperienceReuseType::NONE: {
+                std::cout << "Experience reuse type is NONE. Not updating the experiences collective." << std::endl;
+                break;
+            }
+            case ExperienceReuseType::PREVIOUS_SOLUTION: {
+                std::cout << "Experience reuse type is PREVIOUS_SOLUTION. Updating the experiences collective with the previous solution." << std::endl;
+                agent_action_space_ptrs_[agent_id]->clearPathExperiences();
+                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                break;
+            }
+            case ExperienceReuseType::CT_BRANCH: {
+                std::cout << "Experience reuse type is CT_BRANCH. Updating the experiences collective with the solution on branch." << std::endl;
+                new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
 
-        // if (is_experience_only_previous_path_){
-            agent_action_space_ptrs_[agent_id]->clearPathExperiences();
-            agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
-        // }
-
-        // bool is_experience_ct_branch_ = true;
-        // if (is_experience_ct_branch_){
-        //     new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
-
-        //     // Update the action-space with the updated experiences.
-        //     agent_action_space_ptrs_[agent_id]->setExperiencesCollective(std::make_shared<ExperiencesCollective>(new_state->experiences_collectives[agent_id]));
-        // }
-
+                // Update the action-space with the updated experiences.
+                agent_action_space_ptrs_[agent_id]->setExperiencesCollective(std::make_shared<ExperiencesCollective>(new_state->experiences_collectives[agent_id]));
+                break;
+            }
+            case ExperienceReuseType::CT_GLOBAL: {
+                std::cout << "Experience reuse type is CT_GLOBAL. Updating the experiences collective with all previous solutions." << std::endl;
+                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                break;
+            }
+            default: {
+                throw std::runtime_error("Unknown experience reuse type.");
+            }
+        }
 
         // Update the low-level planner for this agent.
         agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);
-
 
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
         // The replanning will be using the updated constraints and experiences stored within the action space.

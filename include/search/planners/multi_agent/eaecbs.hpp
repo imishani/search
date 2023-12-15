@@ -184,6 +184,8 @@ protected:
     // The low-level planners.
     std::vector<std::shared_ptr<FocalEAwAStarUniformCost>> agent_planner_ptrs_;
 
+    // The experience-reuse type.
+    ExperienceReuseType experience_reuse_type_ = ExperienceReuseType::PREVIOUS_SOLUTION;
 };
 
 

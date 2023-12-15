@@ -136,7 +136,6 @@ struct VectorHash
     }
 };
 
-
 struct StateTypeHash {
     typedef StateType argument_type;
     typedef std::size_t result_type;
@@ -148,5 +147,11 @@ struct StateTypeHash {
     }
 };
 
+enum class ExperienceReuseType {
+    NONE,
+    PREVIOUS_SOLUTION,
+    CT_BRANCH,
+    CT_GLOBAL
+};
 
 #endif //SEARCH_TYPES_HPP

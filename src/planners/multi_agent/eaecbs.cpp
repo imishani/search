@@ -297,8 +297,7 @@ void ims::EAECBS::expand(int state_id) {
         new_state->paths_transition_costs = state->paths_transition_costs;
         new_state->f = state->f;
         new_state->sum_of_costs = state->sum_of_costs;
-        //LB-FIX 
-        new_state->path_cost_lower_bounds = state->path_cost_lower_bounds; ///////////// THIS>
+        new_state->path_cost_lower_bounds = state->path_cost_lower_bounds; 
         new_state->constraints_collectives = state->constraints_collectives;
         new_state->experiences_collectives = state->experiences_collectives;
         // NOTE(yoraish): we do not copy over the conflicts, since they will be recomputed in the new state. We could consider keeping a history of conflicts in the search state, with new conflicts being marked as such.
@@ -317,22 +316,34 @@ void ims::EAECBS::expand(int state_id) {
         /////////////////////////////////////////////
         // Update the experiences collective.
         /////////////////////////////////////////////
-        // if (is_experience_shared_across_ct_){
-            // agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
-        // }
+        switch (experience_reuse_type_) {
+            case ExperienceReuseType::NONE: {
+                std::cout << "Experience reuse type is NONE. Not updating the experiences collective." << std::endl;
+                break;
+            }
+            case ExperienceReuseType::PREVIOUS_SOLUTION: {
+                std::cout << "Experience reuse type is PREVIOUS_SOLUTION. Updating the experiences collective with the previous solution." << std::endl;
+                agent_action_space_ptrs_[agent_id]->clearPathExperiences();
+                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                break;
+            }
+            case ExperienceReuseType::CT_BRANCH: {
+                std::cout << "Experience reuse type is CT_BRANCH. Updating the experiences collective with the solution on branch." << std::endl;
+                new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
 
-        // if (is_experience_only_previous_path_){
-            agent_action_space_ptrs_[agent_id]->clearPathExperiences();
-            agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
-        // }
-
-        // bool is_experience_ct_branch_ = true;
-        // if (is_experience_ct_branch_){
-        //     new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
-
-        //     // Update the action-space with the updated experiences.
-        //     agent_action_space_ptrs_[agent_id]->setExperiencesCollective(std::make_shared<ExperiencesCollective>(new_state->experiences_collectives[agent_id]));
-        // }
+                // Update the action-space with the updated experiences.
+                agent_action_space_ptrs_[agent_id]->setExperiencesCollective(std::make_shared<ExperiencesCollective>(new_state->experiences_collectives[agent_id]));
+                break;
+            }
+            case ExperienceReuseType::CT_GLOBAL: {
+                std::cout << "Experience reuse type is CT_GLOBAL. Updating the experiences collective with all previous solutions." << std::endl;
+                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                break;
+            }
+            default: {
+                throw std::runtime_error("Unknown experience reuse type.");
+            }
+        }
 
         // Update the low-level planner for this agent.
         agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);

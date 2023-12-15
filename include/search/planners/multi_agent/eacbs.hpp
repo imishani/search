@@ -235,6 +235,9 @@ protected:
     // Public variable. For shadowing.
     /// @brief The conflict types that this algorithm asks for from the action space.
     std::vector<ConflictType> conflict_types_ = {ConflictType::EDGE, ConflictType::VERTEX};
+
+    // The experience-reuse type.
+    ExperienceReuseType experience_reuse_type_ = ExperienceReuseType::PREVIOUS_SOLUTION;
 };
 
 }  // namespace ims
