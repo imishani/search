@@ -164,9 +164,7 @@ bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
             stats_.num_generated = (int)action_space_ptr_->states_.size();    
 
             // TODO(yoraish): Get the non-weighted (g+h) minimal value from the OPEN list.
-            // Since h is not in the same scale as g, then for now just use the g value of the goal state as a proxy for a lower bound. This is not crazy because most paths are of similar cost anyway.
             stats_.lower_bound = state->g / params_.epsilon;
-
 
             return true;
         }

@@ -47,10 +47,9 @@ void ims::FocalEAwAStarUniformCost::initializePlanner(const std::shared_ptr<Subc
     // TODO(yoraish): this is a hack. Change the required action space to be an experience accelerated constrained action space.
     action_space_ptr_ = std::dynamic_pointer_cast<SubcostExperienceAcceleratedConstrainedActionSpace>(action_space_ptr);
 
-    // TODO(yoraish).
-    // The id of the start state.
-    int start_id = 0;
     /*
+    // TODO(yoraish). Add an experience starting from the start state. To do this, we need to find the id of the start state, and this can be done by searching for the state with parent START. We currently do not have an iterator over the open list, so we skip this step.
+    int start_id = 0;
     for (auto search_state : open_){
         if (search_state->parent_id == PARENT_TYPE(START)){
             start_id = search_state->state_id;
@@ -66,15 +65,13 @@ void ims::FocalEAwAStarUniformCost::initializePlanner(const std::shared_ptr<Subc
 
 
 void ims::FocalEAwAStarUniformCost::initializePlanner(const std::shared_ptr<SubcostActionSpace>& action_space_ptr,
-                                   const std::vector<StateType>& start, const std::vector<StateType>& goal) {
+                                   const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
     // Initialize using the base class.
-    FocalwAStar::initializePlanner(action_space_ptr, start, goal);
+    FocalwAStar::initializePlanner(action_space_ptr, starts, goals);
 
-
-    // TODO(yoraish).
-    // The id of the start state.
-    int start_id = 0;
     /*
+    // TODO(yoraish). Add an experience starting from the start state. To do this, we need to find the id of the start state, and this can be done by searching for the state with parent START. We currently do not have an iterator over the open list, so we skip this step.
+    int start_id = 0;
     for (auto search_state : open_){
         if (search_state->parent_id == PARENT_TYPE(START)){
             start_id = search_state->state_id;
@@ -139,7 +136,7 @@ void ims::FocalEAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<
         search_state->f = search_state->g + params_.epsilon*search_state->h;
 
         // Add the state to the open list if it is not already there.
-        // TODO(yoraish): does it makes sense to update states already in open? This may assign currently "good" state-parents to "bad" ones instead. For now, any state in open is not changed.
+        // NOTE(yoraish): does it makes sense to update states already in open? This may assign currently "good" state-parents to "bad" ones instead. For now, any state in open is not changed.
         if (!open_.contains(search_state)){
             open_.push(search_state);
             // Set the state to be open.

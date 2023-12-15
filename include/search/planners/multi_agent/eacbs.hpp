@@ -222,10 +222,6 @@ protected:
     std::vector<StateType> starts_;
     std::vector<StateType> goals_;
 
-    /// @brief The goal states. Remember that these have a time dimension in them. In EACBS the end time is not known, so we set it to -1.
-    // TODO(yoraish): consider creating a MultiAgentPlanner class that will hold the starts, goals, and other multi-agent related variables.
-    std::vector<int> found_goal_search_state_ids_;
-
     /// @brief The number of agents.
     int num_agents_;
 

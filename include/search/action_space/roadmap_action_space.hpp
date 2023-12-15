@@ -218,7 +218,7 @@ public:
             // Check if the transition is valid w.r.t. static obstacles.            
             if (isStateToStateValid(state, nearest_state)) {
 
-                // TODO(yoraish): check if the branching of the nodes is already too high.
+                // NOTE(yoraish): add a potential check for the branching of the nodes is already too high.
 
                 // Add the state to the adjacency list.
                 adjacency_mat_.at(nearest_state_id).insert(state_id);

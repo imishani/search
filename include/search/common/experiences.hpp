@@ -140,7 +140,7 @@ struct TransitionExperience : public ExperienceBase {
     bool is_valid_ = true;
 
     /// @brief The path transition costs.
-    std::vector<double> path_transition_costs_;
+    double transition_cost_;
 
     /// @brief Constructor
     explicit TransitionExperience(const StateType& state_from, const StateType& state_to, const bool is_valid) : state_from_(state_from), state_to_(state_to), is_valid_(is_valid), ExperienceBase() {
@@ -218,8 +218,7 @@ struct ExperiencesCollective {
     }
 
     void addPathExperience(const std::shared_ptr<PathExperience>& experience) {
-        // Check if this experience is new.
-        // TODO(yoraish) IMPORTANT
+        // TODO(yoraish) IMPORTANT: Check if this experience is new. Unsure how to do this well.
 
         path_experiences_ptrs_.push_back(experience);
         
@@ -291,10 +290,6 @@ struct ExperiencesCollective {
     /// @brief Add a transition to the experiences collective.
     /// @param experience 
     void addTransitionExperience(const std::shared_ptr<TransitionExperience>& experience) {
-        // Check if this experience is new.
-        // TODO (yoraish) IMPORTANT
-
-        transition_experiences_ptrs_.push_back(experience);
 
         // Add this transition experience to the collection of transition experiences.
         StateType state_from;
@@ -304,8 +299,7 @@ struct ExperiencesCollective {
         // Create a pair.
         std::pair<StateType, StateType> state_pair = std::make_pair(state_from, state_to);
 
-        // Add to the collection.
-        transition_experiences_ptrs_.push_back(experience);
+        // Add/update the collection.
         state_pair_to_transition_experience_ptr_[state_pair] = experience;
     }
 

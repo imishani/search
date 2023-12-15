@@ -166,7 +166,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
             Sphere3dConstraint constraint_to = Sphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_to);
 
             // Update the constraints collective to also include the new constraint.
-            // TODO(yoraish): the bottom two constraints MUST be added together. We should change this entire function to return pairs of {agent_it: {constraint0, constraint1, ...}}. Accordingly, in the expand() method of any CBS variant, accept these sets and put all constraints within a set in a new CT node, as they are created.
+            // Notice that the two constraints are added together to one agent. 
             agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<Sphere3dConstraint>(constraint_from), std::make_shared<Sphere3dConstraint>(constraint_to)});
         }
     }
