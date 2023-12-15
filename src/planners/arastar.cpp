@@ -351,4 +351,16 @@ bool ims::ARAStar::timedOut() {
             return true;
     }
 }
+void ims::ARAStar::resetPlanningData() {
+    wAStar::resetPlanningData();
+    open_.clear();
+    incons_.clear();
+    for (auto state : states_){
+        delete state;
+    }
+    states_.clear();
+    params_.call_number = 0;
+    params_.curr_cost = INF_DOUBLE;
+    params_.epsilon = params_.init_epsilon;
+}
 
