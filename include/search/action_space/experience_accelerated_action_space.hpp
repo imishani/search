@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   constrained_search.hpp
+ * \file   experience_accelerated_action_space.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   Oct 05 2023
  */

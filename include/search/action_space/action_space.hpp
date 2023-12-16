@@ -235,14 +235,6 @@ namespace ims {
             states_.clear();
             state_to_id_.clear();
         }
-
-        /// @brief Check if the current state is a goal state.
-        /// @param s_id The state id
-        /// @param goals The goal states
-        /// @return if the current state is the goal state or not
-        virtual bool isGoalState(int state_id, const std::vector<int>& goal_ids){
-            return false;
-        }
     };
 }
 #endif //SEARCH_ACTIONSPACE_HPP
