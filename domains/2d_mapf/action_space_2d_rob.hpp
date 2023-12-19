@@ -37,7 +37,7 @@
 
 #include "search/action_space/action_space.hpp"
 #include <search/common/conflicts.hpp>
-#include "search/action_space/subcost_constrained_action_space.hpp"
+#include "search/action_space/subcost_action_space.hpp"
 #include <search/planners/multi_agent/cbs.hpp>
 
 #include "scene_interface_2d_rob.hpp"

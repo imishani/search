@@ -51,7 +51,7 @@
 #include <search/planners/best_first_search.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
 
-#include "search/action_space/subcost_constrained_action_space.hpp"
+#include "search/action_space/subcost_action_space.hpp"
 
 namespace ims {
 

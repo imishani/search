@@ -52,7 +52,7 @@
 #include <search/planners/multi_agent/ecbs.hpp>
 #include <search/planners/multi_agent/eacbs.hpp>
 #include <search/action_space/constrained_action_space.hpp>
-#include <search/action_space/subcost_experience_accelerated_constrained_action_space.hpp>
+#include <search/action_space/subcost_action_space.hpp>
 
 namespace ims {
 

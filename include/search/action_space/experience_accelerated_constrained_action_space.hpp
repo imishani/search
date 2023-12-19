@@ -47,17 +47,17 @@
 #include "search/common/constraints.hpp"
 #include "search/common/conflicts.hpp"
 #include "search/common/experiences.hpp"
-#include <search/action_space/subcost_constrained_action_space.hpp>
+// #include <search/action_space/subcost_action_space.hpp>
 #include <search/action_space/experience_accelerated_action_space.hpp>
 
 namespace ims {
 
 /// @brief Base class for ActionSpaces with constraints.
 /// @details This is a constrained action space extended to be "Experience Acceleratable" using a mixin. We add this mixin to a constrained action space and not adding both the "Constrainable" and the "ExperienceAcceleratable" mixins separately because we want to make sure that this class could be a derived class from a constrained action space.
-class ExperienceAcceleratedConstrainedActionSpace : virtual public SubcostConstrainedActionSpace, public ExperienceAcceleratedActionSpace {
+class ExperienceAcceleratedConstrainedActionSpace : virtual public ConstrainedActionSpace, public ExperienceAcceleratedActionSpace {
 public:
     /// @brief Constructor.
-    explicit ExperienceAcceleratedConstrainedActionSpace(): SubcostConstrainedActionSpace(), ExperienceAcceleratedActionSpace() {
+    explicit ExperienceAcceleratedConstrainedActionSpace(): ConstrainedActionSpace(), ExperienceAcceleratedActionSpace() {
         std::cout << "ExperienceAcceleratedConstrainedActionSpace: Constructor" << std::endl;
         experiences_collective_ptr_ = std::make_shared<ExperiencesCollective>();
     }

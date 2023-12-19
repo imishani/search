@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   constrained_search.hpp
+ * \file   subcost_action_space.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   July 10 2023
  */
@@ -44,6 +44,14 @@
 #include "search/planners/planner.hpp"
 #include "mixin/action_space_subcost_mixin.hpp"
 
+// For the constrained action space.
+#include "search/common/constraints.hpp"
+#include "search/common/conflicts.hpp"
+#include "constrained_action_space.hpp"
+
+// For experience accelerated constrained action space.
+#include "search/common/experiences.hpp"
+#include <search/action_space/experience_accelerated_action_space.hpp>
 namespace ims {
 
 /// @brief Base class for ActionSpaces with constraints.
@@ -61,6 +69,265 @@ public:
     using ActionSpaceSubcostMixin::getSuccessors;
     using ActionSpace::getSuccessors;
 
+};
+
+/// @brief Base class for ActionSpaces with constraints.
+/// @details This is an actions space extended to be "Constrainable" using a mixin.
+class SubcostConstrainedActionSpace : public ConstrainedActionSpace, public SubcostActionSpace{ 
+public:
+    /// @brief Constructor
+    explicit SubcostConstrainedActionSpace(): ConstrainedActionSpace(), SubcostActionSpace() {};
+
+    /// @brief Destructor
+    ~SubcostConstrainedActionSpace() = default;
+};
+
+
+/// @brief Base class for ActionSpaces with constraints.
+/// @details This is an actions space extended to be "Constrainable" using a mixin.
+class SubcostExperienceAcceleratedConstrainedActionSpace : virtual public SubcostConstrainedActionSpace, public ExperienceAcceleratedActionSpace {
+public:
+    /// @brief Constructor.
+    explicit SubcostExperienceAcceleratedConstrainedActionSpace(): SubcostConstrainedActionSpace(), ExperienceAcceleratedActionSpace() {
+        std::cout << "SubcostExperienceAcceleratedConstrainedActionSpace: Constructor" << std::endl;
+        experiences_collective_ptr_ = std::make_shared<ExperiencesCollective>();
+    }
+
+    /// @brief Destructor
+    ~SubcostExperienceAcceleratedConstrainedActionSpace() = default;
+
+
+    virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) = 0;
+
+    /// @brief Get the cost incurred by conflicts upon a give state  transition.
+    /// @param state_val 
+    /// @param next_state_val 
+    /// @param conflicts_cost 
+    virtual void computeTransitionConflictsCost(const StateType& state_val, const StateType& next_state_val, double & conflicts_cost) = 0;
+
+    inline int getOrCreateRobotState(const StateType& state_val) override {
+        // check if the state exists
+        auto* curr_state = new ims::RobotState;
+
+        // Since we are dealing with time, we should take care to first check if this state is a goal state. That would be the case if, when setting the time for this state to be -1, the state already exists. By convention goal states have a time of -1. In this instance, at least.
+        // Only do this if the time of the state is later than the last constraint.
+        int state_time = state_val.back();
+        int last_constraint_time = constraints_collective_ptr_->getLastConstraintTime();
+
+        // TODO(yoraish): currently this method runs two "find"s to check if (a) the passed state is already seen and if the current state is a goal state. The first check is done by finding the state in the state_to_id_ object, and the second by setting the last element of the state to -1 (convention for states) and searching the state_to_id_ object again. This is inefficient and it would be better to check for the state only within the goal states. Unfortunately, the goals are noo known to the action space.
+        // Only check if this state is a goal state if there are no more outstanding constraints later in time.
+        if (state_time >= last_constraint_time) {
+            // If the state is a goal state, then we should check if it exists at the current time.
+            StateType state_val_wo_time = {state_val.begin(), state_val.end() - 1};
+            state_val_wo_time.push_back(-1);
+            curr_state->state = state_val_wo_time;
+            auto it = state_to_id_.find(curr_state);
+            if (it != state_to_id_.end()) {
+                delete curr_state;
+                return it->second;
+            }
+        }
+        else{
+            // If cannot mark as goal, but is a goal, report that.
+            StateType state_val_wo_time = {state_val.begin(), state_val.end() - 1};
+            state_val_wo_time.push_back(-1);
+            curr_state->state = state_val_wo_time;
+            auto it = state_to_id_.find(curr_state);
+            if (it != state_to_id_.end()) {
+                std::cout << "ExperienceAcceleratedConstrainedActionSpace: getOrCreateRobotState: state is a goal, but cannot be marked as such. Time now is " << state_time << " and last constraint time is " << last_constraint_time << std::endl;
+            }
+        }
+
+        // If that failed, then we should check if the state exists at the current time.
+        curr_state->state = state_val;
+        auto it = state_to_id_.find(curr_state);
+        if (it != state_to_id_.end()) {
+            delete curr_state;
+            return it->second;
+        }
+        states_.push_back(curr_state);
+        int state_id = (int)states_.size() - 1;
+        state_to_id_[curr_state] = state_id;
+        return state_id;
+    }
+
+
+    /// @brief To comply with the ExperienceAcceleratedActionSpace interface.
+    /// @param state_id The state to get the valid experience subpaths for.
+    /// @param subpaths The vector of subpaths -- to be updated with the subpaths.
+    inline void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs,  std::vector<std::vector<double>>& subpath_transition_subcosts) {
+        // Get the state configuration that corresponds to the state id.
+        auto query_robot_state = states_[state_id];
+        
+        // Get the state without time.
+        StateType state_val_wo_time = {query_robot_state->state.begin(), query_robot_state->state.end() - 1};
+
+        // Get all the experiences that this state is part of. The subexperiences are suffixes of stored experiences, all stored with the query state at the start.
+        std::vector<PathType> subexperiences;
+        std::vector<std::vector<double>> subexperiences_transition_costs;
+
+        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs); // SLOW AND SLOWING.
+
+        // Retime the subexperiences to start at the time of the query state.
+        TimeType query_state_time = query_robot_state->state.back();
+        for (auto& subexperience : subexperiences) {
+            for (int i = 0; i < subexperience.size(); i++) {
+                StateType& state = subexperience[i];
+                state.push_back(query_state_time + i); // NOTE(yoraish): assumes integer time increments.
+            }
+        }
+        
+        // Get a valid prefix for each of the subexperiences.
+        for (int i = 0; i < subexperiences.size(); i++) {
+            // Get the subexperience.
+            PathType& subexperience = subexperiences[i];
+            std::vector<double>& subexperience_transition_costs = subexperiences_transition_costs[i];
+
+            // Get the prefix.
+            std::vector<StateType> valid_states_for_reuse;
+            std::vector<int> valid_state_ids_for_reuse;
+            std::vector<double> valid_states_for_reuse_costs;
+            std::vector<double> valid_states_for_reuse_subcosts;
+            
+            for (int state_ix = 0; state_ix < subexperience.size() - 1; state_ix++) {
+                // Get the state.
+                StateType robot_state = subexperience[state_ix];
+                StateType next_robot_state = subexperience[state_ix + 1];
+
+                // Check if the state is valid w.r.t constraints.
+                if (isSatisfyingConstraints(robot_state, next_robot_state)) {
+                    valid_states_for_reuse.push_back(robot_state);
+
+                    // Create a state_id if one not already exists.
+                    int state_id = getOrCreateRobotStateNonGoal(robot_state); // This is also SLOW apparently.
+                    valid_state_ids_for_reuse.push_back(state_id);
+
+                    // Compute the transition subcosts, as induced by the conflicts that the transition would cause.
+                    // QUESTION(yoraish): STOP EXPERIENCES WHEN TRANSITION CONFLICT COST IS NON ZERO?
+                    double transition_conflict_cost = 0;
+                    computeTransitionConflictsCost(robot_state, next_robot_state, transition_conflict_cost);
+                    
+                    if (transition_conflict_cost > 0) {
+                        // If the transition conflict cost is non zero, then we should not add any more states to the prefix.
+                        break;
+                    }
+                    else{
+                        // Keep track of the transition costs.
+                        valid_states_for_reuse_costs.push_back(subexperiences_transition_costs[i][state_ix]);
+                        valid_states_for_reuse_subcosts.push_back(transition_conflict_cost);
+                    }
+
+
+                } else {
+                    // If not, break and add the data to our returned objects.
+                    break;
+                }
+            }
+
+            // If we got here, then we are done processing the experience. We found a prefix that is valid w.r.t constraints. (Could be empty, partial, or full.)        
+            
+            // The last transition cost is zero.
+            if (!valid_states_for_reuse_costs.empty()) {
+                valid_states_for_reuse_costs.back() = 0.0;
+                valid_states_for_reuse_subcosts.back() = 0.0;
+            }
+
+            if (valid_state_ids_for_reuse.empty()) {
+                // If the prefix is empty, then we should not add it to the open list.
+                continue;
+            }
+
+            subpaths.push_back(valid_state_ids_for_reuse);
+            subpath_transition_costs.push_back(valid_states_for_reuse_costs);
+            subpath_transition_subcosts.push_back(valid_states_for_reuse_subcosts);
+
+        }
+    }
+
+
+    /// @brief To comply with the ExperienceAcceleratedActionSpace interface.
+    /// @param state_id The state to get the valid experience subpaths for.
+    /// @param subpaths The vector of subpaths -- to be updated with the subpaths.
+    inline void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs) {
+        // Get the state configuration that corresponds to the state id.
+        auto query_robot_state = states_[state_id];
+        
+        // Get the state without time.
+        StateType state_val_wo_time = {query_robot_state->state.begin(), query_robot_state->state.end() - 1};
+
+        // Get all the experiences that this state is part of. The subexperiences are suffixes of stored experiences, all stored with the query state at the start.
+        std::vector<PathType> subexperiences;
+        std::vector<std::vector<double>> subexperiences_transition_costs;
+
+        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs); // SLOW AND SLOWING.
+
+        // Retime the subexperiences to start at the time of the query state.
+        TimeType query_state_time = query_robot_state->state.back();
+        for (auto& subexperience : subexperiences) {
+            for (int i = 0; i < subexperience.size(); i++) {
+                StateType& state = subexperience[i];
+                state.push_back(query_state_time + i); // NOTE(yoraish): assumes integer time increments.
+            }
+        }
+
+        
+        // Get a valid prefix for each of the subexperiences.
+        for (int i = 0; i < subexperiences.size(); i++) {
+            // Get the subexperience.
+            PathType& subexperience = subexperiences[i];
+            std::vector<double>& subexperience_transition_costs = subexperiences_transition_costs[i];
+
+            // Get the prefix.
+            std::vector<StateType> valid_states_for_reuse;
+            std::vector<int> valid_state_ids_for_reuse;
+            std::vector<double> valid_states_for_reuse_costs;
+            
+            for (int state_ix = 0; state_ix < subexperience.size() - 1; state_ix++) {
+                // Get the state.
+                StateType robot_state = subexperience[state_ix];
+                StateType next_robot_state = subexperience[state_ix + 1];
+
+                // Check if the state is valid w.r.t constraints.
+                if (isSatisfyingConstraints(robot_state, next_robot_state)) {
+                    valid_states_for_reuse.push_back(robot_state);
+
+                    // Create a state_id if one not already exists.
+                    int state_id = getOrCreateRobotStateNonGoal(robot_state); // This is also SLOW apparently.
+                    valid_state_ids_for_reuse.push_back(state_id);
+
+                    // Keep track of the transition costs.
+                    valid_states_for_reuse_costs.push_back(subexperiences_transition_costs[i][state_ix]);
+
+                } else {
+                    // If not, break and add the data to our returned objects.
+                    break;
+                }
+            }
+
+            // If we got here, then we are done processing the experience. We found a prefix that is valid w.r.t constraints. (Could be empty, partial, or full.)        
+            
+            // The last transition cost is zero.
+            if (!valid_states_for_reuse_costs.empty()) {
+                valid_states_for_reuse_costs.back() = 0.0;
+            }
+
+            if (valid_state_ids_for_reuse.empty()) {
+                // If the prefix is empty, then we should not add it to the open list.
+                continue;
+            }
+
+            subpaths.push_back(valid_state_ids_for_reuse);
+            subpath_transition_costs.push_back(valid_states_for_reuse_costs);
+        }
+    }
+
+
+    virtual bool getSuccessorsExperienceAccelerated(int curr_state_ind,
+                                std::vector<int> &successors,
+                                std::vector<double>& costs,
+                                std::vector<double>& subcosts) {
+        throw std::runtime_error("getSuccessorsExperienceAccelerated not implemented for abstract SubcostExperienceAcceleratedConstrainedActionSpace");
+        }
 };
 
 }  // namespace ims

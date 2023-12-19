@@ -52,7 +52,7 @@
 #include <search/common/conflict_conversions.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
 
-#include "search/action_space/subcost_experience_accelerated_constrained_action_space.hpp"
+#include "search/action_space/subcost_action_space.hpp"
 
 namespace ims {
 

@@ -42,7 +42,7 @@
 #include <search/planners/best_first_search.hpp>
 #include <search/planners/focal_search/focal_wastar.hpp>
 #include <search/common/experiences.hpp>
-#include <search/action_space/subcost_experience_accelerated_constrained_action_space.hpp>
+#include <search/action_space/subcost_action_space.hpp>
 
 namespace ims{
 
