@@ -200,7 +200,10 @@ void ims::realTimePlanner::updateHeuristicLRTA(){
         closed_heu[close_[i]] = INF_DOUBLE;
     }
     std::map<SearchState*, double> h_value_record;
-    while (h_value_record != closed_heu) {      //add a link to documentation
+
+    //https://docs.python.org/3/library/stdtypes.html#mapping-types-dict
+    //"==" builtin operator to check if two dictionaries are equal
+    while (h_value_record != closed_heu) {      
         h_value_record = closed_heu;
         for (int i = close_.size()-1; i >= 0; i--) {
             std::vector<double> f_neighbours;
