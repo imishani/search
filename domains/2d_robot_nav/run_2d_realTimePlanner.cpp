@@ -45,7 +45,7 @@
 #include <opencv2/imgproc.hpp> // Get the cv circle.
 
 // project includes
-#include <search/planners/RTAA.hpp>
+#include <search/planners/realTimePlanner.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
 
 #include "action_space_2d_rob.hpp"
@@ -54,8 +54,8 @@
 
 int main(int argc, char** argv) {
 
-    if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <path>" << std::endl;
+    if (argc < 5) {
+        std::cout << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <path> <ifRTAA*>" << std::endl;
         return 0;
     }
     std::vector<std::string> maps;
@@ -79,6 +79,7 @@ int main(int argc, char** argv) {
     int map_index = std::stoi(argv[1]);
     int num_runs = std::stoi(argv[2]);
     int scale = std::stoi(argv[3]);
+    bool rtaa = std::stoi(argv[4]); 
     // try to check argv[4] to check if the user wants to save the path for experience
     bool cache = false;
     // try {
@@ -104,7 +105,7 @@ int main(int argc, char** argv) {
     // construct planner params
     auto* heuristic = new ims::ManhattanHeuristic();
     // initialize the heuristic
-    ims::rtaaStarParams params (heuristic,100);
+    ims::realTimePlannerParams params (heuristic,100,rtaa);
     // construct the scene and the action space
     Scene2DRob scene (map);
     ActionType2dRob action_type;
@@ -125,7 +126,7 @@ int main(int argc, char** argv) {
 
         std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
         // construct planner
-        ims::rtaaStar planner (params);
+        ims::realTimePlanner planner (params);
         // catch the exception if the start or goal is not valid
         try {
             planner.initializePlanner(ActionSpace, starts[i], goals[i]);

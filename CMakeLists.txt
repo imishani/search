@@ -51,9 +51,9 @@ install(TARGETS search
 add_executable(run_2d_rob_nav_astar domains/2d_robot_nav/run_2d_astar.cpp)
 target_link_libraries(run_2d_rob_nav_astar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
-add_executable(run_2d_rob_nav_rtaaStar domains/2d_robot_nav/run_2d_rtaa.cpp
-        src/planners/RTAA.cpp)
-target_link_libraries(run_2d_rob_nav_rtaaStar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+add_executable(run_2d_rob_nav_realTimePlanner domains/2d_robot_nav/run_2d_realTimePlanner.cpp
+        src/planners/realTimePlanner.cpp)
+target_link_libraries(run_2d_rob_nav_realTimePlanner search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
 add_executable(run_2d_rob_nav_dijkstra domains/2d_robot_nav/run_2d_dijkstra.cpp)
 target_link_libraries(run_2d_rob_nav_dijkstra search ${OpenCV_LIBS} ${Boost_LIBRARIES})
