@@ -168,7 +168,7 @@ protected:
     /// @param state_id
     void expand(int state_id) override;
 
-    void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
     
     // Public variable. For shadowing.
     /// @brief The conflict types that this algorithm asks for from the action space.

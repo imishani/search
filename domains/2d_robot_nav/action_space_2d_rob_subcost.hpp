@@ -40,6 +40,7 @@
 // Local includes.
 # include "action_space_2d_rob.hpp"
 
+/// @brief ActionSpace for 2D robot navigation that also allows edge-transitions to be characterized by a cost and an additional subcost. An example for an algorithm that requires this is ECBS, where the subcost is the number of conflicts that would be created with other agents when traversing an edge.
 class SubcostActionSpace2dRob : public ims::SubcostActionSpace {
 
 protected:

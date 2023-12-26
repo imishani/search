@@ -107,7 +107,11 @@ public:
     virtual std::vector<ConflictType> getConflictTypes() = 0;
 
 protected:
-
+    /// @brief Convert conflicts to constraints.
+    /// @param conflicts The conflicts.
+    /// @return The constraints. Each conflict is converted to a pair mapping agent id to a vector of constraints.
+    virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) = 0;
+    
     // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
     /// @brief The search state.
     struct SearchState : public ims::BestFirstSearch::SearchState, public SearchStateLowerBoundMixin {
@@ -199,7 +203,7 @@ protected:
     /// @param paths The paths to pad.
     void padPathsToMaxLength(MultiAgentPaths& paths);
 
-    virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts);
+    virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
     /// @brief Set the search state struct values.
     /// @param state_id

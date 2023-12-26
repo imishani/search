@@ -143,11 +143,11 @@ struct TransitionExperience : public ExperienceBase {
     double transition_cost_;
 
     /// @brief Constructor
-    explicit TransitionExperience(const StateType& state_from, const StateType& state_to, const bool is_valid) : state_from_(state_from), state_to_(state_to), is_valid_(is_valid), ExperienceBase() {
+    TransitionExperience(const StateType& state_from, const StateType& state_to, const bool is_valid) : state_from_(state_from), state_to_(state_to), is_valid_(is_valid), ExperienceBase() {
         type = ExperienceType::TRANSITION;
     }
 
-    explicit TransitionExperience(const std::pair<StateType, StateType>& state_pair, const bool is_valid) : state_from_(state_pair.first), state_to_(state_pair.second), is_valid_(is_valid), ExperienceBase() {
+    TransitionExperience(const std::pair<StateType, StateType>& state_pair, const bool is_valid) : state_from_(state_pair.first), state_to_(state_pair.second), is_valid_(is_valid), ExperienceBase() {
         type = ExperienceType::TRANSITION;
     }
 

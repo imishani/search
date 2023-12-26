@@ -54,7 +54,7 @@
 #include <search/action_space/experience_accelerated_action_space.hpp>
 namespace ims {
 
-/// @brief Base class for ActionSpaces with constraints.
+/// @brief Base class for ActionSpaces with a subcost. This "subcost" is an additional cost of an edge transition. As an example, in ECBS, this is the number of conflicts that would be created with other agents when traversing this edge.
 /// @details This is an actions space extended to be "Constrainable" using a mixin.
 class SubcostActionSpace : virtual public ActionSpace, public ActionSpaceSubcostMixin{
 public:
@@ -97,7 +97,7 @@ public:
     ~SubcostExperienceAcceleratedConstrainedActionSpace() = default;
 
 
-    virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) = 0;
+    virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) override = 0;
 
     /// @brief Get the cost incurred by conflicts upon a give state  transition.
     /// @param state_val 
@@ -166,7 +166,7 @@ public:
         std::vector<PathType> subexperiences;
         std::vector<std::vector<double>> subexperiences_transition_costs;
 
-        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs); // SLOW AND SLOWING.
+        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs); 
 
         // Retime the subexperiences to start at the time of the query state.
         TimeType query_state_time = query_robot_state->state.back();
@@ -179,7 +179,7 @@ public:
         
         // Get a valid prefix for each of the subexperiences.
         for (int i = 0; i < subexperiences.size(); i++) {
-            // Get the subexperience.
+            // Get the subexperience and costs.
             PathType& subexperience = subexperiences[i];
             std::vector<double>& subexperience_transition_costs = subexperiences_transition_costs[i];
 
@@ -199,11 +199,10 @@ public:
                     valid_states_for_reuse.push_back(robot_state);
 
                     // Create a state_id if one not already exists.
-                    int state_id = getOrCreateRobotStateNonGoal(robot_state); // This is also SLOW apparently.
-                    valid_state_ids_for_reuse.push_back(state_id);
+                    int valid_state_id = getOrCreateRobotStateNonGoal(robot_state); 
+                    valid_state_ids_for_reuse.push_back(valid_state_id);
 
                     // Compute the transition subcosts, as induced by the conflicts that the transition would cause.
-                    // QUESTION(yoraish): STOP EXPERIENCES WHEN TRANSITION CONFLICT COST IS NON ZERO?
                     double transition_conflict_cost = 0;
                     computeTransitionConflictsCost(robot_state, next_robot_state, transition_conflict_cost);
                     
@@ -213,7 +212,7 @@ public:
                     }
                     else{
                         // Keep track of the transition costs.
-                        valid_states_for_reuse_costs.push_back(subexperiences_transition_costs[i][state_ix]);
+                        valid_states_for_reuse_costs.push_back(subexperience_transition_costs[state_ix]);
                         valid_states_for_reuse_subcosts.push_back(transition_conflict_cost);
                     }
 
@@ -248,7 +247,7 @@ public:
     /// @brief To comply with the ExperienceAcceleratedActionSpace interface.
     /// @param state_id The state to get the valid experience subpaths for.
     /// @param subpaths The vector of subpaths -- to be updated with the subpaths.
-    inline void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs) {
+    inline void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs) override {
         // Get the state configuration that corresponds to the state id.
         auto query_robot_state = states_[state_id];
         
@@ -259,7 +258,7 @@ public:
         std::vector<PathType> subexperiences;
         std::vector<std::vector<double>> subexperiences_transition_costs;
 
-        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs); // SLOW AND SLOWING.
+        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs); 
 
         // Retime the subexperiences to start at the time of the query state.
         TimeType query_state_time = query_robot_state->state.back();
@@ -292,11 +291,11 @@ public:
                     valid_states_for_reuse.push_back(robot_state);
 
                     // Create a state_id if one not already exists.
-                    int state_id = getOrCreateRobotStateNonGoal(robot_state); // This is also SLOW apparently.
-                    valid_state_ids_for_reuse.push_back(state_id);
+                    int valid_state_id = getOrCreateRobotStateNonGoal(robot_state); 
+                    valid_state_ids_for_reuse.push_back(valid_state_id);
 
                     // Keep track of the transition costs.
-                    valid_states_for_reuse_costs.push_back(subexperiences_transition_costs[i][state_ix]);
+                    valid_states_for_reuse_costs.push_back(subexperience_transition_costs[state_ix]);
 
                 } else {
                     // If not, break and add the data to our returned objects.

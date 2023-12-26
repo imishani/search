@@ -108,7 +108,7 @@ public:
         return env_->isCellValid(row, col);
     }
 
-    bool isSatisfyingConstraints(const StateType& state_val, const StateType& next_state_val) {
+    bool isSatisfyingConstraints(const StateType& state_val, const StateType& next_state_val) override {
         // Check against constraints.
         // TODO(yoraish): check for time first.  If there are no constraints at this timestep, then the state is valid w.r.t constraints.
 

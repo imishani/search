@@ -46,7 +46,7 @@
 
 namespace ims {
 
-/// @brief A trait class (mixin) for allowing an ActionSpace to return a subcost in addition to a cost for each successor transition.
+/// @brief A trait class (mixin) for allowing an ActionSpace to return a subcost in addition to a cost for each successor transition. This "subcost" is an additional cost of an edge transition. As an example, in ECBS, this is the number of conflicts that would be created with other agents when traversing this edge.
 class ActionSpaceSubcostMixin {
 public:
     /// @brief Constructor

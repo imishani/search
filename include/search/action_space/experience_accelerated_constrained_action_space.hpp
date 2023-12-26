@@ -65,9 +65,11 @@ public:
     /// @brief Destructor
     ~ExperienceAcceleratedConstrainedActionSpace() = default;
 
-
-    virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) = 0;
-
+    /// @brief Whether an edge transition is valid w.r.t constraints.
+    /// @param state 
+    /// @param next_state 
+    /// @return True if valid, false otherwise.
+    virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) override = 0;
 
     inline int getOrCreateRobotState(const StateType& state_val) override {
         // check if the state exists
@@ -118,7 +120,7 @@ public:
     /// @brief To comply with the ExperienceAcceleratedActionSpace interface.
     /// @param state_id The state to get the valid experience subpaths for.
     /// @param subpaths The vector of subpaths -- to be updated with the subpaths.
-    inline void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs) {
+    inline void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs) override {
         // Get the state configuration that corresponds to the state id.
         auto query_robot_state = states_[state_id];
         
@@ -129,7 +131,7 @@ public:
         std::vector<PathType> subexperiences;
         std::vector<std::vector<double>> subexperiences_transition_costs;
 
-        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs); // SLOW AND SLOWING.
+        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs);
 
         // Retime the subexperiences to start at the time of the query state.
         TimeType query_state_time = query_robot_state->state.back();
@@ -162,8 +164,8 @@ public:
                     valid_states_for_reuse.push_back(robot_state);
 
                     // Create a state_id if one not already exists.
-                    int state_id = getOrCreateRobotStateNonGoal(robot_state); // This is also SLOW apparently.
-                    valid_state_ids_for_reuse.push_back(state_id);
+                    int valid_state_id = getOrCreateRobotStateNonGoal(robot_state); 
+                    valid_state_ids_for_reuse.push_back(valid_state_id);
 
                     // Keep track of the transition costs.
                     valid_states_for_reuse_costs.push_back(subexperiences_transition_costs[i][state_ix]);

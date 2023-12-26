@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
 
     // Construct the parameters.
     ims::EACBSParams params;
-    params.low_level_heuristic_ptrs;
+    params.weight_low_level_heuristic = 20.0;
     for (int i {0}; i < num_agents; i++){
         params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
     }
@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
     std::cout << "Creating action spaces..." << std::endl;
     std::vector<std::shared_ptr<ims::ExperienceAcceleratedConstrainedActionSpace>> action_spaces;
     for (int i {0}; i < num_agents; i++){
-        action_spaces.emplace_back(std::make_shared<SubcostExperienceAcceleratedConstrainedActionSpace2dRob>(scene, action_type));
+        action_spaces.emplace_back(std::make_shared<ExperienceAcceleratedConstrainedActionSpace2dRob>(scene, action_type));
         std::cout << "Action space " << i << " created." << std::endl;
     }
 

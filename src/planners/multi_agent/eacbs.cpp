@@ -282,17 +282,17 @@ void ims::EACBS::expand(int state_id) {
         
         switch (experience_reuse_type_) {
             case ExperienceReuseType::NONE: {
-                std::cout << "Experience reuse type is NONE. Not updating the experiences collective." << std::endl;
+                // std::cout << "Experience reuse type is NONE. Not updating the experiences collective." << std::endl;
                 break;
             }
             case ExperienceReuseType::PREVIOUS_SOLUTION: {
-                std::cout << "Experience reuse type is PREVIOUS_SOLUTION. Updating the experiences collective with the previous solution." << std::endl;
+                // std::cout << "Experience reuse type is PREVIOUS_SOLUTION. Updating the experiences collective with the previous solution." << std::endl;
                 agent_action_space_ptrs_[agent_id]->clearPathExperiences();
                 agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
                 break;
             }
             case ExperienceReuseType::CT_BRANCH: {
-                std::cout << "Experience reuse type is CT_BRANCH. Updating the experiences collective with the solution on branch." << std::endl;
+                // std::cout << "Experience reuse type is CT_BRANCH. Updating the experiences collective with the solution on branch." << std::endl;
                 new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
 
                 // Update the action-space with the updated experiences.
@@ -300,7 +300,7 @@ void ims::EACBS::expand(int state_id) {
                 break;
             }
             case ExperienceReuseType::CT_GLOBAL: {
-                std::cout << "Experience reuse type is CT_GLOBAL. Updating the experiences collective with all previous solutions." << std::endl;
+                // std::cout << "Experience reuse type is CT_GLOBAL. Updating the experiences collective with all previous solutions." << std::endl;
                 agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
                 break;
             }

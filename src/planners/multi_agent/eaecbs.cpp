@@ -318,17 +318,17 @@ void ims::EAECBS::expand(int state_id) {
         /////////////////////////////////////////////
         switch (experience_reuse_type_) {
             case ExperienceReuseType::NONE: {
-                std::cout << "Experience reuse type is NONE. Not updating the experiences collective." << std::endl;
+                // std::cout << "Experience reuse type is NONE. Not updating the experiences collective." << std::endl;
                 break;
             }
             case ExperienceReuseType::PREVIOUS_SOLUTION: {
-                std::cout << "Experience reuse type is PREVIOUS_SOLUTION. Updating the experiences collective with the previous solution." << std::endl;
+                // std::cout << "Experience reuse type is PREVIOUS_SOLUTION. Updating the experiences collective with the previous solution." << std::endl;
                 agent_action_space_ptrs_[agent_id]->clearPathExperiences();
                 agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
                 break;
             }
             case ExperienceReuseType::CT_BRANCH: {
-                std::cout << "Experience reuse type is CT_BRANCH. Updating the experiences collective with the solution on branch." << std::endl;
+                // std::cout << "Experience reuse type is CT_BRANCH. Updating the experiences collective with the solution on branch." << std::endl;
                 new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
 
                 // Update the action-space with the updated experiences.
@@ -336,7 +336,7 @@ void ims::EAECBS::expand(int state_id) {
                 break;
             }
             case ExperienceReuseType::CT_GLOBAL: {
-                std::cout << "Experience reuse type is CT_GLOBAL. Updating the experiences collective with all previous solutions." << std::endl;
+                // std::cout << "Experience reuse type is CT_GLOBAL. Updating the experiences collective with all previous solutions." << std::endl;
                 agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
                 break;
             }
@@ -372,7 +372,6 @@ void ims::EAECBS::expand(int state_id) {
         // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
         new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
 
-
         // Get any conflicts between the newly computed paths.
         // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the ECBS class, and then passed to the action_space.
         agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(new_state->paths), 
@@ -389,7 +388,6 @@ void ims::EAECBS::expand(int state_id) {
 
         // Add a random number between zero and one to f.
         // new_state->f += (double)rand() / RAND_MAX; // Uncomment for nitro boost.
-
 
         // Push the new state to the open list.
         open_->push(new_state);

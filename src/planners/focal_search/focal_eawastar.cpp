@@ -92,7 +92,7 @@ void ims::FocalEAwAStarUniformCost::experienceAccelerateOpenList(int state_id){
     std::vector<std::vector<int>> experience_paths;
     std::vector<std::vector<double>> experience_paths_transition_costs;
     std::vector<std::vector<double>> experience_paths_tranmsition_subcosts;
-    action_space_ptr_->getValidExperienceSubpathsFromState(state_id, experience_paths, experience_paths_transition_costs, experience_paths_tranmsition_subcosts); // SLOW
+    action_space_ptr_->getValidExperienceSubpathsFromState(state_id, experience_paths, experience_paths_transition_costs, experience_paths_tranmsition_subcosts);
 
     // Add the experience paths to the open list. These paths are valid by construction.
     for (size_t i = 0; i < experience_paths.size(); ++i){

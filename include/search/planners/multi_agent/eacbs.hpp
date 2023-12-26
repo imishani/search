@@ -107,7 +107,7 @@ public:
     /// @param starts The start states for all agents.
     /// @param goals The goal states for all agents.
     void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
-                           const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+                           const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
     void initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs,
                            const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
@@ -116,7 +116,7 @@ public:
     /// @param agent_names The names of the agents.
     /// @param starts The start states for all agents.
     /// @param goals The goal states for all agents.
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
     void initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief Initialize the open list with a node including single-agent paths.
@@ -125,7 +125,7 @@ public:
     /// @brief plan a path
     /// @param path The path
     /// @return whether the plan was successful or not
-    bool plan(MultiAgentPaths& paths);
+    bool plan(MultiAgentPaths& paths) override;
 
 protected:
     // The searchState struct. Keeps track of the state id, parent id, and cost. In EACBS, we also add the constraints and paths.
@@ -154,7 +154,7 @@ protected:
 
         /// @brief Get the cost of the state.
         /// @return 
-        virtual double getLowerBound() const override {
+        double getLowerBound() const override {
             assert(sum_of_path_cost_lower_bounds > 0.0);
             return sum_of_path_cost_lower_bounds;
         }
@@ -183,7 +183,7 @@ protected:
     /// @param paths The paths to pad.
     void padPathsToMaxLength(MultiAgentPaths& paths);
 
-    virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts);
+    virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
     /// @brief Set the search state struct values.
     /// @param state_id
@@ -198,12 +198,12 @@ protected:
     /// @brief Checks that the start and goals states are valid. The checks are for time (all initial times are zero and all goal times are -1), for individual agents, and between agents.
     /// @param starts
     /// @param goals
-    void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
 
     /// @brief Get the conflict types requested by the algorithm.
     /// @return The conflict types.
     /// @note Derived class, aka EACBS variants that request different conflict types (e.g., point3d, etc.) should override this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
-    virtual inline std::vector<ConflictType> getConflictTypes() {
+    inline std::vector<ConflictType> getConflictTypes() override {
         return conflict_types_;
     }
 

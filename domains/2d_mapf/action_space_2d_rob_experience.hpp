@@ -79,6 +79,214 @@ struct actionType2dRob : public ims::ActionType {
     std::vector<std::vector<double>> action_deltas;
 };
 
+class ExperienceAcceleratedConstrainedActionSpace2dRob : public ims::ExperienceAcceleratedConstrainedActionSpace {
+private:
+    std::shared_ptr<scene2DRob> env_;
+    std::shared_ptr<actionType2dRob> action_type_;
+
+public:
+    ExperienceAcceleratedConstrainedActionSpace2dRob(const scene2DRob& env,
+                                const actionType2dRob& actions_ptr) : ims::ExperienceAcceleratedConstrainedActionSpace() {
+        this->env_ = std::make_shared<scene2DRob>(env);
+        this->action_type_ = std::make_shared<actionType2dRob>(actions_ptr);
+    }
+
+    void getActions(int state_id,
+                    std::vector<ActionSequence> &action_seqs,
+                    bool check_validity) override {
+        auto actions = action_type_->getPrimActions();
+        for (int i {0} ; i < action_type_->num_actions ; i++){
+            auto action = actions[i];
+            if (check_validity){
+                auto curr_state = this->getRobotState(state_id);
+                auto next_state_val = StateType(curr_state->state.size());
+                std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+                if (!isStateValid(next_state_val)){
+                    continue;
+                }
+            }
+            // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
+            // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
+            ActionSequence action_seq;
+            action_seq.push_back(action);
+            action_seqs.push_back(action_seq);
+        }
+    }
+
+    bool isStateValid(const StateType& state_val) override {
+        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]) {
+            return false;
+        }
+
+        auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
+        if (map_val == 100) {
+            return false;
+        }
+        return true;
+    }
+
+    bool isSatisfyingConstraints(const StateType& state_val, const StateType& next_state_val) {
+        // Check against constraints.
+        // TODO(yoraish): check for time first.  If there are no constraints at this timestep, then the state is valid w.r.t constraints.
+
+        // Otherwise, check if the state is valid w.r.t the constraints.
+        // Iterate over the constraints. Those are in the pointer to the constraints collective, within a set pointer called constraints_ptr_.
+        if (!constraints_collective_ptr_->getConstraints().empty()) {
+            // Loop through the vector, and get a reference to each one of the elements.
+            for (auto& constraint_ptr : constraints_collective_ptr_->getConstraints()) {
+
+                // Check if the constraint is a vertex constraint or an edge constraint.
+                switch (constraint_ptr->type) {
+                    case ims::ConstraintType::VERTEX: {
+                        // Convert to a vertex constraint pointer to get access to its members.
+                        auto* vertex_constraint_ptr = dynamic_cast<ims::VertexConstraint*>(constraint_ptr.get());
+                        if (vertex_constraint_ptr != nullptr) {
+                            // If the constraint is a vertex constraint, check if the state is valid w.r.t the constraint.
+                            // note(yoraish): the state includes time so the check for equality in time is the element at position 2.
+                            if (vertex_constraint_ptr->state[0] == next_state_val[0] && vertex_constraint_ptr->state[1] == next_state_val[1] && vertex_constraint_ptr->state[2] == next_state_val[2]) {
+                                return false;
+                            }
+                        }
+                        break;
+                    }
+
+                    case ims::ConstraintType::EDGE: {
+                        // Convert to an edge constraint pointer to get access to its members.
+                        auto* edge_constraint_ptr = dynamic_cast<ims::EdgeConstraint*>(constraint_ptr.get());
+                        if (edge_constraint_ptr != nullptr) {
+                            // If the constraint is an edge constraint, check if the state is valid w.r.t the constraint.
+                            if (edge_constraint_ptr->state_from[0] == state_val[0] && edge_constraint_ptr->state_from[1] == state_val[1] && edge_constraint_ptr->state_from[2] == state_val[2] && edge_constraint_ptr->state_to[0] == next_state_val[0] && edge_constraint_ptr->state_to[1] == next_state_val[1] && edge_constraint_ptr->state_to[2] == next_state_val[2]) {
+                                return false;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+
+    bool isPathValid(const PathType& path) override {
+        return std::all_of(path.begin(), path.end(), [this](const StateType& state_val) { return isStateValid(state_val); });
+    }
+
+    bool getSuccessors(int curr_state_ind,
+                       std::vector<int>& successors,
+                       std::vector<double>& costs) override {
+        auto curr_state = this->getRobotState(curr_state_ind);
+        std::vector<ActionSequence> actions;
+        getActions(curr_state_ind, actions, false);
+        for (int i {0} ; i < actions.size() ; i++){
+            auto action = actions[i][0];
+            auto next_state_val = StateType(curr_state->state.size());
+            std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+
+            // Check for constraint satisfaction.
+            if (!isSatisfyingConstraints(curr_state->state, next_state_val)) {
+                continue;
+            }
+
+            // EXAMPLE NOTE: it may sometimes make sense to check constraint satisfaction within the isStateValid method, for efficiency. For example, if a constraint requires comparison of a robot state against a world state and simulataneously the state of another robot, then it would be better to set all robots into their specified configurations and check for validity only once.
+            if (isStateValid(next_state_val)) {
+                int next_state_ind = getOrCreateRobotState(next_state_val);
+                successors.push_back(next_state_ind);
+                costs.push_back(action_type_->action_costs[i]);
+            }
+        }
+        return true;
+    }
+
+    /// @brief Compute the cost of a path. This is domain-specific, and must be implemented in multi-agent settings.
+    /// @param path
+    /// @return The cost of a path.
+    double computePathCost(const PathType& path) {
+        double cost = 0;
+        for (int i{0}; i < path.size() - 1; i++) {
+            auto curr_state = path[i];
+            auto next_state = path[i + 1];
+            auto action = action_type_->getPrimActions()[next_state[2]];
+            cost += action_type_->action_costs[next_state[2]];
+        }
+        return cost;
+    }
+    // Get successors with subcosts. The subcosts are the number of conflicts that would be created on a transition to the successor.
+    bool getSuccessorsExperienceAccelerated(int curr_state_ind,
+                       std::vector<int>& successors,
+                       std::vector<double>& costs) override {
+
+        return getSuccessors(curr_state_ind, successors, costs);
+    }
+    
+    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths, std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs, const std::vector<ims::ConflictType>& conflict_types, int max_conflicts, const std::vector<std::string> & names, TimeType time_start = 0, TimeType time_end = -1) {
+        // Loop through the paths and check for conflicts.
+        // If requested, get all the conflicts available.
+        if (max_conflicts == -1) {
+            max_conflicts = INF_INT;
+        }
+
+        // Length of the longest path.
+        int max_path_length = 0;
+        for (auto& path : *paths) {
+            if (path.second.size() > max_path_length) {
+                max_path_length = path.second.size();
+            }
+        }
+
+        // Loop through the paths and check for conflicts.
+        for (int t{0}; t < max_path_length; t++) {
+
+            for (int i{0}; i < paths->size(); i++) {
+                for (int j{i + 1}; j < paths->size(); j++) {
+                    // Get the position of the two robots at time t. If one of the robots is at its goal (aka its path is shorter than t), then use its last position.
+                    int t_i = std::min(t, (int)paths->at(i).size() - 1);
+                    int t_j = std::min(t, (int)paths->at(j).size() - 1);
+
+                    // Check if the two paths are in a vertex conflict.
+                    if (paths->at(i)[t_i][0] == paths->at(j)[t_j][0] && paths->at(i)[t_i][1] == paths->at(j)[t_j][1]) {
+                        // If they are, then add a conflict to the vector.
+                        StateType conflict_state = {paths->at(i)[t_i][0], paths->at(i)[t_i][1], (double)t};
+                        std::shared_ptr<ims::VertexConflict> conflict_ptr = std::make_shared<ims::VertexConflict>(std::vector<StateType>{conflict_state, conflict_state}, std::vector<int>{i, j});
+                        conflicts_ptrs.push_back(conflict_ptr);
+
+                        if (conflicts_ptrs.size() >= max_conflicts) {
+                            return;
+                        }
+                    }
+
+                    // Check if the two paths are in an edge conflict. The first check if for t being the at least before the last time step of the path, in which case there is no edge conflict.
+                    if (t < paths->at(i).size() - 1 && t < paths->at(j).size() - 1) {
+                        if (paths->at(i)[t][0] == paths->at(j)[t + 1][0] && paths->at(i)[t][1] == paths->at(j)[t + 1][1] && paths->at(i)[t + 1][0] == paths->at(j)[t][0] && paths->at(i)[t + 1][1] == paths->at(j)[t][1]) {
+                            // If they are, then add a conflict to the vector.
+                            int agent_id_from = i;
+                            StateType conflict_state_i_from = {paths->at(i)[t][0], paths->at(i)[t][1], (double)t};
+                            StateType conflict_state_i_to = {paths->at(i)[t + 1][0], paths->at(i)[t + 1][1], (double)(t + 1)};
+
+                            int agent_id_to = j;
+                            StateType conflict_state_j_from = {paths->at(j)[t][0], paths->at(j)[t][1], (double)t};
+                            StateType conflict_state_j_to = {paths->at(j)[t + 1][0], paths->at(j)[t + 1][1], (double)(t + 1)};
+
+                            std::vector<StateType> states_from = {conflict_state_i_from, conflict_state_j_from};
+                            std::vector<StateType> states_to = {conflict_state_i_to, conflict_state_j_to};
+                            std::vector<int> agent_ids = {agent_id_from, agent_id_to};
+
+                            std::shared_ptr<ims::EdgeConflict> conflict = std::make_shared<ims::EdgeConflict>(states_from, states_to, agent_ids);
+                            conflicts_ptrs.push_back(conflict);
+
+                            if (conflicts_ptrs.size() >= max_conflicts) {
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+};
+
+/// @brief A constrained action space for the 2D mapf domain, with the subcost and experience acceleration extensions.
+/// @note This is very similar to the ExperienceAcceleratedConstrainedActionSpace2dRob class, with additional functionality for subcosts. We leave these two classes separate for clarity and for the sake of example.
 class SubcostExperienceAcceleratedConstrainedActionSpace2dRob : public ims::SubcostExperienceAcceleratedConstrainedActionSpace {
 private:
     std::shared_ptr<scene2DRob> env_;

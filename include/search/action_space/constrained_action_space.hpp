@@ -31,9 +31,7 @@
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   July 10 2023
  */
-
-#ifndef SEARCH_CONSTRAINEDSEARCH_HPP
-#define SEARCH_CONSTRAINEDSEARCH_HPP
+#pragma once
 
 // standard includes
 #include <functional>
@@ -63,11 +61,10 @@ public:
     /// @brief Destructor
     ~ConstrainedActionSpace() = default;
 
-    /// @brief If a given configuration is valid with respect to the constraints. 
+    /// @brief If a given configuration transition is valid with respect to the constraints. 
     virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) = 0;
 
 };
 
 }  // namespace ims
 
-#endif  // SEARCH_CONSTRAINEDSEARCH_HPP

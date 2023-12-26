@@ -172,7 +172,7 @@ public:
                                    const std::vector<StateType>& goals);
     inline void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                   const std::vector<StateType>& starts,
-                                  const std::vector<StateType>& goals) { throw std::runtime_error("FocalSearch::initializePlanner() called with an ActionSpace that is not a SubcostActionSpace."); }
+                                  const std::vector<StateType>& goals) override { throw std::runtime_error("FocalSearch::initializePlanner() called with an ActionSpace that is not a SubcostActionSpace."); }
 
     /// @brief Initialize the planner
     /// @param action_space_ptr The action space
@@ -181,7 +181,7 @@ public:
     virtual void initializePlanner(const std::shared_ptr<SubcostActionSpace>& action_space_ptr,
                                    const StateType& start, const StateType& goal);
     inline void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                  const StateType& start, const StateType& goal) { throw std::runtime_error("FocalSearch::initializePlanner() called with an ActionSpace that is not a SubcostActionSpace."); }
+                                  const StateType& start, const StateType& goal) override { throw std::runtime_error("FocalSearch::initializePlanner() called with an ActionSpace that is not a SubcostActionSpace."); }
 
     /// @brief plan a path
     /// @param path The path

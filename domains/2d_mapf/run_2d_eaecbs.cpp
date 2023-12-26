@@ -104,6 +104,7 @@ int main(int argc, char** argv) {
 
     // Construct the parameters.
     ims::EAECBSParams params;
+    params.weight_low_level_heuristic = 20.0;
     params.low_level_heuristic_ptrs;
     for (int i {0}; i < num_agents; i++){
         params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);

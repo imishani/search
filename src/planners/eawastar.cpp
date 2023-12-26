@@ -87,7 +87,7 @@ void ims::EAwAStarUniformCost::experienceAccelerateOpenList(int state_id){
     // The returned states in the subexperiences do not have a time component.
     std::vector<std::vector<int>> experience_paths;
     std::vector<std::vector<double>> experience_paths_transition_costs;
-    action_space_ptr_->getValidExperienceSubpathsFromState(state_id, experience_paths, experience_paths_transition_costs); // SLOW
+    action_space_ptr_->getValidExperienceSubpathsFromState(state_id, experience_paths, experience_paths_transition_costs);
 
     // Add the experience paths to the open list. These paths are valid by construction.
     for (size_t i = 0; i < experience_paths.size(); ++i){

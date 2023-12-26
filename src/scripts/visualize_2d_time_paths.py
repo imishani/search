@@ -121,14 +121,18 @@ def create_xy_time_animation(map_np, paths_np, duration=(100 * 1/20), inflate=0)
         [0, 255, 0],
         [255, 0, 0],
         [255, 0, 255],
-        [0, 255, 255]]
+        [0, 255, 255],
+        [255, 255, 0],
+        [255, 255, 255]]
 
     tail_colors = [
         [200, 200, 255],
         [200, 255, 200],
         [255, 200, 200],
         [255, 200, 255],
-        [200, 255, 255]]
+        [200, 255, 255],
+        [255, 255, 200],
+        [255, 255, 255]]
 
     # Get the map height and width.
     map_height = map_np.shape[0]
@@ -209,7 +213,8 @@ def main():
     map_np = get_map_np(paths_dict['map_path'])
 
     # Draw paths on map.
-    create_xy_time_animation(map_np, paths, duration=(1/args.fps), inflate=0)
+    print("Creating animation with FPS={}".format(args.fps))
+    create_xy_time_animation(map_np, paths, duration=(500/args.fps), inflate=0)
 
 
 if __name__ == '__main__':
