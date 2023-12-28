@@ -125,7 +125,7 @@ public:
         return true;
     }
 
-    bool isSatisfyingConstraints(const StateType& state_val, const StateType& next_state_val) {
+    bool isSatisfyingConstraints(const StateType& state_val, const StateType& next_state_val) override {
         // Check against constraints.
         // TODO(yoraish): check for time first.  If there are no constraints at this timestep, then the state is valid w.r.t constraints.
 
@@ -219,7 +219,10 @@ public:
         return getSuccessors(curr_state_ind, successors, costs);
     }
     
-    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths, std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs, const std::vector<ims::ConflictType>& conflict_types, int max_conflicts, const std::vector<std::string> & names, TimeType time_start = 0, TimeType time_end = -1) {
+    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths,
+                           std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs,
+                           const std::vector<ims::ConflictType>& conflict_types, int max_conflicts,
+                           const std::vector<std::string> & names, TimeType time_start, TimeType time_end) override {
         // Loop through the paths and check for conflicts.
         // If requested, get all the conflicts available.
         if (max_conflicts == -1) {
@@ -230,7 +233,7 @@ public:
         int max_path_length = 0;
         for (auto& path : *paths) {
             if (path.second.size() > max_path_length) {
-                max_path_length = path.second.size();
+                max_path_length = (int)path.second.size();
             }
         }
 
@@ -333,7 +336,7 @@ public:
         return true;
     }
 
-    bool isSatisfyingConstraints(const StateType& state_val, const StateType& next_state_val) {
+    bool isSatisfyingConstraints(const StateType& state_val, const StateType& next_state_val) override {
         // Check against constraints.
         // TODO(yoraish): check for time first.  If there are no constraints at this timestep, then the state is valid w.r.t constraints.
 

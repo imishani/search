@@ -157,8 +157,8 @@ public:
                                 }
 
                                 // Get the state of the other agent at the current time step. Get this from the constraints context. If the constraint is "always imposed," there is a need to check that the current timestep is not surpassing the latest timestep of the other agent, and if it does then take the latest state of the other agent.
-                                TimeType other_agent_latest_time = constraints_collective_ptr_->getConstraintsContext()->agent_paths.at(other_agent_id).back().back();
-                                TimeType agent_time = next_state_val.back();
+                                TimeType other_agent_latest_time = (TimeType)constraints_collective_ptr_->getConstraintsContext()->agent_paths.at(other_agent_id).back().back();
+                                auto agent_time = (TimeType)next_state_val.back();
                                 TimeType other_agent_time = std::min(other_agent_latest_time, agent_time);
                                 StateType other_agent_state = constraints_collective_ptr_->getConstraintsContext()->agent_paths.at(other_agent_id).at(other_agent_time);
 
@@ -182,9 +182,9 @@ public:
                                     continue;
                                 }
 
-                                TimeType other_agent_latest_time = constraints_collective_ptr_->getConstraintsContext()->agent_paths.at(other_agent_id).back().back();
-                                TimeType agent_time_from = state_val.back();
-                                TimeType agent_time_to = next_state_val.back();
+                                TimeType other_agent_latest_time = (TimeType)constraints_collective_ptr_->getConstraintsContext()->agent_paths.at(other_agent_id).back().back();
+                                auto agent_time_from = (TimeType)state_val.back();
+                                auto agent_time_to = (TimeType)next_state_val.back();
 
                                 TimeType other_agent_time_from = std::min(other_agent_latest_time, agent_time_from);
                                 TimeType other_agent_time_to = std::min(other_agent_latest_time, agent_time_to);
@@ -276,7 +276,7 @@ public:
     }
     
     void computeTransitionNumberConflicts(const StateType& state, const StateType& next_state_val, int & num_conflicts){
-        for (auto other_agent_id_and_path : constraints_collective_ptr_->getConstraintsContext()->agent_paths) {
+        for (const auto& other_agent_id_and_path : constraints_collective_ptr_->getConstraintsContext()->agent_paths) {
             int other_agent_id = other_agent_id_and_path.first;
             PathType other_agent_path = other_agent_id_and_path.second;
 
@@ -285,8 +285,8 @@ public:
             if (other_agent_path.empty()) {
                 continue;
             }
-            TimeType other_agent_last_time = other_agent_path.back().back();
-            TimeType agent_time = next_state_val.back();
+            auto other_agent_last_time = (TimeType)other_agent_path.back().back();
+            auto agent_time = (TimeType)next_state_val.back();
             TimeType other_agent_time = std::min(other_agent_last_time, agent_time);
             StateType other_agent_state = other_agent_path.at(other_agent_time);
 
@@ -303,7 +303,7 @@ public:
 
         // Since we are dealing with time, we should take care to first check if this state is a goal state. That would be the case if, when setting the time for this state to be -1, the state already exists. By convention goal states have a time of -1. In this instance, at least.
         // Only do this if the time of the state is later than the last constraint.
-        int state_time = state_val.back();
+        int state_time = (int)state_val.back();
         int last_constraint_time = constraints_collective_ptr_->getLastConstraintTime();
 
         // TODO(yoraish): currently this method runs two "find"s to check if (a) the passed state is already seen and if the current state is a goal state. The first check is done by finding the state in the state_to_id_ object, and the second by setting the last element of the state to -1 (convention for states) and searching the state_to_id_ object again. This is inefficient and it would be better to check for the state only within the goal states. Unfortunately, the goals are noo known to the action space.
@@ -347,7 +347,11 @@ public:
         return cost;
     }
 
-    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths, std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs, const std::vector<ims::ConflictType>& conflict_types, int max_conflicts, const std::vector<std::string> & names, TimeType time_start = 0, TimeType time_end = -1) {
+    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths,
+                           std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs,
+                           const std::vector<ims::ConflictType>& conflict_types, int max_conflicts,
+                           const std::vector<std::string> & names,
+                           TimeType time_start, TimeType time_end) override {
         // Loop through the paths and check for conflicts.
         // If requested, get all the conflicts available.
         if (max_conflicts == -1) {
@@ -358,7 +362,7 @@ public:
         int max_path_length = 0;
         for (auto& path : *paths) {
             if (path.second.size() > max_path_length) {
-                max_path_length = path.second.size();
+                max_path_length = (int)path.second.size();
             }
         }
 

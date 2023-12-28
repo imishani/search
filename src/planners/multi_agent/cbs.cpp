@@ -143,7 +143,7 @@ void ims::CBS::createRootInOpenList(){
     // <<< REMOVE REMOVE REMOVE
 
     // Add the agent_names to the constraints collectives.
-    for (auto agent_id_and_constraints_collective : start_->constraints_collectives){
+    for (const auto& agent_id_and_constraints_collective : start_->constraints_collectives){
         int agent_id = agent_id_and_constraints_collective.first;
 
         start_->constraints_collectives.at(agent_id).getConstraintsContext()->agent_names = agent_names_;
@@ -206,7 +206,7 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
                                                         agent_names_);
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             ++get_paths_conflicts_counter;
-            sum_of_get_path_conflict_time += std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+            sum_of_get_path_conflict_time += (int)std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
             // std::cout << "getPathsConflicts called " << get_paths_conflicts_counter << " times. Took " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " microseconds, summing to " << sum_of_get_path_conflict_time/1000000.0 << " seconds" << std::endl;
         }
         // <<< KEEP KEEP KEEP
@@ -316,7 +316,7 @@ void ims::CBS::expand(int state_id) {
                                                            agent_names_);
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             ++get_paths_conflicts_counter;
-            sum_of_get_path_conflict_time += std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+            sum_of_get_path_conflict_time += (int)std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
             // std::cout << "getPathsConflicts called " << get_paths_conflicts_counter << " times. Took " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " microseconds, summing to " << sum_of_get_path_conflict_time/1000000.0 << " seconds" << std::endl;
         }
         // <<< REMOVE REMOVE REMOVE

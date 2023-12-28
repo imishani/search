@@ -96,7 +96,7 @@ protected:
     /// @brief Get constraints from conflicts. This is where this algorithm differs from CBS. It creates state-avoidance constraints (avoid another agent at their specified state and time), as opposed to a negative costraint on the ego robot.
     /// @param conflicts 
     /// @return 
-    virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
+    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
     /// Member variables.
     // The search parameters.

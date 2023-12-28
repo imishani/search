@@ -171,11 +171,11 @@ struct Point3dConflict : public Conflict {
     explicit Point3dConflict(const std::vector<StateType>& from_states,
                              const std::vector<StateType>& to_states, 
                              const std::vector<int> & agent_ids,
-                             const Eigen::Vector3d& point) : 
+                             Eigen::Vector3d  point) :
                                 from_states(from_states),
                                 to_states(to_states), 
                                 agent_ids(agent_ids),
-                                point(point) {
+                                point(std::move(point)) {
     
     /// @brief The type of the Conflict.
     type = ConflictType::POINT3D;
@@ -185,10 +185,10 @@ struct Point3dConflict : public Conflict {
     /// @param state The state vector.
     explicit Point3dConflict(const std::vector<StateType>& from_states,
                              const std::vector<int> & agent_ids,
-                             const Eigen::Vector3d& point) : 
+                             Eigen::Vector3d  point) :
                                 from_states(from_states),
                                 agent_ids(agent_ids),
-                                point(point) {
+                                point(std::move(point)) {
     
     /// @brief The type of the Conflict.
     type = ConflictType::POINT3D;

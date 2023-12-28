@@ -97,7 +97,7 @@ public:
     ~SubcostExperienceAcceleratedConstrainedActionSpace() = default;
 
 
-    virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) override = 0;
+    bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) override = 0;
 
     /// @brief Get the cost incurred by conflicts upon a give state  transition.
     /// @param state_val 
@@ -111,7 +111,7 @@ public:
 
         // Since we are dealing with time, we should take care to first check if this state is a goal state. That would be the case if, when setting the time for this state to be -1, the state already exists. By convention goal states have a time of -1. In this instance, at least.
         // Only do this if the time of the state is later than the last constraint.
-        int state_time = state_val.back();
+        int state_time = (int)state_val.back();
         int last_constraint_time = constraints_collective_ptr_->getLastConstraintTime();
 
         // TODO(yoraish): currently this method runs two "find"s to check if (a) the passed state is already seen and if the current state is a goal state. The first check is done by finding the state in the state_to_id_ object, and the second by setting the last element of the state to -1 (convention for states) and searching the state_to_id_ object again. This is inefficient and it would be better to check for the state only within the goal states. Unfortunately, the goals are noo known to the action space.
@@ -169,7 +169,7 @@ public:
         experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs); 
 
         // Retime the subexperiences to start at the time of the query state.
-        TimeType query_state_time = query_robot_state->state.back();
+        auto query_state_time = (TimeType)query_robot_state->state.back();
         for (auto& subexperience : subexperiences) {
             for (int i = 0; i < subexperience.size(); i++) {
                 StateType& state = subexperience[i];
@@ -261,7 +261,7 @@ public:
         experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs); 
 
         // Retime the subexperiences to start at the time of the query state.
-        TimeType query_state_time = query_robot_state->state.back();
+        auto query_state_time = (TimeType)query_robot_state->state.back();
         for (auto& subexperience : subexperiences) {
             for (int i = 0; i < subexperience.size(); i++) {
                 StateType& state = subexperience[i];

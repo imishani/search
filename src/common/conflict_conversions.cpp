@@ -142,7 +142,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
         // Create a new vertex constraint for each of the agents. Point3DConflict assumes private grids, so each agent has its own state.
         for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
             int agent_id = point3d_conflict_ptr->agent_ids[i];
-            TimeType time = point3d_conflict_ptr->from_states.front().back();
+            auto time = (TimeType)point3d_conflict_ptr->from_states.front().back();
 
             // Create a new sphere3d constraint for this timestep.
             Sphere3dConstraint constraint = Sphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time);
@@ -158,7 +158,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
         for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
             int agent_id = point3d_conflict_ptr->agent_ids[i];
 
-            TimeType time_from = std::round(point3d_conflict_ptr->from_states[i].back());
+            auto time_from = (TimeType)std::round(point3d_conflict_ptr->from_states[i].back());
             TimeType time_to = time_from + 1; // TODO(yoraish): this +1 should come from a discretization object. It is within the action type that may not be available to the actionspace object, which the planner holds.
 
             // Create a new sphere3d constraint for each of the two timesteps.

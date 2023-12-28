@@ -153,7 +153,7 @@ void ims::EACBS::createRootInOpenList() {
     start_->setOpen();
 
     // Add the agent_names to the constraints collectives.
-    for (auto agent_id_and_constraints_collective : start_->constraints_collectives){
+    for (const auto& agent_id_and_constraints_collective : start_->constraints_collectives){
         int agent_id = agent_id_and_constraints_collective.first;
 
         start_->constraints_collectives.at(agent_id).getConstraintsContext()->agent_names = agent_names_;
@@ -207,7 +207,7 @@ bool ims::EACBS::plan(MultiAgentPaths& paths) {
         // Check for conflicts in this new state.
         agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), 
                                                        state->unresolved_conflicts, 
-                                                       getConflictTypes()   ,
+                                                       getConflictTypes(),
                                                        1, 
                                                        agent_names_);
 

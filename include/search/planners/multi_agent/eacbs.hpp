@@ -183,7 +183,7 @@ protected:
     /// @param paths The paths to pad.
     void padPathsToMaxLength(MultiAgentPaths& paths);
 
-    virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
+    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
     /// @brief Set the search state struct values.
     /// @param state_id

@@ -80,7 +80,7 @@ namespace ims{
         explicit FocalwAStar(const FocalwAStarParams &params);
 
         /// @brief Destructor
-        ~FocalwAStar();
+        ~FocalwAStar() override;
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space

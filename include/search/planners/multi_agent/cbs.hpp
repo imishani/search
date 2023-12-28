@@ -99,7 +99,10 @@ public:
     explicit CBSBase(const CBSParams& params);
 
     /// @brief Destructor.
-    ~CBSBase(){
+    ~CBSBase() override{
+        for (auto state_ptr : states_){
+            delete state_ptr;
+        }
         delete open_;
     }
 
@@ -135,7 +138,7 @@ protected:
 
         /// @brief Required for FocalQueue
         /// @return 
-        virtual double getLowerBound() const override {
+        double getLowerBound() const override {
             assert(sum_of_path_cost_lower_bounds > 0.0);
             return sum_of_path_cost_lower_bounds;
         }
@@ -203,7 +206,7 @@ protected:
     /// @param paths The paths to pad.
     void padPathsToMaxLength(MultiAgentPaths& paths);
 
-    virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
+    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
     /// @brief Set the search state struct values.
     /// @param state_id
@@ -223,7 +226,7 @@ protected:
     /// @brief Get the conflict types requested by the algorithm.
     /// @return The conflict types.
     /// @note Derived class, aka CBS variants that request different conflict types (e.g., point3d, etc.) should override this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
-    virtual inline std::vector<ConflictType> getConflictTypes() {
+    inline std::vector<ConflictType> getConflictTypes() override {
         return conflict_types_;
     }
 

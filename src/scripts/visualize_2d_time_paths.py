@@ -39,8 +39,6 @@ Run with:
 python3 visualize_paths.py --paths <path_to_json> --map <path_to_map_image>
 """
 
-import sys
-import json
 import cv2
 import imageio
 import numpy as np
@@ -113,7 +111,7 @@ def get_paths_np(paths):
     return paths_np
 
 
-def create_xy_time_animation(map_np, paths_np, duration=(100 * 1/20), inflate=0):
+def create_xy_time_animation(map_np, paths_np, duration=(100 * 1 / 20), inflate=0):
     # Create an animation of the paths on the map.
     # Create a color for each robot. This is a color and a diluted color.
     colors = [
@@ -214,7 +212,7 @@ def main():
 
     # Draw paths on map.
     print("Creating animation with FPS={}".format(args.fps))
-    create_xy_time_animation(map_np, paths, duration=(500/args.fps), inflate=0)
+    create_xy_time_animation(map_np, paths, duration=(500 / args.fps), inflate=0)
 
 
 if __name__ == '__main__':

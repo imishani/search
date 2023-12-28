@@ -32,6 +32,7 @@
  * \date   Sept 14 2023
  */
 
+#include <random>
 #include <search/planners/astar.hpp>
 #include <search/planners/multi_agent/prioritized_planning.hpp>
 
@@ -82,7 +83,7 @@ void ims::PrioritizedPlanning::initializePlanner(std::vector<std::shared_ptr<Con
         for (int i{0}; i < num_agents_; ++i) {
             params_.agent_priority_ordering.push_back(i);
         }
-        std::random_shuffle(params_.agent_priority_ordering.begin(), params_.agent_priority_ordering.end());
+        std::shuffle(params_.agent_priority_ordering.begin(), params_.agent_priority_ordering.end(), std::mt19937(std::random_device()()));
     }
 }
 

@@ -37,7 +37,7 @@ ims::FocalwAStar::FocalwAStar(const ims::FocalwAStarParams &params) : params_(pa
 
 }
 
-ims::FocalwAStar::~FocalwAStar() {}
+ims::FocalwAStar::~FocalwAStar() = default;
 
 void ims::FocalwAStar::initializePlanner(const std::shared_ptr<SubcostActionSpace> &action_space_ptr,
                                     const std::vector<StateType> &starts,

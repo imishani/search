@@ -74,7 +74,8 @@ public:
     }
 
     /// @brief Create a roadmap with a given timeout in seconds.
-    inline void createRoadmap(const StateType& start_state, const StateType& goal_state, int num_samples, int num_neighbors = 10, double radius = std::numeric_limits<double>::infinity()) {
+    inline void createRoadmap(const StateType& start_state, const StateType& goal_state, int num_samples,
+                              int num_neighbors = 10, double radius = INF_DOUBLE) {
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
         // Clear the roadmap.

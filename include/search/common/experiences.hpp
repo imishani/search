@@ -86,7 +86,7 @@ struct ExperienceBase {
     virtual std::string toString() const = 0;
 
     /// @brief The type of the experience.
-    ExperienceType type;
+    ExperienceType type = ExperienceType::UNSET;
 };
 
 /// @brief path experience PathExperience. This is one of the most common type of experience when working in motion planning.
@@ -98,7 +98,7 @@ struct PathExperience : public ExperienceBase {
     std::vector<double> path_transition_costs_;
 
     /// @brief Constructor
-    explicit PathExperience(const PathType& path, const std::vector<double>& path_transition_costs) : path_(path), path_transition_costs_(path_transition_costs), ExperienceBase() {
+    explicit PathExperience(PathType path, const std::vector<double>& path_transition_costs) : path_(std::move(path)), path_transition_costs_(path_transition_costs), ExperienceBase() {
         type = ExperienceType::PATH;
     }
 
@@ -143,7 +143,8 @@ struct TransitionExperience : public ExperienceBase {
     double transition_cost_;
 
     /// @brief Constructor
-    TransitionExperience(const StateType& state_from, const StateType& state_to, const bool is_valid) : state_from_(state_from), state_to_(state_to), is_valid_(is_valid), ExperienceBase() {
+    TransitionExperience(const StateType& state_from, const StateType& state_to, const bool is_valid) :
+    state_from_(state_from), state_to_(state_to), is_valid_(is_valid), ExperienceBase() {
         type = ExperienceType::TRANSITION;
     }
 
@@ -279,11 +280,11 @@ struct ExperiencesCollective {
         for (const auto& experience_ptr : all_experiences_with_state) {
             // Find the index of the state in the experience.
             auto it = std::find(experience_ptr->getPath().begin(), experience_ptr->getPath().end(), state);
-            int state_index = std::distance(experience_ptr->getPath().begin(), it);
+            int state_index = (int)std::distance(experience_ptr->getPath().begin(), it);
 
             // Add the subpath to the experiences.
-            experience_subpaths.push_back(PathType(experience_ptr->getPath().begin() + state_index, experience_ptr->getPath().end()));
-            experience_subpaths_transition_costs.push_back(std::vector<double>(experience_ptr->getPathTransitionCosts().begin() + state_index, experience_ptr->getPathTransitionCosts().end()));
+            experience_subpaths.emplace_back(experience_ptr->getPath().begin() + state_index, experience_ptr->getPath().end());
+            experience_subpaths_transition_costs.emplace_back(experience_ptr->getPathTransitionCosts().begin() + state_index, experience_ptr->getPathTransitionCosts().end());
         }
     }
 

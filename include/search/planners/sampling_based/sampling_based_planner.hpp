@@ -52,7 +52,7 @@ namespace ims{
         SamplingBasedPlannerParams() : time_limit_(1000.0), PlannerParams(){}
 
         /// @brief Destructor
-        virtual ~SamplingBasedPlannerParams() = default;
+        ~SamplingBasedPlannerParams() override = default;
 
         double time_limit_; // seconds
         bool verbose = false;
@@ -70,15 +70,15 @@ namespace ims{
         explicit SamplingBasedPlanner(const SamplingBasedPlannerParams& params): params_(params), Planner(params){}
 
         ///@brief Destructor
-        virtual ~SamplingBasedPlanner() = default;
+        ~SamplingBasedPlanner() override = default;
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
         /// @param starts Vector of start states
         /// @param goals Vector of goal states
-        virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                        const std::vector<StateType>& starts,
-                                       const std::vector<StateType>& goals){
+                                       const std::vector<StateType>& goals) override{
           if (starts.size() != 1 || goals.size() != 1){
               throw std::invalid_argument("SamplingBasedPlanner::initializePlanner: Currently, SamplingBasedPlanner only supports one start and one goal state");
           }
@@ -91,30 +91,30 @@ namespace ims{
         /// @param action_space_ptr The action space
         /// @param start The start state
         /// @param goal The goal state
-        virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                       const StateType& start, const StateType& goal) = 0;
+        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                                       const StateType& start, const StateType& goal) override = 0;
 
         /// @brief plan
         /// @param path The path
         /// @return if the plan was successful or not
-        virtual bool plan(std::vector<StateType>& path) = 0;
+        bool plan(std::vector<StateType>& path) override = 0;
         
         /// @brief Reset all the member variables in the planner.
-        virtual void resetPlanningData() = 0;
+        void resetPlanningData() override = 0;
 
     protected:
 
         /// @brief Reconstruct the path
-        virtual void reconstructPath(std::vector<StateType>& path) = 0;
+        void reconstructPath(std::vector<StateType>& path) override = 0;
 
         /// @brief Reconstruct the path and also get the transition costs.
         /// @param path The path to be populated
         /// @param costs The costs to be populated. Cost at index i is the cost of the transition from state i to state i+1. Thus, the cost at the goal state is zero as there is no transition from the goal state.
-        virtual void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) = 0;
+        void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override = 0;
 
         /// @brief Check if the current state is the goal state
         /// @return if the current state is the goal state or not
-        virtual bool isGoalState(int s_id) = 0;
+        bool isGoalState(int s_id) override = 0;
 
         /// @brief Sample a new configuration, get its new id.
         virtual bool getNewSample(int& sample_id) = 0;
