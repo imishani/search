@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   action_space_mixin.hpp
+ * \file   action_space_egraph_mixin.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   8/10/23
 */

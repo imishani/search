@@ -23,7 +23,7 @@ From your `build` directory, run the following command to run the algorithm. To 
 ```
 Or to run an mapf benchmark map, first download the maps and random scenarios from [Moving AI's MAPF benchmark](https://movingai.com/benchmarks/mapf.html). Create a `datasets` folder in 2d_mapf and unzip these files into `datasets/mapf-map/` and `datasets/scen-random/`. We provide an example already there. Then you should be able to run commands like:
 ```
-./run_2d_mapf_cbs_or_ecbs --map_file_path=domains/2d_mapf/datasets/mapf-map/Boston_0_256.map -a domains/2d_mapf/datasets/scen-random/Boston_0_256.map.scen -n 10 --high_level_suboptimality=1.5
+./run_2d_mapf_cbs_or_ecbs --map_file_path=domains/2d_mapf/datasets/mapf-map/Boston_0_256.map -a domains/2d_mapf/datasets/scen-random/Boston_0_256.map.scen -n 10 --high_level_focal_suboptimality=1.5
 ```
 
 You can visualize it by then running

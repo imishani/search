@@ -27,13 +27,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   cbs_private_grids.hpp
+ * \file   eacbs_mp.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
- * \date   August 18 2023
+ * \date   October 19 2023
  */
-
-#ifndef SEARCH_ECBS_PRIVATE_GRIDS_HPP
-#define SEARCH_ECBS_PRIVATE_GRIDS_HPP
+#pragma once
 
 // Standard includes.
 #include <algorithm>
@@ -47,13 +45,29 @@
 #include <search/common/conflicts.hpp>
 #include <search/common/constraints.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
-#include <search/planners/astar.hpp>
+#include <search/planners/eawastar.hpp>
 #include <search/planners/best_first_search.hpp>
-#include <search/planners/multi_agent/ecbs.hpp>
+#include <search/common/conflict_conversions.hpp>
+#include <search/planners/multi_agent/eacbs.hpp>
 
-#include "search/action_space/constrained_action_space.hpp"
+#include "search/action_space/subcost_action_space.hpp"
 
 namespace ims {
+
+// ==========================
+// Related structs: EACBSMPParams
+// ==========================
+
+/// @class EACBSMPParams class.
+/// @brief The parameters for the EACBSMP algorithm
+struct EACBSMPParams : public EACBSParams {
+    /// @brief Constructor
+    explicit EACBSMPParams() : EACBSParams() {
+    }
+
+    /// @brief Destructor
+    ~EACBSMPParams() override = default;
+};
 
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
 using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
@@ -62,37 +76,32 @@ using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsColle
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
 // ==========================
-// ECBS Private Grids Algorithm.
+// EACBSMP Algorithm.
 // ==========================
-/// @class ECBS for private grids class.
-/// @brief The ECBS algorithm for private grids. Perhaps obviously.
-class ECBSPrivateGrids : public ECBS {
-private:
+/// @class EACBSMP class.
+/// @brief The EACBSMP algorithm.
+class EACBSMP : public EACBS {
+private:    
+    friend class EAECBS;
 public:
     /// @brief Constructor
     /// @param params The parameters
-    explicit ECBSPrivateGrids(const ECBSParams& params);
+    explicit EACBSMP(const EACBSMPParams& params);
 
     /// @brief Destructor
-    ~ECBSPrivateGrids() override = default;
-
-    /// @brief Get the required conflict types.
-    /// @return The required conflict types.
-    inline std::vector<ConflictType> getConflictTypes() override { return conflict_types_; }
+    ~EACBSMP() override = default;
 
 protected:
-    /// @brief  Convert conflicts to constraints. This is a main differentiator between ECBS and ECBSPrivateGrids. ECBS can handle vertex and edge constraints, so ECBSPrivateGrids converts conflicts to these types of constraints.
-    /// @param conflicts
-    /// @return mapping from agent id to constraints.
+
+    /// @brief Get constraints from conflicts. This is where this algorithm differs from CBS. It creates state-avoidance constraints (avoid another agent at their specified state and time), as opposed to a negative costraint on the ego robot.
+    /// @param conflicts 
+    /// @return 
     std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
-    // Parameters.
-    ECBSParams params_;
-
-    // The required conflict types.
-    std::vector<ConflictType> conflict_types_ = {ConflictType::PRIVATE_GRIDS_VERTEX, ConflictType::PRIVATE_GRIDS_EDGE};
+    /// Member variables.
+    // The search parameters.
+    EACBSMPParams params_;
 };
 
 }  // namespace ims
 
-#endif  // SEARCH_ECBS_PRIVATE_GRIDS_HPP

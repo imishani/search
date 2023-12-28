@@ -31,9 +31,7 @@
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   July 10 2023
  */
-
-#ifndef SEARCH_CONSTRAINEDSEARCH_HPP
-#define SEARCH_CONSTRAINEDSEARCH_HPP
+#pragma once
 
 // standard includes
 #include <functional>
@@ -46,13 +44,13 @@
 #include "search/planners/planner.hpp"
 #include "search/common/constraints.hpp"
 #include "search/common/conflicts.hpp"
-#include "action_space_constrainable_mixin.hpp"
+#include "mixin/action_space_constrainable_mixin.hpp"
 
 namespace ims {
 
 /// @brief Base class for ActionSpaces with constraints.
 /// @details This is an actions space extended to be "Constrainable" using a mixin.
-class ConstrainedActionSpace : public ActionSpace, public ActionSpaceConstrainableMixin{
+class ConstrainedActionSpace : virtual public ActionSpace, public ActionSpaceConstrainableMixin{
 public:
     /// @brief Constructor
     explicit ConstrainedActionSpace(): ActionSpace(), ActionSpaceConstrainableMixin() {
@@ -63,8 +61,10 @@ public:
     /// @brief Destructor
     ~ConstrainedActionSpace() = default;
 
+    /// @brief If a given configuration transition is valid with respect to the constraints. 
+    virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) = 0;
+
 };
 
 }  // namespace ims
 
-#endif  // SEARCH_CONSTRAINEDSEARCH_HPP

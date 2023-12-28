@@ -41,14 +41,45 @@
 #include <unordered_map>
 #include <Eigen/Dense>
 
-struct WorldObject{};
+enum class WorldObjectType{
+    UNKNOWN,
+    SPHERE,
+    BOX
+};
+
+struct WorldObject{
+    WorldObjectType type = WorldObjectType::UNKNOWN;
+    std::string name;
+};
 
 struct SphereWorldObject : public WorldObject{
     double radius;
     Eigen::Vector3d origin;
+    std::string name;
 
-    SphereWorldObject(Eigen::Vector3d origin, double radius) : origin(origin), radius(radius) {}
+    SphereWorldObject(Eigen::Vector3d origin, double radius) : origin(origin), radius(radius) {
+        type = WorldObjectType::SPHERE;
+    }
+
+    SphereWorldObject(Eigen::Vector3d origin, double radius, std::string name) : origin(origin), radius(radius) {
+        type = WorldObjectType::SPHERE;
+        this->name = name;
+    }
 };
 
+struct BoxWorldObject : public WorldObject{
+    Eigen::Vector3d origin;
+    Eigen::Vector3d size;
+    std::string name;
+
+    BoxWorldObject(Eigen::Vector3d origin, Eigen::Vector3d size) : origin(origin), size(size) {
+        type = WorldObjectType::BOX;
+    }
+
+    BoxWorldObject(Eigen::Vector3d origin, Eigen::Vector3d size, std::string name) : origin(origin), size(size) {
+        type = WorldObjectType::BOX;
+        this->name = name;
+    }
+};
 
 #endif //SEARCH_WORLD_OBJECTS_HPP

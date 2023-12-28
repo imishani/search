@@ -6,24 +6,27 @@
 namespace ims {
 
 /// @brief Require LowerBound function for elements.
-struct LowerBoundMixin {
+struct SearchStateLowerBoundMixin {
     virtual double getLowerBound() const = 0;
 };
 
 /// @brief AbstractQueue which supports basic queue functionality for search.
-/// @tparam T must support LowerBoundMixin for getLowerBound() functionality.
+/// @tparam T must support SearchStateLowerBoundMixin for getLowerBound() functionality.
 template <class T>
 class AbstractQueue {
 public:
-    static_assert(std::is_base_of<ims::LowerBoundMixin, T>::value,
-                  "T must inherit from ims::LowerBoundMixin");
+    static_assert(std::is_base_of<ims::SearchStateLowerBoundMixin, T>::value,
+                  "T must inherit from ims::SearchStateLowerBoundMixin");
 
     virtual T* min() const = 0;
     virtual void pop() = 0;
     virtual void push(T* e) = 0;
     virtual void erase(T* e) = 0;
     virtual bool empty() const = 0;
+    virtual void clear() = 0;
+    virtual void update(T* e) = 0;
     virtual size_t size() const = 0;
+    virtual bool contains(T* e) const = 0;
 
     /// @brief Updates the queue to only consider elements that satisfy the lower bound.
     /// @param lower_bound_threshold is the absolute value, not a suboptimality factor, queue
@@ -39,14 +42,14 @@ public:
 };
 
 /// @brief Basic queue which returns min element based on comparator.
-/// @tparam T element type which must support LowerBoundMixin.
+/// @tparam T element type which must support SearchStateLowerBoundMixin.
 /// @tparam CompareMain which returns which element is smaller.
 /// @note CompareMain should sort by lower bound!
 /// TODO: MAKE SURE THIS IS THE CASE! Might want to have CompareMain just for tie-breaking?
 template <class T, class CompareMain>
 class SimpleQueue : public AbstractQueue<T> {
 private:
-    smpl::IntrusiveHeapWrapper<T, CompareMain> m_open;
+    ::smpl::IntrusiveHeapWrapper<T, CompareMain> m_open;
 
 public:
     SimpleQueue() = default;
@@ -57,7 +60,10 @@ public:
     virtual void push(T* e) override;
     virtual void erase(T* e) override;
     virtual bool empty() const override;
+    virtual void clear() override;
+    virtual void update(T* e) override;
     virtual size_t size() const override;
+    virtual bool contains(T* e) const override;
 
     /// @brief Updates the queue to only consider elements that satisfy the lower bound.
     /// @param lower_bound_threshold 
@@ -71,14 +77,14 @@ public:
 
 /// @brief FocalQueue which uses both comparators and returns min element 
 //         satisfying lower bound.
-/// @tparam T element type which must support LowerBoundMixin.
+/// @tparam T element type which must support SearchStateLowerBoundMixin.
 /// @tparam CompareMain used for anchor queue.
 /// @tparam CompareFocal used for focal queue.
 template <class T, class CompareMain, class CompareFocal>
 class FocalQueue : public AbstractQueue<T> {
 private:
-    smpl::IntrusiveHeapWrapper<T, CompareMain> m_waitlist;
-    smpl::IntrusiveHeapWrapper<T, CompareFocal> m_focal;
+    ::smpl::IntrusiveHeapWrapper<T, CompareMain> m_waitlist;
+    ::smpl::IntrusiveHeapWrapper<T, CompareFocal> m_focal;
 
 public:
     virtual T* min() const override;
@@ -86,7 +92,10 @@ public:
     virtual void push(T* e) override;
     virtual void erase(T* e) override;
     virtual bool empty() const override;
+    virtual void clear() override;
+    virtual void update(T* e) override;
     virtual size_t size() const override;
+    virtual bool contains(T* e) const override;
 
     /// @brief Updates queue to add more elements to focal list which satisfy lower bound threshold.
     /// @param lower_bound_threshold is the absolute value, not a suboptimality factor, queue
@@ -100,7 +109,7 @@ public:
 };
 
 /// @brief Wrapper class that enables focal queue expansion and keeps track of lower bound.
-/// @tparam T element type which must support LowerBoundMixin.
+/// @tparam T element type which must support SearchStateLowerBoundMixin.
 /// @tparam CompareMain used for anchor queue.
 /// @tparam CompareFocal used for focal queue.
 template <class T, class CompareMain, class CompareFocal>
@@ -115,7 +124,10 @@ public:
     virtual void push(T* e) override;
     virtual void erase(T* e) override;
     virtual bool empty() const override;
+    virtual void clear() override;
+    virtual void update(T* e) override;
     virtual size_t size() const override;
+    virtual bool contains(T* e) const override;
 
     /// @brief Updates focal queue to add more elements satisfying lower bound threshold.
     /// @param lower_bound_threshold is the absolute value, not a suboptimality factor, queue

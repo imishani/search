@@ -32,17 +32,23 @@
  * \date   07/08/22
  */
 
-#include <search/planners/wastar.hpp>
 #include <search/planners/multi_agent/ecbs.hpp>
 
-ims::ECBS::ECBS(const ims::ECBSParams& params) : params_(params), CBS(params) {}
+ims::ECBS::ECBS(const ims::ECBSParams& params) : params_(params), CBS(params) {
+    // Create the open list.
+    open_ = new FocalAndAnchorQueueWrapper<SearchState, ECBSOpenCompare, ECBSFocalCompare>();
 
+    // Create a stats field for the low-level planner nodes created.
+    stats_.bonus_stats["num_low_level_expanded"] = 0;
+}
 
-void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
+void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
+
+    // Create the open list. This list is created in the constructor and reset here.
+    open_->clear();
+
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
-    // open_ = new SimpleQueue<SearchState, SearchStateCompare>();
-    open_ = new FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, ECBSFocalCompare>();
     agent_action_space_ptrs_ = action_space_ptrs;
 
     // Check if the inputs are valid.
@@ -65,18 +71,32 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
         if (params_.low_level_heuristic_ptrs.size() != starts.size()) {
             throw std::runtime_error("Number of low-level heuristics (" + std::to_string(params_.low_level_heuristic_ptrs.size()) + ") does not match the number of agents (" + std::to_string(starts.size()) + ")");
         }
-        ims::wAStarParams wastar_params_(params_.low_level_heuristic_ptrs[i], params_.weight_low_level_heuristic);
-        agent_planner_ptrs_.push_back(std::make_shared<ims::wAStar>(wastar_params_));
+        ims::FocalwAStarParams focal_wastar_params_(params_.low_level_heuristic_ptrs[i], params_.low_level_focal_suboptimality ,params_.weight_low_level_heuristic);
+        agent_planner_ptrs_.push_back(std::make_shared<ims::FocalwAStar>(focal_wastar_params_));
     }
-
+}
+                                 
+void ims::ECBS::createRootInOpenList() {
     // Generate a plan for each of the agents.
     MultiAgentPaths initial_paths;
     std::unordered_map<int, double> initial_paths_costs;
+    std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
+    std::unordered_map<int, double> initial_paths_lower_bounds;
     for (size_t i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
-        agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts[i], goals[i]);
-        agent_planner_ptrs_[i]->plan(path);
+        agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
+        bool is_plan_success = agent_planner_ptrs_[i]->plan(path);
 
+        // Add the number of low level nodes to the counter.
+        stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[i]->getStats().num_expanded;
+
+        // If there is no path for this agent, then this is not a valid state. Do not add a new state to the open list.
+        if (!is_plan_success) {
+            std::cout << RED << "No path found for agent " << i << " in the initial planning phase." << RESET << std::endl;
+            stats_.cost = -1;
+            stats_.time = -1;
+            return;
+        }
         // Fix the last path state to have a correct time and not -1.
         path.back().back() = path.size() - 1;
 
@@ -86,7 +106,9 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
 
         // Compute the cost of the path.
         // initial_paths_costs.insert(std::make_pair(i, agent_planner_ptrs_[i]->stats_.cost));
-        initial_paths_costs[i] = agent_planner_ptrs_[i]->stats_.cost;
+        initial_paths_costs[i] = agent_planner_ptrs_[i]->getStats().cost;
+        initial_paths_transition_costs[i] = agent_planner_ptrs_[i]->getStats().transition_costs;
+        initial_paths_lower_bounds[i] = agent_planner_ptrs_[i]->getStats().lower_bound;
     }
 
     // Create the initial CBS state to the open list. This planner does not interface with an action space, so it does not call the getOrCreateRobotState to retrieve a new-state index. But rather decides on a new index directly and creates a search-state index with the getOrCreateSearchState method. Additionally, there is no goal specification for CBS, so we do not have a goal state.
@@ -97,6 +119,7 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
     start_->parent_id = PARENT_TYPE(START);
     start_->paths = initial_paths;
     start_->paths_costs = initial_paths_costs;
+    start_->paths_transition_costs = initial_paths_transition_costs;
 
     // Get conflicts within the paths.
     // Get any conflicts between the newly computed paths.
@@ -110,15 +133,16 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
     // Set the cost of the CBSState start_.
     double start_soc = std::accumulate(initial_paths_costs.begin(), initial_paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
     int start_num_conflicts = start_->unresolved_conflicts.size();
-    start_->f = start_soc + params_.weight_num_conflicts * start_num_conflicts;
+    start_->f = start_soc;
     start_->sum_of_costs = start_soc;
+    start_->sum_of_path_cost_lower_bounds = std::accumulate(initial_paths_lower_bounds.begin(), initial_paths_lower_bounds.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
     start_->setOpen();
 
     // Push the initial CBS state to the open list.
     open_->push(start_);
     // Required to push into focal queue
     // double lower_bound = open_->getLowerBound();
-    // open_->updateWithBound(params_.high_level_suboptimality * lower_bound);
+    // open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
 
     // Show the initial paths.
     std::cout << "Initial paths:" << std::endl;
@@ -135,16 +159,25 @@ void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionS
     }
 }
 
-void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
+void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
                         agent_names_ = agent_names;
                         initializePlanner(action_space_ptrs, starts, goals);
                         }
 
 bool ims::ECBS::plan(MultiAgentPaths& paths) {
     startTimer();
+    
+    // Create the root node in the open list.
+    createRootInOpenList();
+    if (open_->empty()) {
+        std::cout << "No path found." << std::endl;
+        return false;
+    }
+    
     int iter{0};
     double lower_bound = open_->getLowerBound();
-    open_->updateWithBound(params_.high_level_suboptimality * lower_bound);
+    open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
+
     while (!open_->empty() && !isTimeOut()) {
         // Report progress every 100 iterations
         if (iter % 1000 == 0) {
@@ -168,7 +201,7 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
             stats_.cost = state->f;
             paths = state->paths;
             stats_.num_expanded = iter;
-            stats_.suboptimality = params_.high_level_suboptimality;
+            stats_.suboptimality = params_.high_level_focal_suboptimality;
             return true;
         }
 
@@ -177,7 +210,7 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
         ++iter;
 
         double lower_bound = open_->getLowerBound();
-        open_->updateWithBound(params_.high_level_suboptimality * lower_bound);
+        open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
     }
     getTimeFromStart(stats_.time);
     return false;
@@ -185,8 +218,6 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
 
 void ims::ECBS::expand(int state_id) {
     auto state = getSearchState(state_id);
-    // std::cout << "Expanding state: soc = " << state->sum_of_costs << " f=" << state->f 
-    //             << " num_conflicts=" << state->unresolved_conflicts.size() << std::endl;
     std::vector<int> successors;
     std::vector<double> costs;
 
@@ -194,8 +225,6 @@ void ims::ECBS::expand(int state_id) {
 
     // Despite asking for many conflicts, we only convert the first one to constraints.
     std::vector<std::shared_ptr<Conflict>> conflicts_to_convert{state->unresolved_conflicts.begin(), state->unresolved_conflicts.begin() + 1};
-
-    // std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> constraints = conflictsToConstraints(state->conflicts);
     std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> constraints = conflictsToConstraints(conflicts_to_convert);
 
     // Second, iterate through the constraints, and for each one, create a new search state. The new search state is a copy of the previous search state, with the constraint added to the constraints collective of the agent.
@@ -218,23 +247,38 @@ void ims::ECBS::expand(int state_id) {
         new_state->parent_id = state->state_id;
         new_state->paths = state->paths;
         new_state->paths_costs = state->paths_costs;
+        new_state->paths_transition_costs = state->paths_transition_costs;
+        new_state->path_cost_lower_bounds = state->path_cost_lower_bounds;
         new_state->f = state->f;
         new_state->constraints_collectives = state->constraints_collectives;
-        // NOTE(yoraish): we do not copy over the conflicts, since they will be recomputed in the new state. We could consider keeping a history of conflicts in the search state, with new conflicts being marked as such.
+
+        // Remove prior information for the agent that is being replanned-for. This is important for the constraints context, such that it only includes context from other agents.
+        new_state->paths[agent_id].clear();
+        new_state->paths_costs[agent_id] = 0.0;
+        new_state->paths_transition_costs[agent_id].clear();
 
         // Update the constraints collective to also include the new constraint.
         new_state->constraints_collectives[agent_id].addConstraints(constraint_ptr);
 
-        // update the action-space.
-        agent_action_space_ptrs_[agent_id]->setConstraintsCollective(std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]));
+        // Update the action-space with the constraints and their context (the paths of the other agents).
+        std::shared_ptr<ConstraintsCollective> constraints_collective_ptr = std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]);
+        std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
+        context_ptr->agent_paths = new_state->paths;
+        context_ptr->agent_names = agent_names_;
+        constraints_collective_ptr->setContext(context_ptr);
+        agent_action_space_ptrs_[agent_id]->setConstraintsCollective(constraints_collective_ptr);
 
         // Update the low-level planner for this agent.
         agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);
 
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
-        new_state->paths[agent_id].clear();
         agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
-        new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.cost;
+        new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().transition_costs;
+        new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().cost;
+        new_state->path_cost_lower_bounds[agent_id] = agent_planner_ptrs_[agent_id]->getStats().lower_bound;
+
+        // Add the number of low level nodes to the counter.
+        stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[agent_id]->getStats().num_expanded;
 
         // If there is no path for this agent, then this is not a valid state. Discard it.
         if (new_state->paths[agent_id].empty()) {
@@ -242,8 +286,11 @@ void ims::ECBS::expand(int state_id) {
             continue;
         }
 
+        // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
+        new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
         // Get the sum of costs for the new state.
         double new_state_soc = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
+        double new_state_lb = std::accumulate(new_state->path_cost_lower_bounds.begin(), new_state->path_cost_lower_bounds.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
 
         // Get any conflicts between the newly computed paths.
         // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the ECBS class, and then passed to the action_space.
@@ -253,11 +300,9 @@ void ims::ECBS::expand(int state_id) {
                                                        -1, // TODO(yoraish): get all the conflicts.
                                                        agent_names_);
 
-        std::cout << "New state soc: " << new_state_soc << std::endl;
-        std::cout << "New state num conflicts: " << new_state->unresolved_conflicts.size() << std::endl;
-
-        new_state->f = new_state_soc; // + params_.weight_num_conflicts * new_state->unresolved_conflicts.size(); /////////////////////////////////////////////
+        new_state->f = new_state_soc;
         new_state->sum_of_costs = new_state_soc;
+        new_state->sum_of_path_cost_lower_bounds = new_state_lb;
         // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
         new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
 
@@ -267,5 +312,35 @@ void ims::ECBS::expand(int state_id) {
 
         // Delete the previous state but keep the entry in the states_ vector.
         // state = nullptr;
+    }
+}
+
+
+void ims::ECBS::verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
+    // Check all goals have starts.
+    if (starts.size() != goals.size()) {
+        throw std::runtime_error("Start state vector size (" + std::to_string(starts.size()) + ") does not match the goal state vector size (" + std::to_string(goals.size()) + ")");
+    }
+    // Check if the start and goal states are valid w.r.t time. All starts are t=0 and all goals are t=-1.
+    for (size_t i{0}; i < starts.size(); ++i) {
+        if (starts[i].back() != 0) {
+            throw std::runtime_error("Start state for agent " + std::to_string(i) + " is not at time 0");
+        }
+        if (goals[i].back() != -1) {
+            throw std::runtime_error("Goal state for agent " + std::to_string(i) + " is not at time -1");
+        }
+    }
+
+    // Check if the start and goal states are valid. For each agent.
+    for (size_t i{0}; i < starts.size(); ++i) {
+        if (!agent_action_space_ptrs_[i]->isStateValid(starts[i])) {
+            throw std::runtime_error("Start state for agent " + std::to_string(i) + " is not valid");
+        }
+    }
+
+    for (size_t i{0}; i < goals.size(); ++i) {
+        if (!agent_action_space_ptrs_[i]->isStateValid(goals[i])) {
+            throw std::runtime_error("Goal state for agent " + std::to_string(i) + " is not valid");
+        }
     }
 }

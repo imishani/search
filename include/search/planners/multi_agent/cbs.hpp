@@ -50,10 +50,9 @@
 #include <search/planners/wastar.hpp>
 #include <search/planners/best_first_search.hpp>
 #include <search/common/conflict_conversions.hpp>
+#include <search/common/queue_general.h>
 
 #include "search/action_space/constrained_action_space.hpp"
-
-#include <search/common/queue_general.h>
 
 namespace ims {
 
@@ -81,21 +80,72 @@ struct CBSParams : public BestFirstSearchParams {
     double weight_low_level_heuristic = 1.0;
 };
 
+// ==========================
+// Type definitions.
+// ==========================
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
 using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
 
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
+// ==========================
+// Related classes: CBSBase
+// ==========================
 /// @brief Base class for all CBS variants. Defines some required methods.
-class CBSBase {
-protected:
+class CBSBase: public BestFirstSearch {
 public:
     /// @brief Get the conflict types requested by the algorithm.
-    CBSBase() = default;
-    ~CBSBase() = default;
+    explicit CBSBase(const CBSParams& params);
+
+    /// @brief Destructor.
+    ~CBSBase() override{
+        for (auto state_ptr : states_){
+            delete state_ptr;
+        }
+        delete open_;
+    }
+
     /// @return The conflict types.
     virtual std::vector<ConflictType> getConflictTypes() = 0;
+
+protected:
+    /// @brief Convert conflicts to constraints.
+    /// @param conflicts The conflicts.
+    /// @return The constraints. Each conflict is converted to a pair mapping agent id to a vector of constraints.
+    virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) = 0;
+    
+    // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
+    /// @brief The search state.
+    struct SearchState : public ims::BestFirstSearch::SearchState, public SearchStateLowerBoundMixin {
+        // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
+        MultiAgentPaths paths;
+
+        // The path costs.
+        std::unordered_map<int, double> paths_costs;
+        double sum_of_costs = 0.0;
+        std::unordered_map<int, std::vector<double>> paths_transition_costs;
+
+        // The lower bound on the cost of the solution. This is the sum of the lower bounds of the individual agents.
+        std::unordered_map<int, double> path_cost_lower_bounds;
+        double sum_of_path_cost_lower_bounds = 0.0;
+
+        // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
+        std::vector<std::shared_ptr<Conflict>> unresolved_conflicts = {};
+
+        // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
+        MultiAgentConstraintsCollective constraints_collectives;
+
+        /// @brief Required for FocalQueue
+        /// @return 
+        double getLowerBound() const override {
+            assert(sum_of_path_cost_lower_bounds > 0.0);
+            return sum_of_path_cost_lower_bounds;
+        }
+    };
+
+    // The base CBS class holds an abstract queue. The queue is instantiated in the constructor of the derived classes and reset in the initializePlanner() method of each derived class.
+    AbstractQueue<SearchState>* open_;
 };
 
 // ==========================
@@ -103,8 +153,9 @@ public:
 // ==========================
 /// @class CBS class.
 /// @brief The CBS algorithm.
-class CBS : public BestFirstSearch, public CBSBase {
+class CBS : public CBSBase {
 private:
+
 public:
     /// @brief Constructor
     /// @param params The parameters
@@ -127,50 +178,15 @@ public:
     /// @param goals The goal states for all agents.
     virtual void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
+    /// @brief  Initialize the conflict tree. This is done by computing a single-agent path for each agent and storing them in a search state in the CT.
+    virtual void createRootInOpenList();
+
     /// @brief plan a path
     /// @param path The path
     /// @return whether the plan was successful or not
     virtual bool plan(MultiAgentPaths& paths);
 
 protected:
-    // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
-    /// @brief The search state.
-    struct SearchState : public ims::BestFirstSearch::SearchState, public LowerBoundMixin {
-        // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
-        MultiAgentPaths paths;
-
-        // The path costs.
-        std::unordered_map<int, double> paths_costs;
-        double sum_of_costs = 0.0;
-
-        // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
-        std::vector<std::shared_ptr<Conflict>> unresolved_conflicts = {};
-
-        // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
-        MultiAgentConstraintsCollective constraints_collectives;
-
-        /// @brief Required for FocalQueue
-        /// @return 
-        virtual double getLowerBound() const override {
-            assert(sum_of_costs > 0.0);
-            return sum_of_costs;
-        }
-    };
-
-    /// @brief The open list. We set it to a deque for fast pop_front().
-    // using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-    // OpenList open_;
-
-    struct MainQueueCompare {
-        bool operator()(const SearchState& s1, const SearchState& s2) const {
-            if (s1.f == s2.f)
-                return s1.g < s2.g;
-            return s1.f < s2.f;
-        }
-    };
-    AbstractQueue<SearchState>* open_;
-    // SimpleQueue<SearchState, SearchStateCompare> open_;
-
     // The states that have been created.
     std::vector<SearchState*> states_;
 
@@ -190,7 +206,7 @@ protected:
     /// @param paths The paths to pad.
     void padPathsToMaxLength(MultiAgentPaths& paths);
 
-    virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts);
+    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
     /// @brief Set the search state struct values.
     /// @param state_id
@@ -205,12 +221,12 @@ protected:
     /// @brief Checks that the start and goals states are valid. The checks are for time (all initial times are zero and all goal times are -1), for individual agents, and between agents.
     /// @param starts
     /// @param goals
-    void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    virtual void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief Get the conflict types requested by the algorithm.
     /// @return The conflict types.
     /// @note Derived class, aka CBS variants that request different conflict types (e.g., point3d, etc.) should override this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
-    virtual inline std::vector<ConflictType> getConflictTypes() {
+    inline std::vector<ConflictType> getConflictTypes() override {
         return conflict_types_;
     }
 
@@ -231,10 +247,6 @@ protected:
     /// @brief The start and goal states of the single agents. Remember that these have a time dimension in them.
     std::vector<StateType> starts_;
     std::vector<StateType> goals_;
-
-    /// @brief The goal states. Remember that these have a time dimension in them. In CBS the end time is not known, so we set it to -1.
-    // TODO(yoraish): consider creating a MultiAgentPlanner class that will hold the starts, goals, and other multi-agent related variables.
-    std::vector<int> found_goal_search_state_ids_;
 
     /// @brief The number of agents.
     int num_agents_;

@@ -72,7 +72,7 @@ namespace ims{
     private:
 
         friend class AStar; friend class Dijkstra;
-        friend class ExperienceWAstar;
+        friend class ExperienceWAstar; friend class EAwAStarUniformCost;
 
         /// @brief The search state.
         struct SearchState: public ims::BestFirstSearch::SearchState{
@@ -128,7 +128,11 @@ namespace ims{
         /// @brief Reset the planner
         void resetPlanningData() override;
 
+        /// @brief Get all the search states.
+        /// @return The states.
+        auto getAllSearchStates() -> std::vector<SearchState*>;
 
+        
     protected:
 
         void setStateVals(int state_id, int parent_id, double cost) override;
@@ -136,6 +140,11 @@ namespace ims{
         void expand(int state_id) override;
 
         void reconstructPath(std::vector<StateType>& path) override;
+
+        /// @brief Reconstruct the path and also get the transition costs.
+        /// @param path The path to be populated
+        /// @param costs The costs to be populated. Cost at index i is the cost of the transition from state i to state i+1. Thus, the cost at the goal state is zero as there is no transition from the goal state.
+        void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
 
         wAStarParams params_;
 

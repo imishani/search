@@ -66,7 +66,10 @@ const double PI = 3.14159265358979323846;
 
 // Typedefs
 using StateType = std::vector<double>;
+using MultiAgentStateType = std::unordered_map<int, StateType>;
 using PathType = std::vector<StateType>;
+/// @brief An object for mapping [agent_ids][timestamp] to a state.
+using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 using Action = std::vector<double>;
 using ActionSequence = std::vector<Action>;
 using ParamsType = std::unordered_map<std::string, double>;
@@ -82,12 +85,16 @@ struct PlannerStats{
     double time {0};
     double cost {INF_DOUBLE};
     int path_length {INF_INT};
+    std::vector<double> transition_costs; // Each step in the path has a cost to move to the next step. The last one is zero.
 
     int num_expanded {0};
     int num_generated {0};
     int num_reopened {0};
 
     double suboptimality {1};  // AKA: epsilon
+
+    // Add a catch-all field for any other stats that might be useful.
+    std::unordered_map<std::string, double> bonus_stats;
 };
 
 template<class Key,
@@ -129,7 +136,6 @@ struct VectorHash
     }
 };
 
-
 struct StateTypeHash {
     typedef StateType argument_type;
     typedef std::size_t result_type;
@@ -141,5 +147,11 @@ struct StateTypeHash {
     }
 };
 
+enum class ExperienceReuseType {
+    NONE,
+    PREVIOUS_SOLUTION,
+    CT_BRANCH,
+    CT_GLOBAL
+};
 
 #endif //SEARCH_TYPES_HPP

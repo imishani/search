@@ -27,13 +27,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   constrained_search.hpp
+ * \file   action_space_constrainable_mixin.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   August 10 2023
  */
-
-#ifndef SEARCH_ACTIONSPACECONSTRAINABLEMIXIN_HPP
-#define SEARCH_ACTIONSPACECONSTRAINABLEMIXIN_HPP
+#pragma once
 
 // standard includes
 #include <functional>
@@ -85,11 +83,15 @@ public:
     /// @param conflict_types The types of conflicts that are requested.
     /// @param max_conflicts The maximum number of conflicts to return.
     /// @param names The names of the agents.
+    /// @param time_start The start time from which to check for conflicts. Inclusive. -1 defaults to zero.
+    /// @param time_end The end time until which to check for conflicts. Inclusive. -1 defaults to the end.
     virtual void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths, 
-                           std::vector<std::shared_ptr<Conflict>> &conflicts_ptrs, 
-                           const std::vector<ConflictType> &conflict_types,
+                           std::vector<std::shared_ptr<Conflict>>& conflicts_ptrs, 
+                           const std::vector<ConflictType>& conflict_types,
                            int max_conflicts, 
-                           const std::vector<std::string> &names) = 0;
+                           const std::vector<std::string> &names,
+                           TimeType time_start = 0,
+                           TimeType time_end = -1) = 0;
 
     // Member variables.
     /// @brief The constraints.
@@ -98,4 +100,3 @@ public:
 
 }  // namespace ims
 
-#endif  // SEARCH_ACTIONSPACECONSTRAINABLEMIXIN_HPP

@@ -59,7 +59,7 @@
 /// For custom datasets: ./run_2d_mapf_cbs_or_ecbs -m 6 -a ignore -n 4 -h 1.1
 /// For mapf datasets: ./run_2d_mapf_cbs_or_ecbs --map_file_path=domains/2d_mapf/datasets/mapf-map/den312d.map 
 ///                         -a domains/2d_mapf/datasets/scen-random/den312d-random-1.scen -n 10
-///                         --high_level_suboptimality=1.5
+///                         --high_level_focal_suboptimality=1.5
 int main(int argc, char** argv) {
     namespace po = boost::program_options;
     // Declare the supported options.
@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
 		("map_file_path,m", po::value<string>()->required(), "relative map file path from search directory")
         ("agent_file_path,a", po::value<string>()->required(), "relative agent file path from search directory")
 		("num_agents,n", po::value<int>()->required(), "number of agents")
-        ("high_level_suboptimality,-h", po::value<double>()->default_value(1.0), 
+        ("high_level_focal_suboptimality,-h", po::value<double>()->default_value(1.0), 
                     "high level suboptimality, default value of 1 is identical to CBS")
         ;
 
@@ -85,8 +85,8 @@ int main(int argc, char** argv) {
 	}
 
     po::notify(vm);
-	if (vm["high_level_suboptimality"].as<double>() < 1) {
-		throw std::invalid_argument("high_level_suboptimality must be >= 1");
+	if (vm["high_level_focal_suboptimality"].as<double>() < 1) {
+		throw std::invalid_argument("high_level_focal_suboptimality must be >= 1");
 	}
 
     boost::filesystem::path full_path( boost::filesystem::current_path() );
@@ -106,39 +106,60 @@ int main(int argc, char** argv) {
     // Let's create an action space for each agent.
     std::cout << "Creating action spaces..." << std::endl;
     ActionType2dRob action_type;
-    std::vector<std::shared_ptr<ims::ConstrainedActionSpace>> action_spaces;
-    for (int i {0}; i < num_agents; i++){
-        action_spaces.emplace_back(std::make_shared<ConstrainedActionSpace2dRob>(instance.getSceneInterface2D(), action_type));
-        std::cout << "Action space " << i << " created." << std::endl;
-    }
 
     // Construct the planner.
     std::cout << "Constructing planner..." << std::endl;
-    ims::CBS* planner; // Required to make a pointer for changing between CBS/ECBS using inheritance.
-    bool useECBS = (vm["high_level_suboptimality"].as<double>() > 1.0);
+    bool useECBS = (vm["high_level_focal_suboptimality"].as<double>() > 1.0);
+
+    ims::MultiAgentPaths paths;
+    PlannerStats stats;
+
     if (!useECBS) {
+
+        std::vector<std::shared_ptr<ims::ConstrainedActionSpace>> action_spaces;
+        for (int i {0}; i < num_agents; i++){
+            action_spaces.emplace_back(std::make_shared<ConstrainedActionSpace2dRob>(instance.getSceneInterface2D(), action_type));
+            std::cout << "Action space " << i << " created." << std::endl;
+        }
+
         // Construct the parameters.
         ims::CBSParams params;
         for (int i {0}; i < num_agents; i++){
             params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
         }
         params.weight_low_level_heuristic = 1.0;
-        planner = new ims::CBS(params);
+        ims::CBS planner(params);
+        planner.initializePlanner(action_spaces, start_state_vals, goal_state_vals);
+        
+        // Plan.
+        planner.plan(paths);
+        stats = planner.reportStats();
     }
     else {
+
+        std::vector<std::shared_ptr<ims::SubcostConstrainedActionSpace>> action_spaces;
+        for (int i {0}; i < num_agents; i++){
+            action_spaces.emplace_back(std::make_shared<ConstrainedActionSpace2dRob>(instance.getSceneInterface2D(), action_type));
+            std::cout << "Action space " << i << " created." << std::endl;
+        }
+
         // Construct the parameters.
         ims::ECBSParams params;
-        params.high_level_suboptimality = vm["high_level_suboptimality"].as<double>();
+        params.high_level_focal_suboptimality = vm["high_level_focal_suboptimality"].as<double>();
+        params.low_level_focal_suboptimality = params.high_level_focal_suboptimality;
+        params.weight_low_level_heuristic = params.high_level_focal_suboptimality;
+        
         for (int i {0}; i < num_agents; i++){
             params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
         }
-        planner = new ims::ECBS(params);
-    }
-    planner->initializePlanner(action_spaces, start_state_vals, goal_state_vals);
+        ims::ECBS planner(params);
+        planner.initializePlanner(action_spaces, start_state_vals, goal_state_vals);
 
-    // Plan.
-    ims::MultiAgentPaths paths;
-    planner->plan(paths);
+        // Plan.
+        planner.plan(paths);
+        stats = planner.reportStats();
+    }
+
     
     if (paths.empty()){
         std::cout << "No solution found." << std::endl;
@@ -158,7 +179,6 @@ int main(int argc, char** argv) {
         std::cout << std::endl;
     }
 
-    PlannerStats stats = planner->reportStats();
     std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
     std::cout << "cost: " << stats.cost << std::endl;
     std::cout << "Number of nodes expanded: " << stats.num_expanded << std::endl;
@@ -193,7 +213,6 @@ int main(int argc, char** argv) {
     fout << "]" << std::endl;
     fout.close();
 
-    delete planner;
     return 0;
 }
 

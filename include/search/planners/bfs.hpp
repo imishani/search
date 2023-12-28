@@ -134,6 +134,7 @@ protected:
     /// @brief Reconstruct the path from the goal state to the start state.
     /// @param path 
     void reconstructPath(std::vector<StateType>& path) override;
+    void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
 
     BFSParams params_;
 

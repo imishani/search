@@ -32,53 +32,15 @@
  * \date   Sep 1 2023
 */
 
-#ifndef SEARCH_COMMON_CONFLICT_CONVERSIONS_HPP
-#define SEARCH_COMMON_CONFLICT_CONVERSIONS_HPP
-
 // Project includes.
-#include <search/common/conflicts.hpp>
-#include <search/common/constraints.hpp>
+#include <search/common/conflict_conversions.hpp>
 
 namespace ims {
 namespace conflict_conversions {
 
-void vertexConflictToVertexConstraints(const VertexConflict * vertex_conflict_ptr, 
+void vertexConflictToVertexConstraints(const VertexConflict * private_grids_vertex_conflict_ptr, 
                                        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
-    for (int agent_id : vertex_conflict_ptr->agent_ids) {
 
-        // Create a new vertex constraint.
-        VertexConstraint constraint = VertexConstraint(vertex_conflict_ptr->state);
-
-        // Update the constraints collective to also include the new constraint.
-        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<Constraint>>{std::make_shared<VertexConstraint>(constraint)});
-    }
-}
-
-void edgeConflictToEdgeConstraints(const EdgeConflict * edge_conflict_ptr,
-                                        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
-    // We have exactly two affected agents. Call them agent_a and agent_b. The conflict is 'a' moving 'from_state' to 'to_state' and 'b' moving 'to_state' to 'from_state', with time decremented and incremented by 1, respectively.
-    int agent_a = edge_conflict_ptr->agent_id_from;
-    int agent_b = edge_conflict_ptr->agent_id_to;
-
-    // Create a new edge constraint.
-    EdgeConstraint constraint_a = EdgeConstraint(edge_conflict_ptr->from_state, edge_conflict_ptr->to_state);
-    StateType from_state_b = edge_conflict_ptr->to_state;
-
-    // Decrement the time of the from_state_b.
-    from_state_b.back() -= 1;
-    StateType to_state_b = edge_conflict_ptr->from_state;
-
-    // Increment the time of the to_state_b.
-    to_state_b.back() += 1;
-    EdgeConstraint constraint_b = EdgeConstraint(from_state_b, to_state_b);
-
-    // Add to the constraints object.
-    agent_constraints.emplace_back(agent_a, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint_a)});
-    agent_constraints.emplace_back(agent_b, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint_b)});
-}
-
-void privateGridsVertexConflictToVertexConstraints(const PrivateGridsVertexConflict * private_grids_vertex_conflict_ptr, 
-                                       std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
     // For each affected agent (2, in ECBS), create a new constraint, and down the line a search state for each as well.
     for (int i = 0; i < private_grids_vertex_conflict_ptr->agent_ids.size(); i++) {
         int agent_id = private_grids_vertex_conflict_ptr->agent_ids[i];
@@ -91,17 +53,18 @@ void privateGridsVertexConflictToVertexConstraints(const PrivateGridsVertexConfl
     }
 }
 
-void privateGridsEdgeConflictToEdgeConstraints(const PrivateGridsEdgeConflict * private_grids_edge_conflict_ptr,
+
+void edgeConflictToEdgeConstraints(const EdgeConflict * private_grids_edge_conflict_ptr,
                                         std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
-    // We have two or more affected agents. For example say we have two and call them agent_a and agent_b. The conflict is 'a' moving 'from_state' to 'to_state' and 'b' moving from its own 'from_state' to 'to_state', each on their own private grid.
+    // We have two or more affected agents. For example say we have two and call them agent_a and agent_b. The conflict is 'a' moving 'state_from' to 'state_to' and 'b' moving from its own 'state_from' to 'state_to', each on their own private grid.
     for (int i = 0; i < private_grids_edge_conflict_ptr->agent_ids.size(); i++) {
         int agent_id = private_grids_edge_conflict_ptr->agent_ids[i];
-        StateType from_state = private_grids_edge_conflict_ptr->from_states[i];
-        StateType to_state = private_grids_edge_conflict_ptr->to_states[i];
+        StateType state_from = private_grids_edge_conflict_ptr->from_states[i];
+        StateType state_to = private_grids_edge_conflict_ptr->to_states[i];
 
         // It could be that one of the agents is not in transition while the other one is, so ceate a new edge constraint only if the states are different.
-        if (from_state != to_state) {
-            EdgeConstraint constraint = EdgeConstraint(from_state, to_state);
+        if (state_from != state_to) {
+            EdgeConstraint constraint = EdgeConstraint(state_from, state_to);
 
             // Update the constraints collective to also include the new constraint.
             agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint)});
@@ -109,11 +72,62 @@ void privateGridsEdgeConflictToEdgeConstraints(const PrivateGridsEdgeConflict * 
 
         // Otherwise, create a new vertex constraint.
         else {
-            VertexConstraint constraint = VertexConstraint(from_state);
+            VertexConstraint constraint = VertexConstraint(state_from);
 
             // Update the constraints collective to also include the new constraint.
             agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexConstraint>(constraint)});
         }
+    }
+}
+
+
+void vertexConflictToVertexStateAvoidanceConstraints(const VertexConflict * vertex_conflict_ptr, 
+                                       std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
+
+    // For each affected agent, create a new constraint, and down the line a search state for each as well.
+    for (int i = 0; i < vertex_conflict_ptr->agent_ids.size(); i++) {
+        int agent_id = vertex_conflict_ptr->agent_ids[i];
+
+        // Create a new vertex constraint. The agent states are the other states that the agent should avoid. Their corresponding agent ids are also passed.
+        std::vector<StateType> states_to_avoid;
+        std::vector<int> agent_ids_to_avoid;
+        for (int j = 0; j < vertex_conflict_ptr->agent_ids.size(); j++) {
+            if (j != i) {
+                states_to_avoid.push_back(vertex_conflict_ptr->states[j]);
+                agent_ids_to_avoid.push_back(vertex_conflict_ptr->agent_ids[j]);
+            }
+        }
+
+        VertexStateAvoidanceConstraint constraint = VertexStateAvoidanceConstraint(agent_ids_to_avoid, states_to_avoid);
+
+        // Update the constraints collective to also include the new constraint.
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexStateAvoidanceConstraint>(constraint)});
+    }
+}
+
+
+void edgeConflictToEdgeStateAvoidanceConstraints(const EdgeConflict * edge_conflict_ptr,
+                                        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
+    // We have two or more affected agents. For example say we have two and call them agent_a and agent_b. The conflict is 'a' moving 'state_from' to 'state_to' and 'b' moving from its own 'state_from' to 'state_to', each on their own private grid. The constraint imposed in this case is, for each agent, to avoid the transition of all other agents.
+    for (int i = 0; i < edge_conflict_ptr->agent_ids.size(); i++) {
+        int agent_id = edge_conflict_ptr->agent_ids[i];
+
+        std::vector<StateType> states_to_avoid_from;
+        std::vector<StateType> states_to_avoid_to;
+        std::vector<int> agent_ids_to_avoid;
+        for (int j = 0; j < edge_conflict_ptr->agent_ids.size(); j++) {
+            if (j != i) {
+                // Create a new edge constraint. The agent states are the other states that the agent should avoid. Their corresponding agent ids are also passed.
+                states_to_avoid_from.push_back(edge_conflict_ptr->from_states[j]);
+                states_to_avoid_to.push_back(edge_conflict_ptr->to_states[j]);
+                agent_ids_to_avoid.push_back(edge_conflict_ptr->agent_ids[j]);
+            }
+        }
+
+        EdgeStateAvoidanceConstraint constraint = EdgeStateAvoidanceConstraint(agent_ids_to_avoid, states_to_avoid_from, states_to_avoid_to);
+
+        // Update the constraints collective to also include the new constraint.
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeStateAvoidanceConstraint>(constraint)});
     }
 }
 
@@ -128,7 +142,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
         // Create a new vertex constraint for each of the agents. Point3DConflict assumes private grids, so each agent has its own state.
         for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
             int agent_id = point3d_conflict_ptr->agent_ids[i];
-            TimeType time = point3d_conflict_ptr->from_states.front().back();
+            auto time = (TimeType)point3d_conflict_ptr->from_states.front().back();
 
             // Create a new sphere3d constraint for this timestep.
             Sphere3dConstraint constraint = Sphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time);
@@ -144,7 +158,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
         for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
             int agent_id = point3d_conflict_ptr->agent_ids[i];
 
-            TimeType time_from = std::round(point3d_conflict_ptr->from_states[i].back());
+            auto time_from = (TimeType)std::round(point3d_conflict_ptr->from_states[i].back());
             TimeType time_to = time_from + 1; // TODO(yoraish): this +1 should come from a discretization object. It is within the action type that may not be available to the actionspace object, which the planner holds.
 
             // Create a new sphere3d constraint for each of the two timesteps.
@@ -152,7 +166,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
             Sphere3dConstraint constraint_to = Sphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_to);
 
             // Update the constraints collective to also include the new constraint.
-            // TODO(yoraish): the bottom two constraints MUST be added together. We should change this entire function to return pairs of {agent_it: {constraint0, constraint1, ...}}. Accordingly, in the expand() method of any CBS variant, accept these sets and put all constraints within a set in a new CT node, as they are created.
+            // Notice that the two constraints are added together to one agent. 
             agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<Sphere3dConstraint>(constraint_from), std::make_shared<Sphere3dConstraint>(constraint_to)});
         }
     }
@@ -160,5 +174,3 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
 
 }  // namespace conflict_conversions
 }  // namespace ims
-
-#endif //SEARCH_COMMON_CONFLICT_CONVERSIONS_HPP

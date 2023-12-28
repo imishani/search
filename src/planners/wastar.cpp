@@ -129,9 +129,7 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_s
     open_.push(start_);
     // update stats suboptimality
     stats_.suboptimality = params_.epsilon;
-
 }
-
 
 auto ims::wAStar::getSearchState(int state_id) -> ims::wAStar::SearchState * {
     assert(state_id < states_.size() && state_id >= 0);
@@ -150,7 +148,6 @@ auto ims::wAStar::getOrCreateSearchState(int state_id) -> ims::wAStar::SearchSta
     return states_[state_id];
 }
 
-
 bool ims::wAStar::plan(std::vector<StateType>& path) {
     startTimer();
     int iter {0};
@@ -165,7 +162,7 @@ bool ims::wAStar::plan(std::vector<StateType>& path) {
         if (isGoalState(state->state_id)){
             goal_ = state->state_id;
             getTimeFromStart(stats_.time);
-            reconstructPath(path);
+            reconstructPath(path, stats_.transition_costs);
             stats_.cost = state->g;
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();
@@ -179,6 +176,7 @@ bool ims::wAStar::plan(std::vector<StateType>& path) {
 }
 
 void ims::wAStar::expand(int state_id){
+
     auto state_ = getSearchState(state_id);
     std::vector<int> successors;
     std::vector<double> costs;
@@ -219,6 +217,28 @@ void ims::wAStar::setStateVals(int state_id, int parent_id, double cost)
     state_->f = state_->g + params_.epsilon*state_->h;
 }
 
+
+void ims::wAStar::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
+    path.clear();
+    costs.clear();
+
+    costs.push_back(0); // The goal state gets a transition cost of 0.
+    SearchState* state_ = getSearchState(goal_);
+    while (state_->parent_id != -1){
+        path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
+        
+        // Get the transition cost. This is the difference between the g values of the current state and its parent.
+        double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
+        costs.push_back(transition_cost);
+
+        state_ = getSearchState(state_->parent_id);
+    }
+    path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
+
+    std::reverse(path.begin(), path.end());
+    std::reverse(costs.begin(), costs.end());   
+}
+
 void ims::wAStar::reconstructPath(std::vector<StateType>& path) {
     SearchState* state_ = getSearchState(goal_);
     while (state_->parent_id != -1){
@@ -238,4 +258,8 @@ void ims::wAStar::resetPlanningData(){
     goals_.clear();
     goal_ = -1;
     stats_ = PlannerStats();
+}
+
+auto ims::wAStar::getAllSearchStates() -> std::vector<ims::wAStar::SearchState*> {
+    return states_;
 }

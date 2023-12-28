@@ -35,6 +35,9 @@
 #ifndef SEARCH_COMMON_CONFLICT_CONVERSIONS_HPP
 #define SEARCH_COMMON_CONFLICT_CONVERSIONS_HPP
 
+// General includes.
+#include <iostream> 
+
 // Project includes.
 #include <search/common/conflicts.hpp>
 #include <search/common/constraints.hpp>
@@ -55,20 +58,18 @@ void vertexConflictToVertexConstraints(const VertexConflict * vertex_conflict_pt
 void edgeConflictToEdgeConstraints(const EdgeConflict * edge_conflict_ptr,
                                         std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
 
-
-/// @brief Convert a private grids vertex conflict to a vertex constraint.
-/// @param private_grids_vertex_conflict_ptr
+/// @brief Convert a vertex conflict to a vertex constraint.
+/// @param conflict_ptr 
 /// @return
 /// @note This function adds pairs of <agent_id, constraints> to the agent_constraints vector.
-void privateGridsVertexConflictToVertexConstraints(const PrivateGridsVertexConflict * private_grids_vertex_conflict_ptr, 
+void vertexConflictToVertexStateAvoidanceConstraints(const VertexConflict * vertex_conflict_ptr, 
                                        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
 
-
-/// @brief Convert a private grids edge conflict to an edge constraint.
-/// @param private_grids_edge_conflict_ptr
+/// @brief Convert a edge conflict to an edge constraint.
+/// @param conflict_ptr
 /// @return
 /// @note This function adds pairs of <agent_id, constraints> to the agent_constraints vector.
-void privateGridsEdgeConflictToEdgeConstraints(const PrivateGridsEdgeConflict * private_grids_edge_conflict_ptr,
+void edgeConflictToEdgeStateAvoidanceConstraints(const EdgeConflict * edge_conflict_ptr,
                                         std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
 
 
@@ -78,6 +79,8 @@ void privateGridsEdgeConflictToEdgeConstraints(const PrivateGridsEdgeConflict * 
 /// @note This function adds pairs of <agent_id, constraints> to the agent_constraints vector.
 void point3dConflictToSphere3dConstraints(const Point3dConflict * point3d_conflict_ptr,
 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius);
+
+
 
 }  // namespace conflict_conversions
 }  // namespace ims

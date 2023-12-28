@@ -27,36 +27,34 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   ecbs_private_grids.cpp
+ * \file   cbs_mp.cpp
  * \author Yorai Shaoul (yorai@cmu.edu)
- * \date   August 24 2023
+ * \date   October 19 2023
  */
 
-#include <search/planners/multi_agent/ecbs_private_grids.hpp>
+#include <search/planners/astar.hpp>
+#include <search/planners/multi_agent/cbs_mp.hpp>
 
-ims::ECBSPrivateGrids::ECBSPrivateGrids(const ims::ECBSParams& params) : params_(params), ims::ECBS(params) {}
+ims::CBSMP::CBSMP(const ims::CBSMPParams& params) : params_(params), ims::CBS(params) {
+}
 
-std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::ECBSPrivateGrids::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
+std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::CBSMP::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
     std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> agent_constraints;
-    // TODO(yoraish): this is WIP.
+
     // Iterate through the conflicts and convert them to constraints.
     for (auto& conflict_ptr : conflicts) {
         // Create a new constraint given the conflict.
-        // ===========================
-        // Vertex Conflicts.
-        // ===========================
         if (conflict_ptr->type == ConflictType::VERTEX) {
             auto* vertex_conflict_ptr = dynamic_cast<VertexConflict*>(conflict_ptr.get());
             // Check if the conversion succeeded.
             if (vertex_conflict_ptr == nullptr) {
                 throw std::runtime_error("Conflict is a vertex conflict, but could not be converted to a VertexConflict.");
             }
-            ims::conflict_conversions::vertexConflictToVertexConstraints(vertex_conflict_ptr, agent_constraints);
+
+            // For each affected agent (2, in EACBS), create a new constraint, and a search state for each as well.
+            ims::conflict_conversions::vertexConflictToVertexStateAvoidanceConstraints(vertex_conflict_ptr, agent_constraints);
         }
 
-        // ===========================
-        // Edge Conflicts.
-        // ===========================
         // Otherwise, if the conflict is an edge conflict, add an edge constraint to each of the two affected agents.
         else if (conflict_ptr->type == ConflictType::EDGE) {
             auto* edge_conflict_ptr = dynamic_cast<EdgeConflict*>(conflict_ptr.get());
@@ -65,35 +63,13 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             if (edge_conflict_ptr == nullptr) {
                 throw std::runtime_error("Conflict is an edge conflict, but could not be converted to an EdgeConflict.");
             }
-            ims::conflict_conversions::edgeConflictToEdgeConstraints(edge_conflict_ptr, agent_constraints);
+            ims::conflict_conversions::edgeConflictToEdgeStateAvoidanceConstraints(edge_conflict_ptr, agent_constraints);
         }
 
-        // ===========================
-        // Private Grids Vertex Conflicts.
-        // ===========================
-        else if (conflict_ptr->type == ConflictType::PRIVATE_GRIDS_VERTEX) {
-            // Get the location of each of the agents. Each one is specified in its own grid.
-            auto* private_grids_vertex_conflict_ptr = dynamic_cast<PrivateGridsVertexConflict*>(conflict_ptr.get());
-            // Check if the conversion succeeded.
-            if (private_grids_vertex_conflict_ptr == nullptr) {
-                throw std::runtime_error("Conflict is a private grids vertex conflict, but could not be converted to a PrivateGridsVertexConflict.");
-            }
-            ims::conflict_conversions::privateGridsVertexConflictToVertexConstraints(private_grids_vertex_conflict_ptr, agent_constraints);
-        }
-
-        // ===========================
-        // Private Grids Edge Conflicts.
-        // ===========================
-        else if (conflict_ptr->type == ConflictType::PRIVATE_GRIDS_EDGE) {
-            // Get the location of each of the agents. Each one is specified in its own grid.
-            auto* private_grids_edge_conflict_ptr = dynamic_cast<PrivateGridsEdgeConflict*>(conflict_ptr.get());
-            // Check if the conversion succeeded.
-            if (private_grids_edge_conflict_ptr == nullptr) {
-                throw std::runtime_error("Conflict is a private grids edge conflict, but could not be converted to a PrivateGridsEdgeConflict.");
-            }
-            ims::conflict_conversions::privateGridsEdgeConflictToEdgeConstraints(private_grids_edge_conflict_ptr, agent_constraints);
-
+        else {
+            throw std::runtime_error("Conflict type " + std::to_string(static_cast<int>(conflict_ptr->type)) + " is not supported by EACBS.");
         }
     }
+
     return agent_constraints;
 }

@@ -208,8 +208,8 @@ bool ims::ARAStar::improvePath(std::vector<StateType> &path) {
         if (isGoalState(state->state_id)){
             goal_ = state->state_id;
             getTimeFromStart(stats_.time);
-            reconstructPath(path);
-            stats_.cost = state->g; params_.curr_cost = state->g;
+            reconstructPath(path, stats_.transition_costs);
+            stats_.cost = state->g;
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();
             return true;
@@ -286,6 +286,28 @@ void ims::ARAStar::reorderOpen() {
         state->f = state->g + params_.epsilon * state->h;
     }
     open_.make(); // reorder intrusive heap
+}
+
+
+void ims::ARAStar::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
+    path.clear();
+    costs.clear();
+
+    costs.push_back(0); // The goal state gets a transition cost of 0.
+    SearchState* state_ = getSearchState(goal_);
+    while (state_->parent_id != -1){
+        path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
+        
+        // Get the transition cost. This is the difference between the g values of the current state and its parent.
+        double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
+        costs.push_back(transition_cost);
+
+        state_ = getSearchState(state_->parent_id);
+    }
+    path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
+
+    std::reverse(path.begin(), path.end());
+    std::reverse(costs.begin(), costs.end());   
 }
 
 void ims::ARAStar::updateBounds() {

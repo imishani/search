@@ -58,6 +58,23 @@ bool IntrusiveHeapWrapper<T, Compare>::empty() const {
 }
 
 template <class T, class Compare>
+void IntrusiveHeapWrapper<T, Compare>::clear() {
+    m_pq.clear();
+    for (auto& pair : m_map) {
+        delete pair.second;
+    }
+    m_map.clear();
+}
+
+template <class T, class Compare>
+void IntrusiveHeapWrapper<T, Compare>::update(T* e) {
+    if (m_map.find(e) == m_map.end()) {
+        throw std::runtime_error("Element not in heap");
+    }
+    m_pq.update(m_map[e]);
+}
+
+template <class T, class Compare>
 size_t IntrusiveHeapWrapper<T, Compare>::size() const {
     return m_pq.size();
 }
