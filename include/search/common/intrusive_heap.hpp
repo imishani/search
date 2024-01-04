@@ -382,6 +382,9 @@ namespace smpl {
     void IntrusiveHeap<T, Compare>::percolate_up(size_type pivot)
     {
         T* tmp = data_[pivot];
+        if (tmp == nullptr) {
+            return;
+        }
         while (pivot != 1) {
             size_type p = parent(pivot);
             if (comp_(*data_[p], *tmp)) {
