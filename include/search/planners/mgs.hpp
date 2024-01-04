@@ -72,7 +72,6 @@ struct MGSPlannerStats : public PlannerStats {
     std::vector<StateType> root_states;
 };
 
-
 /// @class MGS class.
 /// @brief A general search algorithm that uses heuristics and g values to find the optimal path
 class MGS : public Planner {
@@ -156,7 +155,6 @@ private:
     using OpenList = ::smpl::IntrusiveHeap<SearchState::HeapData, HeapCompare>;
 //    using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
     OpenList* opens_ {nullptr};
-//    std::unordered_map<int, OpenList> opens_;
 
 
     SearchState* start_ {nullptr};
