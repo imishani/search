@@ -20,6 +20,7 @@ add_library(search SHARED
         src/planners/nparastar.cpp
         src/planners/bfs.cpp
         src/planners/egraph_wastar.cpp
+        src/planners/mgs.cpp
         src/planners/focal_search/focal_search.cpp
         src/planners/focal_search/focal_wastar.cpp
         src/planners/focal_search/focal_eawastar.cpp
@@ -86,6 +87,9 @@ target_link_libraries(run_2d_rob_nav_wastar_focal search ${Boost_LIBRARIES})
 
 add_executable(run_2d_ackermann_rob_nav_wastar domains/2d_robot_nav/run_2d_ackermann_wastar.cpp)
 target_link_libraries(run_2d_ackermann_rob_nav_wastar search ${Boost_LIBRARIES})
+
+add_executable(run_2d_rob_nav_mgs domains/2d_robot_nav/run_2d_mgs.cpp)
+target_link_libraries(run_2d_rob_nav_mgs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_cbs_or_ecbs domains/2d_mapf/run_2d_cbs_or_ecbs.cpp)
 target_link_libraries(run_2d_mapf_cbs_or_ecbs search ${Boost_LIBRARIES})
