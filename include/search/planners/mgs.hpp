@@ -76,31 +76,30 @@ class MGS : public Planner {
 private:
 
     /// @brief The search state.
-    struct SearchState {
+    struct SearchState : ims::SearchState{
 
-//        /// @brief Constructor
-//        explicit SearchState(int graph_num) : graph_num_(graph_num) {
-//            data_.parent_id.reserve(graph_num_);
-//            edges.reserve(graph_num_);
-//            h_map.reserve(graph_num_);
-//            h_self.reserve(graph_num_);
-//            h.reserve(graph_num_);
-//            f.reserve(graph_num_);
-//            g.reserve(graph_num_);
-//            in_open_map.reserve(graph_num_);
-//            in_closed_map.reserve(graph_num_);
-//            for (int i = 0; i < graph_num_; ++i) {
-//                parent_id[i] = UNSET;
-//                edges[i] = {};
-//                h_map[i] = INF_DOUBLE;
-//                h_self[i] = INF_DOUBLE;
-//                h[i] = INF_DOUBLE;
-//                f[i] = INF_DOUBLE;
-//                g[i] = INF_DOUBLE;
-//                in_open_map[i] = false;
-//                in_closed_map[i] = false;
-//            }
-//        }
+        /// @brief Constructor
+        explicit SearchState(int graph_num) : graph_num_(graph_num) {
+            edges.reserve(graph_num_);
+            h_map.reserve(graph_num_);
+            h_self.reserve(graph_num_);
+            h.reserve(graph_num_);
+            f.reserve(graph_num_);
+            g.reserve(graph_num_);
+            in_open_map.reserve(graph_num_);
+            in_closed_map.reserve(graph_num_);
+            for (int i = 0; i < graph_num_; ++i) {
+                parent_id[i] = UNSET;
+                edges[i] = {};
+                h_map[i] = INF_DOUBLE;
+                h_self[i] = INF_DOUBLE;
+                h[i] = INF_DOUBLE;
+                f[i] = INF_DOUBLE;
+                g[i] = INF_DOUBLE;
+                in_open_map[i] = false;
+                in_closed_map[i] = false;
+            }
+        }
 
         int state_id = UNSET; // The id of the search state. If applicable, the search state would be mapped to a robot state with the same id.
 
@@ -108,81 +107,81 @@ private:
         int graph_num_;
         /// @brief Compare based on graph number
         int use_graph_ {-1};
-        struct HeapData : public ::smpl::HeapElement {
-            SearchState* me;
-            /// @brief The parent states
-            int parent_id;
-            /// @brief edges in the graphs.
-            std::vector<std::pair<int, double>> edges;
-            /// @brief The cost to come
-            double g;
-            /// @brief The heuristic values for a given graph with respect to all other roots.
-            double h_map;
-            /// @brief The heuristic to self root
-            double h_self;
-            /// @brief The heuristic values.
-            double h;
-            /// @brief The f values.
-            double f;
-            /// @brief open list booleans.
-            bool in_open_map;
-            /// @brief closed list booleans.
-            bool in_closed_map;
-
-            /// @brief set the state to open list (make sure it is not in closed list and if it is, update it)
-            void setOpen() {
-                in_open_map = true;
-                in_closed_map = false;
-            }
-
-            /// @brief set the state to closed list (make sure it is not in open list and if it is, update it)
-            /// @param graph_ The graph id that closed the state
-            void setClosed() {
-                in_closed_map = true;
-                in_open_map = false;
-            }
-        };
-
-        HeapData data_[1];
+//        struct HeapData : public ::smpl::HeapElement {
+//            SearchState* me;
+//            /// @brief The parent states
+//            int parent_id;
+//            /// @brief edges in the graphs.
+//            std::vector<std::pair<int, double>> edges;
+//            /// @brief The cost to come
+//            double g;
+//            /// @brief The heuristic values for a given graph with respect to all other roots.
+//            double h_map;
+//            /// @brief The heuristic to self root
+//            double h_self;
+//            /// @brief The heuristic values.
+//            double h;
+//            /// @brief The f values.
+//            double f;
+//            /// @brief open list booleans.
+//            bool in_open_map;
+//            /// @brief closed list booleans.
+//            bool in_closed_map;
+//
+//            /// @brief set the state to open list (make sure it is not in closed list and if it is, update it)
+//            void setOpen() {
+//                in_open_map = true;
+//                in_closed_map = false;
+//            }
+//
+//            /// @brief set the state to closed list (make sure it is not in open list and if it is, update it)
+//            /// @param graph_ The graph id that closed the state
+//            void setClosed() {
+//                in_closed_map = true;
+//                in_open_map = false;
+//            }
+//        };
+//
+//        HeapData data_[1];
 
         /// @brief closed list boolean
         bool in_closed = false;
         /// @brief The graph id that closed the state
         int graph_closed = -1;
 
-//        /// @brief The parent states
-//        std::unordered_map<int, int> parent_id;
-//        /// @brief edges in the graphs.
-//        std::unordered_map<int, std::vector<std::pair<int, double>>> edges;
-//        /// @brief The cost to come
-//        std::unordered_map<int, double> g;
-//        /// @brief The heuristic values for a given graph with respect to all other roots.
-//        std::unordered_map<int, double> h_map;
-//        /// @brief The heuristic to self root
-//        std::unordered_map<int, double> h_self;
-//        /// @brief The heuristic values.
-//        std::unordered_map<int, double> h;
-//        /// @brief The f values.
-//        std::unordered_map<int, double> f;
-//        /// @brief open list booleans.
-//        std::unordered_map<int, bool> in_open_map;
-//        /// @brief closed list booleans.
-//        std::unordered_map<int, bool> in_closed_map;
-//
-//        /// @brief set the state to open list (make sure it is not in closed list and if it is, update it)
-//        void setOpen(int graph_) {
-//            in_open_map.at(graph_) = true;
-//            in_closed_map.at(graph_) = false;
-//        }
-//
-//        /// @brief set the state to closed list (make sure it is not in open list and if it is, update it)
-//        /// @param graph_ The graph id that closed the state
-//        void setClosed(int graph_) {
-//            in_closed_map[graph_] = true;
-//            in_open_map[graph_] = false;
-//        }
+        /// @brief The parent states
+        std::unordered_map<int, int> parent_id;
+        /// @brief edges in the graphs.
+        std::unordered_map<int, std::vector<std::pair<int, double>>> edges;
+        /// @brief The cost to come
+        std::unordered_map<int, double> g;
+        /// @brief The heuristic values for a given graph with respect to all other roots.
+        std::unordered_map<int, double> h_map;
+        /// @brief The heuristic to self root
+        std::unordered_map<int, double> h_self;
+        /// @brief The heuristic values.
+        std::unordered_map<int, double> h;
+        /// @brief The f values.
+        std::unordered_map<int, double> f;
+        /// @brief open list booleans.
+        std::unordered_map<int, bool> in_open_map;
+        /// @brief closed list booleans.
+        std::unordered_map<int, bool> in_closed_map;
 
-        void print() const {
+        /// @brief set the state to open list (make sure it is not in closed list and if it is, update it)
+        void setOpen(int graph_) {
+            in_open_map.at(graph_) = true;
+            in_closed_map.at(graph_) = false;
+        }
+
+        /// @brief set the state to closed list (make sure it is not in open list and if it is, update it)
+        /// @param graph_ The graph id that closed the state
+        void setClosed(int graph_) {
+            in_closed_map[graph_] = true;
+            in_open_map[graph_] = false;
+        }
+
+        void print() override {
             std::cout << "State: " << state_id << std::endl;
         }
 
@@ -192,14 +191,14 @@ private:
     struct SearchStateCompare { /// @NOTE: We deliberately use the graph number from state 1 !
         bool operator()(const SearchState& s1, const SearchState& s2) const {
             assert((s1.use_graph_ != -1) && (s2.use_graph_ != -1));
-            if ((s1.data_[s1.use_graph_].f == s2.data_[s1.use_graph_].f) &&
-            ((s1.data_[s1.use_graph_].g) == s2.data_[s1.use_graph_].g))
+            if ((s1.f.at(s1.use_graph_) == s2.f.at(s1.use_graph_)) &&
+            ((s1.g.at(s1.use_graph_)) == s2.g.at(s1.use_graph_)))
                 return (s1.state_id < s2.state_id);
-            else if ((s1.data_[s1.use_graph_].f == s2.data_[s1.use_graph_].f))
+            else if ((s1.f.at(s1.use_graph_) == s2.f.at(s1.use_graph_)))
                 // For tie breaking, we prefer the state with the larger g value as it is closer to the goal (lower h in the case of an informed search).
-                return s1.data_[s1.use_graph_].g > s2.data_[s1.use_graph_].g;
+                return s1.g.at(s1.use_graph_) > s2.g.at(s1.use_graph_);
             else
-                return s1.data_[s1.use_graph_].f < s2.data_[s1.use_graph_].f;
+                return s1.f.at(s1.use_graph_) < s2.f.at(s1.use_graph_);
         }
     };
 
@@ -208,8 +207,10 @@ private:
     MGSParams params_;
 
     /// @brief The open lists
-    using OpenList = ::smpl::IntrusiveHeap<SearchState::HeapData, SearchStateCompare>;
-    OpenList* opens_ {nullptr};
+//    using OpenList = ::smpl::IntrusiveHeap<SearchState::HeapData, SearchStateCompare>;
+    using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+//    OpenList* opens_ {nullptr};
+    std::unordered_map<int, OpenList> opens_;
 
     /// @brief Keeping track of states by their id.
     std::vector<SearchState*> states_;

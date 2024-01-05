@@ -37,7 +37,7 @@
 
 ims::MGS::MGS(const MGSParams &params) : Planner(params), params_(params) {
     heuristic_ = params.heuristic_;
-    opens_ = new OpenList;
+//    opens_ = new OpenList;
 //    opens_.reserve(params.g_num_);
     max_h_states_.reserve(params.g_num_);
     roots_.reserve(params.g_num_);
@@ -52,7 +52,7 @@ ims::MGS::~MGS() {
     for (auto &state : states_) {
         delete state;
     }
-    delete[] opens_;
+//    delete[] opens_;
 }
 
 void ims::MGS::initializePlanner(const std::shared_ptr<ActionSpaceMGS>& action_space_ptr,
@@ -77,7 +77,7 @@ void ims::MGS::initializePlanner(const std::shared_ptr<ActionSpaceMGS>& action_s
     start_->parent_id.at(GRAPH_START) = PARENT_TYPE(START);
     heuristic_->setStart(const_cast<StateType &>(start));
     // Evaluate the goal state
-    goal_->parent_id.at(GRAPH_START) = PARENT_TYPE(GOAL);
+    goal_->parent_id.at(GRAPH_GOAL) = PARENT_TYPE(GOAL);
     heuristic_->setGoal(const_cast<StateType &>(goal));
 
     // generate params_.g_num_ - 2 random states
