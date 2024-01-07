@@ -118,7 +118,13 @@ namespace ims {
         explicit ActionSpace() = default;
 
         /// @brief Destructor
-        ~ActionSpace() = default;
+        ~ActionSpace() {
+            for (auto& state : states_) {
+                delete state;
+            }
+            states_.clear();
+            state_to_id_.clear();
+        }
 
         /// @brief Get hash entry for a state. If doesnt exist return nullptr
         /// @param state_id The state id
