@@ -60,9 +60,12 @@ sudo make install
 ## Usage
 
 -----
-The package is designed to be used as a library. In _domain_ directory, you will find two examples that demonstrate how 
+The package is designed to be used as a library. In _domain_ directory, 
+you will find examples that demonstrate how 
 to use the library. The examples are in two domains:
 - 2D grid search
+  - 2D grid search with 8-connected neighbors.
+  - 3D search (x,y,theta).
 - Multi-Agent Path Finding (MAPF)
 -----  
 Run the following to see an example of 2D grid search in action!
