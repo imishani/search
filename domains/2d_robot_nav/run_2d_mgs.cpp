@@ -93,11 +93,16 @@ int main(int argc, char** argv) {
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
     auto* heuristic = new ims::EuclideanHeuristic();
-    int graphs_number = 3;
+    int graphs_number = 10;
     ims::MGSParams params (heuristic, graphs_number);
+    params.time_limit_ = 50;
     // construct the scene and the action space
     Scene2DRob scene (map);
     ActionType2dRob action_type;
+
+    // log the results
+    std::unordered_map<int, ims::MGSPlannerStats> logs;
+
     for (int i {0}; i < starts.size(); i++){
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
@@ -122,6 +127,7 @@ int main(int argc, char** argv) {
             planner.initializePlanner(ActionSpace, starts[i], goals[i], params.g_num_);
         }
         catch (std::exception& e) {
+            std::cout << e.what() << std::endl;
             std::cout << "Start or goal is not valid!" << std::endl;
             continue;
         }
@@ -130,11 +136,14 @@ int main(int argc, char** argv) {
         std::vector<StateType> path_;
         if (!planner.plan(path_)) {
             std::cout << "No path found!" << std::endl;
+            path_.clear();
+            continue;
 //            return 0;
         }
         else
             std::cout << "Path found!" << std::endl;
-        PlannerStats stats = planner.reportStats();
+        ims::MGSPlannerStats stats = planner.reportStats();
+        logs[i] = stats;
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
         std::cout << "cost: " << stats.cost << std::endl;
         std::cout << "Path length: " << path_.size() << std::endl;
@@ -154,7 +163,20 @@ int main(int argc, char** argv) {
         }
     }
 
-    std::string image_name = "/run_2d_wastar_map.jpg";
+    // save the logs to a file in current directory
+    std::string log_file = "logs_mgs_map" + std::to_string(map_index) + "_" + "mgs_" +
+        std::to_string(params.g_num_) +".csv";
+    // save logs object to a file
+    std::ofstream file(log_file);
+    // header line
+    file << "Problem,Time,Cost,Num_expanded,Num_generated" << std::endl;
+    for (auto& log : logs) {
+        file << log.first << "," << log.second.time << "," << log.second.cost << "," <<
+        log.second.num_expanded << "," << log.second.num_generated << std::endl;
+    }
+    file.close();
+
+    std::string image_name = "/run_2d_mgs_map.jpg";
 
     bool check_img_write = cv::imwrite(full_path.string() + image_name, img);
 
