@@ -60,21 +60,23 @@ def visualize(map_index, states):
     map_data, img, map_type, width, height = load_map(map_file)
 
     def update(frame_number):
-        if frame_number % 100 == 0:
-            print(f"Generating frame {frame_number} of {states.shape[0]}")
-        state = states[frame_number]
-        x = state[1]
-        y = state[2]
+        # if frame_number % 100 == 0:
+        #     print(f"Generating frame {frame_number} of {states.shape[0]}")
+        print(f"Generating frame {20*frame_number} of {states.shape[0]}")
+        state = states[20 * frame_number: 20 * frame_number + 20, :]
+        x = state[:, 1]
+        y = state[:, 2]
         im.set_array(map_data)
         plt.plot(x, y, 'go', markersize=0.5)
         return im,
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(width / 100, height / 100))
+
     im = plt.imshow(map_data, cmap='Greys', vmin=0, vmax=100, animated=True)
     im.axes.get_xaxis().set_visible(False)
     im.axes.get_yaxis().set_visible(False)
 
-    ani = animation.FuncAnimation(fig, update, frames=states.shape[0], interval=5, blit=True, repeat_delay=1000)
+    ani = animation.FuncAnimation(fig, update, frames=states.shape[0] // 20, interval=5, blit=True, repeat_delay=1000)
     ani.save("animation_mgs.mp4",
              writer='ffmpeg', dpi=300)
     # save as gif
