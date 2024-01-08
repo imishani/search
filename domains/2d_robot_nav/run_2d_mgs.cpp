@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
     }
     std::vector<std::string> maps;
 
-    boost::filesystem::path full_path( boost::filesystem::current_path() );
+    boost::filesystem::path full_path(boost::filesystem::current_path() );
     std::cout << "Current path is : " << full_path.string() << std::endl;
     // At each emplace_back, use the full pathh and concatenate the map name
     maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/hrt201n.map");
@@ -93,15 +93,16 @@ int main(int argc, char** argv) {
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
     auto* heuristic = new ims::EuclideanHeuristic();
-    int graphs_number = 10;
+    int graphs_number = 8;
     ims::MGSParams params (heuristic, graphs_number);
-    params.time_limit_ = 50;
+    params.time_limit_ = 5;
     // construct the scene and the action space
     Scene2DRob scene (map);
     ActionType2dRob action_type;
 
     // log the results
     std::unordered_map<int, ims::MGSPlannerStats> logs;
+    std::unordered_map<int, PathType> paths;
 
     for (int i {0}; i < starts.size(); i++){
         // round the start and goal to the nearest integer
@@ -135,7 +136,7 @@ int main(int argc, char** argv) {
         std::cout << "Planning..." << std::endl;
         std::vector<StateType> path_;
         if (!planner.plan(path_)) {
-            std::cout << "No path found!" << std::endl;
+            std::cout << RED << "No path found!" << RESET << std::endl;
             path_.clear();
             continue;
 //            return 0;
@@ -143,7 +144,7 @@ int main(int argc, char** argv) {
         else
             std::cout << "Path found!" << std::endl;
         ims::MGSPlannerStats stats = planner.reportStats();
-        logs[i] = stats;
+        logs[i] = stats; paths[i] = path_;
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
         std::cout << "cost: " << stats.cost << std::endl;
         std::cout << "Path length: " << path_.size() << std::endl;
@@ -176,6 +177,20 @@ int main(int argc, char** argv) {
     }
     file.close();
 
+    // save the paths to a temporary file
+    std::string path_file = "paths_tmp.csv";
+    // save paths object to a file
+    std::ofstream file2(path_file);
+    // header line
+    file2 << "Problem,Scale,PathsNumber," << map_index << "," << scale << "," << paths.size() << std::endl;
+    for (auto& path2 : paths) {
+        file2 << path2.first << "," << path2.second.size() << std::endl;
+        for (auto& state : path2.second) {
+            file2 << state[0] << "," << state[1] << std::endl;
+        }
+    }
+    file2.close();
+
     std::string image_name = "/run_2d_mgs_map.jpg";
 
     bool check_img_write = cv::imwrite(full_path.string() + image_name, img);
@@ -186,9 +201,14 @@ int main(int argc, char** argv) {
         std::cout << "Successfully saved the image to " + full_path.string() + image_name << std::endl;
     }
 
-    cv::namedWindow("Map", cv::WINDOW_NORMAL);
-    cv::imshow("Map", img);
-    cv::waitKey(0);
+//    cv::namedWindow("Map", cv::WINDOW_NORMAL);
+//    cv::imshow("Map", img);
+//    cv::waitKey(0);
+
+    std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
+    std::string command = "python3 " + plot_path + " " + path_file;
+    std::cout << "Running the plot script..." << std::endl;
+    system(command.c_str());
 
     return 0;
 }
