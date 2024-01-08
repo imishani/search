@@ -93,7 +93,7 @@ add_executable(run_2d_rob_nav_wastar_focal domains/2d_robot_nav/run_2d_wastar_fo
 target_link_libraries(run_2d_rob_nav_wastar_focal search ${Boost_LIBRARIES})
 
 add_executable(run_2d_ackermann_rob_nav_wastar domains/2d_robot_nav/run_2d_ackermann_wastar.cpp)
-target_link_libraries(run_2d_ackermann_rob_nav_wastar search ${Boost_LIBRARIES})
+target_link_libraries(run_2d_ackermann_rob_nav_wastar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
 add_executable(run_2d_rob_nav_mgs domains/2d_robot_nav/run_2d_mgs.cpp)
 target_link_libraries(run_2d_rob_nav_mgs search ${OpenCV_LIBS} ${Boost_LIBRARIES})

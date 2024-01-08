@@ -159,9 +159,8 @@ namespace ims {
             } else {
                 // Raise an error.
                 std::cout << "getRobotState via state_val failed. State not found." << std::endl;
-                throw std::runtime_error("getRobotState via state_val failed. State not found.");
                 delete curr_state;
-                return nullptr;
+                throw std::runtime_error("getRobotState via state_val failed. State not found.");
             }
         }
 
@@ -179,9 +178,8 @@ namespace ims {
             } else {
                 // Raise an error.
                 std::cout << "getRobotStateId via state_val failed. State not found." << std::endl;
-                throw std::runtime_error("getRobotStateId via state_val failed. State not found.");
                 delete curr_state;
-                return -1;
+                throw std::runtime_error("getRobotStateId via state_val failed. State not found.");
             }
         }
 

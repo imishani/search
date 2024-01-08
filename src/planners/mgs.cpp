@@ -179,8 +179,8 @@ double ims::MGS::computeHeuristic(int state_id, size_t g_num) { // TODO: Somethi
             }
         }
         h /= (params_.g_num_ - (int)closed_graphs_.size()); // TODO: should it be the minimum rather than the average?
-        return h;
-//        return h_min;
+//        return h;
+        return h_min;
     }
 }
 
@@ -249,7 +249,8 @@ bool ims::MGS::plan(std::vector<StateType>& path) {
                 if (state->me->graph_closed == i){
                     continue;
                 }
-                else {
+                else if (std::find(closed_graphs_.begin(), closed_graphs_.end(),
+                                   state->me->graph_closed) == closed_graphs_.end()) {
                     std::cout << "Iter: " << iter << " open sizes: " <<  std::endl;
                     for (int j {0}; j < params_.g_num_; ++j){
                         std::cout << "Open " << j << ": " << opens_[j].size() << "\n";
@@ -300,7 +301,7 @@ void ims::MGS::expand(int state_id, int g_num){
             continue;
         }
 //        if (successor->data_[g_num].is_open){
-        if (opens_[g_num].contains(&successor->data_[g_num])){ // really not efficient
+        if (opens_[g_num].contains(&successor->data_[g_num])){ // really not efficient TODO: change this
             // check if the state is in open
             bool in = opens_[g_num].contains(&successor->data_[g_num]);
             if (!in){
@@ -320,8 +321,8 @@ void ims::MGS::expand(int state_id, int g_num){
             setStateVals(successor->state_id,
                          state->state_id,
                          cost, g_num);
-            state->data_[g_num].edges->emplace_back(successor_id, cost);
-            successor->data_[g_num].edges->emplace_back(state_id, cost);
+            state->data_[g_num].edges->emplace_back(successor->state_id, cost);
+            successor->data_[g_num].edges->emplace_back(state->state_id, cost);
 //            opens_.at(g_num).push(successor); // the use_graph_ is set in the setStateVals function
             opens_[g_num].push(&successor->data_[g_num]);
             successor->data_[g_num].setOpen();
@@ -340,6 +341,21 @@ void ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
     int min_h_graph_id = h1 < h2 ? graph_id1 : graph_id2;
     int max_h_graph_id = h1 < h2 ? graph_id2 : graph_id1;
     std::cout << "Connecting graphs (min, max): " << min_h_graph_id << ", " << max_h_graph_id << std::endl;
+
+    closed_graphs_.push_back(max_h_graph_id);
+    // connect the graphs
+    hl_graph_[min_h_graph_id].push_back(max_h_graph_id);
+    hl_graph_[max_h_graph_id].push_back(min_h_graph_id);
+
+    ////////// DEBUG /////////// TODO: delete this debug block
+//    static int goal_graph_id = GRAPH_GOAL;
+//    bool goal_graph = false; bool goal_expanded = false;
+//    if (max_h_graph_id == goal_graph_id){
+//        goal_graph = true;
+//        goal_graph_id = min_h_graph_id;
+//    }
+    ////////////////////////////
+
     // Update the values of the states that where expanded from the root of the graph with the higher heuristic value.
     // first, back propagate the values from the state to the root
     SearchState* state = getSearchState(state_id); // the state that was expanded
@@ -358,7 +374,11 @@ void ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
     }
     // add all edges TODO: Is this necessary?
     for (auto& succ_id : *state->data_[max_h_graph_id].edges){
-        state->data_[min_h_graph_id].edges->emplace_back(succ_id);
+        if (std::find(state->data_[min_h_graph_id].edges->begin(),
+                      state->data_[min_h_graph_id].edges->end(),
+                      succ_id) == state->data_[min_h_graph_id].edges->end()){
+            state->data_[min_h_graph_id].edges->emplace_back(succ_id);
+        }
     }
 
     struct ConnectState {
@@ -372,7 +392,7 @@ void ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
 
     struct CompareConnectState {
         bool operator()(const std::shared_ptr<ConnectState>& a, const std::shared_ptr<ConnectState>& b) const {
-            return a->state->f > b->state->f;
+            return a->state->g > b->state->g;
         }
     };
 
@@ -389,9 +409,15 @@ void ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
         if (curr_state->state->me->in_closed) {
             curr_state->state->me->graph_closed = min_h_graph_id;
         }
-        // look at all the successors of the state based on the edges in the graph
-        for (auto &succ_id : *state->data_[max_h_graph_id].edges) {
+        ////////// debug ///////// TODO: delete this debug block
+//        if (curr_state->state_id == 1) {
+//            goal_expanded = true;
+//        }
+        /////////////////////////
+        for (auto &succ_id : *curr_state->state->me->data_[max_h_graph_id].edges) {
             auto succ = getSearchState(succ_id.first);
+            if (succ_id.first == 1)
+                std::cout << RED << "Goal State" << RESET << std::endl;
             // check if was already in the open list
             if (states_map.find(succ_id.first) != states_map.end()) {
                 auto succ_connect_state = states_map.at(succ_id.first);
@@ -419,8 +445,23 @@ void ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
                 if (state_from_min->is_closed) {
                     continue;
                 }
-                state_from_min->parent_id = curr_state->state_id;
-                state_from_min->g = curr_state->state->g + succ_id.second;
+                if (state_from_min->g > curr_state->state->g + succ_id.second) {
+                    state_from_min->parent_id = curr_state->state_id;
+                    state_from_min->g = curr_state->state->g + succ_id.second;
+                    if (!state_from_min->is_open) {
+                        state_from_min->setOpen();
+                    } else {
+                        // delete edges
+                        state_from_min->edges->clear();
+                    }
+                }
+
+                /////// debug ////////// // TODO: delete this debug block
+                if ((state_from_min->me->state_id == curr_state->state->parent_id) &&
+                    (curr_state->state->me->data_[min_h_graph_id].parent_id == state_from_min->parent_id))
+                    std::cout << "Loop" << std::endl;
+                ////////////////////////
+
                 state_from_min->h_self = computeHeuristic(succ->state_id,
                                                           roots_[min_h_graph_id]->state_id);
                 if (state_from_min->h_self > max_h_states_[min_h_graph_id]->data_[min_h_graph_id].h_self) {
@@ -428,8 +469,17 @@ void ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
                 }
                 state_from_min->h = computeHeuristic(succ->state_id, (size_t) min_h_graph_id);
                 state_from_min->f = state_from_min->g + state_from_min->h;
-                for (auto &succ_succ_id : *state_from_max->edges) {
-                    state_from_min->edges->emplace_back(succ_succ_id);
+                // add edges
+                for (auto& edges : *state_from_max->edges){
+                    if (std::find(state_from_min->edges->begin(),
+                                  state_from_min->edges->end(),
+                                  edges) == state_from_min->edges->end()){
+                        state_from_min->edges->emplace_back(edges);
+                    }
+                }
+                // do i need to set it to closed if it is in closed of max_h_graph_id?
+                if (state_from_max->is_closed){
+                    state_from_min->setClosed();
                 }
                 auto succ_connect_state = std::make_shared<ConnectState>(succ->state_id, state_from_min);
                 open_list.push(succ_connect_state);
@@ -437,8 +487,6 @@ void ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
             }
         }
     }
-
-
 
 
 //    //////////// test/////////////
@@ -531,7 +579,6 @@ void ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
 //        std::cout << "Goal graph was not expanded" << std::endl;
 //    }
 
-
     // Move all states from the open list of the graph with the higher heuristic value to the open list of the graph with the lower heuristic value.
     while (!opens_[max_h_graph_id].empty()){
         auto state_heap_max = opens_[max_h_graph_id].min();
@@ -540,19 +587,16 @@ void ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
         auto state_heap_min = &state_->data_[min_h_graph_id];
         if (state_heap_min->is_closed && !state_heap_min->is_open){
             continue;
-        } else {
+        } else if (state_heap_min->is_open && !state_heap_min->is_closed) {
+            continue;
+        }
+        else {
             state_heap_min->setOpen();
-//        assert(state_->use_graph_ == min_h_graph_id); // TODO: Check what is going on here
             opens_[min_h_graph_id].push(state_heap_min);
         }
     }
     // update the roots
     roots_[max_h_graph_id] = roots_[min_h_graph_id];
-    closed_graphs_.push_back(max_h_graph_id);
-    // connect the graphs
-    hl_graph_[min_h_graph_id].push_back(max_h_graph_id);
-    hl_graph_[max_h_graph_id].push_back(min_h_graph_id);
-
 }
 
 void ims::MGS::setStateVals(int state_id, int parent_id, double cost, int g_num) {
@@ -591,6 +635,10 @@ void ims::MGS::reconstructPath(std::vector<StateType>& path, std::vector<double>
         bool bp = true;
     }
     while (state_->data_[GRAPH_START].parent_id != -1){
+        if ((std::find(path.begin(), path.end(), action_space_ptr_->getRobotState(state_->state_id)->state) != path.end()) &&
+            (state_->data_[GRAPH_START].parent_id != -1)){
+            std::cout << "Loop in the path" << std::endl;
+        }
         path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
 
         // Get the transition cost. This is the difference between the g values of the current state and its parent.
@@ -630,6 +678,31 @@ bool ims::MGS::isGoalConditionSatisfied() {
                 q.push(v);
             }
         }
+    }
+    if (visited[1]) {
+        // save the graph_hl_
+        std::ofstream hl_graph_file;
+        hl_graph_file.open("hl_graph_mgs.txt");
+        // delete the file if it exists
+        if (hl_graph_file.is_open()){
+            hl_graph_file.close();
+            std::remove("hl_graph_mgs.txt");
+        }
+        hl_graph_file.open("hl_graph_mgs.txt");
+        for (int ind {0} ; ind < params_.g_num_ ; ++ind){
+            for (int ind_2 {0}; ind_2 < params_.g_num_; ++ind_2){
+                if (ind_2 != 0)
+                    hl_graph_file << ",";
+                if (std::find(hl_graph_[ind].begin(), hl_graph_[ind].end(), ind_2) != hl_graph_[ind].end()){
+                    hl_graph_file << "1";
+                } else {
+                    hl_graph_file << "0";
+                }
+            }
+            hl_graph_file << "\n";
+        }
+        hl_graph_file.close();
+        std::cout << "hl_graph_mgs.txt saved" << std::endl;
     }
     return visited[1];
     // TODO: Do i need all of that? isn;t it enough to check the forward and backward graphs? (i.e., 0 and 1)
