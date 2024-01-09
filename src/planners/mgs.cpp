@@ -138,8 +138,8 @@ auto ims::MGS::getSearchState(int state_id) -> ims::MGS::SearchState*{
 }
 
 auto ims::MGS::getOrCreateSearchState(int state_id) -> ims::MGS::SearchState * {
-    if (state_id >= states_.size()) { // TODO: its not good. I assume that the state_is if not in states_, than its ++1
-        assert(state_id <= states_.size() && state_id >= 0); // TODO: Do i need the first condition?
+    if (state_id >= states_.size()) {
+        assert(state_id <= states_.size() && state_id >= 0);
         // overallocate the state for appropriate data
         size_t state_size =
             sizeof(SearchState) +
