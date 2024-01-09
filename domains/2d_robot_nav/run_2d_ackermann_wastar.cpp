@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
     std::string path_file = logPaths(paths, map_index, scale);
 
     std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
-    std::string command = "python3 " + plot_path + " " + path_file;
+    std::string command = "python3 " + plot_path + " --filepath " + path_file;
     std::cout << "Running the plot script..." << std::endl;
 
     system(command.c_str());

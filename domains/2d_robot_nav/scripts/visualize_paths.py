@@ -89,12 +89,13 @@ def load_data(file_path: str):
     return map_index_, scaler, paths_
 
 
-def visualize(map_ind, scaler, paths_dict):
+def visualize(map_ind, scaler, paths_dict, path_ids_to_visualize):
     """
     Visualizes the paths
     :param scaler:
     :param map_ind: the index of the map to use
     :param paths_dict: A dictionary
+    :param path_ids_to_visualize: A list of path ids to visualize
     :return:
     """
     # load the map (octile map)
@@ -111,9 +112,15 @@ def visualize(map_ind, scaler, paths_dict):
     # remove the xaixs and yaxis
     ax.axes.get_xaxis().set_visible(False)
     ax.axes.get_yaxis().set_visible(False)
-
+    # if a path id is provided, plot only that path
+    if path_ids_to_visualize is not None:
+        paths_to_visualize = {}
+        for path_id in path_ids_to_visualize:
+            paths_to_visualize[path_id] = paths_dict[path_id]
+    else:
+        paths_to_visualize = paths_dict
     # plot the paths
-    for path in paths_dict.values():
+    for path in paths_to_visualize.values():
         # get the x and y coordinates
         x = path[:, 0]
         y = path[:, 1]
@@ -132,11 +139,15 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("path", help="path to the file containing the path")
+    parser.add_argument("--filepath", help="path to the file containing the path solutions")
+    parser.add_argument("--path_ids", help="the path ids to visualize (if multiple ids, separate with commas)",
+                        default=None)
     args = parser.parse_args()
     # if no argument is provided, raise an error
-    if args.path is None:
+    if args.filepath is None:
         raise ValueError("No path provided")
+    if args.path_ids is not None:
+        args.path_ids = [int(x) for x in args.path_ids.split(",")]
 
     import os
     path_to_this_file = os.path.dirname(os.path.abspath(__file__))
@@ -148,6 +159,6 @@ if __name__ == "__main__":
             path_to_this_file + "/../data/brc203d/brc203d.map"]
 
     # load the data
-    map_index, scale, paths = load_data(args.path)
+    map_index, scale, paths = load_data(args.filepath)
     # visualize the paths
-    visualize(map_index, scale, paths)
+    visualize(map_index, scale, paths, args.path_ids)
