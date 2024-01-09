@@ -120,4 +120,35 @@ public:
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
     }
 
+    bool generateRandomState(const StateType& s1,
+                             const StateType& s2,
+                             double dist,
+                             StateType& random_state) override {
+        return ActionSpaceMGS::generateRandomState(s1, s2, dist, random_state);
+        //// TODO: This is working less well then the action_space_msg implementation
+        // sample random x, y in the map (env_->map_size)
+        if (s1.size() != 2 || s2.size() != 2){
+            std::cout << "Error: state size is not 2!" << std::endl;
+            return false;
+        }
+        // maximum attempts to generate a random state
+        int max_attempts = 100;
+        int attempts = 0;
+        while (attempts < max_attempts){
+            // get the random state
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_real_distribution<> dis(0, 1);
+            double x = dis(gen) * (double)env_->map_size[0];
+            double y = dis(gen) * (double)env_->map_size[1];
+            // check if the state is valid
+            if (isStateValid({x, y})){
+                random_state = {x, y};
+                return true;
+            } else {
+                attempts++;
+            }
+        }
+        return false;
+    }
 };
