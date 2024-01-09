@@ -13,7 +13,6 @@ def load_map(file_path, scaler):
     - tuple: A tuple containing map, image, type, width, height.
     """
     map_data = []
-    img = None
     map_type = ""
     width = 0
     height = 0
@@ -47,7 +46,7 @@ def load_map(file_path, scaler):
         print(f"Error: File '{file_path}' not found.")
         return None
 
-    return map_data, img, map_type, width, height
+    return map_data, map_type, width, height
 
 
 def load_data(file_path: str):
@@ -100,7 +99,7 @@ def visualize(map_ind, scaler, paths_dict):
     """
     # load the map (octile map)
     map_file = MAPS[map_ind]
-    map_data, img, map_type, width, height = load_map(map_file, scaler)
+    map_data, map_type, width, height = load_map(map_file, scaler)
 
     # create the figure
     fig = plt.figure()
