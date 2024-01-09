@@ -7,8 +7,6 @@
 
 // standard includes
 #include <fstream>
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
 // library includes
 #include "search/common/types.hpp"
 
@@ -22,7 +20,7 @@ double degsToRads(double degs)
     return degs * M_PI / 180.0;
 }
 
-std::vector<std::vector<int>> loadMap(const char *fname, cv::Mat& img,
+std::vector<std::vector<int>> loadMap(const char *fname,
                                       std::string& type, int& width,
                                       int& height, int scale=1) {
 
@@ -63,16 +61,6 @@ std::vector<std::vector<int>> loadMap(const char *fname, cv::Mat& img,
         for (int x = 0; x < scaled_width; x++)
         {
             scaled_map[x][y] = map[x/scale][y/scale];
-        }
-    }
-
-    img = cv::Mat(scaled_height, scaled_width, CV_8UC3);
-
-    for (int y = 0; y < scaled_height; y++)
-    {
-        for (int x = 0; x < scaled_width; x++)
-        {
-            img.at<cv::Vec3b>(y,x) = (scaled_map[x][y] > 0) ? cv::Vec3b(0,0,0) : cv::Vec3b(255,255,255);
         }
     }
 
@@ -165,6 +153,45 @@ PathType getDiscretePointsOnLine(const StateType& start, const StateType& end, c
         points.push_back({x, y, theta});
     }
     return points;
+}
+
+/// @brief Log the statistics of a planner to a file.
+/// @param stats The statistics of the planner.
+/// @param map_index The index of the map.
+/// @param planner_name The name of the planner.
+void logStats(const std::unordered_map<int, PlannerStats>& stats,
+              int map_index,
+              const std::string& planner_name) {
+    // save the logs to a file in current directory
+    std::string log_file = "logs_map" + std::to_string(map_index) + "_" + planner_name + ".csv";
+    // save logs object to a file
+    std::ofstream file(log_file);
+    // header line
+    file << "Problem,Time,Cost,Num_expanded,Num_generated" << std::endl;
+    for (auto& log : stats) {
+        file << log.first << "," << log.second.time << "," << log.second.cost << "," <<
+             log.second.num_expanded << "," << log.second.num_generated << std::endl;
+    }
+    file.close();
+}
+
+std::string logPaths(const std::unordered_map<int, PathType>& paths,
+              int map_index,
+              int scale) {
+    // save the paths to a temporary file
+    std::string path_file = "paths_tmp.csv";
+    // save paths object to a file
+    std::ofstream file(path_file);
+    // header line
+    file << "Problem,Scale,PathsNumber," << map_index << "," << scale << "," << paths.size() << std::endl;
+    for (auto& path : paths) {
+        file << path.first << "," << path.second.size() << std::endl;
+        for (auto& state : path.second) {
+            file << state[0] << "," << state[1] << std::endl;
+        }
+    }
+    file.close();
+    return path_file;
 }
 
 
