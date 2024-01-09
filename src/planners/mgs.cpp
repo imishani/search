@@ -29,7 +29,7 @@
 /*!
  * \file   mgs.cpp
  * \author Itamar Mishani (imishani@cmu.edu)
- * \date   Oct 05 2023
+ * \date   Jan 01 2024
  */
 
 #include "search/planners/mgs.hpp"
