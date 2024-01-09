@@ -40,9 +40,6 @@
 #include <fstream>
 #include <string>
 #include <cmath>
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp> // Get the cv circle.
 
 // project includes
 #include <search/planners/multi_agent/prioritized_planning.hpp>
@@ -96,9 +93,8 @@ int main(int argc, char** argv) {
 
     std::string type;
     int width, height;
-    cv::Mat img;
     std::cout << "Loading map from path " << map_file << std::endl;
-    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), img, type, width, height, scale);
+    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), type, width, height, scale);
 
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_agents, path);
@@ -213,6 +209,11 @@ int main(int argc, char** argv) {
     }
     fout << "]" << std::endl;
     fout.close();
+
+    // Execute the visualization script.
+    std::string command = "python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 1 && open paths.gif";
+    std::cout << "Running the plot script..." << std::endl;
+    system(command.c_str());
 
     return 0;
 }
