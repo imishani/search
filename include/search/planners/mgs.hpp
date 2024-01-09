@@ -174,6 +174,8 @@ private:
         GRAPH_GOAL = 1
     };
 
+    int goal_in_graph_ {GRAPH_GOAL};
+
     /// @brief Get the state by id
     /// @param state_id The id of the state
     /// @return The state

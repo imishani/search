@@ -32,6 +32,6 @@ def plot_block_diagram(data: np.array):
 
 if __name__ == "__main__":
     # load the data
-    data = np.loadtxt("../../../cmake-build-debug/hl_graph_mgs.txt", delimiter=",", dtype=int)
+    data = np.loadtxt("../../../cmake-build-release/hl_graph_mgs.txt", delimiter=",", dtype=int)
     # plot the block diagram
     plot_block_diagram(data)

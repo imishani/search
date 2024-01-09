@@ -155,8 +155,6 @@ auto ims::MGS::getOrCreateSearchState(int state_id) -> ims::MGS::SearchState * {
         s->state_id = state_id;
         s->h_map = std::make_shared<std::vector<double>>(params_.g_num_, INF_DOUBLE);
         states_.push_back(s);
-    } else {
-        int bp = 0;
     }
     return states_[state_id];
 }
@@ -164,9 +162,12 @@ auto ims::MGS::getOrCreateSearchState(int state_id) -> ims::MGS::SearchState * {
 double ims::MGS::computeHeuristic(int state_id, size_t g_num) { // TODO: Something feels off here. Check this.
     computeHeuristics(state_id);
     auto ss = getSearchState(state_id);
-    if ((int)g_num == -1) { // GRAPH_GOAL (// testing heuristics
-        return ss->h_map->at(GRAPH_GOAL);
-    } else {
+    if ((int)g_num == GRAPH_START) { // GRAPH_GOAL (// testing heuristics
+        return ss->h_map->at(goal_in_graph_);
+    } else if ((int)g_num == goal_in_graph_) { // GRAPH_START
+        return ss->h_map->at(GRAPH_START);
+    }
+    else {
         double h {0};
         double h_min {INF_DOUBLE};
         for (int i {0}; i < params_.g_num_; ++i){
@@ -251,16 +252,20 @@ bool ims::MGS::plan(std::vector<StateType>& path) {
                 }
                 else if (std::find(closed_graphs_.begin(), closed_graphs_.end(),
                                    state->me->graph_closed) == closed_graphs_.end()) {
-                    std::cout << "Iter: " << iter << " open sizes: " <<  std::endl;
-                    for (int j {0}; j < params_.g_num_; ++j){
-                        std::cout << "Open " << j << ": " << opens_[j].size() << "\n";
+                    if (params_.verbose) {
+                        std::cout << "Iter: " << iter << " open sizes: " <<  std::endl;
+                        for (int j {0}; j < params_.g_num_; ++j){
+                            std::cout << "Open " << j << ": " << opens_[j].size() << "\n";
+                        }
                     }
                     // we need to connect the graphs!
                     connectGraphs(state->me->graph_closed, i,
                                   state->me->state_id);
-                    std::cout << "Iter: " << iter << " open sizes: " <<  std::endl;
-                    for (int j {0}; j < params_.g_num_; ++j){
-                        std::cout << "Open " << j << ": " << opens_[j].size() << "\n";
+                    if (params_.verbose) {
+                        std::cout << "Iter: " << iter << " open sizes: " <<  std::endl;
+                        for (int j {0}; j < params_.g_num_; ++j){
+                            std::cout << "Open " << j << ": " << opens_[j].size() << "\n";
+                        }
                     }
                     ++iter;
                     continue;
@@ -302,11 +307,6 @@ void ims::MGS::expand(int state_id, int g_num){
         }
 //        if (successor->data_[g_num].is_open){
         if (opens_[g_num].contains(&successor->data_[g_num])){ // really not efficient TODO: change this
-            // check if the state is in open
-            bool in = opens_[g_num].contains(&successor->data_[g_num]);
-            if (!in){
-                std::cout << "state " << successor->state_id << " is not in the open list" << std::endl;
-            }
             if (successor->data_[g_num].f > state->data_[g_num].g + cost){
                 state->data_[g_num].edges->emplace_back(successor_id, cost);
                 successor->data_[g_num].edges->emplace_back(state_id, cost);
@@ -323,7 +323,6 @@ void ims::MGS::expand(int state_id, int g_num){
                          cost, g_num);
             state->data_[g_num].edges->emplace_back(successor->state_id, cost);
             successor->data_[g_num].edges->emplace_back(state->state_id, cost);
-//            opens_.at(g_num).push(successor); // the use_graph_ is set in the setStateVals function
             opens_[g_num].push(&successor->data_[g_num]);
             successor->data_[g_num].setOpen();
         }
@@ -340,13 +339,18 @@ void ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
     double h2 = computeHeuristic(start_->state_id, root2->state_id);
     int min_h_graph_id = h1 < h2 ? graph_id1 : graph_id2;
     int max_h_graph_id = h1 < h2 ? graph_id2 : graph_id1;
-    std::cout << "Connecting graphs (min, max): " << min_h_graph_id << ", " << max_h_graph_id << std::endl;
+
+    if (params_.verbose)
+        std::cout << "Connecting graphs (min, max): " << min_h_graph_id << ", " << max_h_graph_id << std::endl;
 
     closed_graphs_.push_back(max_h_graph_id);
     // connect the graphs
     hl_graph_[min_h_graph_id].push_back(max_h_graph_id);
     hl_graph_[max_h_graph_id].push_back(min_h_graph_id);
 
+    if (max_h_graph_id == goal_in_graph_) {
+        goal_in_graph_ = min_h_graph_id;
+    }
     ////////// DEBUG /////////// TODO: delete this debug block
 //    static int goal_graph_id = GRAPH_GOAL;
 //    bool goal_graph = false; bool goal_expanded = false;
@@ -416,8 +420,6 @@ void ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
         /////////////////////////
         for (auto &succ_id : *curr_state->state->me->data_[max_h_graph_id].edges) {
             auto succ = getSearchState(succ_id.first);
-            if (succ_id.first == 1)
-                std::cout << RED << "Goal State" << RESET << std::endl;
             // check if was already in the open list
             if (states_map.find(succ_id.first) != states_map.end()) {
                 auto succ_connect_state = states_map.at(succ_id.first);
@@ -706,7 +708,6 @@ bool ims::MGS::isGoalConditionSatisfied() {
     }
     return visited[1];
     // TODO: Do i need all of that? isn;t it enough to check the forward and backward graphs? (i.e., 0 and 1)
-
 }
 
 
@@ -746,6 +747,7 @@ int ims::MGS::generateRandomState(const StateType& start, const StateType& goal)
         }
     }
 }
+
 void ims::MGS::saveData() {
     // save all states to a file
     std::ofstream states_file;
