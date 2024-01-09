@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
     auto* heuristic = new ims::EuclideanHeuristic();
-    int graphs_number = 8;
+    int graphs_number = 3;
     ims::MGSParams params (heuristic, graphs_number);
     params.time_limit_ = 5;
     // construct the scene and the action space

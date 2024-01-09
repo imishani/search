@@ -457,9 +457,9 @@ void ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
                 }
 
                 /////// debug ////////// // TODO: delete this debug block
-                if ((state_from_min->me->state_id == curr_state->state->parent_id) &&
-                    (curr_state->state->me->data_[min_h_graph_id].parent_id == state_from_min->parent_id))
-                    std::cout << "Loop" << std::endl;
+//                if ((state_from_min->me->state_id == curr_state->state->parent_id) &&
+//                    (curr_state->state->me->data_[min_h_graph_id].parent_id == state_from_min->parent_id))
+//                    std::cout << "Loop" << std::endl;
                 ////////////////////////
 
                 state_from_min->h_self = computeHeuristic(succ->state_id,
@@ -764,6 +764,5 @@ void ims::MGS::saveData() {
         }
         states_file << "\n";
     }
-
 }
 

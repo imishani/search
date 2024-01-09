@@ -77,8 +77,9 @@ public:
             std::random_device rd;
             std::mt19937 gen(rd());
             std::uniform_real_distribution<> dis(0, 1);
-            double minor_axis = dist * dis(gen);
+            ////////// Ellipsoid ////////// TODO: Fix
             double major_axis = dist;
+            double minor_axis = dist * dis(gen);
             double ratio = minor_axis / major_axis;
             StateType diff(s1.size());
             for (size_t i {0}; i < s1.size(); ++i){
@@ -86,6 +87,8 @@ public:
             }
             random_state.resize(s1.size());
             for (size_t i {0}; i < s1.size(); ++i){
+//                double minor_axis = dist * dis(gen);
+//                double ratio = minor_axis / major_axis;
                 random_state[i] = s1[i] + ratio * diff[i];
                 random_state[i] = std::round(random_state[i] / action_type_->state_discretization_[i]) * action_type_->state_discretization_[i];
             }
@@ -96,6 +99,7 @@ public:
                 attempts++;
             }
         }
+        return false;
     }
 
 };
