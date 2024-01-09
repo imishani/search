@@ -64,4 +64,9 @@ The package is designed to be used as a library. In _domain_ directory, you will
 to use the library. The examples are in two domains:
 - 2D grid search
 - Multi-Agent Path Finding (MAPF)
+-----  
+Run the following to see an example of 2D grid search in action!
+~~~
+./build/run_2d_rob_nav_wastar 1 50 1
+~~~
 
