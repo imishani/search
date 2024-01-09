@@ -29,7 +29,7 @@
 /*!
  * \file   run_2d_mgs.cpp
  * \author Itamar Mishani (imishani@cmu.edu)
- * \date   01/02/25
+ * \date   Jan 01 2024
 */
 
 
@@ -39,9 +39,6 @@
 #include <iostream>
 #include <string>
 #include <cmath>
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp> // Get the cv circle.
 
 // project includes
 #include "search/planners/mgs.hpp"
@@ -83,8 +80,7 @@ int main(int argc, char** argv) {
 
     std::string type;
     int width, height;
-    cv::Mat img;
-    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), img, type, width, height, scale);
+    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), type, width, height, scale);
 
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
@@ -102,9 +98,8 @@ int main(int argc, char** argv) {
     ActionType2dRob action_type;
 
     // log the results
-    std::unordered_map<int, ims::MGSPlannerStats> logs;
+    std::unordered_map<int, PlannerStats> logs;
     std::unordered_map<int, PathType> paths;
-
     for (int i {0}; i < starts.size(); i++){
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
@@ -154,38 +149,16 @@ int main(int argc, char** argv) {
         paths[i] = path_; // log the path
     }
 
-    // save the logs to a file in current directory
-    std::string log_file = "logs_mgs_map" + std::to_string(map_index) + "_" + "mgs_" +
-        std::to_string(params.g_num_) +".csv";
-    // save logs object to a file
-    std::ofstream file(log_file);
-    // header line
-    file << "Problem,Time,Cost,Num_expanded,Num_generated" << std::endl;
-    for (auto& log : logs) {
-        file << log.first << "," << log.second.time << "," << log.second.cost << "," <<
-        log.second.num_expanded << "," << log.second.num_generated << std::endl;
-    }
-    file.close();
+    // save the logs to a temporary file
+    logStats(logs, map_index, "wAstar");
 
-    // save the paths to a temporary file
-    std::string path_file = "paths_tmp.csv";
-    // save paths object to a file
-    std::ofstream file2(path_file);
-    // header line
-    file2 << "Problem,Scale,PathsNumber," << map_index << "," << scale << "," << paths.size() << std::endl;
-    for (auto& path2 : paths) {
-        file2 << path2.first << "," << path2.second.size() << std::endl;
-        for (auto& state : path2.second) {
-            file2 << state[0] << "," << state[1] << std::endl;
-        }
-    }
-    file2.close();
+    std::string path_file = logPaths(paths, map_index, scale);
 
     std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
-    std::string command = "python3 " + plot_path + " --filepath " + path_file + " --path_ids 3";
-//    std::string command = "python3 " + plot_path + " --filepath " + path_file;
+//    std::string command = "python3 " + plot_path + " --filepath " + path_file + " --path_ids 3";
+    std::string command = "python3 " + plot_path + " --filepath " + path_file;
     std::cout << "Running the plot script..." << std::endl;
-    system(command.c_str());
+    auto boo = system(command.c_str());
 
     return 0;
 }
