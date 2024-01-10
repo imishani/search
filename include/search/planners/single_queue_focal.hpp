@@ -50,13 +50,26 @@ public:
                 action_space_ptr_(action_space_ptr) {
         main_queue_ = new FocalAndAnchorQueueWrapper<GenericSearchState, CompareMainQueue, CompareFocalSearchState>();
     }
+    virtual ~FocalSearchSettings() {
+        main_queue_->clear();
+        delete main_queue_;
+    }
 
+    /// @brief Ensures that states have to improve g value
+    /// @param state 
+    /// @return 
     bool skipAsAlreadyExpanded(GenericSearchState* state) override {
+        if (expanded_robot_states_to_g_.find(state->robot_state_id) != expanded_robot_states_to_g_.end()) {
+            return expanded_robot_states_to_g_.at(state->robot_state_id) > state->g;
+        }
         return false;
     }
 
+    /// @brief Assigns robot state id to g value
+    /// @param state 
     void addToExpanded(GenericSearchState* state) override {
         // Do nothing.
+        expanded_robot_states_to_g_[state->robot_state_id] = state->g;
     }
 
     AbstractQueue<GenericSearchState>* getQueue() override {
@@ -66,7 +79,7 @@ public:
     void updateQueue() override {
         double lb = main_queue_->getLowerBound();
         main_queue_->updateWithBound(lb * focal_suboptimality_);
-        std::cout << lb << std::endl;
+        // std::cout << lb << std::endl;
     }
 
     GenericSearchState* createNewSearchState(int robot_state_id,
@@ -82,8 +95,8 @@ public:
             double next_g_val = real_parent->g + cost;
             double h_val = 0;
             heuristic_->getHeuristic(action_space_ptr_->getRobotState(robot_state_id)->state, h_val);
-            double f_val = real_parent->g + cost + heuristic_weight_ * h_val;
-            double c_val = real_parent->c + cost + heuristic_weight_ * h_val; // TODO - get collision count
+            double f_val = next_g_val + h_val;
+            double c_val = next_g_val + heuristic_weight_ * h_val; // TODO - get collision count
             succ = new FocalSearchState(/*robot_state_id*/ robot_state_id, 
                                     /*parent_id=*/ parent->search_id, 
                                     /*g=*/ next_g_val, /*f=*/ f_val, /*h=*/ h_val, /*c=*/ c_val);
@@ -93,7 +106,7 @@ public:
 
     double focal_suboptimality_;
     double heuristic_weight_;
-    std::unordered_set<int> expanded_robot_states_;
+    std::unordered_map<int, double> expanded_robot_states_to_g_;
     BaseHeuristic* heuristic_;
     std::shared_ptr<ActionSpace> action_space_ptr_;
     FocalAndAnchorQueueWrapper<GenericSearchState, CompareMainQueue, CompareFocalSearchState>* main_queue_;
