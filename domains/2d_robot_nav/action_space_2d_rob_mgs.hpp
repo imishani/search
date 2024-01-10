@@ -124,7 +124,14 @@ public:
                              const StateType& s2,
                              double dist,
                              StateType& random_state) override {
-        return ActionSpaceMGS::generateRandomState(s1, s2, dist, random_state);
+        // bernoulli distribution
+        std::random_device rd0;
+        std::mt19937 gen0(rd0());
+        std::bernoulli_distribution dis0(1.0);
+        if (dis0(gen0)){
+            return ActionSpaceMGS::generateRandomState(s1, s2, dist, random_state);
+        }
+//        return ActionSpaceMGS::generateRandomState(s1, s2, dist, random_state);
         //// TODO: This is working less well then the action_space_msg implementation
         // sample random x, y in the map (env_->map_size)
         if (s1.size() != 2 || s2.size() != 2){

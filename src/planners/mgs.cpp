@@ -175,13 +175,22 @@ double ims::MGS::computeHeuristic(int state_id, size_t g_num) { // TODO: Somethi
                 continue;
             }
             h += std::max(ss->h_map->at(i) - max_h_states_[i]->data_[i].h_self, 0.0);
+//            h += ss->h_map->at(i);
             if ((ss->h_map->at(i) < h_min) && i != g_num){
                 h_min = ss->h_map->at(i);
+//                h_min = std::max(ss->h_map->at(i) - max_h_states_[i]->data_[i].h_self, 0.0);
             }
         }
-        h /= (params_.g_num_ - (int)closed_graphs_.size()); // TODO: should it be the minimum rather than the average?
-//        return h;
-        return h_min;
+        h /= (double)(params_.g_num_ - (int)closed_graphs_.size()); // TODO: should it be the minimum rather than the average?
+//        // randomly return 0
+//        std::random_device rd;
+//        std::mt19937 gen(rd());
+//        std::bernoulli_distribution dis0(0.5);
+//        if (dis0(gen)){
+//            return 0;
+//        }
+        return h;
+//        return 100*h_min;
     }
 }
 

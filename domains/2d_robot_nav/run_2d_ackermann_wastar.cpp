@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
     ims::EuclideanRemoveThetaHeuristic* heuristic = new ims::EuclideanRemoveThetaHeuristic();
-    double epsilon = 10.0;
+    double epsilon = 1.0;
     ims::wAStarParams params (heuristic, epsilon);
     // construct the scene and the action space
     Scene2DRob scene (map);
