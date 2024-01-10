@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   run_2d_mgs.cpp
+ * \file   run_2d_ackerman_mgs.cpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   Jan 01 2024
 */
@@ -43,7 +43,7 @@
 // project includes
 #include "search/planners/mgs.hpp"
 #include "search/heuristics/standard_heuristics.hpp"
-#include "action_space_2d_rob_mgs.hpp"
+#include "action_space_2d_ackerman_rob_msg.hpp"
 #include "utils.hpp"
 
 
@@ -88,14 +88,13 @@ int main(int argc, char** argv) {
     // construct the planner
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
-    auto* heuristic = new ims::EuclideanHeuristic();
+    auto* heuristic = new ims::EuclideanRemoveThetaHeuristic();
     int graphs_number = 10;
     ims::MGSParams params (heuristic, graphs_number);
     params.time_limit_ = 5;
     params.verbose = false;
     // construct the scene and the action space
     Scene2DRob scene (map);
-    ActionType2dRob action_type;
 
     // log the results
     std::unordered_map<int, PlannerStats> logs;
@@ -115,13 +114,17 @@ int main(int argc, char** argv) {
         std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
 
-        std::shared_ptr<ActionSpace2dRobMGS> ActionSpace = std::make_shared<ActionSpace2dRobMGS>(scene,
-                                                                                                 action_type);
+        StateType state_discretization = {1, 1, 30};
+        std::shared_ptr<ActionSpace2dAckermannRobMGS> action_space = std::make_shared<ActionSpace2dAckermannRobMGS>(scene,
+                                                                                                                    state_discretization);
         // construct planner
         ims::MGS planner(params);
+        // Add starting theta to start vetcor
+        starts[i].push_back(0);
+        goals[i].push_back(0);
         // catch the exception if the start or goal is not valid
         try {
-            planner.initializePlanner(ActionSpace, starts[i], goals[i], params.g_num_);
+            planner.initializePlanner(action_space, starts[i], goals[i], params.g_num_);
         }
         catch (std::exception& e) {
             std::cout << e.what() << std::endl;
@@ -150,7 +153,7 @@ int main(int argc, char** argv) {
     }
 
     // save the logs to a temporary file
-    logStats(logs, map_index, "MGS");
+    logStats(logs, map_index, "ackermanMGS");
 
     std::string path_file = logPaths(paths, map_index, scale);
 

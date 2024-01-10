@@ -89,7 +89,10 @@ add_executable(run_2d_ackermann_rob_nav_wastar domains/2d_robot_nav/run_2d_acker
 target_link_libraries(run_2d_ackermann_rob_nav_wastar search ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
 add_executable(run_2d_rob_nav_mgs domains/2d_robot_nav/run_2d_mgs.cpp)
-target_link_libraries(run_2d_rob_nav_mgs search ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(run_2d_rob_nav_mgs search ${Boost_LIBRARIES})
+
+add_executable(run_2d_rob_nav_ackerman_mgs domains/2d_robot_nav/run_2d_ackerman_mgs.cpp)
+target_link_libraries(run_2d_rob_nav_ackerman_mgs search ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_cbs_or_ecbs domains/2d_mapf/run_2d_cbs_or_ecbs.cpp)
 target_link_libraries(run_2d_mapf_cbs_or_ecbs search ${Boost_LIBRARIES})
