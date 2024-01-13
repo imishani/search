@@ -97,7 +97,7 @@ public:
     virtual size_t size() const override;
     virtual bool contains(T* e) const override;
 
-    /// @brief Updates queue to add more elements to focal list which satisfy lower bound threshold.
+    /// @brief Updates the queue. The focal list will include all the elements from the waitlist that satisfy lower bound threshold.
     /// @param lower_bound_threshold is the absolute value, not a suboptimality factor, queue
     /// should then only pop() elements that satisfy this bound.
     virtual void updateWithBound(double lower_bound_threshold) override;
@@ -121,6 +121,7 @@ private:
 public:
     virtual T* min() const override;
     virtual void pop() override;
+    virtual void popAnchor();
     virtual void push(T* e) override;
     virtual void erase(T* e) override;
     virtual bool empty() const override;

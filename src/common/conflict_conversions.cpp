@@ -172,5 +172,41 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
     }
 }
 
+void point3dConflictToEdgeOrVertexConstraints(const Point3dConflict * point3d_conflict_ptr, 
+                                       std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraintss){
+    // Decide if this point3d conflict should yield vertex or edge constraints.
+    if (point3d_conflict_ptr->to_states.empty()) {
+        // Assert that the time is integral.
+        assert(point3d_conflict_ptr->from_states.back().back() == std::round(point3d_conflict_ptr->from_states.back().back()));
+
+        // Create a new vertex constraint for each of the agents. Point3DConflict assumes private grids, so each agent has its own state.
+        for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
+            int agent_id = point3d_conflict_ptr->agent_ids[i];
+
+            // Create a new vertex constraint.
+            VertexConstraint constraint = VertexConstraint(point3d_conflict_ptr->from_states.at(i));
+
+            // Update the constraints vector to also include the new constraint.
+            agent_constraintss.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexConstraint>(constraint)});
+        }
+    }
+
+    // Otherwise, generate edge constraints.
+    else {
+        // Create a new edge constraint for each of the agents. Point3DConflict assumes private grids, so each agent has its own state.
+        for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
+            int agent_id = point3d_conflict_ptr->agent_ids[i];
+
+            // Create a new edge constraint.
+            EdgeConstraint constraint = EdgeConstraint(point3d_conflict_ptr->from_states[i], point3d_conflict_ptr->to_states[i]);
+
+            // Update the constraints vector to also include the new constraint.
+            agent_constraintss.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint)});
+        }
+    }
+}
+
+
+
 }  // namespace conflict_conversions
 }  // namespace ims

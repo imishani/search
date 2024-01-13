@@ -80,6 +80,13 @@ void edgeConflictToEdgeStateAvoidanceConstraints(const EdgeConflict * edge_confl
 void point3dConflictToSphere3dConstraints(const Point3dConflict * point3d_conflict_ptr,
 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius);
 
+/// @brief Convert a point3d conflict to edge or vertex constraints.
+/// @param point3d_conflict_ptr
+/// @return
+/// @note This function adds pairs of <agent_id, constraints> to the agent_constraints vector.
+void point3dConflictToEdgeOrVertexConstraints(const Point3dConflict * point3d_conflict_ptr,
+std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
+
 
 
 }  // namespace conflict_conversions

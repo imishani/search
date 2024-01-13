@@ -131,6 +131,9 @@ struct SearchState : public ::smpl::HeapElement {
         PlannerStats reportStats () {
             return stats_;
         }
+        PlannerStats getStats () {
+            return stats_;
+        }
 
         /// @brief plan
         /// @param path The path

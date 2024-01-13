@@ -136,6 +136,9 @@ protected:
         // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
         MultiAgentConstraintsCollective constraints_collectives;
 
+        // The counts of the constraints in each constraint type.
+        std::unordered_map<ConstraintType, int> constraint_type_count;
+
         /// @brief Required for FocalQueue
         /// @return 
         double getLowerBound() const override {

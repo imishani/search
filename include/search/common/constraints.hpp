@@ -31,9 +31,7 @@
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   July 13 2023
 */
-
-#ifndef SEARCH_COMMON_CONSTRAINTS_HPP
-#define SEARCH_COMMON_CONSTRAINTS_HPP
+#pragma once
 
 // standard includes
 #include <functional>
@@ -525,10 +523,14 @@ struct ConstraintsCollective {
     /// @brief Set the constraints.
     /// @param constraints The constraints to set.
     void setConstraints(const std::vector<std::shared_ptr<Constraint>>& constraints) {
+        constraints_ptrs_.clear();
+        time_to_constraints_ptrs_.clear();
+        last_constraint_time_ = -1;
+
+        // Set the constraints and their counts after.
         constraints_ptrs_ = constraints;
 
         // Set the time_to_constraints_ptrs_ map.
-        time_to_constraints_ptrs_.clear();
         for (const auto& constraint_ptr : constraints_ptrs_) {
             for (int t = constraint_ptr->getTimeInterval().first; t <= constraint_ptr->getTimeInterval().second; t++) {
                 time_to_constraints_ptrs_[t].push_back(constraint_ptr);
@@ -643,4 +645,3 @@ using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsColle
 
 }  // namespace ims
 
-#endif //SEARCH_COMMON_CONSTRAINTS_HPP

@@ -30,8 +30,7 @@
 /// \author Harsh Pandey
 /// \author Andrew Dornbush
 
-#ifndef SMPL_BFS3D_H
-#define SMPL_BFS3D_H
+#pragma once
 
 #include <stdio.h>
 #include <queue>
@@ -244,4 +243,3 @@ inline int BFS_3D::neighbor(int node, int neighbor) const
 
 } // namespace smpl
 
-#endif

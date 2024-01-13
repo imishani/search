@@ -128,11 +128,51 @@ size_t FocalQueue<T, CompareMain, CompareFocal>::size() const {
 
 template <class T, class CompareMain, class CompareFocal>
 void FocalQueue<T, CompareMain, CompareFocal>::updateWithBound(double lower_bound) {
+    // Take all the nodes out from focal and put them in the waitlist.
+    while (!m_focal.empty()) {
+        m_waitlist.push(m_focal.min());
+        m_focal.pop();
+    }
+
+    // Populate the focal queue with all the nodes that satisfy the lower bound.
     while (!m_waitlist.empty() && m_waitlist.min()->getLowerBound() <= lower_bound) {
         m_focal.push(m_waitlist.min());
         m_waitlist.pop();
     }
 }
+
+template <class T, class CompareMain, class CompareFocal>
+void FocalQueue<T, CompareMain, CompareFocal>::updateWithBoundAndComparator(double lower_bound_threshold, CompareFocal new_comparator){
+    // Take all the nodes out from focal and put them in the waitlist.
+    while (!m_focal.empty()) {
+        m_waitlist.push(m_focal.min());
+        m_focal.pop();
+    }
+
+    // Update the comparator.
+    // updateFocalComparator(new_comparator);
+
+    // Populate the focal queue with all the nodes that satisfy the lower bound.
+    while (!m_waitlist.empty() && m_waitlist.min()->getLowerBound() <= lower_bound_threshold) {
+        m_focal.push(m_waitlist.min());
+        m_waitlist.pop();
+    }
+}
+
+// template <class T, class CompareMain, class CompareFocal>
+// void FocalQueue<T, CompareMain, CompareFocal>::updateFocalComparator(CompareFocal new_comparator){
+//     // Create a new focal queue with the new comparator.
+//     ::smpl::IntrusiveHeapWrapper<T, CompareFocal> new_focal(new_comparator);
+
+//     // Copy all the elements from the old focal queue to the new one.
+//     while (!m_focal.empty()) {
+//         new_focal.push(m_focal.min());
+//         m_focal.pop();
+//     }
+
+//     // Delete the old focal queue and replace it with the new one.
+//     m_focal = new_focal;
+// }
 
 template <class T, class CompareMain, class CompareFocal>
 double FocalQueue<T, CompareMain, CompareFocal>::getLowerBound() const {
