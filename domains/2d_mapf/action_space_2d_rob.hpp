@@ -82,9 +82,9 @@ public:
     void getActions(int state_id,
                     std::vector<ActionSequence> &action_seqs,
                     bool check_validity) override {
-        auto actions = action_type_->getPrimActions();
+        const std::vector<Action>& actions = action_type_->getPrimActions();
         for (int i {0} ; i < action_type_->num_actions ; i++){
-            auto action = actions[i];
+            const Action& action = actions[i];
             if (check_validity){
                 auto curr_state = this->getRobotState(state_id);
                 auto next_state_val = StateType(curr_state->state.size());
@@ -95,9 +95,10 @@ public:
             }
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
             // In more complex cases, the sequence is longer - for example, when the action is an experience, a controller, or a trajectory.
-            ActionSequence action_seq;
-            action_seq.push_back(action);
-            action_seqs.push_back(action_seq);
+            // ActionSequence action_seq;
+            // action_seq.push_back(action);
+            // action_seqs.push_back(action_seq);
+            action_seqs.push_back({action});
         }
     }
 
@@ -278,17 +279,17 @@ public:
     void computeTransitionNumberConflicts(const StateType& state, const StateType& next_state_val, int & num_conflicts){
         for (const auto& other_agent_id_and_path : constraints_collective_ptr_->getConstraintsContext()->agent_paths) {
             int other_agent_id = other_agent_id_and_path.first;
-            PathType other_agent_path = other_agent_id_and_path.second;
+            const PathType& other_agent_path = other_agent_id_and_path.second;
 
             // Get the state of the other agent at the current time step. Get this from the constraints context.
             // The check here is for vertex conflicts.
             if (other_agent_path.empty()) {
                 continue;
             }
-            auto other_agent_last_time = (TimeType)other_agent_path.back().back();
-            auto agent_time = (TimeType)next_state_val.back();
+            TimeType other_agent_last_time = (TimeType)other_agent_path.back().back();
+            TimeType agent_time = (TimeType)next_state_val.back();
             TimeType other_agent_time = std::min(other_agent_last_time, agent_time);
-            StateType other_agent_state = other_agent_path.at(other_agent_time);
+            const StateType& other_agent_state = other_agent_path.at(other_agent_time);
 
             // Check if the state is valid w.r.t the constraint.
             if (next_state_val[0] == other_agent_state[0] && next_state_val[1] == other_agent_state[1]) {
@@ -310,9 +311,11 @@ public:
         // Only check if this state is a goal state if there are no more outstanding constraints later in time.
         if (state_time >= last_constraint_time) {
             // If the state is a goal state, then we should check if it exists at the current time.
-            StateType state_val_wo_time = {state_val.begin(), state_val.end() - 1};
-            state_val_wo_time.push_back(-1);
-            curr_state->state = state_val_wo_time;
+            // StateType state_val_wo_time = {state_val.begin(), state_val.end() - 1};
+            // state_val_wo_time.push_back(-1);
+            // curr_state->state = state_val_wo_time;
+            curr_state->state = {state_val.begin(), state_val.end() - 1};
+            curr_state->state.push_back(-1);
             auto it = state_to_id_.find(curr_state);
             if (it != state_to_id_.end()) {
                 delete curr_state;

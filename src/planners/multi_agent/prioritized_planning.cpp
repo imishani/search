@@ -137,7 +137,10 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
         // Add the path to the paths.
         paths[agent_id] = path;
 
-        // Set the constraints on this agent. These constraints are all avoidance constraints: avoiding all other planned (higher-priority) agents. The current agent a_l gets a constraint for avoiding another agent a_h at all times when a_h is planned. An extra constraint is added for avoiding the goal of a_h at "all times." This constraint is required to keep a_l from colliding with a_h at a_h's goal after a_h has gotten there, and while doing it not to extend the time of the last constraint on a_l such that it could accept a goal state for a_l at a time after all other agents have stopped planning.
+        /* Set the constraints on this agent. These constraints are all avoidance constraints: avoiding all other planned (higher-priority) agents. 
+           The current agent a_l gets a constraint for avoiding another agent a_h at all times when a_h is planned. An extra constraint is added 
+           for avoiding the goal of a_h at "all times." This constraint is required to keep a_l from colliding with a_h at a_h's goal after a_h has gotten there, 
+           and while doing it not to extend the time of the last constraint on a_l such that it could accept a goal state for a_l at a time after all other agents have stopped planning.*/
         // Add the newly planned path to the constraints context.
         constraints_context_ptr->agent_paths[agent_id] = path;
         constraints_collective_ptr->setContext(constraints_context_ptr);

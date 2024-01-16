@@ -145,6 +145,7 @@ int main(int argc, char** argv) {
         params.high_level_focal_suboptimality = vm["high_level_focal_suboptimality"].as<double>();
         params.low_level_focal_suboptimality = params.high_level_focal_suboptimality;
         params.weight_low_level_heuristic = params.high_level_focal_suboptimality;
+        params.time_limit_ = 600; // 10 minutes.
         
         for (int i {0}; i < num_agents; i++){
             params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
@@ -211,8 +212,8 @@ int main(int argc, char** argv) {
     fout.close();
 
     // Execute the visualization script.
-    std::string command = "python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 1 && open paths.gif";
-    std::cout << "Running the plot script..." << std::endl;
+    std::string command = "python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 1";
+    std::cout << "Running the plot script... Look at `paths.gif`" << std::endl;
     system(command.c_str());
 
     return 0;

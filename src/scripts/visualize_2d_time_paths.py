@@ -64,7 +64,8 @@ def get_map_np(map_path):
     map_data = map_lines[4:]
     for i in range(map_height):
         for j in range(map_width):
-            if map_data[i][j] == "@":
+            # if map_data[i][j] == "@":
+            if map_data[i][j] != ".":  # This is consistent with MAPF benchmarks
                 map_np[i, j] = 0
             else:
                 map_np[i, j] = 255

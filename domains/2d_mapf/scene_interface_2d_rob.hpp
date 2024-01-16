@@ -92,11 +92,12 @@ void Scene2DRob::loadMap(const string& filename) {
                         fscanf(f, "%c", &c);
                     } while (isspace(c));
 
-                    if (c == '.' || c == 'G' || c == 'S' || c == 'T') {
-                        occupancy_map_[row][col] = false;
-                    } else {
-                        occupancy_map_[row][col] = true;
-                    }
+                    occupancy_map_[row][col] = (c != '.'); // This is consistent with the mapf benchmarks
+                    // if (c == '.' || c == 'G' || c == 'S' || c == 'T') {
+                    //     occupancy_map_[row][col] = false;
+                    // } else {
+                    //     occupancy_map_[row][col] = true;
+                    // }
                 }
             }
         }
