@@ -43,7 +43,8 @@ std::vector<std::vector<int>> loadMap(const char *fname,
                         fscanf(f, "%c", &c);
                     } while (isspace(c));
 
-                    map[x][y] = (c == '.' || c == 'G' || c == 'S' || c == 'T') ? 0 : 100;
+                    // map[x][y] = (c == '.' || c == 'G' || c == 'S' || c == 'T') ? 0 : 100;
+                    map[x][y] = (c == '.') ? 0 : 100;  // This is consistent with MAPF benchmarks
                 }
             }
         }
