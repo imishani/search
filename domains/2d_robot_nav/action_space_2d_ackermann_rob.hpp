@@ -33,6 +33,7 @@
 */
 
 #pragma once
+#include <map>
 
 #include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
