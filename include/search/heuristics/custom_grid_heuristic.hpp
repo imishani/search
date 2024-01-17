@@ -41,9 +41,9 @@
 #include <boost/functional/hash.hpp>
 #include <tuple>
 
+// Automatically defines hashing for tuples using boost https://stackoverflow.com/a/15636390
 namespace std
 {
-
 template<typename... T>
 struct hash<tuple<T...>>
 {
@@ -52,7 +52,6 @@ struct hash<tuple<T...>>
         return boost::hash_value(arg);
     }
 };
-
 }
 
 namespace ims {

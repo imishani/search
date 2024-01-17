@@ -180,7 +180,7 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
 
     while (!open_->empty() && !isTimeOut()) {
         // Report progress every 100 iterations
-        if (iter % 1 == 0) {
+        if (iter % 100 == 0) {
             std::cout << "ECBS CT open size: " << open_->size() << std::endl;
         }
 
