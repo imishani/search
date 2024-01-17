@@ -44,7 +44,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <map>
-// #include <boost/functional/hash.hpp>
+#include <set>
 
 // Project includes.
 #include <search/common/types.hpp>
