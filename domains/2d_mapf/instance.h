@@ -45,7 +45,7 @@
 /// @note Handles parsing custom and benchmark instances.
 class MAPFInstance {
 private:
-    std::shared_ptr<Scene2DRob> scene_;
+    std::shared_ptr<MAPFScene2DRob> scene_;
     vector<StateType> starts_;
     vector<StateType> goals_;
 
@@ -59,7 +59,7 @@ public:
     void loadBenchmarkInstance(const string& map_file, 
                 const string& agent_file, int num_agents);
 
-    std::shared_ptr<Scene2DRob> getSceneInterface2D() {return scene_;}
+    std::shared_ptr<MAPFScene2DRob> getSceneInterface2D() {return scene_;}
     vector<StateType> getRawStarts() {return starts_;}
     vector<StateType> getRawGoals() {return goals_;}
     vector<StateType> getStartsWithTime() {return addToEnd(starts_, 0);}
@@ -105,7 +105,7 @@ void MAPFInstance::loadBenchmarkInstance(const string& map_file,
     map_file_ = map_file;
 
     ///////////////////////// Load the map /////////////////////////
-    scene_ = std::make_shared<Scene2DRob>();
+    scene_ = std::make_shared<MAPFScene2DRob>();
     scene_->loadMap(map_file_);
 
     ///////////////////////// Load the agents /////////////////////////
@@ -183,7 +183,7 @@ void MAPFInstance::loadCustomInstance(const string& workspace_path, int map_inde
     map_file_ = workspace_path + idxToMapName[map_index];
 
     ///////////////////////// Load the map /////////////////////////
-    scene_ = std::make_shared<Scene2DRob>();
+    scene_ = std::make_shared<MAPFScene2DRob>();
     scene_->loadMap(map_file_);
 
     ///////////////////////// Load the agents /////////////////////////

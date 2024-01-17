@@ -62,6 +62,10 @@ namespace ims{
 
         bool exhaustPlan();
 
+        /// @brief 
+        /// @return Returns the g value of each state found in exhaustPlan
+        std::vector<std::pair<StateType, double>> getAllGValues();
+
     };
 
 }

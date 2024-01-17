@@ -32,8 +32,7 @@
  * \date   15/07/23
  */
 
-#ifndef SEARCH_ACTIONSCENE2DROB_HPP
-#define SEARCH_ACTIONSCENE2DROB_HPP
+#pragma once
 
 #include "search/action_space/action_space.hpp"
 #include <search/common/conflicts.hpp>
@@ -42,9 +41,9 @@
 
 #include "scene_interface_2d_rob.hpp"
 
-struct ActionType2dRob : public ims::ActionType {
-    ActionType2dRob() : ims::ActionType() {
-        this->name = "ActionType2dRob";
+struct ActionType2dTimeRob : public ims::ActionType {
+    ActionType2dTimeRob() : ims::ActionType() {
+        this->name = "ActionType2dTimeRob";
         this->num_actions = 5;
         this->action_names = {"N", "E", "S", "W", "Wait"};
         this->action_costs = {1, 1, 1, 1, 1};
@@ -69,14 +68,14 @@ struct ActionType2dRob : public ims::ActionType {
 
 class ConstrainedActionSpace2dRob : public ims::SubcostConstrainedActionSpace {
 private:
-    std::shared_ptr<Scene2DRob> env_;
-    std::shared_ptr<ActionType2dRob> action_type_;
+    std::shared_ptr<MAPFScene2DRob> env_;
+    std::shared_ptr<ActionType2dTimeRob> action_type_;
 
 public:
-    ConstrainedActionSpace2dRob(const std::shared_ptr<Scene2DRob>& env,
-                                const ActionType2dRob& actions_ptr) : ims::SubcostConstrainedActionSpace() {
+    ConstrainedActionSpace2dRob(const std::shared_ptr<MAPFScene2DRob>& env,
+                                const ActionType2dTimeRob& actions_ptr) : ims::SubcostConstrainedActionSpace() {
         this->env_ = env;
-        this->action_type_ = std::make_shared<ActionType2dRob>(actions_ptr);
+        this->action_type_ = std::make_shared<ActionType2dTimeRob>(actions_ptr);
     }
 
     void getActions(int state_id,
@@ -419,5 +418,3 @@ public:
         }
     }
 };
-
-#endif  // SEARCH_ACTIONSCENE2DROB_HPP

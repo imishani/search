@@ -45,14 +45,14 @@ using std::vector;
 
 /// @brief Simple 2D CollisionChecker that parses a map file and checks if a cell is valid or not.
 /// @note Saving data in row,col format, not x,y to prevent confusion.
-class Scene2DRob : public ims::SceneInterface {
+class MAPFScene2DRob : public ims::SceneInterface {
 private:
     int num_rows_, num_cols_;
     vector<vector<bool>> occupancy_map_; // Keep separate from cost map for now
     vector<vector<double>> cost_map_;
 
 public:
-    Scene2DRob() {}
+    MAPFScene2DRob() {}
 
     /// @brief Takes in a filepath and parses and loads it into the occupancy map.
     /// @param filename 
@@ -77,7 +77,7 @@ public:
 
 ////////////////// Implementations Below //////////////////////
 
-void Scene2DRob::loadMap(const string& filename) {
+void MAPFScene2DRob::loadMap(const string& filename) {
     FILE *f;
     f = fopen(filename.c_str(), "r");
 
@@ -107,14 +107,14 @@ void Scene2DRob::loadMap(const string& filename) {
     }
 }
 
-bool Scene2DRob::isCellValid(double row, double col) {
+bool MAPFScene2DRob::isCellValid(double row, double col) {
     if (row < 0 || row >= num_rows_ || col < 0 || col >= num_cols_) {
         return false;
     }
     return !occupancy_map_[int(row)][int(col)];
 }
 
-double Scene2DRob::getCellCost(double row, double col) {
+double MAPFScene2DRob::getCellCost(double row, double col) {
     assert(isCellValid(row, col));
     throw std::runtime_error("Not implemented");
 }

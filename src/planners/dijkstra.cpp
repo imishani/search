@@ -60,3 +60,13 @@ bool ims::Dijkstra::exhaustPlan() {
 
 }
 
+std::vector<std::pair<StateType, double>> ims::Dijkstra::getAllGValues() {
+    std::vector<std::pair<StateType, double>> g_values;
+    for (auto &state : states_){
+        // Get the robot state.
+        auto robot_state = action_space_ptr_->getRobotState(state->state_id);
+        g_values.emplace_back(robot_state->state, state->g);
+    }
+    return g_values;
+}
+

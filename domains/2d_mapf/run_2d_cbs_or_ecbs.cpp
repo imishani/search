@@ -51,6 +51,9 @@
 #include "../2d_robot_nav/utils.hpp"
 #include "instance.h"
 
+#include "search/heuristics/custom_grid_heuristic.hpp"
+// #include "../2d_robot_nav/action_space_2d_rob.hpp"
+#include "action_space_2d_rob_no_time_manhattan.hpp"
 
 /// Example runs:
 /// For custom datasets: ./run_2d_mapf_cbs_or_ecbs -m 6 -a ignore -n 4 -h 1.1
@@ -102,7 +105,7 @@ int main(int argc, char** argv) {
     // Now we have all the start and end configurations of the agents stored in start_state_vals and goal_state_vals.
     // Let's create an action space for each agent.
     std::cout << "Creating action spaces..." << std::endl;
-    ActionType2dRob action_type;
+    ActionType2dTimeRob action_type;
 
     // Construct the planner.
     std::cout << "Constructing planner..." << std::endl;
@@ -110,6 +113,12 @@ int main(int argc, char** argv) {
 
     ims::MultiAgentPaths paths;
     PlannerStats stats;
+
+    ///// Extra stuff required for 2D environment for BD heuristic
+    // std::string type;
+    // int width, height;
+    // std::vector<std::vector<int>> map = loadMap(instance.map_file_.c_str(), type, width, height, 1);
+    // Scene2DRobNoTime scene(map);
 
     if (!useECBS) {
 
@@ -134,22 +143,27 @@ int main(int argc, char** argv) {
     }
     else {
 
-        std::vector<std::shared_ptr<ims::SubcostConstrainedActionSpace>> action_spaces;
-        for (int i {0}; i < num_agents; i++){
-            action_spaces.emplace_back(std::make_shared<ConstrainedActionSpace2dRob>(instance.getSceneInterface2D(), action_type));
-            std::cout << "Action space " << i << " created." << std::endl;
-        }
-
         // Construct the parameters.
         ims::ECBSParams params;
         params.high_level_focal_suboptimality = vm["high_level_focal_suboptimality"].as<double>();
         params.low_level_focal_suboptimality = params.high_level_focal_suboptimality;
         params.weight_low_level_heuristic = params.high_level_focal_suboptimality;
         params.time_limit_ = 600; // 10 minutes.
-        
+
+        std::vector<std::shared_ptr<ims::SubcostConstrainedActionSpace>> action_spaces;
         for (int i {0}; i < num_agents; i++){
-            params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
+            action_spaces.emplace_back(std::make_shared<ConstrainedActionSpace2dRob>(instance.getSceneInterface2D(), action_type));
+            std::cout << "Action space " << i << " created." << std::endl;
+
+            // params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
+            // instance->getSceneInterface2D();
+            ActionType2dRobNoTime single_agent_action_type;
+            std::shared_ptr<actionSpace2dRobManhattan> ActionSpace = std::make_shared<actionSpace2dRobManhattan>(instance.getSceneInterface2D(), single_agent_action_type);
+
+            ims::CustomGridHeuristic* heuristic = new ims::CustomGridHeuristic(ActionSpace, {{goal_state_vals[i][0], goal_state_vals[i][1]}});
+            params.low_level_heuristic_ptrs.emplace_back(heuristic);
         }
+        
         ims::ECBS planner(params);
         planner.initializePlanner(action_spaces, start_state_vals, goal_state_vals);
 
