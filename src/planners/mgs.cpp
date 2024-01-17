@@ -174,14 +174,20 @@ double ims::MGS::computeHeuristic(int state_id, size_t g_num) { // TODO: Somethi
             if (std::find(closed_graphs_.begin(), closed_graphs_.end(), i) != closed_graphs_.end()){
                 continue;
             }
-            h += std::max(ss->h_map->at(i) - max_h_states_[i]->data_[i].h_self, 0.0);
-//            h += ss->h_map->at(i);
+            else if ((i != GRAPH_START) && (i != goal_in_graph_))
+                continue;
+
+//            h += std::max(ss->h_map->at(i) - max_h_states_[i]->data_[i].h_self, 0.0);
+            h += ss->h_map->at(i);
             if ((ss->h_map->at(i) < h_min) && i != g_num){
                 h_min = ss->h_map->at(i);
 //                h_min = std::max(ss->h_map->at(i) - max_h_states_[i]->data_[i].h_self, 0.0);
             }
         }
-        h /= (double)(params_.g_num_ - (int)closed_graphs_.size()); // TODO: should it be the minimum rather than the average?
+//        h /= (double)(params_.g_num_ - (int)closed_graphs_.size()); // TODO: should it be the minimum rather than the average?
+
+
+
 //        // randomly return 0
 //        std::random_device rd;
 //        std::mt19937 gen(rd());
@@ -190,7 +196,7 @@ double ims::MGS::computeHeuristic(int state_id, size_t g_num) { // TODO: Somethi
 //            return 0;
 //        }
         return h;
-//        return 100*h_min;
+//        return h_min;
     }
 }
 
@@ -614,6 +620,11 @@ void ims::MGS::setStateVals(int state_id, int parent_id, double cost, int g_num)
     auto state_ = getSearchState(state_id);
     state_->use_graph_ = g_num;
     state_->data_[g_num].parent_id = parent_id;
+//    if (g_num == GRAPH_START || g_num == goal_in_graph_){
+//        state_->data_[g_num].g = getSearchState(parent_id)->data_[g_num].g + cost;
+//    } else {
+//        state_->data_[g_num].g = 0;
+//    }
     state_->data_[g_num].g = getSearchState(parent_id)->data_[g_num].g + cost;
     state_->data_[g_num].h_self = computeHeuristic(state_id, roots_[g_num]->state_id);
     if (state_->data_[g_num].h_self > max_h_states_[g_num]->data_[g_num].h_self){
