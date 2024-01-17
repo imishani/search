@@ -39,6 +39,7 @@
 #include <functional>
 #include <algorithm>
 #include <utility>
+#include <deque>
 
 // Project includes.
 #include <search/planners/best_first_search.hpp>
