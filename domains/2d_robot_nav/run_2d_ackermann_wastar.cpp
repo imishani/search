@@ -49,6 +49,30 @@
 #include "action_space_2d_ackermann_rob.hpp"
 #include "utils.hpp"
 
+void visualizeMotionPrimatives(const std::map<double, std::vector<Action>> &map) {
+    // Step 2: Create an image matrix
+    cv::Mat image(500, 500, CV_8UC3, cv::Scalar(255, 255, 255)); // 500x500 white canvas
+
+    // Step 3: Define the origin and size of the grid
+    int width = image.cols;
+    int height = image.rows;
+    int gridSpacing = 50; // Adjust this value to change the grid spacing
+
+    // Step 4: Draw horizontal lines
+    for (int y = 0; y < height; y += gridSpacing) {
+        cv::line(image, cv::Point(0, y), cv::Point(width, y), cv::Scalar(0, 0, 0), 1);
+    }
+
+    // Step 4: Draw vertical lines
+    for (int x = 0; x < width; x += gridSpacing) {
+        cv::line(image, cv::Point(x, 0), cv::Point(x, height), cv::Scalar(0, 0, 0), 1);
+    }
+
+    // Step 5: Display the image
+    cv::imshow("Coordinate Grid", image);
+    cv::waitKey(0);
+}
+
 
 int main(int argc, char** argv) {
 
