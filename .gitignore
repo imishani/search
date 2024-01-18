@@ -9,3 +9,7 @@ build*/
 .vscode/
 
 domains/2d_mapf/datasets/
+*mp4
+*gif
+*png
+*jpg

@@ -39,9 +39,6 @@
 #include <iostream>
 #include <string>
 #include <cmath>
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp> // Get the cv circle.
 
 // project includes
 #include <search/planners/wastar.hpp>
@@ -83,8 +80,7 @@ int main(int argc, char** argv) {
 
     std::string type;
     int width, height;
-    cv::Mat img;
-    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), img, type, width, height, scale);
+    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), type, width, height, scale);
 
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
@@ -97,6 +93,10 @@ int main(int argc, char** argv) {
     ims::wAStarParams params (heuristic, epsilon);
     // construct the scene and the action space
     Scene2DRob scene (map);
+
+    // log the results
+    std::unordered_map<int, PlannerStats> logs;
+    std::unordered_map<int, PathType> paths;
     for (int i {0}; i < starts.size(); i++){
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
@@ -124,17 +124,17 @@ int main(int argc, char** argv) {
             planner.initializePlanner(ActionSpace, starts[i], goals[i]);
         }
         catch (std::exception& e) {
-            std::cout << "Start or goal is not valid!" << std::endl;
+            std::cout << RED << "Start or goal is not valid!" <<RESET << std::endl;
             continue;
         }
         // plan
         std::cout << "Planning..." << std::endl;
         std::vector<StateType> path_;
         if (!planner.plan(path_)) {
-            std::cout << "No path found!" << std::endl;
+            std::cout << RED << "No path found!" << RESET << std::endl;
         }
         else
-            std::cout << "Path found!" << std::endl;
+            std::cout << GREEN << "Path found!" << RESET << std::endl;
         PlannerStats stats = planner.reportStats();
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
         std::cout << "cost: " << stats.cost << std::endl;
@@ -142,32 +142,20 @@ int main(int argc, char** argv) {
         std::cout << "Number of nodes expanded: " << stats.num_expanded << std::endl;
         std::cout << "Number of nodes generated: " << stats.num_generated << std::endl;
         std::cout << "suboptimality: " << stats.suboptimality << RESET << std::endl;
-
-        // draw the start in red and goal in green
-        img.at<cv::Vec3b>((int)starts[i][1], (int)starts[i][0]) = cv::Vec3b(0,0,255);
-        img.at<cv::Vec3b>((int)goals[i][1], (int)goals[i][0]) = cv::Vec3b(0,255,0);
-        cv::circle(img, cv::Point((int)starts[i][0], (int)starts[i][1]), 2, cv::Scalar(0,0,255), 1);
-        cv::circle(img, cv::Point((int)goals[i][0], (int)goals[i][1]), 2, cv::Scalar(0,255,0), 1);
-
-        // draw the path in blue but skip the start and goal
-        for (int j {1}; j < path_.size()-1; j++){
-            img.at<cv::Vec3b>((int)path_[j][1], (int)path_[j][0]) = cv::Vec3b(255,0,0);
-        }
+        logs[i] = stats; // log the stats
+        paths[i] = path_; // log the path
     }
 
-    std::string image_name = "/run_2d_rotation_wastar_map.jpg";
-    
-    bool check_img_write = cv::imwrite(full_path.string() + image_name, img);
+    // save the logs to a temporary file
+    logStats(logs, map_index, "rotation_wAstar");
 
-    if (!check_img_write) { 
-        std::cout << "Mission - Saving the image, FAILED" << std::endl; 
-    } else {
-        std::cout << "Successfully saved the image to " + full_path.string() + image_name << std::endl; 
-    }
+    std::string path_file = logPaths(paths, map_index, scale);
 
-    cv::namedWindow("Map", cv::WINDOW_NORMAL);
-    cv::imshow("Map", img);
-    cv::waitKey(0);
+    std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
+    std::string command = "python3 " + plot_path + " --filepath " + path_file;
+    std::cout << "Running the plot script..." << std::endl;
+
+    system(command.c_str());
 
     return 0;
 }
