@@ -31,10 +31,7 @@
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
 */
-
-
-#ifndef SEARCH_TYPES_HPP
-#define SEARCH_TYPES_HPP
+#pragma once
 
 #include <vector>
 #include <limits>
@@ -74,6 +71,8 @@ using Action = std::vector<double>;
 using ActionSequence = std::vector<Action>;
 using ParamsType = std::unordered_map<std::string, double>;
 using TimeType = int;
+const TimeType INF_TIME_TYPE = std::numeric_limits<TimeType>::max();
+using SafeIntervalType = std::pair<TimeType, TimeType>;
 
 enum PARENT_TYPE {
     START = -1,
@@ -154,4 +153,3 @@ enum class ExperienceReuseType {
     CT_GLOBAL
 };
 
-#endif //SEARCH_TYPES_HPP

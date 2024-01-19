@@ -37,9 +37,11 @@
 
 #include "search/action_space/action_space.hpp"
 #include <search/common/conflicts.hpp>
+#include <search/common/constraints.hpp>
 #include <search/action_space/subcost_action_space.hpp>
 #include <search/common/scene_interface.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
+#include <search/common/utils.hpp>
 
 class scene2DRob : public ims::SceneInterface {
 public:
@@ -53,14 +55,14 @@ public:
     std::vector<size_t> map_size;
 };
 
-struct actionType2dRob : public ims::ActionType {
-    actionType2dRob() : ims::ActionType() {
-        this->name = "actionType2dRob";
-        this->num_actions = 5;
-        this->action_names = {"N", "E", "S", "W", "Wait"};
-        this->action_costs = {1, 1, 1, 1, 1};
-        this->action_deltas = {{0, 1, 1}, {1, 0, 1}, {0, -1, 1}, {-1, 0, 1}, {0, 0, 1}};
-        this->state_discretization_ = {1, 1, 1};
+struct ActionType2dRob : public ims::ActionType {
+    ActionType2dRob() : ims::ActionType() {
+        this->name = "ActionType2dRob";
+        this->num_actions = 4;
+        this->action_names = {"N", "E", "S", "W",};
+        this->action_costs = {1, 1, 1, 1};
+        this->action_deltas = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}, {0, 0}};
+        this->state_discretization_ = {1, 1};
     }
 
     std::vector<Action> getPrimActions() override {
@@ -79,16 +81,27 @@ struct actionType2dRob : public ims::ActionType {
     std::vector<std::vector<double>> action_deltas;
 };
 
+struct ActionType2dRobTimed : public ActionType2dRob {
+    ActionType2dRobTimed() : ActionType2dRob() {
+        name = "ActionType2dRobTimed";
+        num_actions = 5;
+        action_names = {"N", "E", "S", "W", "Wait"};
+        action_costs = {1, 1, 1, 1, 1};
+        action_deltas = {{0, 1, 1}, {1, 0, 1}, {0, -1, 1}, {-1, 0, 1}, {0, 0, 1}};
+        state_discretization_ = {1, 1, 1};
+    }
+};
+
 class ExperienceAcceleratedConstrainedActionSpace2dRob : public ims::ExperienceAcceleratedConstrainedActionSpace {
 private:
     std::shared_ptr<scene2DRob> env_;
-    std::shared_ptr<actionType2dRob> action_type_;
+    std::shared_ptr<ActionType2dRob> action_type_;
 
 public:
     ExperienceAcceleratedConstrainedActionSpace2dRob(const scene2DRob& env,
-                                const actionType2dRob& actions_ptr) : ims::ExperienceAcceleratedConstrainedActionSpace() {
+                                const ActionType2dRob& actions_ptr) : ims::ExperienceAcceleratedConstrainedActionSpace() {
         this->env_ = std::make_shared<scene2DRob>(env);
-        this->action_type_ = std::make_shared<actionType2dRob>(actions_ptr);
+        this->action_type_ = std::make_shared<ActionType2dRob>(actions_ptr);
     }
 
     void getActions(int state_id,
@@ -125,43 +138,37 @@ public:
         return true;
     }
 
-    bool isSatisfyingConstraints(const StateType& state_val, const StateType& next_state_val) override {
-        // Check against constraints.
-        // TODO(yoraish): check for time first.  If there are no constraints at this timestep, then the state is valid w.r.t constraints.
-
-        // Otherwise, check if the state is valid w.r.t the constraints.
-        // Iterate over the constraints. Those are in the pointer to the constraints collective, within a set pointer called constraints_ptr_.
-        if (!constraints_collective_ptr_->getConstraints().empty()) {
-            // Loop through the vector, and get a reference to each one of the elements.
-            for (auto& constraint_ptr : constraints_collective_ptr_->getConstraints()) {
-
-                // Check if the constraint is a vertex constraint or an edge constraint.
-                switch (constraint_ptr->type) {
-                    case ims::ConstraintType::VERTEX: {
-                        // Convert to a vertex constraint pointer to get access to its members.
-                        auto* vertex_constraint_ptr = dynamic_cast<ims::VertexConstraint*>(constraint_ptr.get());
-                        if (vertex_constraint_ptr != nullptr) {
-                            // If the constraint is a vertex constraint, check if the state is valid w.r.t the constraint.
-                            // note(yoraish): the state includes time so the check for equality in time is the element at position 2.
-                            if (vertex_constraint_ptr->state[0] == next_state_val[0] && vertex_constraint_ptr->state[1] == next_state_val[1] && vertex_constraint_ptr->state[2] == next_state_val[2]) {
-                                return false;
-                            }
-                        }
-                        break;
-                    }
-
-                    case ims::ConstraintType::EDGE: {
-                        // Convert to an edge constraint pointer to get access to its members.
-                        auto* edge_constraint_ptr = dynamic_cast<ims::EdgeConstraint*>(constraint_ptr.get());
-                        if (edge_constraint_ptr != nullptr) {
-                            // If the constraint is an edge constraint, check if the state is valid w.r.t the constraint.
-                            if (edge_constraint_ptr->state_from[0] == state_val[0] && edge_constraint_ptr->state_from[1] == state_val[1] && edge_constraint_ptr->state_from[2] == state_val[2] && edge_constraint_ptr->state_to[0] == next_state_val[0] && edge_constraint_ptr->state_to[1] == next_state_val[1] && edge_constraint_ptr->state_to[2] == next_state_val[2]) {
-                                return false;
-                            }
-                        }
-                        break;
+    /// @brief Whether the state is satisfying a specific constraint.
+    /// @param state_val The state value to check. Timed.
+    /// @param next_state_val The next state value to check. Timed.
+    /// @param constraint_ptr The constraint to check.
+    /// @return True if the constraint is satisfied, false otherwise.
+    bool isSatisfyingConstraint(const StateType &state_val, const StateType &next_state_val, const std::shared_ptr<ims::Constraint> &constraint_ptr) override {
+        // Check if the constraint is a vertex constraint or an edge constraint.
+        switch (constraint_ptr->type) {
+            case ims::ConstraintType::VERTEX: {
+                // Convert to a vertex constraint pointer to get access to its members.
+                auto* vertex_constraint_ptr = dynamic_cast<ims::VertexConstraint*>(constraint_ptr.get());
+                if (vertex_constraint_ptr != nullptr) {
+                    // If the constraint is a vertex constraint, check if the state is valid w.r.t the constraint.
+                    // note(yoraish): the state includes time so the check for equality in time is the element at position 2.
+                    if (vertex_constraint_ptr->state[0] == next_state_val[0] && vertex_constraint_ptr->state[1] == next_state_val[1] && vertex_constraint_ptr->state[2] == next_state_val[2]) {
+                        return false;
                     }
                 }
+                break;
+            }
+
+            case ims::ConstraintType::EDGE: {
+                // Convert to an edge constraint pointer to get access to its members.
+                auto* edge_constraint_ptr = dynamic_cast<ims::EdgeConstraint*>(constraint_ptr.get());
+                if (edge_constraint_ptr != nullptr) {
+                    // If the constraint is an edge constraint, check if the state is valid w.r.t the constraint.
+                    if (edge_constraint_ptr->state_from[0] == state_val[0] && edge_constraint_ptr->state_from[1] == state_val[1] && edge_constraint_ptr->state_from[2] == state_val[2] && edge_constraint_ptr->state_to[0] == next_state_val[0] && edge_constraint_ptr->state_to[1] == next_state_val[1] && edge_constraint_ptr->state_to[2] == next_state_val[2]) {
+                        return false;
+                    }
+                }
+                break;
             }
         }
         return true;
@@ -184,7 +191,7 @@ public:
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
 
             // Check for constraint satisfaction.
-            if (!isSatisfyingConstraints(curr_state->state, next_state_val)) {
+            if (!isSatisfyingAllConstraints(curr_state->state, next_state_val)) {
                 continue;
             }
 
@@ -286,6 +293,14 @@ public:
             }
         }
     }
+
+    // void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) override{
+    //     const auto & curr_state = this->getRobotState(state_id);
+    //     std::cout << "ConstrainedActionSpace2dRob: getSafeIntervals: curr_state: " << curr_state->state << std::endl;
+
+    //     // Get the paths of all the other agents.
+    // }
+
 };
 
 /// @brief A constrained action space for the 2D mapf domain, with the subcost and experience acceleration extensions.
@@ -293,13 +308,13 @@ public:
 class SubcostExperienceAcceleratedConstrainedActionSpace2dRob : public ims::SubcostExperienceAcceleratedConstrainedActionSpace {
 private:
     std::shared_ptr<scene2DRob> env_;
-    std::shared_ptr<actionType2dRob> action_type_;
+    std::shared_ptr<ActionType2dRob> action_type_;
 
 public:
     SubcostExperienceAcceleratedConstrainedActionSpace2dRob(const scene2DRob& env,
-                                const actionType2dRob& actions_ptr) : ims::SubcostExperienceAcceleratedConstrainedActionSpace() {
+                                const ActionType2dRob& actions_ptr) : ims::SubcostExperienceAcceleratedConstrainedActionSpace() {
         this->env_ = std::make_shared<scene2DRob>(env);
-        this->action_type_ = std::make_shared<actionType2dRob>(actions_ptr);
+        this->action_type_ = std::make_shared<ActionType2dRob>(actions_ptr);
     }
 
     void getActions(int state_id,
@@ -336,42 +351,35 @@ public:
         return true;
     }
 
-    bool isSatisfyingConstraints(const StateType& state_val, const StateType& next_state_val) override {
-        // Check against constraints.
-        // TODO(yoraish): check for time first.  If there are no constraints at this timestep, then the state is valid w.r.t constraints.
+    bool isSatisfyingConstraint(const StateType &state_val, const StateType &next_state_val, const std::shared_ptr<ims::Constraint> &constraint_ptr) override {
+        // Loop through the vector, and get a reference to each one of the elements.
+        for (auto& constraint_ptr : constraints_collective_ptr_->getConstraints()) {
 
-        // Otherwise, check if the state is valid w.r.t the constraints.
-        // Iterate over the constraints. Those are in the pointer to the constraints collective, within a set pointer called constraints_ptr_.
-        if (!constraints_collective_ptr_->getConstraints().empty()) {
-            // Loop through the vector, and get a reference to each one of the elements.
-            for (auto& constraint_ptr : constraints_collective_ptr_->getConstraints()) {
-
-                // Check if the constraint is a vertex constraint or an edge constraint.
-                switch (constraint_ptr->type) {
-                    case ims::ConstraintType::VERTEX: {
-                        // Convert to a vertex constraint pointer to get access to its members.
-                        auto* vertex_constraint_ptr = dynamic_cast<ims::VertexConstraint*>(constraint_ptr.get());
-                        if (vertex_constraint_ptr != nullptr) {
-                            // If the constraint is a vertex constraint, check if the state is valid w.r.t the constraint.
-                            // note(yoraish): the state includes time so the check for equality in time is the element at position 2.
-                            if (vertex_constraint_ptr->state[0] == next_state_val[0] && vertex_constraint_ptr->state[1] == next_state_val[1] && vertex_constraint_ptr->state[2] == next_state_val[2]) {
-                                return false;
-                            }
+            // Check if the constraint is a vertex constraint or an edge constraint.
+            switch (constraint_ptr->type) {
+                case ims::ConstraintType::VERTEX: {
+                    // Convert to a vertex constraint pointer to get access to its members.
+                    auto* vertex_constraint_ptr = dynamic_cast<ims::VertexConstraint*>(constraint_ptr.get());
+                    if (vertex_constraint_ptr != nullptr) {
+                        // If the constraint is a vertex constraint, check if the state is valid w.r.t the constraint.
+                        // note(yoraish): the state includes time so the check for equality in time is the element at position 2.
+                        if (vertex_constraint_ptr->state[0] == next_state_val[0] && vertex_constraint_ptr->state[1] == next_state_val[1] && vertex_constraint_ptr->state[2] == next_state_val[2]) {
+                            return false;
                         }
-                        break;
                     }
+                    break;
+                }
 
-                    case ims::ConstraintType::EDGE: {
-                        // Convert to an edge constraint pointer to get access to its members.
-                        auto* edge_constraint_ptr = dynamic_cast<ims::EdgeConstraint*>(constraint_ptr.get());
-                        if (edge_constraint_ptr != nullptr) {
-                            // If the constraint is an edge constraint, check if the state is valid w.r.t the constraint.
-                            if (edge_constraint_ptr->state_from[0] == state_val[0] && edge_constraint_ptr->state_from[1] == state_val[1] && edge_constraint_ptr->state_from[2] == state_val[2] && edge_constraint_ptr->state_to[0] == next_state_val[0] && edge_constraint_ptr->state_to[1] == next_state_val[1] && edge_constraint_ptr->state_to[2] == next_state_val[2]) {
-                                return false;
-                            }
+                case ims::ConstraintType::EDGE: {
+                    // Convert to an edge constraint pointer to get access to its members.
+                    auto* edge_constraint_ptr = dynamic_cast<ims::EdgeConstraint*>(constraint_ptr.get());
+                    if (edge_constraint_ptr != nullptr) {
+                        // If the constraint is an edge constraint, check if the state is valid w.r.t the constraint.
+                        if (edge_constraint_ptr->state_from[0] == state_val[0] && edge_constraint_ptr->state_from[1] == state_val[1] && edge_constraint_ptr->state_from[2] == state_val[2] && edge_constraint_ptr->state_to[0] == next_state_val[0] && edge_constraint_ptr->state_to[1] == next_state_val[1] && edge_constraint_ptr->state_to[2] == next_state_val[2]) {
+                            return false;
                         }
-                        break;
                     }
+                    break;
                 }
             }
         }
@@ -395,7 +403,7 @@ public:
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
 
             // Check for constraint satisfaction.
-            if (!isSatisfyingConstraints(curr_state->state, next_state_val)) {
+            if (!isSatisfyingAllConstraints(curr_state->state, next_state_val)) {
                 continue;
             }
 
@@ -425,7 +433,7 @@ public:
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
 
             // Check for constraint satisfaction.
-            if (!isSatisfyingConstraints(curr_state->state, next_state_val)) {
+            if (!isSatisfyingAllConstraints(curr_state->state, next_state_val)) {
                 continue;
             }
 
@@ -566,6 +574,10 @@ public:
             }
         }
     }
+
+    // void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) override{
+    //     std::cout << "ConstrainedActionSpace2dRob: getSafeIntervals" << std::endl;
+    // }
 
 };
 

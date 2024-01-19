@@ -37,6 +37,7 @@
 #include <functional>
 #include <algorithm>
 #include <utility>
+#include <boost/functional/hash.hpp>
 
 // project includes
 #include <search/action_space/action_space.hpp>

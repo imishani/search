@@ -65,11 +65,12 @@ public:
     /// @brief Destructor
     ~ExperienceAcceleratedConstrainedActionSpace() = default;
 
-    /// @brief Whether an edge transition is valid w.r.t constraints.
-    /// @param state 
-    /// @param next_state 
-    /// @return True if valid, false otherwise.
-    bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) override = 0;
+    /// @brief Whether the state is satisfying a specific constraint.
+    /// @param state_val The state value to check. Timed.
+    /// @param next_state_val The next state value to check. Timed.
+    /// @param constraint_ptr The constraint to check.
+    /// @return True if the constraint is satisfied, false otherwise.
+    bool isSatisfyingConstraint(const StateType &state_val, const StateType &next_state_val, const std::shared_ptr<Constraint> &constraint_ptr) override = 0;
 
     inline int getOrCreateRobotState(const StateType& state_val) override {
         // check if the state exists
@@ -160,7 +161,7 @@ public:
                 StateType next_robot_state = subexperience[state_ix + 1];
 
                 // Check if the state is valid w.r.t constraints.
-                if (isSatisfyingConstraints(robot_state, next_robot_state)) {
+                if (isSatisfyingAllConstraints(robot_state, next_robot_state)) {
                     valid_states_for_reuse.push_back(robot_state);
 
                     // Create a state_id if one not already exists.

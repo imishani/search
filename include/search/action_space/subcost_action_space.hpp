@@ -96,8 +96,7 @@ public:
     /// @brief Destructor
     ~SubcostExperienceAcceleratedConstrainedActionSpace() = default;
 
-
-    bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) override = 0;
+    bool isSatisfyingConstraint(const StateType &state_val, const StateType &next_state_val, const std::shared_ptr<Constraint> &constraint_ptr) override = 0;
 
     /// @brief Get the cost incurred by conflicts upon a give state  transition.
     /// @param state_val 
@@ -195,7 +194,7 @@ public:
                 StateType next_robot_state = subexperience[state_ix + 1];
 
                 // Check if the state is valid w.r.t constraints.
-                if (isSatisfyingConstraints(robot_state, next_robot_state)) {
+                if (isSatisfyingAllConstraints(robot_state, next_robot_state)) {
                     valid_states_for_reuse.push_back(robot_state);
 
                     // Create a state_id if one not already exists.
@@ -287,7 +286,7 @@ public:
                 StateType next_robot_state = subexperience[state_ix + 1];
 
                 // Check if the state is valid w.r.t constraints.
-                if (isSatisfyingConstraints(robot_state, next_robot_state)) {
+                if (isSatisfyingAllConstraints(robot_state, next_robot_state)) {
                     valid_states_for_reuse.push_back(robot_state);
 
                     // Create a state_id if one not already exists.
