@@ -47,27 +47,7 @@
 #include "utils.hpp"
 
 void visualizeMotionPrimatives(const std::map<double, std::vector<Action>> &map) {
-    // Step 2: Create an image matrix
-    cv::Mat image(500, 500, CV_8UC3, cv::Scalar(255, 255, 255)); // 500x500 white canvas
-
-    // Step 3: Define the origin and size of the grid
-    int width = image.cols;
-    int height = image.rows;
-    int gridSpacing = 50; // Adjust this value to change the grid spacing
-
-    // Step 4: Draw horizontal lines
-    for (int y = 0; y < height; y += gridSpacing) {
-        cv::line(image, cv::Point(0, y), cv::Point(width, y), cv::Scalar(0, 0, 0), 1);
-    }
-
-    // Step 4: Draw vertical lines
-    for (int x = 0; x < width; x += gridSpacing) {
-        cv::line(image, cv::Point(x, 0), cv::Point(x, height), cv::Scalar(0, 0, 0), 1);
-    }
-
-    // Step 5: Display the image
-    cv::imshow("Coordinate Grid", image);
-    cv::waitKey(0);
+    
 }
 
 
@@ -175,12 +155,17 @@ int main(int argc, char** argv) {
     logStats(logs, map_index, "ackerman_wAstar");
 
     std::string path_file = logPaths(paths, map_index, scale);
+    
+    std::string image_name = "/run_2d_ackermann_wastar_map.png";
+    std::string image_path = full_path.string() + image_name;
 
     std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
-    std::string command = "python3 " + plot_path + " --filepath " + path_file;
+    std::string command = "python3 " + plot_path + " --filepath " + path_file + " --imagepath " + image_path;
     std::cout << "Running the plot script..." << std::endl;
 
     system(command.c_str());
+
+    std::cout << "Completed running plot script. Plot saved to " + full_path.string() + image_name << std::endl;
 
     return 0;
 }
