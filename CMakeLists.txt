@@ -20,6 +20,7 @@ add_library(search SHARED
         src/planners/nparastar.cpp
         src/planners/bfs.cpp
         src/planners/egraph_wastar.cpp
+        src/planners/sipp.cpp
         src/planners/focal_search/focal_search.cpp
         src/planners/focal_search/focal_wastar.cpp
         src/planners/focal_search/focal_eawastar.cpp
@@ -32,6 +33,7 @@ add_library(search SHARED
         src/planners/multi_agent/eaecbs.cpp
         src/planners/multi_agent/eaecbs_mp.cpp
         src/planners/multi_agent/cbs_sphere3d.cpp
+        src/planners/multi_agent/cbs_sipp.cpp
         src/planners/multi_agent/prioritized_planning.cpp
         src/planners/multi_agent/generalized_cbs.cpp
         src/planners/multi_agent/generalized_ecbs.cpp
@@ -39,6 +41,7 @@ add_library(search SHARED
         src/common/experience_graph.cpp
         src/common/conflict_conversions.cpp
         src/common/bfs3d.cpp
+        src/common/constraints.cpp
 )
 
 set($(PROJECT_NAME)_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
@@ -95,6 +98,9 @@ target_link_libraries(run_2d_mapf_eacbs search ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_eaecbs domains/2d_mapf/run_2d_eaecbs.cpp)
 target_link_libraries(run_2d_mapf_eaecbs search ${Boost_LIBRARIES})
+
+add_executable(run_2d_mapf_cbs_sipp domains/2d_mapf/run_2d_cbs_sipp.cpp)
+target_link_libraries(run_2d_mapf_cbs_sipp search ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_pp domains/2d_mapf/run_2d_pp.cpp)
 target_link_libraries(run_2d_mapf_pp search ${Boost_LIBRARIES})

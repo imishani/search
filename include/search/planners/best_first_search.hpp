@@ -72,12 +72,14 @@ namespace ims{
         friend class plannerZero; friend class CBS; friend class CBSBase;
         friend class CBSSphere3d;
         friend class CBSMP;
+        friend class CBSSIPP;
         friend class ECBS; friend class ECBSMP;
         friend class EACBS; friend class EACBSMP;
         friend class EAECBS; friend class EAECBSMP;
         friend class GeneralizedCBS;
         friend class GeneralizedECBS;
-	
+        friend class SIPP;
+
         /// @brief The search state.
         struct SearchState: public ims::SearchState {
 

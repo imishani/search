@@ -294,12 +294,11 @@ public:
         }
     }
 
-    // void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) override{
-    //     const auto & curr_state = this->getRobotState(state_id);
-    //     std::cout << "ConstrainedActionSpace2dRob: getSafeIntervals: curr_state: " << curr_state->state << std::endl;
-
-    //     // Get the paths of all the other agents.
-    // }
+    void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) override{
+        const auto & curr_state = this->getRobotState(state_id);
+        // Ask the constraints collective for the safe intervals of this state configuration.
+        constraints_collective_ptr_->getOrCreateSafeIntervals(curr_state->state, safe_intervals);
+    }
 
 };
 
@@ -575,9 +574,9 @@ public:
         }
     }
 
-    // void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) override{
-    //     std::cout << "ConstrainedActionSpace2dRob: getSafeIntervals" << std::endl;
-    // }
+    void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) override{
+        std::cout << "ConstrainedActionSpace2dRob: getSafeIntervals" << std::endl;
+    }
 
 };
 
