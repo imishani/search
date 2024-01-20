@@ -47,6 +47,9 @@
 
 namespace ims {
 
+// Forward declaration for the ConstrainedActionSpace so that we can use it in the ConstraintsContext.
+class ConstrainedActionSpace;
+
 enum class ConstraintType {
     UNSET = -1,
     VERTEX = 0, // Do not be at v at time t.
@@ -71,12 +74,11 @@ struct Constraint {
 
     /// @brief The time of the constraint.
     /// @note This may be changed to a double for continuous time scenarios.
-    virtual std::pair<int, int> getTimeInterval() const = 0;
+    virtual std::pair<TimeType, TimeType> getTimeInterval() const = 0;
 
     /// @brief The type of the constraint.
     ConstraintType type;
 };
-
 
 // ==========================
 // Constraints used by CBS.
@@ -499,7 +501,8 @@ struct EdgeStateAvoidanceConstraint : public Constraint {
 /// @details This class is used to store context variables that are required for constraint checking and satisfaction. For example, in the case of PBS, the context for constraint satisfaction is the paths of all the agents whose paths were already found. This class is used to store these paths, and is passed to the ConstrainedActionSpace via the setConstraintsContext method.
 struct ConstraintsContext {
     /// @brief Constructor
-    explicit ConstraintsContext() = default;
+    ConstraintsContext() = default;
+    ConstraintsContext(std::shared_ptr<ConstrainedActionSpace> action_space_ptr) : action_space_ptr(action_space_ptr) { }
 
     /// @brief Virtual destructor.
     virtual ~ConstraintsContext() = default;
@@ -508,13 +511,15 @@ struct ConstraintsContext {
     MultiAgentPaths agent_paths = {};
     std::vector<std::string> agent_names = {};
 
+    /// @brief A pointer to the associated action space.
+    std::shared_ptr<ConstrainedActionSpace> action_space_ptr = nullptr;
 };
 
 /// @brief Base class for all search constraints.
 /// @details This class is used to store a set of constraints, and a context for constraint satisfaction.
 struct ConstraintsCollective {
     /// @brief Constructor
-    explicit ConstraintsCollective() = default;
+    ConstraintsCollective() = default;
 
     /// @brief Virtual destructor.
     virtual ~ConstraintsCollective() = default;
@@ -522,112 +527,62 @@ struct ConstraintsCollective {
     // Setters.
     /// @brief Set the constraints.
     /// @param constraints The constraints to set.
-    void setConstraints(const std::vector<std::shared_ptr<Constraint>>& constraints) {
-        constraints_ptrs_.clear();
-        time_to_constraints_ptrs_.clear();
-        last_constraint_time_ = -1;
+    void setConstraints(const std::vector<std::shared_ptr<Constraint>>& constraints);
 
-        // Set the constraints and their counts after.
-        constraints_ptrs_ = constraints;
-
-        // Set the time_to_constraints_ptrs_ map.
-        for (const auto& constraint_ptr : constraints_ptrs_) {
-            for (int t = constraint_ptr->getTimeInterval().first; t <= constraint_ptr->getTimeInterval().second; t++) {
-                time_to_constraints_ptrs_[t].push_back(constraint_ptr);
-                
-                // Update the latest time that has constraints, if necessary.
-                last_constraint_time_ = std::max(last_constraint_time_, t);
-            }
-        }
-    }
-
-    void addConstraint(const std::shared_ptr<Constraint>& constraint) {
-        constraints_ptrs_.push_back(constraint);
-
-        // Add to the time_to_constraints_ptrs_ map. This is only done if the time interval is not (-1, -1).
-        TimeType t_from = constraint->getTimeInterval().first;
-        TimeType t_to = constraint->getTimeInterval().second;
-        // TODO(yoraish): incorporate the action discretization into this for loop. This comes from the actionspace, so will have to think how to incorporate it. Currently the assumption is that the time is moving in integer steps.
-        if (t_from == -1 && t_to == -1) {
-            return;
-        }
-
-        // TODO(yoraish): Check if there are any existing constraints of the same type and at the same interval. If so, then we update them instead of adding a new constraint.
-        // for (const auto& existing_constraint_ptr : time_to_constraints_ptrs_[t_from]) {
-        //     if (existing_constraint_ptr->type == constraint->type && existing_constraint_ptr->getTimeInterval() == constraint->getTimeInterval()) {
-        //         existing_constraint_ptr.update(constraint);
-        //     }
-        // }
-
-        for (TimeType t = t_from; t <= t_to; t++) {
-            time_to_constraints_ptrs_[t].push_back(constraint);
-
-            // Update the latest time that has constraints, if necessary.
-            last_constraint_time_ = std::max(last_constraint_time_, t);
-        }
-    }
+    void addConstraint(const std::shared_ptr<Constraint>& constraint);
 
     /// @brief Set the last time that has constraints. This time is often used to check if a planner is allowed to terminate (find a goal). If there are outstanding constraints, then the planner should not terminate. If we impose constraints that are "always active," then we need a way to tell planners "after this time t, keep satisfying the "always" constraints but you are allowed to find the goal." This is one way to do this.
-    void setLastConstraintTimeToAtLeast(TimeType t) {
-        last_constraint_time_ = std::max(last_constraint_time_, t);
-    }
+    void setLastConstraintTimeToAtLeast(TimeType t);
 
-    void addConstraints(const std::vector<std::shared_ptr<Constraint>>& constraints) {
-        for (const auto& constraint_ptr : constraints) {
-            addConstraint(constraint_ptr);
-        }
-    }
+    void addConstraints(const std::vector<std::shared_ptr<Constraint>>& constraints);
 
     /// @brief Set the constraints context.
     /// @param context The constraints context to set.
-    void setContext(const std::shared_ptr<ConstraintsContext>& context) {
-        context_ptr_ = context;
-    }
+    void setContext(const std::shared_ptr<ConstraintsContext>& context);
 
     /// @brief Clear the constraints context.
-    void clearContext() {
-        context_ptr_.reset();
-    }
+    void clearContext() ;
 
     /// @brief Clear the constraints.
-    void clear() {
-        constraints_ptrs_.clear();
-        time_to_constraints_ptrs_.clear();
-        last_constraint_time_ = -1;   
-    }
+    void clear();
 
     // Getters.
     /// @brief Get the context pointer.
     /// @return The context pointer.
-    std::shared_ptr<ConstraintsContext> getConstraintsContext() const {
-        return context_ptr_;
-    }
+    std::shared_ptr<ConstraintsContext> getConstraintsContext() const ;
+    std::shared_ptr<ConstraintsContext> getConstraintsContextNonConst();
 
     /// @brief Get the constraints.
     /// @return The constraints.
-    const std::vector<std::shared_ptr<Constraint>>& getConstraints() const {
-        return constraints_ptrs_;
-    }
+    const std::vector<std::shared_ptr<Constraint>>& getConstraints() const ;
 
     /// String.
     /// @brief Get a string with information about the constraint.
-    std::string toString() const {
-        std::string str = "ConstraintsCollective: \n";
-        for (const auto& constraint_ptr : constraints_ptrs_) {
-            str += "    " + constraint_ptr->toString() + "\n";
-        }
-        return str;
-    }
+    std::string toString() const ;
 
     /// @brief Get the greatest time that is constrained.
     /// @return The greatest time that is constrained.
-    int getLastConstraintTime() const {
-        return last_constraint_time_;
-    }
+    int getLastConstraintTime() const;
+
+    /// @brief Create safe intervals for a configuration state.
+    /// @param state The state configuration without a time component.
+    void createSafeIntervals(const StateType & state);
+
+    /// @brief Update the safe intervals for a given state.
+    /// @param state The state configuration.
+    void updateSafeIntervals(const std::shared_ptr<Constraint>& constraint);
+
+    /// @brief Get the safe intervals for a given state. If those do not exist then create them.
+    /// @param state The state configuration. Should not include a time component.
+    /// @return The safe intervals.
+    void getOrCreateSafeIntervals(const StateType& state, std::vector<SafeIntervalType>& safe_intervals);
+
+    int getNumSafeIntervals();
 
 private:
+
     /// @brief Map from a timestep to a set of constraint pointers.
-    std::unordered_map<int, std::vector<std::shared_ptr<Constraint>>> time_to_constraints_ptrs_ = {};
+    std::unordered_map<TimeType, std::vector<std::shared_ptr<Constraint>>> time_to_constraints_ptrs_ = {};
 
     // Member Variables.
     /// @brief The type of the constraint.
@@ -638,6 +593,9 @@ private:
 
     /// @brief The last time that has constraints imposed on it.
     TimeType last_constraint_time_ = -1;
+
+    /// @brief The safe intervals of states. We keep track of state configurations and not ids since ids may change between searches.
+    std::unordered_map<StateType, std::vector<SafeIntervalType>, StateTypeHash> state_to_safe_intervals_ = {};
 };
 
 /// @brief An object for mapping [agent_ids] to a set of constraints collective.

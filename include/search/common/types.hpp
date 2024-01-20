@@ -71,7 +71,7 @@ using Action = std::vector<double>;
 using ActionSequence = std::vector<Action>;
 using ParamsType = std::unordered_map<std::string, double>;
 using TimeType = int;
-const TimeType INF_TIME_TYPE = std::numeric_limits<TimeType>::max();
+const TimeType INF_TIME_TYPE = std::numeric_limits<TimeType>::max() / 2;
 using SafeIntervalType = std::pair<TimeType, TimeType>;
 
 enum PARENT_TYPE {

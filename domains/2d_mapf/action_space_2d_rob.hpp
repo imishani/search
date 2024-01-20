@@ -405,9 +405,9 @@ public:
         }
     }
 
-    // void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) override{
-    //     std::cout << "ConstrainedActionSpace2dRob: getSafeIntervals" << std::endl;
-    // }
+    void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) override{
+        std::cout << "ConstrainedActionSpace2dRob: getSafeIntervals" << std::endl;
+    }
 
 };
 

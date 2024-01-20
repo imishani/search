@@ -66,6 +66,12 @@ public:
         constraints_collective_ptr_ = constraints_collective;
     }
 
+    /// @brief Get the constraints collective.
+    /// @return The constraints collective.
+    ConstraintsCollective getConstraintsCollective() const { 
+        return *constraints_collective_ptr_;
+    }
+
     /// @brief Clear the constraints.
     void clearConstraints() { constraints_collective_ptr_->clear(); }
 
