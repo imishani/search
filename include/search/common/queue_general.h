@@ -120,8 +120,9 @@ private:
 
 public:
     virtual T* min() const override;
+    // virtual T* minAnchor() const;
     virtual void pop() override;
-    virtual void popAnchor();
+    // virtual void popAnchor();
     virtual void push(T* e) override;
     virtual void erase(T* e) override;
     virtual bool empty() const override;

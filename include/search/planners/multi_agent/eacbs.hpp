@@ -152,6 +152,9 @@ protected:
         // The low level experiences collecitve. This is a map from agent id to experience collective.
         MultiAgentExperiencesCollective experiences_collectives;
 
+        // The counts of the constraints in each constraint type.
+        std::unordered_map<ConstraintType, int> constraint_type_count;
+        
         /// @brief Get the cost of the state.
         /// @return 
         double getLowerBound() const override {

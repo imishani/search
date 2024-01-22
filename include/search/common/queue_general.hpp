@@ -128,11 +128,11 @@ size_t FocalQueue<T, CompareMain, CompareFocal>::size() const {
 
 template <class T, class CompareMain, class CompareFocal>
 void FocalQueue<T, CompareMain, CompareFocal>::updateWithBound(double lower_bound) {
-    // Take all the nodes out from focal and put them in the waitlist.
-    while (!m_focal.empty()) {
-        m_waitlist.push(m_focal.min());
-        m_focal.pop();
-    }
+    // Take all the nodes that do not satisfy the bound out from focal and put them in the waitlist.
+    // while (!m_focal.empty()) {
+    //     m_waitlist.push(m_focal.min());
+    //     m_focal.pop();
+    // }
 
     // Populate the focal queue with all the nodes that satisfy the lower bound.
     while (!m_waitlist.empty() && m_waitlist.min()->getLowerBound() <= lower_bound) {
@@ -140,39 +140,6 @@ void FocalQueue<T, CompareMain, CompareFocal>::updateWithBound(double lower_boun
         m_waitlist.pop();
     }
 }
-
-template <class T, class CompareMain, class CompareFocal>
-void FocalQueue<T, CompareMain, CompareFocal>::updateWithBoundAndComparator(double lower_bound_threshold, CompareFocal new_comparator){
-    // Take all the nodes out from focal and put them in the waitlist.
-    while (!m_focal.empty()) {
-        m_waitlist.push(m_focal.min());
-        m_focal.pop();
-    }
-
-    // Update the comparator.
-    // updateFocalComparator(new_comparator);
-
-    // Populate the focal queue with all the nodes that satisfy the lower bound.
-    while (!m_waitlist.empty() && m_waitlist.min()->getLowerBound() <= lower_bound_threshold) {
-        m_focal.push(m_waitlist.min());
-        m_waitlist.pop();
-    }
-}
-
-// template <class T, class CompareMain, class CompareFocal>
-// void FocalQueue<T, CompareMain, CompareFocal>::updateFocalComparator(CompareFocal new_comparator){
-//     // Create a new focal queue with the new comparator.
-//     ::smpl::IntrusiveHeapWrapper<T, CompareFocal> new_focal(new_comparator);
-
-//     // Copy all the elements from the old focal queue to the new one.
-//     while (!m_focal.empty()) {
-//         new_focal.push(m_focal.min());
-//         m_focal.pop();
-//     }
-
-//     // Delete the old focal queue and replace it with the new one.
-//     m_focal = new_focal;
-// }
 
 template <class T, class CompareMain, class CompareFocal>
 double FocalQueue<T, CompareMain, CompareFocal>::getLowerBound() const {
@@ -194,12 +161,24 @@ T* FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::min() const {
     return m_focalQ.min();
 }
 
+// template <class T, class CompareMain, class CompareFocal>
+// T* FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::minAnchor() const {
+//     return m_anchorQ.min();
+// }
+
 template <class T, class CompareMain, class CompareFocal>
 void FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::pop() {
     T* e = m_focalQ.min();
     m_focalQ.pop(); // Remove from focal
     m_anchorQ.erase(e); // Remove from anchor
 }
+
+// template <class T, class CompareMain, class CompareFocal>
+// void FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::popAnchor() {
+//     T* e = m_anchorQ.min();
+//     m_anchorQ.pop(); // Remove from anchor
+//     m_focalQ.erase(e); // Remove from focal
+// }
 
 template <class T, class CompareMain, class CompareFocal>
 void FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::push(T* e) {
