@@ -27,9 +27,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   generalized_cbs.hpp
+ * \file   generalized_ecbs.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
- * \date   2024-01-12
+ * \date   2024-01-20
  */
 #pragma once
 
@@ -47,30 +47,31 @@
 #include <search/heuristics/standard_heuristics.hpp>
 #include <search/planners/focal_search/focal_wastar.hpp>
 #include <search/planners/best_first_search.hpp>
-#include <search/planners/multi_agent/cbs.hpp>
+#include <search/planners/multi_agent/ecbs.hpp>
 
 #include "search/action_space/subcost_action_space.hpp"
 
 namespace ims {
 
 // ==========================
-// Related structs: GeneralizedCBSParams
+// Related structs: GeneralizedECBSParams
 // ==========================
-/// @class GeneralizedCBSParams class.
-/// @brief The parameters for the GeneralizedCBS algorithm
-struct GeneralizedCBSParams : public CBSParams {
+/// @class GeneralizedECBSParams class.
+/// @brief The parameters for the GeneralizedECBS algorithm
+struct GeneralizedECBSParams : public CBSParams {
     /// @brief Constructor
-    explicit GeneralizedCBSParams() : CBSParams() {
+    explicit GeneralizedECBSParams() : CBSParams() {
     }
 
     /// @brief Destructor
-    ~GeneralizedCBSParams() override = default;
+    ~GeneralizedECBSParams() override = default;
 
     /// @brief Exhaustive search flag. If true, the algorithm will continue to search until the goal is found or the open list is empty.
     bool exhaustive = false;
 
     /// @brief The sub-optimality bound on the high-level focal search.
-    double high_level_focal_suboptimality = 1.0;
+    double high_level_focal_suboptimality = 2.0;
+    double low_level_focal_suboptimality = 2.0;
 
     /// @brief Parameters for specific constraint types.
     double sphere3d_constraint_radius = 0.1;
@@ -83,26 +84,26 @@ using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsColle
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
 // ==========================
-// GeneralizedCBS Algorithm.
+// GeneralizedECBS Algorithm.
 // ==========================
-/// @class GeneralizedCBS class.
-/// @brief The GeneralizedCBS algorithm.
-class GeneralizedCBS : public CBS {
+/// @class GeneralizedECBS class.
+/// @brief The GeneralizedECBS algorithm.
+class GeneralizedECBS : public CBS {
 private:
 
 public:
     /// @brief Constructor
     /// @param params The parameters
-    explicit GeneralizedCBS(const GeneralizedCBSParams& params);
+    explicit GeneralizedECBS(const GeneralizedECBSParams& params);
 
     /// @brief Destructor
-    ~GeneralizedCBS() override = default;
+    ~GeneralizedECBS() override = default;
 
     /// @brief Initialize the planner.
     /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
     /// @param starts The start states for all agents.
     /// @param goals The goal states for all agents.
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
+    void initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs,
                            const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief Initialize the planner and set the agent names.
@@ -110,7 +111,7 @@ public:
     /// @param agent_names The names of the agents.
     /// @param starts The start states for all agents.
     /// @param goals The goal states for all agents.
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+    void initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
 
     /// @brief Create the root node in the open list. This node has single-agent plans that were planned without any constraints.
     void createRootInOpenList() override;
@@ -132,7 +133,7 @@ public:
 protected:
 
     /// @brief The search state compare struct.
-    struct GeneralizedCBSOpenCompare{
+    struct GeneralizedECBSOpenCompare{
         bool operator()(const SearchState& s1, const SearchState& s2) const{
             double f1 = s1.f;
             double f2 = s2.f;
@@ -158,7 +159,7 @@ protected:
     };
 
     /// @brief The search state compare structs for the HL focal lists.
-    struct GeneralizedCBSSphere3dConstraintFocalCompare{
+    struct GeneralizedECBSSphere3dConstraintFocalCompare{
         bool operator()(const SearchState& s1, const SearchState& s2) const{
             int constraints_count_s1 = std::accumulate(s1.constraint_type_count.begin(), s1.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
             int constraints_count_s2 = std::accumulate(s2.constraint_type_count.begin(), s2.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
@@ -188,7 +189,7 @@ protected:
         }
     };
 
-    struct GeneralizedCBSConflictCountFocalCompare{
+    struct GeneralizedECBSConflictCountFocalCompare{
         bool operator()(const SearchState& s1, const SearchState& s2) const{
             if (s1.unresolved_conflicts.size() == s2.unresolved_conflicts.size()) {
                 if (s1.f == s2.f) {
@@ -227,13 +228,13 @@ protected:
 
     /// Member variables.
     // The search parameters.
-    GeneralizedCBSParams params_;
+    GeneralizedECBSParams params_;
 
     // The low-level planners. Overrides the CBS planners set to be wAStar.
-    std::vector<std::shared_ptr<wAStar>> agent_planner_ptrs_;
+    std::vector<std::shared_ptr<FocalwAStar>> agent_planner_ptrs_;
 
     // The action spaces for the individual agents.
-    std::vector<std::shared_ptr<ConstrainedActionSpace>> agent_action_space_ptrs_;
+    std::vector<std::shared_ptr<SubcostConstrainedActionSpace>> agent_action_space_ptrs_;
 
     // Statistics.
     FocalSearchPlannerStats stats_;
@@ -243,12 +244,8 @@ protected:
     int current_priority_function_index_ = 0; 
 
     // The open list.
-    FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>* open_;
+    FocalAndAnchorQueueWrapper<SearchState, GeneralizedECBSOpenCompare, GeneralizedECBSSphere3dConstraintFocalCompare>* open_;
 };
-
-
-// A derived class for generalized CBS supporting point-3d conflicts and sphere-3d constraints.
-class GeneralizedCBSPoint3d : public GeneralizedCBS {};
 
 }  // namespace ims
 

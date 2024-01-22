@@ -185,17 +185,17 @@ bool ims::GeneralizedCBS::plan(MultiAgentPaths& paths) {
 
         // Get the state of least cost according to the priority function in the round robin.
         SearchState* state;
-        if (current_priority_function_index_ == 0) {
-            std::cout << GREEN << "Pop from anchor." << RESET << std::endl;
-            state = open_->minAnchor();
-            open_->popAnchor();
-            current_priority_function_index_ = 1;
-        } else {
+        // if (current_priority_function_index_ == 0) {
+        //     std::cout << GREEN << "Pop from anchor." << RESET << std::endl;
+        //     state = open_->minAnchor();
+        //     open_->popAnchor();
+        //     current_priority_function_index_ = 1;
+        // } else {
             std::cout << GREEN << "Pop from focal." << RESET << std::endl;
             state = open_->min();
             open_->pop();
-            current_priority_function_index_ = 0;
-        }
+            // current_priority_function_index_ = 0;
+        // }
         // TEST TEST TEST.
         // Print some information about this new state.
         std::cout << "State " << state->state_id << " was popped from the open list." << std::endl;
@@ -231,6 +231,9 @@ bool ims::GeneralizedCBS::plan(MultiAgentPaths& paths) {
         open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
     }
     getTimeFromStart(stats_.time);
+    stats_.cost = -1;
+    stats_.num_expanded = iter;
+    stats_.suboptimality = params_.high_level_focal_suboptimality;
     return false;
 }
 
@@ -238,6 +241,16 @@ void ims::GeneralizedCBS::expand(int state_id) {
     auto state = getSearchState(state_id);
     std::vector<int> successors;
     std::vector<double> costs;
+
+    // Determine if this state is a pure-admissible state. This is the case if all of its constraints are admissible ones.
+    // TODO(yoraish): this should be a flag in the state itself that is toggled to false when a non-admissible constraint is added.
+    bool is_state_pure_admissible = true;
+    for (auto& constraint_type_count : state->constraint_type_count) {
+        if (constraint_type_admissibility.at(constraint_type_count.first) == false) {
+            is_state_pure_admissible = false;
+            break;
+        }
+    }
 
     // First, convert all conflicts to pairs of (agent_id, constraint). In vanilla GeneralizedCBS, there is only one conflict found from a set of paths (the first/random one), and that would yield two constraints. To allow for more flexibility, we do not restrict the data structure to only two constraints per conflict.
 
@@ -247,6 +260,21 @@ void ims::GeneralizedCBS::expand(int state_id) {
 
     // Second, iterate through the constraints, and for each one, create a new search state. The new search state is a copy of the previous search state, with the constraint added to the constraints collective of the agent.
     // For each constraint, split the state into branches. Each branch will be a new state in the search tree.
+
+    // If the state is not pure-admissible, then we can discard all admissible constraints, and choose randomly from the rest.
+    if (!is_state_pure_admissible) {
+        // Create a new vector of constraints that only includes non-admissible constraints.
+        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> non_admissible_constraints;
+        for (auto& constraint : constraints) {
+            if (constraint_type_admissibility.at(constraint.second[0]->type) == false) { // FIX THIS. This is a hack to get the first constraint type. We should not assume that all constraints in the vector are of the same type.
+                non_admissible_constraints.push_back(constraint);
+            }
+        }
+        // From those constraints, choose one randomly.
+        // non_admissible_constraints = {non_admissible_constraints[rand() % non_admissible_constraints.size()]};
+        constraints = non_admissible_constraints;
+    }
+
 
     // TEST TEST TEST.
     std::cout << "    Creating new states ";
@@ -335,6 +363,7 @@ void ims::GeneralizedCBS::expand(int state_id) {
         // Push the new state to the open list.
         new_state->setOpen();
         open_->push(new_state);
+        stats_.num_generated++;
 
         // Delete the previous state but keep the entry in the states_ vector.
         // state = nullptr;

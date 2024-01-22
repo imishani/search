@@ -144,9 +144,9 @@ void ims::CBS::createRootInOpenList(){
 
     // Add the agent_names to the constraints collectives.
     for (const auto& agent_id_and_constraints_collective : start_->constraints_collectives){
-        int agent_id = agent_id_and_constraints_collective.first;
+    int agent_id = agent_id_and_constraints_collective.first;
 
-        start_->constraints_collectives.at(agent_id).getConstraintsContext()->agent_names = agent_names_;
+    start_->constraints_collectives.at(agent_id).getConstraintsContext()->agent_names = agent_names_;
     }
 
     // Push the initial CBS state to the open list.
@@ -324,6 +324,7 @@ void ims::CBS::expand(int state_id) {
         // Push the new state to the open list.
         open_->push(new_state);
         new_state->setOpen();
+        stats_.num_generated++;
 
         // Delete the previous state but keep the entry in the states_ vector.
         // state = nullptr;

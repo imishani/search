@@ -58,6 +58,18 @@ enum class ConstraintType {
     EDGE_STATE_AVOIDANCE = 6, // Do not conflict with agent at a specified configuration between time t_from to t_to.
 };
 
+// A map from constraint type to whether it is admissible or not.
+const std::unordered_map<ConstraintType, bool> constraint_type_admissibility = {
+    {ConstraintType::UNSET, false},
+    {ConstraintType::VERTEX, true},
+    {ConstraintType::EDGE, true},
+    {ConstraintType::SPHERE3D, false},
+    {ConstraintType::VERTEX_AVOIDANCE, false},
+    {ConstraintType::EDGE_AVOIDANCE, false},
+    {ConstraintType::VERTEX_STATE_AVOIDANCE, false},
+    {ConstraintType::EDGE_STATE_AVOIDANCE, false},
+};
+
 /// @brief Base class for all search constraints.
 struct Constraint {
     /// @brief Constructor

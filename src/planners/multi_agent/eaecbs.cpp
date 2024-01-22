@@ -392,6 +392,7 @@ void ims::EAECBS::expand(int state_id) {
         // Push the new state to the open list.
         open_->push(new_state);
         new_state->setOpen();
+        stats_.num_generated++;
 
         // Delete the previous state but keep the entry in the states_ vector.
         // state = nullptr;
