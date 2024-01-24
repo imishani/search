@@ -32,9 +32,9 @@
  * \date   2024-01-20
  */
 
-#include <search/planners/multi_agent/generalized_ecbs.hpp>
+#include <search/planners/multi_agent/generalized_bcbs.hpp>
 
-ims::GeneralizedECBS::GeneralizedECBS(const ims::GeneralizedECBSParams& params) : params_(params), GeneralizedCBS(params) {
+ims::GeneralizedBCBS::GeneralizedBCBS(const ims::GeneralizedBCBSParams& params) : params_(params), GeneralizedCBS(params) {
     // Create the open list.
     // Today (2024-01-12) there are two ways to pop out of this open list. One is to pop the min element (using FOCAL), and the other is to pop the min element in anchor (only according to OpenCompare). 
     open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>();
@@ -43,7 +43,7 @@ ims::GeneralizedECBS::GeneralizedECBS(const ims::GeneralizedECBSParams& params) 
     stats_.bonus_stats["num_low_level_expanded"] = 0;
 }
 
-void ims::GeneralizedECBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs,
+void ims::GeneralizedBCBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
 
     // Create the open list. This list is created in the constructor and reset here.
@@ -58,8 +58,9 @@ void ims::GeneralizedECBS::initializePlanner(std::vector<std::shared_ptr<Subcost
     }
 
     // Check start and end states for validity. Individually and between agents.
-    verifyStartAndGoalInputStates(starts, goals);
-
+    std::vector<std::shared_ptr<ims::ConstrainedActionSpace>> constrained_action_space_ptrs(agent_action_space_ptrs_.begin(), agent_action_space_ptrs_.end());
+    verifyStartAndGoalInputStates(starts, goals, constrained_action_space_ptrs);
+    
     // Store the starts and goals.
     starts_ = starts;
     goals_ = goals;
@@ -78,7 +79,7 @@ void ims::GeneralizedECBS::initializePlanner(std::vector<std::shared_ptr<Subcost
     }
 }
                                  
-void ims::GeneralizedECBS::createRootInOpenList() {
+void ims::GeneralizedBCBS::createRootInOpenList() {
     // Generate a plan for each of the agents.
     MultiAgentPaths initial_paths;
     std::unordered_map<int, double> initial_paths_costs;
@@ -123,7 +124,7 @@ void ims::GeneralizedECBS::createRootInOpenList() {
 
     // Get conflicts within the paths.
     // Get any conflicts between the newly computed paths.
-    // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the GeneralizedECBS class, and then passed to the action_space.
+    // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the GeneralizedBCBS class, and then passed to the action_space.
     agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(start_->paths), 
                                                     start_->unresolved_conflicts, 
                                                     getConflictTypes(),
@@ -159,12 +160,12 @@ void ims::GeneralizedECBS::createRootInOpenList() {
     }
 }
 
-void ims::GeneralizedECBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
+void ims::GeneralizedBCBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
                         agent_names_ = agent_names;
                         initializePlanner(action_space_ptrs, starts, goals);
                         }
 
-bool ims::GeneralizedECBS::plan(MultiAgentPaths& paths) {
+bool ims::GeneralizedBCBS::plan(MultiAgentPaths& paths) {
     startTimer();
     
     // Create the root node in the open list.
@@ -181,7 +182,7 @@ bool ims::GeneralizedECBS::plan(MultiAgentPaths& paths) {
     while (!open_->empty() && !isTimeOut()) {
         // Report progress every 100 iterations
         if (iter % 10 == 0) {
-            std::cout << "GeneralizedECBS CT open size: " << open_->size() << std::endl;
+            std::cout << "GeneralizedBCBS CT open size: " << open_->size() << std::endl;
         }
 
         // Get the state of least cost according to the priority function in the round robin.
@@ -238,7 +239,7 @@ bool ims::GeneralizedECBS::plan(MultiAgentPaths& paths) {
     return false;
 }
 
-void ims::GeneralizedECBS::expand(int state_id) {
+void ims::GeneralizedBCBS::expand(int state_id) {
     auto state = getSearchState(state_id);
     std::vector<int> successors;
     std::vector<double> costs;
@@ -253,7 +254,7 @@ void ims::GeneralizedECBS::expand(int state_id) {
         }
     }
 
-    // First, convert all conflicts to pairs of (agent_id, constraint). In vanilla GeneralizedECBS, there is only one conflict found from a set of paths (the first/random one), and that would yield two constraints. To allow for more flexibility, we do not restrict the data structure to only two constraints per conflict.
+    // First, convert all conflicts to pairs of (agent_id, constraint). In vanilla GeneralizedBCBS, there is only one conflict found from a set of paths (the first/random one), and that would yield two constraints. To allow for more flexibility, we do not restrict the data structure to only two constraints per conflict.
 
     // Despite asking for many conflicts, we only convert the first one to constraints.
     std::vector<std::shared_ptr<Conflict>> conflicts_to_convert{state->unresolved_conflicts.begin(), state->unresolved_conflicts.begin() + 1};
@@ -348,7 +349,7 @@ void ims::GeneralizedECBS::expand(int state_id) {
         double new_state_soc = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
 
         // Get any conflicts between the newly computed paths.
-        // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the GeneralizedECBS class, and then passed to the action_space.
+        // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the GeneralizedBCBS class, and then passed to the action_space.
         agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(new_state->paths), 
                                                        new_state->unresolved_conflicts, 
                                                        getConflictTypes(),
@@ -374,37 +375,7 @@ void ims::GeneralizedECBS::expand(int state_id) {
     std::cout << "\n===\n" << std::endl;
 }
 
-
-void ims::GeneralizedECBS::verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
-    // Check all goals have starts.
-    if (starts.size() != goals.size()) {
-        throw std::runtime_error("Start state vector size (" + std::to_string(starts.size()) + ") does not match the goal state vector size (" + std::to_string(goals.size()) + ")");
-    }
-    // Check if the start and goal states are valid w.r.t time. All starts are t=0 and all goals are t=-1.
-    for (size_t i{0}; i < starts.size(); ++i) {
-        if (starts[i].back() != 0) {
-            throw std::runtime_error("Start state for agent " + std::to_string(i) + " is not at time 0");
-        }
-        if (goals[i].back() != -1) {
-            throw std::runtime_error("Goal state for agent " + std::to_string(i) + " is not at time -1");
-        }
-    }
-
-    // Check if the start and goal states are valid. For each agent.
-    for (size_t i{0}; i < starts.size(); ++i) {
-        if (!agent_action_space_ptrs_[i]->isStateValid(starts[i])) {
-            throw std::runtime_error("Start state for agent " + std::to_string(i) + " is not valid");
-        }
-    }
-
-    for (size_t i{0}; i < goals.size(); ++i) {
-        if (!agent_action_space_ptrs_[i]->isStateValid(goals[i])) {
-            throw std::runtime_error("Goal state for agent " + std::to_string(i) + " is not valid");
-        }
-    }
-}
-
-std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::GeneralizedECBS::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
+std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::GeneralizedBCBS::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
     std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> agent_constraints;
 
     // Iterate through the conflicts and convert them to constraints.
@@ -475,7 +446,8 @@ void ims::GeneralizedXECBS::initializePlanner(std::vector<std::shared_ptr<Subcos
     }
 
     // Check start and end states for validity. Individually and between agents.
-    verifyStartAndGoalInputStates(starts, goals);
+    std::vector<std::shared_ptr<ims::ConstrainedActionSpace>> constrained_action_space_ptrs(agent_action_space_ptrs_.begin(), agent_action_space_ptrs_.end());
+    verifyStartAndGoalInputStates(starts, goals, constrained_action_space_ptrs);
 
     // Store the starts and goals.
     starts_ = starts;
@@ -859,36 +831,6 @@ void ims::GeneralizedXECBS::expand(int state_id) {
 
     // TEST TEST TEST.
     std::cout << "\n===\n" << std::endl;
-}
-
-
-void ims::GeneralizedXECBS::verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
-    // Check all goals have starts.
-    if (starts.size() != goals.size()) {
-        throw std::runtime_error("Start state vector size (" + std::to_string(starts.size()) + ") does not match the goal state vector size (" + std::to_string(goals.size()) + ")");
-    }
-    // Check if the start and goal states are valid w.r.t time. All starts are t=0 and all goals are t=-1.
-    for (size_t i{0}; i < starts.size(); ++i) {
-        if (starts[i].back() != 0) {
-            throw std::runtime_error("Start state for agent " + std::to_string(i) + " is not at time 0");
-        }
-        if (goals[i].back() != -1) {
-            throw std::runtime_error("Goal state for agent " + std::to_string(i) + " is not at time -1");
-        }
-    }
-
-    // Check if the start and goal states are valid. For each agent.
-    for (size_t i{0}; i < starts.size(); ++i) {
-        if (!agent_action_space_ptrs_[i]->isStateValid(starts[i])) {
-            throw std::runtime_error("Start state for agent " + std::to_string(i) + " is not valid");
-        }
-    }
-
-    for (size_t i{0}; i < goals.size(); ++i) {
-        if (!agent_action_space_ptrs_[i]->isStateValid(goals[i])) {
-            throw std::runtime_error("Goal state for agent " + std::to_string(i) + " is not valid");
-        }
-    }
 }
 
 std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::GeneralizedXECBS::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {

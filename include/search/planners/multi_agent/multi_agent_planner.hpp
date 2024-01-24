@@ -98,34 +98,10 @@ public:
     /// @brief Reset all the member variables in the planner.
     virtual void resetPlanningData() = 0;
 
-    virtual void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
-        // Check all goals have starts.
-        if (starts.size() != goals.size()) {
-            throw std::runtime_error("Start state vector size (" + std::to_string(starts.size()) + ") does not match the goal state vector size (" + std::to_string(goals.size()) + ")");
-        }
-        // Check if the start and goal states are valid w.r.t time. All starts are t=0 and all goals are t=-1.
-        for (size_t i{0}; i < starts.size(); ++i) {
-            if (starts[i].back() != 0) {
-                throw std::runtime_error("Start state for agent " + std::to_string(i) + " is not at time 0");
-            }
-            if (goals[i].back() != -1) {
-                throw std::runtime_error("Goal state for agent " + std::to_string(i) + " is not at time -1");
-            }
-        }
-
-        // Check if the start and goal states are valid. For each agent.
-        for (size_t i{0}; i < starts.size(); ++i) {
-            if (!action_space_ptrs_[i]->isStateValid(starts[i])) {
-                throw std::runtime_error("Start state for agent " + std::to_string(i) + " is not valid");
-            }
-        }
-
-        for (size_t i{0}; i < goals.size(); ++i) {
-            if (!action_space_ptrs_[i]->isStateValid(goals[i])) {
-                throw std::runtime_error("Goal state for agent " + std::to_string(i) + " is not valid");
-            }
-        }
+    virtual void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals){
+        throw std::runtime_error("verifyStartAndGoalInputStates() is no loinger used.");
     }
+
 
 protected:
 

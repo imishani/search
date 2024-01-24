@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   generalized_ecbs.hpp
+ * \file   generalized_bcbs.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   2024-01-20
  */
@@ -56,17 +56,17 @@
 namespace ims {
 
 // ==========================
-// Related structs: GeneralizedECBSParams
+// Related structs: GeneralizedBCBSParams
 // ==========================
-/// @class GeneralizedECBSParams class.
-/// @brief The parameters for the GeneralizedECBS algorithm
-struct GeneralizedECBSParams : public GeneralizedCBSParams {
+/// @class GeneralizedBCBSParams class.
+/// @brief The parameters for the GeneralizedBCBS algorithm
+struct GeneralizedBCBSParams : public GeneralizedCBSParams {
     /// @brief Constructor
-    explicit GeneralizedECBSParams() : GeneralizedCBSParams() {
+    explicit GeneralizedBCBSParams() : GeneralizedCBSParams() {
     }
 
     /// @brief Destructor
-    ~GeneralizedECBSParams() override = default;
+    ~GeneralizedBCBSParams() override = default;
 
     /// @brief Exhaustive search flag. If true, the algorithm will continue to search until the goal is found or the open list is empty.
     bool exhaustive = false;
@@ -80,20 +80,20 @@ struct GeneralizedECBSParams : public GeneralizedCBSParams {
 };
 
 // ==========================
-// GeneralizedECBS Algorithm.
+// GeneralizedBCBS Algorithm.
 // ==========================
-/// @class GeneralizedECBS class.
-/// @brief The GeneralizedECBS algorithm.
-class GeneralizedECBS : public GeneralizedCBS {
+/// @class GeneralizedBCBS class.
+/// @brief The GeneralizedBCBS algorithm.
+class GeneralizedBCBS : public GeneralizedCBS {
 private:
 
 public:
     /// @brief Constructor
     /// @param params The parameters
-    explicit GeneralizedECBS(const GeneralizedECBSParams& params);
+    explicit GeneralizedBCBS(const GeneralizedBCBSParams& params);
 
     /// @brief Destructor
-    ~GeneralizedECBS() override = default;
+    ~GeneralizedBCBS() override = default;
 
     /// @brief Initialize the planner.
     /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
@@ -111,11 +111,6 @@ public:
 
     /// @brief Create the root node in the open list. This node has single-agent plans that were planned without any constraints.
     void createRootInOpenList() override;
-
-    /// @brief Checks that the start and goals states are valid. The checks are for time (all initial times are zero and all goal times are -1), for individual agents, and between agents.
-    /// @param starts
-    /// @param goals
-    void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
 
     /// @brief plan a path
     /// @param path The path
@@ -152,7 +147,7 @@ protected:
 
     /// Member variables.
     // The search parameters.
-    GeneralizedECBSParams params_;
+    GeneralizedBCBSParams params_;
 
     // The low-level planners. Overrides the CBS planners set to be wAStar.
     std::vector<std::shared_ptr<FocalwAStar>> agent_planner_ptrs_;
@@ -176,10 +171,10 @@ protected:
 
 
 // ==========================
-// Related structs: GeneralizedECBSParams
+// Related structs: GeneralizedBCBSParams
 // ==========================
 /// @class GeneralizedXECBSParams class.
-/// @brief The parameters for the GeneralizedECBS algorithm
+/// @brief The parameters for the GeneralizedBCBS algorithm
 struct GeneralizedXECBSParams : public EACBSParams {
     /// @brief Constructor
     explicit GeneralizedXECBSParams() : EACBSParams() {
@@ -235,11 +230,6 @@ public:
 
     /// @brief Create the root node in the open list. This node has single-agent plans that were planned without any constraints.
     void createRootInOpenList() override;
-
-    /// @brief Checks that the start and goals states are valid. The checks are for time (all initial times are zero and all goal times are -1), for individual agents, and between agents.
-    /// @param starts
-    /// @param goals
-    void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
 
     /// @brief plan a path
     /// @param path The path

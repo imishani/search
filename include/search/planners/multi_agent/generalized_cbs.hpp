@@ -71,9 +71,6 @@ struct GeneralizedCBSParams : public CBSParams {
 
     /// @brief The sub-optimality bound on the high-level focal search.
     double high_level_focal_suboptimality = 1.0;
-
-    /// @brief Parameters for specific constraint types.
-    double sphere3d_constraint_radius = 0.1;
 };
 
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
@@ -114,11 +111,6 @@ public:
 
     /// @brief Create the root node in the open list. This node has single-agent plans that were planned without any constraints.
     void createRootInOpenList() override;
-
-    /// @brief Checks that the start and goals states are valid. The checks are for time (all initial times are zero and all goal times are -1), for individual agents, and between agents.
-    /// @param starts
-    /// @param goals
-    void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
 
     /// @brief plan a path
     /// @param path The path
@@ -210,20 +202,18 @@ protected:
     /// @brief Convert conflicts to constraints. In generalized CBS, conflicts are converted to all of the constraints that they can be converted to. That is, more than two constraint sets may be created for a single conflict.
     /// @param conflicts 
     /// @return 
-    std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) override;
+    virtual std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) = 0;
 
     /// @brief Get the conflict types requested by the algorithm.
     /// @return The conflict types.
     /// @note Derived class, aka CBS variants that request different conflict types (e.g., point3d, etc.) should override this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
-    inline std::vector<ConflictType> getConflictTypes() override {
-        return conflict_types_;
-    }
+    virtual std::vector<ConflictType> getConflictTypes() override = 0;
 
     // Public variable. For shadowing.
     /// @brief The conflict types that this algorithm asks for from the action space.
     // TODO(yoraish): this should be different for each genCBS version?
     // std::vector<ConflictType> conflict_types_ = {ConflictType::EDGE, ConflictType::VERTEX};
-    std::vector<ConflictType> conflict_types_ = {ConflictType::POINT3D};
+    std::vector<ConflictType> conflict_types_;
 
     /// Member variables.
     // The search parameters.
@@ -246,9 +236,112 @@ protected:
     FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>* open_;
 };
 
+// ==========================
+// Derived class: GeneralizedCBSPoint3d.
+// Seeks out point-3d conflicts and imposes sphere-3d, edge, and vertex constraints.
+// ==========================
 
-// A derived class for generalized CBS supporting point-3d conflicts and sphere-3d constraints.
-class GeneralizedCBSPoint3d : public GeneralizedCBS {};
+/// @class GeneralizedCBSParams class.
+/// @brief The parameters for the GeneralizedCBS algorithm
+struct GeneralizedCBSPoint3dParams : public GeneralizedCBSParams {
+    /// @brief Constructor
+    explicit GeneralizedCBSPoint3dParams() : GeneralizedCBSParams() {
+    }
+
+    /// @brief Destructor
+    ~GeneralizedCBSPoint3dParams() override = default;
+
+    /// @brief Parameters for specific constraint types.
+    double sphere3d_constraint_radius = 0.1;
+};
+
+// ==========================
+// GeneralizedCBSPoint3d Algorithm.
+// ==========================
+/// @class GeneralizedCBSPoint3d class.
+/// @brief The GeneralizedCBSPoint3d algorithm.
+class GeneralizedCBSPoint3d : public GeneralizedCBS {
+private:
+
+public:
+    /// @brief Constructor
+    /// @param params The parameters
+    explicit GeneralizedCBSPoint3d(const GeneralizedCBSPoint3dParams& params);
+
+    /// @brief Destructor
+    ~GeneralizedCBSPoint3d() override = default;
+
+    /// @brief Initialize the planner.
+    /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
+    /// @param starts The start states for all agents.
+    /// @param goals The goal states for all agents.
+    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
+                           const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+
+    /// @brief Initialize the planner and set the agent names.
+    /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
+    /// @param agent_names The names of the agents.
+    /// @param starts The start states for all agents.
+    /// @param goals The goal states for all agents.
+    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+
+    /// @brief Create the root node in the open list. This node has single-agent plans that were planned without any constraints.
+    void createRootInOpenList() override;
+
+    /// @brief plan a path
+    /// @param path The path
+    /// @return whether the plan was successful or not
+    bool plan(MultiAgentPaths& paths);
+
+    /// @brief Print the statistics of the search execution.
+    PlannerStats reportStats() const{
+        return stats_;
+    }
+protected:
+
+    /// @brief Generate descendents of a state, a key method in most search algorithms.
+    /// @param state_id
+    void expand(int state_id) override;
+
+    /// @brief Convert conflicts to constraints. In generalized CBS, conflicts are converted to all of the constraints that they can be converted to. That is, more than two constraint sets may be created for a single conflict.
+    /// @param conflicts 
+    /// @return 
+    std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) override;
+
+    /// @brief Get the conflict types requested by the algorithm.
+    /// @return The conflict types.
+    /// @note Derived class, aka CBS variants that request different conflict types (e.g., point3d, etc.) should override this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
+    inline std::vector<ConflictType> getConflictTypes() override {
+        return conflict_types_;
+    }
+
+    // Public variable. For shadowing.
+    /// @brief The conflict types that this algorithm asks for from the action space.
+    // TODO(yoraish): this should be different for each genCBS version?
+    // std::vector<ConflictType> conflict_types_ = {ConflictType::EDGE, ConflictType::VERTEX};
+    std::vector<ConflictType> conflict_types_ = {ConflictType::POINT3D};
+
+    /// Member variables.
+    // The search parameters.
+    GeneralizedCBSPoint3dParams params_;
+
+    // The low-level planners. Overrides the CBS planners set to be wAStar.
+    std::vector<std::shared_ptr<wAStar>> agent_planner_ptrs_;
+
+    // The action spaces for the individual agents.
+    std::vector<std::shared_ptr<ConstrainedActionSpace>> agent_action_space_ptrs_;
+
+    // Statistics.
+    FocalSearchPlannerStats stats_;
+
+    /// @brief The current index in the round-robin priority function for the focal search. Zero means that the anchor queue is being popped.
+    int num_priority_functions_ = 1;
+    int current_priority_function_index_ = 0; 
+
+    // The open list.
+    FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>* open_;
+};
+
 
 }  // namespace ims
 
