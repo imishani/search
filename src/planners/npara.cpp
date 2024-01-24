@@ -27,18 +27,18 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   arastar.cpp
+ * \file   NPARAStar.cpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   7/21/23
  */
 
-#include "search/planners/arastar.hpp"
+#include "search/planners/nparastar.hpp"
 
-ims::ARAStar::ARAStar(const ims::ARAStarParams &params) : wAStar(params), params_(params)
+ims::NPARAStar::NPARAStar(const ims::NPARAStarParams &params) : wAStar(params), params_(params)
 {
 }
 
-ims::ARAStar::~ARAStar()
+ims::NPARAStar::~NPARAStar()
 {
     for (SearchState *state : states_)
     {
@@ -46,9 +46,9 @@ ims::ARAStar::~ARAStar()
     }
 }
 
-void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
-                                     const std::vector<StateType> &starts,
-                                     const std::vector<StateType> &goals)
+void ims::NPARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+                                       const std::vector<StateType> &starts,
+                                       const std::vector<StateType> &goals)
 {
     // space pointer
     action_space_ptr_ = action_space_ptr;
@@ -100,8 +100,8 @@ void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_
     stats_.suboptimality = params_.epsilon;
 }
 
-void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
-                                     const StateType &start, const StateType &goal)
+void ims::NPARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+                                       const StateType &start, const StateType &goal)
 {
     // space pointer
     action_space_ptr_ = action_space_ptr;
@@ -144,13 +144,13 @@ void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_
     stats_.suboptimality = params_.epsilon;
 }
 
-auto ims::ARAStar::getSearchState(int state_id) -> ims::ARAStar::SearchState *
+auto ims::NPARAStar::getSearchState(int state_id) -> ims::NPARAStar::SearchState *
 {
     assert(state_id < states_.size() && state_id >= 0);
     return states_[state_id];
 }
 
-auto ims::ARAStar::getOrCreateSearchState(int state_id) -> ims::ARAStar::SearchState *
+auto ims::NPARAStar::getOrCreateSearchState(int state_id) -> ims::NPARAStar::SearchState *
 {
     if (state_id >= states_.size())
     {
@@ -166,12 +166,12 @@ auto ims::ARAStar::getOrCreateSearchState(int state_id) -> ims::ARAStar::SearchS
     return states_[state_id];
 }
 
-bool ims::ARAStar::plan(std::vector<StateType> &path)
+bool ims::NPARAStar::plan(std::vector<StateType> &path)
 {
     startTimer();
     params_.call_number = 0;
     // outer loop of ARA*
-    while (params_.epsilon >= params_.final_epsilon)
+    while (params_.epsilon >= 1)
     {
         std::cout << MAGENTA << "Replanning with epsilon: " << params_.epsilon << RESET << std::endl;
         if (params_.call_number == 0)
@@ -184,7 +184,7 @@ bool ims::ARAStar::plan(std::vector<StateType> &path)
             {
                 params_.call_number++;
                 updateBounds();
-                if (stats_.suboptimality == params_.final_epsilon)
+                if (stats_.suboptimality == 1)
                     break;
             }
             continue;
@@ -219,7 +219,7 @@ bool ims::ARAStar::plan(std::vector<StateType> &path)
         return false;
 }
 
-bool ims::ARAStar::improvePath(std::vector<StateType> &path)
+bool ims::NPARAStar::improvePath(std::vector<StateType> &path)
 {
     while (!open_.empty())
     {
@@ -253,7 +253,7 @@ bool ims::ARAStar::improvePath(std::vector<StateType> &path)
     return false;
 }
 
-void ims::ARAStar::expand(int state_id)
+void ims::NPARAStar::expand(int state_id)
 {
     auto state_ = getSearchState(state_id);
     std::vector<int> successors;
@@ -295,7 +295,7 @@ void ims::ARAStar::expand(int state_id)
     stats_.num_expanded++;
 }
 
-void ims::ARAStar::setStateVals(int state_id, int parent_id, double cost)
+void ims::NPARAStar::setStateVals(int state_id, int parent_id, double cost)
 {
     auto state_ = getSearchState(state_id);
     auto parent = getSearchState(parent_id);
@@ -305,7 +305,7 @@ void ims::ARAStar::setStateVals(int state_id, int parent_id, double cost)
     state_->f = state_->g + params_.epsilon * state_->h;
 }
 
-void ims::ARAStar::reconstructPath(std::vector<StateType> &path)
+void ims::NPARAStar::reconstructPath(std::vector<StateType> &path)
 {
     path.clear();
     SearchState *state_ = getSearchState(goal_);
@@ -318,7 +318,7 @@ void ims::ARAStar::reconstructPath(std::vector<StateType> &path)
     std::reverse(path.begin(), path.end());
 }
 
-void ims::ARAStar::reorderOpen()
+void ims::NPARAStar::reorderOpen()
 {
     for (auto state : open_)
     {
@@ -327,7 +327,7 @@ void ims::ARAStar::reorderOpen()
     open_.make(); // reorder intrusive heap
 }
 
-void ims::ARAStar::reconstructPath(std::vector<StateType> &path, std::vector<double> &costs)
+void ims::NPARAStar::reconstructPath(std::vector<StateType> &path, std::vector<double> &costs)
 {
     path.clear();
     costs.clear();
@@ -350,17 +350,18 @@ void ims::ARAStar::reconstructPath(std::vector<StateType> &path, std::vector<dou
     std::reverse(costs.begin(), costs.end());
 }
 
-void ims::ARAStar::updateBounds()
+void ims::NPARAStar::updateBounds()
 {
+    open_.min();
     // update stats to current suboptimality
     stats_.suboptimality = params_.epsilon;
     // update epsilon
-    params_.epsilon -= params_.epsilon_delta;
+    params_.epsilon = ((params_.curr_cost - state->g) - state->h) - .00000001;
     if (params_.epsilon < params_.final_epsilon)
         params_.epsilon = params_.final_epsilon;
 }
 
-void ims::ARAStar::reinitSearchState(ims::ARAStar::SearchState *state) const
+void ims::NPARAStar::reinitSearchState(ims::NPARAStar::SearchState *state) const
 {
     if (state->call_number != params_.call_number)
     {
@@ -371,11 +372,11 @@ void ims::ARAStar::reinitSearchState(ims::ARAStar::SearchState *state) const
     }
 }
 
-bool ims::ARAStar::timedOut()
+bool ims::NPARAStar::timedOut()
 {
     switch (params_.type)
     {
-    case ARAStarParams::TIME:
+    case NPARAStarParams::TIME:
         if (params_.ara_time_limit == INF_DOUBLE)
         {
             return false;
@@ -384,14 +385,14 @@ bool ims::ARAStar::timedOut()
         double time_elapsed;
         getTimeFromStart(time_elapsed);
         return time_elapsed > params_.ara_time_limit;
-    case ARAStarParams::EXPANSIONS:
+    case NPARAStarParams::EXPANSIONS:
         if (params_.expansions_limit == INF_DOUBLE)
         {
             return false;
         }
         else
             return stats_.num_expanded >= params_.expansions_limit;
-    case ARAStarParams::USER:
+    case NPARAStarParams::USER:
         return params_.timed_out_fun();
     default:
         // throw error Unknown type
@@ -399,7 +400,7 @@ bool ims::ARAStar::timedOut()
         return true;
     }
 }
-void ims::ARAStar::resetPlanningData()
+void ims::NPARAStar::resetPlanningData()
 {
     wAStar::resetPlanningData();
     open_.clear();
