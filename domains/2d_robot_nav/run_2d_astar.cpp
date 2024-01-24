@@ -81,12 +81,12 @@ int main(int argc, char** argv) {
     int scale = std::stoi(argv[3]);
     // try to check argv[4] to check if the user wants to save the path for experience
     bool cache = false;
-    // try {
-    //     cache = std::stoi(argv[4]);
-    // }
-    // catch (std::exception& e) {
-    //     std::cout << YELLOW << "Didn't specify whether to save the path or not. Default is not to save." << RESET << std::endl;
-    // }
+    try {
+        cache = std::stoi(argv[4]);
+    }
+    catch (std::exception& e) {
+        std::cout << YELLOW << "Didn't specify whether to save the path or not. Default is not to save." << RESET << std::endl;
+    }
 
     std::string path = starts_goals_path[map_index];
     std::string map_file = maps[map_index];

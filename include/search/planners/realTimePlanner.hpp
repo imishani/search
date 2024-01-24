@@ -26,7 +26,7 @@ namespace ims{
         /// @param rtaa whether to use the rtaa* or lrta* algorithm
         explicit realTimePlannerParams(BaseHeuristic* heuristic, int N, bool rtaa): PlannerParams(){
             heuristic_ = heuristic;
-            time_limit_ = 1000;
+            time_limit_ = 10000;
             N_ = N;     
             rtaa_ = rtaa;
         }
@@ -34,8 +34,11 @@ namespace ims{
         /// @brief destructor
         ~realTimePlannerParams() override = default;
 
+        /// @brief number of expanded states in each iteration
         int N_;
+        /// @brief whether to use the rtaa* or lrta* algorithm
         bool rtaa_;
+        /// @brief the base heuristic of the map
         BaseHeuristic* heuristic_ = nullptr;
     };
 
@@ -92,7 +95,8 @@ namespace ims{
 
         std::vector<SearchState*> close_;
 
-        std::map<SearchState*, double> heuristicDict;
+        /// @brief the updated heurisitc as states expand
+        std::map<SearchState*, double> heuristic_dict_;
 
         auto getSearchState(int state_id) -> SearchState*;
 

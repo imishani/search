@@ -4,7 +4,6 @@ using namespace ims;
 
 ims::realTimePlanner::realTimePlanner(const realTimePlannerParams &params) : params_(params), Planner(PlannerParams()){
     heuristic_ = params.heuristic_;
-    params_.time_limit_ = 10000;
 }
 
 ims::realTimePlanner::~realTimePlanner() {
@@ -189,7 +188,7 @@ void ims::realTimePlanner::updateHeuristicRTAA(){
     SearchState *min_state = open_.min();
     double min_cost = min_state->f;
     for (size_t i = 0; i < close_.size(); i++){
-        heuristicDict[close_[i]] = min_cost - close_[i]->g;
+        heuristic_dict_[close_[i]] = min_cost - close_[i]->g;
     }
 }
 
@@ -201,31 +200,36 @@ void ims::realTimePlanner::updateHeuristicLRTA(){
     }
     std::map<SearchState*, double> h_value_record;
 
-    //https://docs.python.org/3/library/stdtypes.html#mapping-types-dict
+    //https://www.tutorialspoint.com/cpp_standard_library/cpp_map_operator_equal_to.htm
     //"==" builtin operator to check if two dictionaries are equal
-    while (h_value_record != closed_heu) {      
+    while (h_value_record != closed_heu) {   //checking for convergence   
         h_value_record = closed_heu;
-        for (int i = close_.size()-1; i >= 0; i--) {
-            std::vector<double> f_neighbours;
+        for (int i = close_.size()-1; i >= 0; i--) {  //starting from the most recently expanded states
+            std::vector<double> f_neighbours; //record c(s',s)+h(s') for all successors s' of s
             std::vector<int> successors;
             std::vector<double> costs;
             SearchState* curr = close_[i];
             action_space_ptr_->getSuccessors(curr->state_id, successors, costs);
             for (size_t i = 0; i < successors.size(); i++){
                 int s_next = successors[i];
+                //if s_next is not expanded in current expansion
                 if (std::find(close_.begin(), close_.end(), getOrCreateSearchState(s_next)) == close_.end()){
+                    //compute from the original heuristic
                     f_neighbours.push_back(costs[i] + computeHeuristic(s_next));
                 }
                 else{
+                    //compute from updated heuristic
                     double tmp = costs[i] + closed_heu[getOrCreateSearchState(s_next)];
                     f_neighbours.push_back(tmp);
                 }
             }
+            //compute the updated heuristic as min(c(s', s) + h(s')) where s' is a successor of s
             closed_heu[curr] = *std::min_element(f_neighbours.begin(), f_neighbours.end());
         }
     }
+    //update the heuristic of expanded states
     for (int i = close_.size()-1; i >= 0; i--){
-        heuristicDict[close_[i]] = closed_heu[close_[i]];
+        heuristic_dict_[close_[i]] = closed_heu[close_[i]];
     }
 }
 
@@ -291,14 +295,14 @@ double ims::realTimePlanner::computeHeuristic(int state_id) {
     double dist;
     auto s = action_space_ptr_->getRobotState(state_id);
     auto look_up = getSearchState(state_id);
-    if (heuristicDict.find(look_up) == heuristicDict.end()){
+    if (heuristic_dict_.find(look_up) == heuristic_dict_.end()){
         if (!heuristic_->getHeuristic(s->state, dist))
             throw std::runtime_error("Heuristic function failed");
         else
-            heuristicDict[look_up] = dist;
+            heuristic_dict_[look_up] = dist;
             return dist;
     }else{
-        return heuristicDict.at(look_up);
+        return heuristic_dict_.at(look_up);
     }
 }
 
@@ -325,6 +329,7 @@ void ims::realTimePlanner::resetPlanningData(){
     open_.clear();
     close_.clear();
     goals_.clear();
+    heuristic_dict_.clear();
     goal_ = -1;
     stats_ = PlannerStats();
 }
