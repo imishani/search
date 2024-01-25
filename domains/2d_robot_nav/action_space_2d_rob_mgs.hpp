@@ -127,7 +127,7 @@ public:
         // bernoulli distribution
         std::random_device rd0;
         std::mt19937 gen0(rd0());
-        std::bernoulli_distribution dis0(1.0);
+        std::bernoulli_distribution dis0(0.8);
         if (dis0(gen0)){
             return ActionSpaceMGS::generateRandomState(s1, s2, dist, random_state);
         }
@@ -157,5 +157,61 @@ public:
             }
         }
         return false;
+    }
+
+    bool connectStates(int s1,
+                       int s2,
+                       std::vector<int>& path,
+                       std::vector<double>& costs) override {
+        // always move greedily towards s2, if state not valid, return false
+        ims::RobotState* curr_state = this->getRobotState(s1);
+        StateType curr_state_vals = curr_state->state;
+        ims::RobotState* goal_state = this->getRobotState(s2);
+        StateType diff = {goal_state->state[0] - curr_state->state[0], goal_state->state[1] - curr_state->state[1]};
+
+        PathType path_vals {};
+        std::vector<Action> actions = action_type_->getPrimActions();
+        bool reached_goal = false;
+        while (!reached_goal){
+            double min_dist = std::numeric_limits<double>::max();
+            int best_action_id;
+            StateType next_state_val = StateType(curr_state_vals.size());
+            for (int i {0} ; i < actions.size() ; i++){
+                Action action = actions[i];
+                std::transform(curr_state_vals.begin(), curr_state_vals.end(), action.begin(), next_state_val.begin(), std::plus<>());
+                double dist = std::sqrt(std::pow(diff[0], 2) + std::pow(diff[1], 2));
+                if (dist < min_dist){
+                    min_dist = dist;
+                    best_action_id = i;
+                } else {
+                    continue;
+                }
+            }
+            if ((min_dist == std::numeric_limits<double>::max()) || !isStateValid(next_state_val)){
+                path.clear(); costs.clear();
+                return false;
+            } else if (next_state_val == goal_state->state){
+                path_vals.push_back(next_state_val);
+                costs.push_back(action_type_->action_costs[best_action_id]);
+                reached_goal = true;
+            } else {
+                path_vals.push_back(next_state_val);
+                costs.push_back(action_type_->action_costs[best_action_id]);
+                curr_state_vals = next_state_val;
+//                path_vals.push_back(next_state_val);
+//                curr_state = this->getRobotState(getOrCreateRobotState(next_state_val));
+            }
+        }
+        if (reached_goal){
+            path = std::vector<int>(path_vals.size());
+            for (int i {0} ; i < path_vals.size() ; i++){
+                path[i] = getOrCreateRobotState(path_vals[i]);
+            }
+            return true;
+        } else {
+            path.clear();
+            return false;
+        }
+
     }
 };
