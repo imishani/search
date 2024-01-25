@@ -33,7 +33,6 @@
 */
 
 #pragma once
-#include <map>
 
 #include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
@@ -143,7 +142,6 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
 protected:
     std::shared_ptr<Scene2DRob> env_;
     std::shared_ptr<ActionType2dAckermannRob> action_type_;
-    std::map<double, std::vector<Action>> action_prims_map_;
 
 public:
     explicit ActionSpace2dAckermannRob(const Scene2DRob& env, const StateType& state_discretization, double speed = 1, double length = 1, double dt = 1, std::vector<int> steering_angles = {-40, -20, 0, 20, 40}) : ims::ActionSpace(){
@@ -158,7 +156,7 @@ public:
     /// @param check_validity Should be false, validity of the action is checked in the getSuccessors function.
     void getActions(int state_id,
                     std::vector<ActionSequence> &action_seqs,
-                    bool check_validity) override {
+                    bool check_validity) override{
         // validity is checked in the getSuccessors() function, no need to check validity in this function
         assert(check_validity == false);
         
@@ -227,5 +225,9 @@ public:
     /// @return True if given path is valid, false otherwise.
     bool isPathValid(const PathType& path) override{
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
+    }
+
+    std::map<double, std::vector<Action>> getActionPrimsMap() {
+        return action_type_->action_prims_map_;
     }
 };
