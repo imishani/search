@@ -105,6 +105,17 @@ public:
         return false;
     }
 
+    /// @brief Connect two states (linear interpolation, splines, learning-based, etc.)
+    /// @param s1 The first state id
+    /// @param s2 The second state id
+    /// @param path The path to be filled
+    /// @return True if the path is generated successfully, false otherwise
+    virtual bool connectStates(int s1,
+                               int s2,
+                               std::vector<int>& path,
+                               std::vector<double>& costs) = 0;
+
+
 };
 
 }  // namespace ims

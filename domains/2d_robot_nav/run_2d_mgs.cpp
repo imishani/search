@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
     int graphs_number = 10;
     ims::MGSParams params (heuristic, graphs_number);
     params.time_limit_ = 5;
-    params.verbose = false;
+    params.verbose = true;
     // construct the scene and the action space
     Scene2DRob scene (map);
     ActionType2dRob action_type;

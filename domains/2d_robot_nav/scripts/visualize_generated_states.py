@@ -62,12 +62,12 @@ def visualize(map_index, states):
     def update(frame_number):
         # if frame_number % 100 == 0:
         #     print(f"Generating frame {frame_number} of {states.shape[0]}")
-        print(f"Generating frame {50*frame_number} of {states.shape[0]}")
-        state = states[50 * frame_number: 50 * frame_number + 50, :]
+        print(f"Generating frame {20*frame_number} of {states.shape[0]}")
+        state = states[20 * frame_number: 20 * frame_number + 20, :]
         x = state[:, 1]
         y = state[:, 2]
         im.set_array(map_data)
-        plt.plot(x, y, 'go', markersize=0.5)
+        plt.plot(x, y, 'go', markersize=0.1)
         return im,
 
     fig = plt.figure(figsize=(width / 100, height / 100))
@@ -76,7 +76,7 @@ def visualize(map_index, states):
     im.axes.get_xaxis().set_visible(False)
     im.axes.get_yaxis().set_visible(False)
 
-    ani = animation.FuncAnimation(fig, update, frames=states.shape[0] // 50, interval=5, blit=True, repeat_delay=1000)
+    ani = animation.FuncAnimation(fig, update, frames=states.shape[0] // 20, interval=5, blit=True, repeat_delay=1000)
     ani.save("animation_mgs.mp4",
              writer='ffmpeg', dpi=300)
     # save as gif
@@ -86,7 +86,7 @@ def visualize(map_index, states):
 
 if __name__ == '__main__':
     # load the states
-    states = np.loadtxt("../../../cmake-build-release/states_mgs.txt", dtype=int, delimiter=',')
+    states = np.loadtxt("../../../cmake-build-release/states_mgs.txt", dtype=float, delimiter=',').astype(np.int64)
 
     # visualize the states
     visualize(1, states)

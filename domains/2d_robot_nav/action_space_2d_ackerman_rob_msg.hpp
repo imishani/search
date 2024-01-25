@@ -277,4 +277,11 @@ public:
         }
         return false;
     }
+
+    bool connectStates(int s1,
+                       int s2,
+                       std::vector<int>& path,
+                       std::vector<double>& costs) override {
+        return false;
+    }
 };
