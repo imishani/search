@@ -189,6 +189,14 @@ auto ims::wAStar::getOrCreateSearchState(int state_id) -> ims::wAStar::SearchSta
 }
 
 bool ims::wAStar::plan(std::vector<StateType>& path) {
+    // check if start state is goal state
+    if (isGoalState(open_.min()->state_id)){ // TODO: check if this is the correct way to check if the start is the goal
+        path.push_back(action_space_ptr_->getRobotState(open_.min()->state_id)->state);
+        stats_.cost = 0;
+        stats_.path_length = 1;
+        stats_.num_generated = 0;
+        return true;
+    }
     startTimer();
     int iter {0};
     while (!open_.empty() && !isTimeOut()){

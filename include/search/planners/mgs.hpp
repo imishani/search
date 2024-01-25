@@ -250,6 +250,16 @@ protected:
     /// @brief Expand the current state
     virtual void expand(int state_id, int g_num);
 
+    /// @brief Try to connect the trees
+    /// @param graph_curr The current graph id
+    /// @param graph_other The other graph id
+    /// @param state_id The state that was expanded in current graph
+    /// @param connecting_path The path that connects the two graphs
+    /// @return True if the graphs were connected, false otherwise
+    virtual bool connect(int graph_curr, int graph_other, int state_id,
+                         std::vector<int>& connecting_path,
+                         std::vector<double>& costs);
+
     void reconstructPath(std::vector<StateType>& path) override;
     void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
 
@@ -271,7 +281,7 @@ protected:
     /// @param graph_id2 The second graph
     /// @param state_id The state that was expanded in both graphs
     /// @param potential_parent_id The potential parent of the state
-    void connectGraphs(int graph_id1, int graph_id2, int state_id);
+    int connectGraphs(int graph_id1, int graph_id2, int state_id);
 
 
     void saveData();
