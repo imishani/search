@@ -45,53 +45,25 @@
 #include <search/heuristics/standard_heuristics.hpp>
 #include "action_space_2d_rob.hpp"
 #include "utils.hpp"
+#include "instance.h"
 
 
 int main(int argc, char** argv) {
 
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <path>" << std::endl;
+        std::cout << RED << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <path>" << RESET << std::endl;
         return 0;
     }
-    std::vector<std::string> maps;
-
-    boost::filesystem::path full_path( boost::filesystem::current_path() );
-    std::cout << "Current path is : " << full_path.string() << std::endl;
-    // At each emplace_back, use the full pathh and concatenate the map name
-    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/hrt201n.map");
-    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/den501d/den501d.map");
-    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/den520d/den520d.map");
-    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/ht_chantry.map");
-    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/brc203d/brc203d.map");
-    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/costmap1/costmap1.map");
-    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/costmap2/costmap2.map");
-
-    std::vector<std::string> starts_goals_path = {full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/",
-                                                  full_path.string() + "/../domains/2d_robot_nav/data/den501d/",
-                                                  full_path.string() + "/../domains/2d_robot_nav/data/den520d/",
-                                                  full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/",
-                                                  full_path.string() + "/../domains/2d_robot_nav/data/brc203d/",
-                                                  full_path.string() + "/../domains/2d_robot_nav/data/costmap1/",
-                                                  full_path.string() + "/../domains/2d_robot_nav/data/costmap2/"
-    };
-
     int map_index = std::stoi(argv[1]);
     int num_runs = std::stoi(argv[2]);
     int scale = std::stoi(argv[3]);
     int threshold = std::stoi(argv[4]); // threshold > 0
-    std::string path = starts_goals_path[map_index];
 
-    std::string map_file = maps[map_index];
-
-    std::string type;
-    int width, height;
-
-    cv::Mat img;
-    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), type, width, height, true);
-    map_to_image(&img, map, height, width, scale, true, threshold);
-
-    std::vector<std::vector<double>> starts, goals;
-    loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
+    ROBOTNAVInstance instance;
+    instance.loadBenchmarkInstance(map_index, num_runs, scale);
+    std::vector<std::vector<double>> starts = instance.getRawStarts();
+    std::vector<std::vector<double>> goals = instance.getRawGoals();
+    cv::Mat img = instance.getImage();
 
     // construct the planner
     std::cout << "Constructing planner..." << std::endl;
@@ -101,12 +73,12 @@ int main(int argc, char** argv) {
     ims::wAStarParams params (heuristic, epsilon);
 
     // construct the scene and the action space
-    Scene2DRob scene (map, threshold);
+    Scene2DRob scene (instance.getMap(), threshold);
     ActionType2dRob action_type;
     std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
 
     for (int i {0}; i < starts.size(); i++){
-        process_start_goal(map, &(starts[i]), &(goals[i]));
+        process_start_goal(*(instance.getMap()), starts[i], goals[i]);
         // construct planner
         ims::wAStar planner(params);
         std::vector<StateType> path_;
