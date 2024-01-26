@@ -160,11 +160,11 @@ if __name__ == "__main__":
     import os
     path_to_this_file = os.path.dirname(os.path.abspath(__file__))
 
-    MAPS = [path_to_this_file + "/../data/brc203d/brc203d.map",
+    MAPS = [path_to_this_file + "/../data/hrt201n/hrt201n.map",
             path_to_this_file + "/../data/den501d/den501d.map",
             path_to_this_file + "/../data/den520d/den520d.map",
-            path_to_this_file + "/../data/hrt201n/hrt201n.map",
-            path_to_this_file + "/../data/ht_chantry/ht_chantry.map"]
+            path_to_this_file + "/../data/ht_chantry/ht_chantry.map",
+            path_to_this_file + "/../data/brc203d/brc203d.map"]
 
     # load the data
     map_index, scale, paths = load_data(args.filepath)

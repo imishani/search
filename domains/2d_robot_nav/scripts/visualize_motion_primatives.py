@@ -40,13 +40,10 @@ def load_data(file_action_prims_map: str):
     return action_prims_map
 
 
-def visualize(map_ind, scaler, paths_dict, path_ids_to_visualize):
+def visualize(action_prims_map):
     """
-    Visualizes the paths
-    :param scaler:
-    :param map_ind: the index of the map to use
-    :param paths_dict: A dictionary
-    :param path_ids_to_visualize: A list of path ids to visualize
+    Visualizes each action prim in the map
+    :param action_prims_map: A map from theta values to a list of action primatives
     :return:
     """
 
