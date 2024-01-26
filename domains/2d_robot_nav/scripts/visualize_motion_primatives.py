@@ -47,40 +47,26 @@ def visualize(action_prims_map):
     :return:
     """
 
-    # create the figure
-    fig = plt.figure()
-    # create the axis
-    ax = plt.axes(xlim=(0, width), ylim=(0, height))
-    ax.invert_yaxis()
-    # create the image
-    plt.imshow(map_data, cmap='Greys', vmin=0, vmax=100)
-    # remove the xaixs and yaxis
-    ax.axes.get_xaxis().set_visible(False)
-    ax.axes.get_yaxis().set_visible(False)
-    # if a path id is provided, plot only that path
-    if path_ids_to_visualize is not None:
-        paths_to_visualize = {}
-        for path_id in path_ids_to_visualize:
-            paths_to_visualize[path_id] = paths_dict[path_id]
-    else:
-        paths_to_visualize = paths_dict
-    # plot the paths
-    for path in paths_to_visualize.values():
-        # get the x and y coordinates
-        x = path[:, 0]
-        y = path[:, 1]
-        ax.plot(x, y, 'blue', markersize=1)
-        # plot a red circle (without fill) at the start
-        ax.plot(x[0], y[0], 'ro', fillstyle='none', markersize=5)
-        # plot a green circle (without fill) at the goal
-        ax.plot(x[-1], y[-1], 'go', fillstyle='none', markersize=5)
+    # plot the action primatives
+    for theta, action_prims in action_prims_map:
+        # create the figure
+        fig = plt.figure()
+        plt.title("Action Primatives when Theta = " + str(theta))
+        for action_prim in action_prims:
+            x = [0, action_prim[0]]
+            y = [0, action_prim[1]]
+            plt.plot(x, y)
+            
+        plt.grid()
 
-    if args.imagepath is not None:
-        plt.savefig(args.imagepath)
+        # save the plot to the folder
+        if args.folderpath is not None:
+            plt.savefig(args.folderpath + "/theta = " + str(theta) )
 
-    # show the plot
-    fig.tight_layout()
-    plt.show()
+        # show the plot
+        fig.tight_layout()
+        plt.show()
+        plt.clf()
 
 
 if __name__ == "__main__":
