@@ -185,17 +185,18 @@ void display_image(const cv::Mat &img) {
 }
 
 void findAllPlans(std::shared_ptr<actionSpace2dRob> ActionSpace, ims::Planner *planner,
-                  std::vector<std::vector<double>> starts, std::vector<std::vector<double>> goals,
+                  std::vector<std::vector<double>> starts,
+                  std::vector<std::vector<double>> goals,
                   std::vector<std::vector<int>>* map, cv::Mat img) {
 
     for (int i {0}; i < starts.size(); i++){
-        process_start_goal(*map, starts[i], goals[i]);
+        process_start_goal(*map, starts[i], goals[i]); // modifies starts and goals
         std::vector<StateType> path_;
         if (find_plan(ActionSpace, planner, starts[i], goals[i], &path_) != 0) {
             continue;
         }
         draw_paths(img, starts[i], goals[i], path_);
-        display_image(img);
+        //display_image(img);
         planner->resetPlanningData();
     }
 }
