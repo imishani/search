@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     int threshold = std::stoi(argv[4]); // threshold > 0
 
     ROBOTNAVInstance instance;
-    instance.loadBenchmarkInstance(map_index, num_runs, scale);
+    instance.loadBenchmarkInstance(map_index, num_runs, scale, threshold);
     std::vector<std::vector<double>> starts = instance.getRawStarts();
     std::vector<std::vector<double>> goals = instance.getRawGoals();
     cv::Mat img = instance.getImage();

@@ -56,7 +56,7 @@ private:
     cv::Mat img_;
 public:
     string map_file_;
-    void loadBenchmarkInstance(int map_index, int num_runs, int scale);
+    void loadBenchmarkInstance(int map_index, int num_runs, int scale, int threshold);
     std::vector<std::vector<int>>* getMap() {return &map_;}
     std::vector<std::vector<double>> getRawStarts() {return starts_;}
     std::vector<std::vector<double>> getRawGoals() {return goals_;}
@@ -70,17 +70,21 @@ const vector<string> idxToMapName = {
     "/../domains/2d_robot_nav/data/den501d/den501d.map",
     "/../domains/2d_robot_nav/data/den520d/den520d.map",
     "/../domains/2d_robot_nav/data/ht_chantry/ht_chantry.map",
-    "/../domains/2d_robot_nav/data/brc203d/brc203d.map"
+    "/../domains/2d_robot_nav/data/brc203d/brc203d.map",
+    "/../domains/2d_robot_nav/data/costmap1/costmap1.map",
+    "/../domains/2d_robot_nav/data/costmap2/costmap2.map"
 };
 const vector<string> idxToStartGoal = {
     "/../domains/2d_robot_nav/data/hrt201n/",
     "/../domains/2d_robot_nav/data/den501d/",
     "/../domains/2d_robot_nav/data/den520d/",
     "/../domains/2d_robot_nav/data/ht_chantry/",
-    "/../domains/2d_robot_nav/data/brc203d/"
+    "/../domains/2d_robot_nav/data/brc203d/",
+    "/../domains/2d_robot_nav/data/costmap1/",
+    "/../domains/2d_robot_nav/data/costmap2/"
 };
 
-void ROBOTNAVInstance::loadBenchmarkInstance(int map_index, int num_runs, int scale) {
+void ROBOTNAVInstance::loadBenchmarkInstance(int map_index, int num_runs, int scale, int threshold=500) {
     boost::filesystem::path full_path( boost::filesystem::current_path() );
     std::cout << "Current path is : " << full_path.string() << std::endl;
 
@@ -88,8 +92,8 @@ void ROBOTNAVInstance::loadBenchmarkInstance(int map_index, int num_runs, int sc
     map_file_ = full_path.string() + idxToMapName[map_index];
 
     int width, height;
-    map_ = loadMap(map_file_.c_str(), width, height);
-    map_to_image(&img_, map_, height, width, scale);
+    map_ = loadMap(map_file_.c_str(), width, height, map_index>4);
+    map_to_image(&img_, map_, height, width, scale, map_index>4, threshold);
 
     loadStartsGoalsFromFile(starts_, goals_, scale, num_runs, starts_goals_path);
 }
