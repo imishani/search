@@ -28,13 +28,13 @@
  */
 /*!
  * \file   instance.hpp
- * \author Rishi V. (...@cmu.edu)
- * \date   Oct 04 2023
+ * \author Michelle L. (mmliu@andrew.cmu.edu)
+ * \date   Dec 20 2023
  */
 
 #pragma once
 
-#include<boost/tokenizer.hpp> // For parsing
+#include <boost/program_options.hpp> // Optional arguments
 #include <memory>
 #include <fstream>
 #include <vector>
@@ -45,8 +45,7 @@ using std::vector;
 #include "action_space_2d_rob.hpp"
 #include "utils.hpp"
 
-/// @brief Helper class that loads MAPF instances from files.
-/// @note This class is used for loading the map and agents from a file.
+/// @brief Helper class that loads ROBOTNAV instances from files.
 /// @note Handles parsing custom and benchmark instances.
 class ROBOTNAVInstance {
 private:
@@ -54,13 +53,15 @@ private:
     std::vector<std::vector<double>> starts_;
     std::vector<std::vector<double>> goals_;
     cv::Mat img_;
+    int threshold_;
 public:
     string map_file_;
-    void loadBenchmarkInstance(int map_index, int num_runs, int scale, int threshold);
+    void loadBenchmarkInstance(int argc, char** argv);
     std::vector<std::vector<int>>* getMap() {return &map_;}
     std::vector<std::vector<double>> getRawStarts() {return starts_;}
     std::vector<std::vector<double>> getRawGoals() {return goals_;}
     cv::Mat getImage() {return img_;}
+    int getThreshold() {return threshold_;}
 };
 
 ////////////////// Implementations Below //////////////////////
@@ -83,8 +84,48 @@ const vector<string> idxToStartGoal = {
     "/../domains/2d_robot_nav/data/costmap1/",
     "/../domains/2d_robot_nav/data/costmap2/"
 };
+const vector<string> idxToMapType = {
+    "occupancy",
+    "occupancy",
+    "occupancy",
+    "occupancy",
+    "occupancy",
+    "costmap",
+    "costmap"
+};
 
-void ROBOTNAVInstance::loadBenchmarkInstance(int map_index, int num_runs, int scale, int threshold=500) {
+void ROBOTNAVInstance::loadBenchmarkInstance(int argc, char** argv) {
+    // if (argc < 2) {
+    //     std::cout << RED << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <path>" << RESET << std::endl;
+    //     return 0;
+    // }
+
+    namespace po = boost::program_options;
+    po::options_description desc("Options");
+    desc.add_options()
+        ("map_idx", po::value<int>()->default_value(0), "")
+        ("num_runs", po::value<int>()->default_value(1), "")
+        ("scale", po::value<int>()->default_value(1), "")
+        ("threshold", po::value<int>()->default_value(500), "threshold > 0");
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc,argv,desc),vm);
+    po::notify(vm);
+
+    int map_index = vm["map_idx"].as<int>();
+    int num_runs = vm["num_runs"].as<int>();
+    int scale = vm["scale"].as<int>();
+    threshold_ = vm["threshold"].as<int>();
+
+    // try to check argv[4] to check if the user wants to save the path for experience
+    // bool cache = false;
+    // try {
+    //     cache = std::stoi(argv[4]);
+    // }
+    // catch (std::exception& e) {
+    //     std::cout << YELLOW << "Didn't specify whether to save the path or not. Default is not to save." << RESET << std::endl;
+    // }
+
     boost::filesystem::path full_path( boost::filesystem::current_path() );
     std::cout << "Current path is : " << full_path.string() << std::endl;
 
@@ -92,8 +133,9 @@ void ROBOTNAVInstance::loadBenchmarkInstance(int map_index, int num_runs, int sc
     map_file_ = full_path.string() + idxToMapName[map_index];
 
     int width, height;
-    map_ = loadMap(map_file_.c_str(), width, height, map_index>4);
-    map_to_image(&img_, map_, height, width, scale, map_index>4, threshold);
+    bool is_costmap = idxToMapType[map_index] == "costmap";
+    map_ = loadMap(map_file_.c_str(), width, height, is_costmap);
+    map_to_image(&img_, map_, height, width, scale, is_costmap, threshold_);
 
     loadStartsGoalsFromFile(starts_, goals_, scale, num_runs, starts_goals_path);
 }

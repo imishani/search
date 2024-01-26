@@ -52,24 +52,11 @@
 
 
 int main(int argc, char** argv) {
-
-    if (argc < 2) {
-        std::cout << RED << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <path>" << RESET << std::endl;
-        return 0;
-    }
-    int map_index = std::stoi(argv[1]);
-    int num_runs = std::stoi(argv[2]);
-    int scale = std::stoi(argv[3]);
-
     ROBOTNAVInstance instance;
-    instance.loadBenchmarkInstance(map_index, num_runs, scale);
-    std::vector<std::vector<double>> starts = instance.getRawStarts();
-    std::vector<std::vector<double>> goals = instance.getRawGoals();
-    cv::Mat img = instance.getImage();
+    instance.loadBenchmarkInstance(argc, argv);
 
-    // construct the planner
-    std::cout << "Constructing planner..." << std::endl;
     // construct planner params
+    std::cout << "Constructing planner..." << std::endl;
     ims::DijkstraParams params;
     
     // construct the scene and the action space
@@ -77,17 +64,10 @@ int main(int argc, char** argv) {
     ActionType2dRob action_type;
     std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
 
-    for (int i {0}; i < starts.size(); i++){
-        process_start_goal(*(instance.getMap()), starts[i], goals[i]);
-        // construct planner
-        ims::Dijkstra planner(params);
-        std::vector<StateType> path_;
-        if (find_plan(ActionSpace, &planner, starts[i], goals[i], &path_) != 0) {
-            continue;
-        }
-        draw_paths(img, starts[i], goals[i], path_);
-    }
-    display_image(img);
+    ims::Dijkstra planner(params);
+    findAllPlans(ActionSpace, &planner, instance.getRawStarts(), instance.getRawGoals(),
+                 instance.getMap(), instance.getImage());
+    display_image(instance.getImage());
 
     return 0;
 }
