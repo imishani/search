@@ -28,13 +28,14 @@
  */
 /*!
  * \file   instance.hpp
- * \author Rishi V. (...@cmu.edu)
- * \date   Oct 04 2023
+ * \author Michelle L. (mmliu@andrew.cmu.edu)
+ * \date   Dec 20 2023
  */
 
 #pragma once
 
-#include<boost/tokenizer.hpp> // For parsing
+#include <boost/filesystem.hpp>
+#include <boost/program_options.hpp> // Optional arguments
 #include <memory>
 #include <fstream>
 #include <vector>
@@ -45,22 +46,25 @@ using std::vector;
 #include "action_space_2d_rob.hpp"
 #include "utils.hpp"
 
-/// @brief Helper class that loads MAPF instances from files.
-/// @note This class is used for loading the map and agents from a file.
+/// @brief Helper class that loads ROBOTNAV instances from files.
 /// @note Handles parsing custom and benchmark instances.
 class ROBOTNAVInstance {
 private:
     std::vector<std::vector<int>> map_;
     std::vector<std::vector<double>> starts_;
     std::vector<std::vector<double>> goals_;
-    cv::Mat img_;
+    int mapIdx_;
+    int scale_;
+    int threshold_;
 public:
     string map_file_;
-    void loadBenchmarkInstance(int map_index, int num_runs, int scale);
+    void loadBenchmarkInstance(int argc, char** argv);
     std::vector<std::vector<int>>* getMap() {return &map_;}
     std::vector<std::vector<double>> getRawStarts() {return starts_;}
     std::vector<std::vector<double>> getRawGoals() {return goals_;}
-    cv::Mat getImage() {return img_;}
+    int getMapIdx() {return mapIdx_;}
+    int getScale() {return scale_;}
+    int getThreshold() {return threshold_;}
 };
 
 ////////////////// Implementations Below //////////////////////
@@ -70,27 +74,49 @@ const vector<string> idxToMapName = {
     "/../domains/2d_robot_nav/data/den501d/den501d.map",
     "/../domains/2d_robot_nav/data/den520d/den520d.map",
     "/../domains/2d_robot_nav/data/ht_chantry/ht_chantry.map",
-    "/../domains/2d_robot_nav/data/brc203d/brc203d.map"
-};
-const vector<string> idxToStartGoal = {
-    "/../domains/2d_robot_nav/data/hrt201n/",
-    "/../domains/2d_robot_nav/data/den501d/",
-    "/../domains/2d_robot_nav/data/den520d/",
-    "/../domains/2d_robot_nav/data/ht_chantry/",
-    "/../domains/2d_robot_nav/data/brc203d/"
+    "/../domains/2d_robot_nav/data/brc203d/brc203d.map",
+    "/../domains/2d_robot_nav/data/costmap1/costmap1.map",
+    "/../domains/2d_robot_nav/data/costmap2/costmap2.map"
 };
 
-void ROBOTNAVInstance::loadBenchmarkInstance(int map_index, int num_runs, int scale) {
+void ROBOTNAVInstance::loadBenchmarkInstance(int argc, char** argv) {
+
+    namespace po = boost::program_options;
+    po::options_description desc("Options");
+    desc.add_options()
+        ("map_idx", po::value<int>()->default_value(0), "")
+        ("num_runs", po::value<int>()->default_value(1), "")
+        ("scale", po::value<int>()->default_value(1), "")
+        ("threshold", po::value<int>()->default_value(500), "threshold > 0");
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc,argv,desc),vm);
+    po::notify(vm);
+
+    mapIdx_ = vm["map_idx"].as<int>();
+    int num_runs = vm["num_runs"].as<int>();
+    scale_ = vm["scale"].as<int>();
+    threshold_ = vm["threshold"].as<int>();
+
+    // try to check argv[4] to check if the user wants to save the path for experience
+    // bool cache = false;
+    // try {
+    //     cache = std::stoi(argv[4]);
+    // }
+    // catch (std::exception& e) {
+    //     std::cout << YELLOW << "Didn't specify whether to save the path or not. Default is not to save." << RESET << std::endl;
+    // }
+
     boost::filesystem::path full_path( boost::filesystem::current_path() );
     std::cout << "Current path is : " << full_path.string() << std::endl;
 
-    std::string starts_goals_path = full_path.string() + idxToStartGoal[map_index];
-    map_file_ = full_path.string() + idxToMapName[map_index];
+    string filename = idxToMapName[mapIdx_];
+    boost::filesystem::path filePath(filename);
+    string directory = filePath.parent_path().string() + "/";
+    string starts_goals_path = full_path.string() + directory;
+    map_file_ = full_path.string() + idxToMapName[mapIdx_];
 
-    int width, height;
-    map_ = loadMap(map_file_.c_str(), width, height);
-    map_to_image(&img_, map_, height, width, scale);
-
-    loadStartsGoalsFromFile(starts_, goals_, scale, num_runs, starts_goals_path);
+    map_ = loadMap(map_file_.c_str());
+    loadStartsGoalsFromFile(starts_, goals_, scale_, num_runs, starts_goals_path);
 }
 

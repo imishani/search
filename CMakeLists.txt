@@ -81,17 +81,17 @@ target_link_libraries(run_2d_rob_nav_wastar_focal search ${Boost_LIBRARIES})
 add_executable(run_2d_ackermann_rob_nav_wastar domains/2d_robot_nav/run_2d_ackermann_wastar.cpp)
 target_link_libraries(run_2d_ackermann_rob_nav_wastar search ${Boost_LIBRARIES})
 
-add_executable(run_2d_mapf_cbs_or_ecbs domains/2d_mapf/run_2d_cbs_or_ecbs.cpp)
-target_link_libraries(run_2d_mapf_cbs_or_ecbs search ${Boost_LIBRARIES})
+# add_executable(run_2d_mapf_cbs_or_ecbs domains/2d_mapf/run_2d_cbs_or_ecbs.cpp)
+# target_link_libraries(run_2d_mapf_cbs_or_ecbs search ${Boost_LIBRARIES})
 
-add_executable(run_2d_mapf_eacbs domains/2d_mapf/run_2d_eacbs.cpp)
-target_link_libraries(run_2d_mapf_eacbs search ${Boost_LIBRARIES})
+# add_executable(run_2d_mapf_eacbs domains/2d_mapf/run_2d_eacbs.cpp)
+# target_link_libraries(run_2d_mapf_eacbs search ${Boost_LIBRARIES})
 
-add_executable(run_2d_mapf_eaecbs domains/2d_mapf/run_2d_eaecbs.cpp)
-target_link_libraries(run_2d_mapf_eaecbs search ${Boost_LIBRARIES})
+# add_executable(run_2d_mapf_eaecbs domains/2d_mapf/run_2d_eaecbs.cpp)
+# target_link_libraries(run_2d_mapf_eaecbs search ${Boost_LIBRARIES})
 
-add_executable(run_2d_mapf_pp domains/2d_mapf/run_2d_pp.cpp)
-target_link_libraries(run_2d_mapf_pp search ${Boost_LIBRARIES})
+# add_executable(run_2d_mapf_pp domains/2d_mapf/run_2d_pp.cpp)
+# target_link_libraries(run_2d_mapf_pp search ${Boost_LIBRARIES})
 
 # Add an uninstall target.
 if(NOT TARGET uninstall)

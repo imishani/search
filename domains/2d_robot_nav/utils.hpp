@@ -9,48 +9,46 @@
 #include <fstream>
 // library includes
 #include "search/common/types.hpp"
-#include "action_space_2d_rob.hpp"
 
 double radsToDegs(double rads)
 {
     return rads * 180.0 / M_PI;
 }
 
-<<<<<<< HEAD
 double degsToRads(double degs)
 {
     return degs * M_PI / 180.0;
 }
 
-std::vector<std::vector<int>> loadMap(const char *fname, std::string& type, 
-                                      int& width, int& height, bool cost_map=false) {
-=======
-std::vector<std::vector<int>> loadMap(const char *fname, int& width, int& height, bool cost_map=false) {
->>>>>>> c638aa4 (reduced redundancies in runner files)
-
+std::vector<std::vector<int>> loadMap(const char *fname) {
+    int width, height;
     std::vector<std::vector<int>> map;
     FILE *f;
     f = fopen(fname, "r");
+    char type[99];
 
     if (f) {
-        if (fscanf(f, "type octile\nheight %d\nwidth %d\nmap\n", &height, &width)) {
+        if (fscanf(f, "type %s\nheight %d\nwidth %d\nmap\n", type, &height, &width)) {
             map.resize(width, std::vector<int>(height));
 
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
-                    if (cost_map) {
+                    if (!strcmp(type, "octile_costmap")) {
                         int d;
                         fscanf(f, "%d", &d);
                         map[x][y] = d;
                     }
-                    else {
+                    else if (!strcmp(type, "octile")) {
                         char c;
                         do {
                             fscanf(f, "%c", &c);
                         } while (isspace(c));
 
                         map[x][y] = (c == '.' || c == 'G' || c == 'S' || c == 'T') ? 0 : 100;
-                    }                    
+                    }
+                    else {
+                        throw std::runtime_error("Invalid map type.");
+                    }
                 }
             }
         }
@@ -65,36 +63,6 @@ std::vector<std::vector<int>> loadMap(const char *fname, int& width, int& height
     }
 
     return map;
-}
-
-void map_to_image(cv::Mat *img, const std::vector<std::vector<int>> &map, int height, int width, 
-                  int scale, bool cost_map=false, int threshold=500) {
-    assert(scale == 1);
-    
-    std::vector<std::vector<int>> scaled_map;
-    int scaled_height = scale*height;
-    int scaled_width = scale*width;
-    scaled_map.resize(scaled_width, std::vector<int>(scaled_height));
-
-    for (int y = 0; y < scaled_height; y++) {
-        for (int x = 0; x < scaled_width; x++) {
-            scaled_map[x][y] = map[x/scale][y/scale];
-        }
-    }
-
-    *img = cv::Mat(scaled_height, scaled_width, CV_8UC3);
-
-    for (int y = 0; y < scaled_height; y++) {
-        for (int x = 0; x < scaled_width; x++) {
-            if (cost_map) {
-                int gray = 255 - (scaled_map[x][y] * 255 / threshold);
-                (*img).at<cv::Vec3b>(y,x) = (scaled_map[x][y] >= threshold) ? cv::Vec3b(0,0,0) : cv::Vec3b(gray,gray,gray);
-            }
-            else {
-                (*img).at<cv::Vec3b>(y,x) = (scaled_map[x][y] > 0) ? cv::Vec3b(0,0,0) : cv::Vec3b(255,255,255);
-            }
-        }
-    }
 }
 
 void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, std::vector<std::vector<double>>& goals, 
@@ -123,7 +91,6 @@ void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, std::vect
     }
 }
 
-<<<<<<< HEAD
 /// @brief Rounds the number to the nearest multiple of the discretization.
 /// @param discretization The rounding factor.
 /// @param num The number to be rounded.
@@ -207,14 +174,14 @@ void logStats(const std::unordered_map<int, PlannerStats>& stats,
 }
 
 std::string logPaths(const std::unordered_map<int, PathType>& paths,
-              int map_index,
-              int scale) {
+              int map_index, int scale, int threshold=500) {
+
     // save the paths to a temporary file
     std::string path_file = "paths_tmp.csv";
     // save paths object to a file
     std::ofstream file(path_file);
     // header line
-    file << "Problem,Scale,PathsNumber," << map_index << "," << scale << "," << paths.size() << std::endl;
+    file << "Problem,Scale,Threshold,PathsNumber," << map_index << "," << scale << "," << threshold << "," << paths.size() << std::endl;
     for (auto& path : paths) {
         file << path.first << "," << path.second.size() << std::endl;
         for (auto& state : path.second) {
@@ -225,12 +192,8 @@ std::string logPaths(const std::unordered_map<int, PathType>& paths,
     return path_file;
 }
 
-void process_start_goal(std::vector<std::vector<int>> map, std::vector<double> *start, 
-                                                           std::vector<double> *goal) {
-=======
 void process_start_goal(const std::vector<std::vector<int>>& map, std::vector<double>& start, 
                                                             std::vector<double>& goal) {
->>>>>>> c638aa4 (reduced redundancies in runner files)
     // round the start and goal to the nearest integer
     std::cout << "Start: " << start[0] << ", " << start[1] << std::endl;
     std::cout << "Goal: " << goal[0] << ", " << goal[1] << std::endl;
@@ -246,7 +209,7 @@ void process_start_goal(const std::vector<std::vector<int>>& map, std::vector<do
     std::cout << "Goal value: " << map[(int)goal[0]][(int)goal[1]] << std::endl;
 }
 
-int find_plan(std::shared_ptr<actionSpace2dRob> ActionSpace, ims::Planner *planner, 
+int find_plan(std::shared_ptr<ims::ActionSpace> ActionSpace, ims::Planner *planner,
               const std::vector<double> &start, const std::vector<double> &goal, std::vector<StateType> *path_) {        
     // catch the exception if the start or goal is not valid
     try {
@@ -278,24 +241,38 @@ int find_plan(std::shared_ptr<actionSpace2dRob> ActionSpace, ims::Planner *plann
     return 0;
 }
 
-void draw_paths(cv::Mat &img, const std::vector<double> &start, 
-                const std::vector<double> &goal, const std::vector<StateType> &path_) {
-    // draw the start in red and goal in green
-    img.at<cv::Vec3b>((int)start[1], (int)start[0]) = cv::Vec3b(0,0,255);
-    img.at<cv::Vec3b>((int)goal[1], (int)goal[0]) = cv::Vec3b(0,255,0);
-    cv::circle(img, cv::Point((int)start[0], (int)start[1]), 2, cv::Scalar(0,0,255), 1);
-    cv::circle(img, cv::Point((int)goal[0], (int)goal[1]), 2, cv::Scalar(0,255,0), 1);
+void display_image(std::unordered_map<int, PathType> paths, int mapidx, int scale, int threshold) {
+    boost::filesystem::path full_path( boost::filesystem::current_path() );
+    std::string path_file = logPaths(paths, mapidx, scale, threshold);
 
-    // draw the path in blue but skip the start and goal
-    for (int j {1}; j < path_.size()-1; j++) {
-        img.at<cv::Vec3b>((int)path_[j][1], (int)path_[j][0]) = cv::Vec3b(255,0,0);
-    }
+    std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
+    std::string command = "python3 " + plot_path + " --filepath " + path_file;
+    std::cout << "Running the plot script..." << std::endl;
+    system(command.c_str());
 }
 
-void display_image(const cv::Mat &img) {
-    cv::namedWindow("Map", cv::WINDOW_NORMAL);
-    cv::imshow("Map", img);
-    cv::waitKey(0);
+void findAllPlans(std::shared_ptr<ims::ActionSpace> ActionSpace, ims::Planner *planner,
+                  std::vector<std::vector<double>> starts,
+                  std::vector<std::vector<double>> goals,
+                  std::vector<std::vector<int>>* map,
+                  int mapidx, int scale, int threshold) {
+
+    // log the results
+    // std::unordered_map<int, FocalSearchPlannerStats> logs;
+    std::unordered_map<int, PathType> paths;
+
+    for (int i {0}; i < starts.size(); i++){
+        process_start_goal(*map, starts[i], goals[i]); // modifies starts and goals
+        std::vector<StateType> path_;
+        if (find_plan(ActionSpace, planner, starts[i], goals[i], &path_) != 0) {
+            continue;
+        }
+        // logs[i] = stats; // log the stats
+        paths[i] = path_; // log the path
+
+        planner->resetPlanningData();
+    }
+    display_image(paths, mapidx, scale, threshold);
 }
 
 #endif //SEARCH_SEARCH_DOMAINS_2D_ROBOT_NAV_UTILS_HPP_

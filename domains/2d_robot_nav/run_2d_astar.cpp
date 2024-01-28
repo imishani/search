@@ -50,38 +50,11 @@
 
 
 int main(int argc, char** argv) {
-
-    if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <path>" << std::endl;
-        return 0;
-    }
-    std::vector<std::string> maps;
-
-    boost::filesystem::path full_path( boost::filesystem::current_path() );
-    std::cout << "Current path is : " << full_path.string() << std::endl;
-
-    int map_index = std::stoi(argv[1]);
-    int num_runs = std::stoi(argv[2]);
-    int scale = std::stoi(argv[3]);
-
-    // try to check argv[4] to check if the user wants to save the path for experience
-    bool cache = false;
-    try {
-        cache = std::stoi(argv[4]);
-    }
-    catch (std::exception& e) {
-        std::cout << YELLOW << "Didn't specify whether to save the path or not. Default is not to save." << RESET << std::endl;
-    }
-
     ROBOTNAVInstance instance;
-    instance.loadBenchmarkInstance(map_index, num_runs, scale);
-    std::vector<std::vector<double>> starts = instance.getRawStarts();
-    std::vector<std::vector<double>> goals = instance.getRawGoals();
-    cv::Mat img = instance.getImage();
+    instance.loadBenchmarkInstance(argc, argv);
 
-    // construct the planner
-    std::cout << "Constructing planner..." << std::endl;
     // construct planner params
+    std::cout << "Constructing planner..." << std::endl;
     auto* heuristic = new ims::EuclideanHeuristic();
     // initialize the heuristic
     ims::AStarParams params (heuristic);
@@ -89,20 +62,11 @@ int main(int argc, char** argv) {
     // construct the scene and the action space
     Scene2DRob scene (instance.getMap());
     ActionType2dRob action_type;
-
     std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
 
-    for (int i {0}; i < starts.size(); i++){
-        process_start_goal(*(instance.getMap()), starts[i], goals[i]);
-        // construct planner
-        ims::AStar planner(params);
-        std::vector<StateType> path_;
-        if (find_plan(ActionSpace, &planner, starts[i], goals[i], &path_) != 0) {
-            continue;
-        }
-        draw_paths(img, starts[i], goals[i], path_);
-    }
-    display_image(img);
+    ims::AStar planner(params);
+    findAllPlans(ActionSpace, &planner, instance.getRawStarts(), instance.getRawGoals(),
+                 instance.getMap(), instance.getMapIdx(), instance.getScale(), instance.getThreshold());
 
     return 0;
 }

@@ -20,6 +20,7 @@ def load_map(file_path, scaler):
     try:
         with open(file_path, 'r') as file:
             lines = file.readlines()
+
             if lines[0].strip() == "type octile":
                 height = int(lines[1].split()[1])
                 width = int(lines[2].split()[1])
@@ -32,6 +33,17 @@ def load_map(file_path, scaler):
                     for x in range(width):
                         c = line[x]
                         map_data[y][x] = 0 if c in ['.', 'G', 'S', 'T'] else 100
+
+            elif lines[0].strip() == "type octile_costmap":
+                height = int(lines[1].split()[1])
+                width = int(lines[2].split()[1])
+                map_type = "octile_costmap"
+
+                map_data = [[0 for _ in range(width)] for _ in range(height)]
+
+                for y in range(height):
+                    line = lines[4 + y].strip()
+                    map_data[y] = [int(i) for i in line.strip().split("\t")];
 
         # scale the map
         map_data = np.array(map_data)
@@ -58,14 +70,16 @@ def load_data(file_path: str):
     with open(file_path, "r") as f:
         header = f.readline().strip().split(",")
         # check if the header is correct
-        if header[0] != "Problem" or header[1] != "Scale" or header[2] != "PathsNumber":
+        if header[0] != "Problem" or header[1] != "Scale" or header[2] != "Threshold" or header[3] != "PathsNumber":
             raise ValueError("Invalid header")
         # get the map index
-        map_index_ = int(header[3])
+        map_index_ = int(header[4])
         # scaler
-        scaler = float(header[4])
+        scaler = float(header[5])
+        # threshold for costmap
+        threshold = float(header[6])
         # get the number of paths
-        num_paths = int(header[5])
+        num_paths = int(header[7])
         # get the paths
         paths_ = {}
         # get the paths
@@ -86,14 +100,15 @@ def load_data(file_path: str):
             # add the path
             paths_[path_index] = np.array(states)
     # return the data
-    return map_index_, scaler, paths_
+    return map_index_, scaler, threshold, paths_
 
 
-def visualize(map_ind, scaler, paths_dict, path_ids_to_visualize):
+def visualize(map_ind, scaler, threshold, paths_dict, path_ids_to_visualize):
     """
     Visualizes the paths
     :param scaler:
     :param map_ind: the index of the map to use
+    :param threshold: threshold for costmap (default 500)
     :param paths_dict: A dictionary
     :param path_ids_to_visualize: A list of path ids to visualize
     :return:
@@ -108,7 +123,7 @@ def visualize(map_ind, scaler, paths_dict, path_ids_to_visualize):
     ax = plt.axes(xlim=(0, width), ylim=(0, height))
     ax.invert_yaxis()
     # create the image
-    plt.imshow(map_data, cmap='Greys', vmin=0, vmax=100)
+    plt.imshow(map_data, cmap='Greys', vmin=0, vmax=threshold)
     # remove the xaixs and yaxis
     ax.axes.get_xaxis().set_visible(False)
     ax.axes.get_yaxis().set_visible(False)
@@ -152,13 +167,15 @@ if __name__ == "__main__":
     import os
     path_to_this_file = os.path.dirname(os.path.abspath(__file__))
 
-    MAPS = [path_to_this_file + "/../data/brc202d/brc202d.map",
+    MAPS = [path_to_this_file + "/../data/hrt201n/hrt201n.map",
             path_to_this_file + "/../data/den501d/den501d.map",
             path_to_this_file + "/../data/den520d/den520d.map",
             path_to_this_file + "/../data/ht_chantry/ht_chantry.map",
-            path_to_this_file + "/../data/brc203d/brc203d.map"]
+            path_to_this_file + "/../data/brc203d/brc203d.map",
+            path_to_this_file + "/../data/costmap1/costmap1.map",
+            path_to_this_file + "/../data/costmap2/costmap2.map"]
 
     # load the data
-    map_index, scale, paths = load_data(args.filepath)
+    map_index, scale, threshold, paths = load_data(args.filepath)
     # visualize the paths
-    visualize(map_index, scale, paths, args.path_ids)
+    visualize(map_index, scale, threshold, paths, args.path_ids)

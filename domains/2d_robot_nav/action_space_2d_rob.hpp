@@ -145,17 +145,8 @@ public:
         if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
             return false;
         }
-<<<<<<< HEAD
         int map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
-        if (map_val == 100){
-=======
-        auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
-<<<<<<< HEAD
-        if (map_val >= 500){
->>>>>>> 4c4a05b (Created costmap1 (space-separated integer map), created loadCostMap() function for parsing cost map, updated visualization to display cost heatmap)
-=======
         if (map_val >= env_->threshold){
->>>>>>> 3ed245a (helper functions for runner files)
             return false;
         }
         return true;

@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
 
     std::string type;
     int width, height;
-    std::vector<std::vector<int>> map = loadMap(map_file.c_str(),  type, width, height, scale);
+    std::vector<std::vector<int>> map = loadMap(map_file.c_str());
 
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);

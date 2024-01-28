@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
 
     std::string type;
     int width, height;
-    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), type, width, height, scale);
+    std::vector<std::vector<int>> map = loadMap(map_file.c_str());
 
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
     ims::FocalwAStarParams params (heuristic, focal_suboptimatlity, epsilon);
     
     // construct the scene and the action space
-    Scene2DRob scene (map);
+    Scene2DRob scene (&map);
     ActionType2dRob action_type;
 
     // log the results
