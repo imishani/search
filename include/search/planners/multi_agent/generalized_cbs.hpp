@@ -43,6 +43,7 @@
 
 // Project includes.
 #include <search/common/conflicts.hpp>
+#include <search/common/conflict_conversions.hpp>
 #include <search/common/constraints.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
 #include <search/planners/focal_search/focal_wastar.hpp>
@@ -71,6 +72,11 @@ struct GeneralizedCBSParams : public CBSParams {
 
     /// @brief The sub-optimality bound on the high-level focal search.
     double high_level_focal_suboptimality = 1.0;
+
+    /// @brief The constraints to create from the conflicts.
+    std::vector<ConstraintType> constraint_types_to_create = {ConstraintType::EDGE, // "Do not traverse this edge between these times."
+                                                         ConstraintType::VERTEX, // "Do not be at this vertex at this time."
+                                                        };
 };
 
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
@@ -180,6 +186,53 @@ protected:
         }
     };
 
+
+    /// @brief The search state compare structs for the HL focal lists.
+    struct GeneralizedCBSAvoidanceConstraintFocalCompare{
+        bool operator()(const SearchState& s1, const SearchState& s2) const{
+            int constraints_count_s1 = std::accumulate(s1.constraint_type_count.begin(), s1.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
+            int constraints_count_s2 = std::accumulate(s2.constraint_type_count.begin(), s2.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
+
+            double constraint_density_s1 = 0;
+            double constraint_density_s2 = 0;
+            
+            int num_edge_constraints_s1 = 0;
+            int num_edge_constraints_s2 = 0;
+            int num_vertex_constraints_s1 = 0;
+            int num_vertex_constraints_s2 = 0;
+
+            if (s1.constraint_type_count.find(ConstraintType::EDGE_AVOIDANCE) != s1.constraint_type_count.end()){
+                num_edge_constraints_s1 = s1.constraint_type_count.at(ConstraintType::EDGE_AVOIDANCE);
+            }
+            if (s2.constraint_type_count.find(ConstraintType::EDGE_AVOIDANCE) != s2.constraint_type_count.end()){
+                num_edge_constraints_s2 = s2.constraint_type_count.at(ConstraintType::EDGE_AVOIDANCE);
+            }
+            if (s1.constraint_type_count.find(ConstraintType::VERTEX_AVOIDANCE) != s1.constraint_type_count.end()){
+                num_vertex_constraints_s1 = s1.constraint_type_count.at(ConstraintType::VERTEX_AVOIDANCE);
+            }
+            if (s2.constraint_type_count.find(ConstraintType::VERTEX_AVOIDANCE) != s2.constraint_type_count.end()){
+                num_vertex_constraints_s2 = s2.constraint_type_count.at(ConstraintType::VERTEX_AVOIDANCE);
+            }
+
+            constraint_density_s1 = (num_edge_constraints_s1 + num_vertex_constraints_s1) / (double)constraints_count_s1;
+            constraint_density_s2 = (num_edge_constraints_s2 + num_vertex_constraints_s2) / (double)constraints_count_s2;
+
+            if (constraint_density_s1 == constraint_density_s2) {
+                if (s1.f == s2.f) {
+                    if (s1.g == s2.g) {
+                        return s1.state_id < s2.state_id;
+                    }
+                    return s1.g < s2.g;
+                }
+                return s1.f < s2.f;
+            }
+
+            // s1 will come before s2 if it has a higher constraint density.
+            return constraint_density_s1 > constraint_density_s2;
+        }
+    };
+
+
     struct GeneralizedCBSConflictCountFocalCompare{
         bool operator()(const SearchState& s1, const SearchState& s2) const{
             if (s1.unresolved_conflicts.size() == s2.unresolved_conflicts.size()) {
@@ -233,7 +286,7 @@ protected:
     int current_priority_function_index_ = 0; 
 
     // The open list.
-    FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>* open_;
+    AbstractQueue<SearchState>* open_;
 };
 
 // ==========================
@@ -253,6 +306,17 @@ struct GeneralizedCBSPoint3dParams : public GeneralizedCBSParams {
 
     /// @brief Parameters for specific constraint types.
     double sphere3d_constraint_radius = 0.1;
+
+    /// @brief The constraints to create from the conflicts.
+    std::unordered_set<ConstraintType> constraint_types_to_create = {ConstraintType::EDGE, // "Do not traverse this edge between these times."
+                                                         ConstraintType::VERTEX, // "Do not be at this vertex at this time."
+                                                         ConstraintType::SPHERE3D, // "Do not be in this sphere at this time."
+                                                        //  ConstraintType::EDGE_AVOIDANCE, // "Between these times, avoid those agents (whereever they are)."
+                                                        //  ConstraintType::VERTEX_AVOIDANCE, // "At this time, avoid those agents (whereever they are)."
+                                                        //  ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."
+                                                        //  ConstraintType::VERTEX_STATE_AVOIDANCE, // "At this time, avoid those agents taking the specified configurations."
+                                                        };
+
 };
 
 // ==========================
@@ -319,7 +383,7 @@ protected:
     /// @brief The conflict types that this algorithm asks for from the action space.
     // TODO(yoraish): this should be different for each genCBS version?
     // std::vector<ConflictType> conflict_types_ = {ConflictType::EDGE, ConflictType::VERTEX};
-    std::vector<ConflictType> conflict_types_ = {ConflictType::POINT3D};
+    std::vector<ConflictType> conflict_types_ = {ConflictType::POINT3D_VERTEX, ConflictType::POINT3D_EDGE};
 
     /// Member variables.
     // The search parameters.
@@ -338,8 +402,6 @@ protected:
     int num_priority_functions_ = 1;
     int current_priority_function_index_ = 0; 
 
-    // The open list.
-    FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>* open_;
 };
 
 

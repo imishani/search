@@ -52,6 +52,7 @@
 #include <search/action_space/subcost_action_space.hpp>
 #include <search/planners/focal_search/focal_eawastar.hpp>
 #include <search/planners/multi_agent/eacbs.hpp>
+#include <search/common/constraints.hpp>
 
 namespace ims {
 
@@ -77,6 +78,16 @@ struct GeneralizedBCBSParams : public GeneralizedCBSParams {
 
     /// @brief Parameters for specific constraint types.
     double sphere3d_constraint_radius = 0.1;
+
+    /// @brief The constraints to create from the conflicts.
+    std::unordered_set<ConstraintType> constraint_types_to_create = {ConstraintType::EDGE, // "Do not traverse this edge between these times."
+                                                         ConstraintType::VERTEX, // "Do not be at this vertex at this time."
+                                                         ConstraintType::SPHERE3D, // "Do not be in this sphere at this time."
+                                                        //  ConstraintType::EDGE_AVOIDANCE, // "Between these times, avoid those agents (whereever they are)."
+                                                        //  ConstraintType::VERTEX_AVOIDANCE, // "At this time, avoid those agents (whereever they are)."
+                                                        //  ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."
+                                                        //  ConstraintType::VERTEX_STATE_AVOIDANCE, // "At this time, avoid those agents taking the specified configurations."
+                                                        };
 };
 
 // ==========================
@@ -143,7 +154,7 @@ protected:
     /// @brief The conflict types that this algorithm asks for from the action space.
     // TODO(yoraish): this should be different for each genCBS version?
     // std::vector<ConflictType> conflict_types_ = {ConflictType::EDGE, ConflictType::VERTEX};
-    std::vector<ConflictType> conflict_types_ = {ConflictType::POINT3D};
+    std::vector<ConflictType> conflict_types_ = {ConflictType::POINT3D_VERTEX, ConflictType::POINT3D_EDGE};
 
     /// Member variables.
     // The search parameters.
@@ -171,7 +182,7 @@ protected:
 
 
 // ==========================
-// Related structs: GeneralizedBCBSParams
+// Related structs: GeneralizedXECBSParams
 // ==========================
 /// @class GeneralizedXECBSParams class.
 /// @brief The parameters for the GeneralizedBCBS algorithm
@@ -192,6 +203,17 @@ struct GeneralizedXECBSParams : public EACBSParams {
 
     /// @brief Parameters for specific constraint types.
     double sphere3d_constraint_radius = 0.1;
+
+
+    /// @brief The constraints to create from the conflicts.
+    std::unordered_set<ConstraintType> constraint_types_to_create = {ConstraintType::EDGE, // "Do not traverse this edge between these times."
+                                                         ConstraintType::VERTEX, // "Do not be at this vertex at this time."
+                                                         ConstraintType::SPHERE3D, // "Do not be in this sphere at this time."
+                                                        //  ConstraintType::EDGE_AVOIDANCE, // "Between these times, avoid those agents (whereever they are)."
+                                                        //  ConstraintType::VERTEX_AVOIDANCE, // "At this time, avoid those agents (whereever they are)."
+                                                        //  ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."
+                                                        //  ConstraintType::VERTEX_STATE_AVOIDANCE, // "At this time, avoid those agents taking the specified configurations."
+                                                        };
 };
 
 // ==========================
@@ -319,7 +341,7 @@ protected:
     /// @brief The conflict types that this algorithm asks for from the action space.
     // TODO(yoraish): this should be different for each genCBS version?
     // std::vector<ConflictType> conflict_types_ = {ConflictType::EDGE, ConflictType::VERTEX};
-    std::vector<ConflictType> conflict_types_ = {ConflictType::POINT3D};
+    std::vector<ConflictType> conflict_types_ = {ConflictType::POINT3D_VERTEX, ConflictType::POINT3D_EDGE};
 
     /// Member variables.
     // The search parameters.

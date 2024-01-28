@@ -403,18 +403,73 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             ims::conflict_conversions::edgeConflictToEdgeConstraints(edge_conflict_ptr, agent_constraints);
         }
 
-        else if (conflict_ptr->type == ConflictType::POINT3D) {
-            auto* point3d_conflict_ptr = dynamic_cast<Point3dConflict*>(conflict_ptr.get());
+        else if (conflict_ptr->type == ConflictType::POINT3D_VERTEX) {
+            auto* point3d_conflict_ptr = dynamic_cast<Point3dVertexConflict*>(conflict_ptr.get());
 
             // Check if the conversion succeeded.
             if (point3d_conflict_ptr == nullptr) {
-                throw std::runtime_error("Conflict is a point3d conflict, but could not be converted to a Point3dConflict.");
+                throw std::runtime_error("Conflict is a point3d conflict, but could not be converted to a Point3dVertexConflict.");
             }
+
             // Get the sphere3d constraints.
-            ims::conflict_conversions::point3dConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, params_.sphere3d_constraint_radius);
-            // Get vertex or edge conflicts corresponding to the sphere3d constraints.
-            ims::conflict_conversions::point3dConflictToEdgeOrVertexConstraints(point3d_conflict_ptr, agent_constraints);
+            if (params_.constraint_types_to_create.find(ConstraintType::SPHERE3D) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating sphere3d constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dVertexConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, params_.sphere3d_constraint_radius);
+            }
+
+            // Get the state-avoidance vertex constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::VERTEX_STATE_AVOIDANCE) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating vertex state avoidance constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dVertexConflictToVertexStateAvoidanceConstraints(point3d_conflict_ptr, agent_constraints);
+            }
+
+            // Get the agent-avoidance constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::VERTEX_AVOIDANCE) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating vertex avoidance constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dVertexConflictToVertexAvoidanceConstraints(point3d_conflict_ptr, agent_names_, agent_constraints);
+            }
+
+            // Get the regular vertex constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::VERTEX) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating vertex constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dVertexConflictToVertexConstraints(point3d_conflict_ptr, agent_constraints);
+            }
+            
         }
+
+        else if (conflict_ptr->type == ConflictType::POINT3D_EDGE) {
+            auto* point3d_conflict_ptr = dynamic_cast<Point3dEdgeConflict*>(conflict_ptr.get());
+
+            // Check if the conversion succeeded.
+            if (point3d_conflict_ptr == nullptr) {
+                throw std::runtime_error("Conflict is a point3d conflict, but could not be converted to a Point3dEdgeConflict.");
+            }
+
+            // Get the sphere3d constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::SPHERE3D) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating sphere3d constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dEdgeConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, params_.sphere3d_constraint_radius);
+            }
+
+            // Get the state-avoidance constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::EDGE_STATE_AVOIDANCE) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating edge state avoidance constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dEdgeConflictToEdgeStateAvoidanceConstraints(point3d_conflict_ptr, agent_constraints);
+            }
+
+            // Get the agent-avoidance constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::EDGE_AVOIDANCE) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating edge avoidance constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dEdgeConflictToEdgeAvoidanceConstraints(point3d_conflict_ptr, agent_names_, agent_constraints);
+            }
+
+            // Get the regular edge constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::EDGE) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating edge constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dEdgeConflictToEdgeConstraints(point3d_conflict_ptr, agent_constraints);
+            }
+
+        }   
     }
     return agent_constraints;
 }
@@ -861,18 +916,73 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             ims::conflict_conversions::edgeConflictToEdgeConstraints(edge_conflict_ptr, agent_constraints);
         }
 
-        else if (conflict_ptr->type == ConflictType::POINT3D) {
-            auto* point3d_conflict_ptr = dynamic_cast<Point3dConflict*>(conflict_ptr.get());
+        else if (conflict_ptr->type == ConflictType::POINT3D_VERTEX) {
+            auto* point3d_conflict_ptr = dynamic_cast<Point3dVertexConflict*>(conflict_ptr.get());
 
             // Check if the conversion succeeded.
             if (point3d_conflict_ptr == nullptr) {
-                throw std::runtime_error("Conflict is a point3d conflict, but could not be converted to a Point3dConflict.");
+                throw std::runtime_error("Conflict is a point3d conflict, but could not be converted to a Point3dVertexConflict.");
             }
+
             // Get the sphere3d constraints.
-            ims::conflict_conversions::point3dConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, params_.sphere3d_constraint_radius);
-            // Get vertex or edge conflicts corresponding to the sphere3d constraints.
-            ims::conflict_conversions::point3dConflictToEdgeOrVertexConstraints(point3d_conflict_ptr, agent_constraints);
+            if (params_.constraint_types_to_create.find(ConstraintType::SPHERE3D) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating sphere3d constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dVertexConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, params_.sphere3d_constraint_radius);
+            }
+
+            // Get the state-avoidance vertex constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::VERTEX_STATE_AVOIDANCE) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating vertex state avoidance constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dVertexConflictToVertexStateAvoidanceConstraints(point3d_conflict_ptr, agent_constraints);
+            }
+
+            // Get the agent-avoidance constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::VERTEX_AVOIDANCE) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating vertex avoidance constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dVertexConflictToVertexAvoidanceConstraints(point3d_conflict_ptr, agent_names_, agent_constraints);
+            }
+
+            // Get the regular vertex constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::VERTEX) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating vertex constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dVertexConflictToVertexConstraints(point3d_conflict_ptr, agent_constraints);
+            }
+            
         }
+
+        else if (conflict_ptr->type == ConflictType::POINT3D_EDGE) {
+            auto* point3d_conflict_ptr = dynamic_cast<Point3dEdgeConflict*>(conflict_ptr.get());
+
+            // Check if the conversion succeeded.
+            if (point3d_conflict_ptr == nullptr) {
+                throw std::runtime_error("Conflict is a point3d conflict, but could not be converted to a Point3dEdgeConflict.");
+            }
+
+            // Get the sphere3d constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::SPHERE3D) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating sphere3d constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dEdgeConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, params_.sphere3d_constraint_radius);
+            }
+
+            // Get the state-avoidance constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::EDGE_STATE_AVOIDANCE) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating edge state avoidance constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dEdgeConflictToEdgeStateAvoidanceConstraints(point3d_conflict_ptr, agent_constraints);
+            }
+
+            // Get the agent-avoidance constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::EDGE_AVOIDANCE) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating edge avoidance constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dEdgeConflictToEdgeAvoidanceConstraints(point3d_conflict_ptr, agent_names_, agent_constraints);
+            }
+
+            // Get the regular edge constraints.
+            if (params_.constraint_types_to_create.find(ConstraintType::EDGE) != params_.constraint_types_to_create.end()) {
+                std::cout << CYAN << "Creating edge constraints." << RESET << std::endl;
+                ims::conflict_conversions::point3dEdgeConflictToEdgeConstraints(point3d_conflict_ptr, agent_constraints);
+            }
+
+        }   
     }
     return agent_constraints;
 }
