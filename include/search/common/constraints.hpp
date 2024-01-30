@@ -52,10 +52,11 @@ enum class ConstraintType {
     VERTEX = 0, // Do not be at v at time t.
     EDGE = 1, // Do not cross edge (u, v) at time t to t+1.
     SPHERE3D = 2, // Do not be in sphere at time t.
-    VERTEX_AVOIDANCE = 3, // Do not conflict with agent at time t, setting other agent as specified in its path in the context.
-    EDGE_AVOIDANCE = 4, // Do not conflict with agent at time t_from to t_to, setting other agent as specified in its path in the context.
+    VERTEX_PRIORITY = 3, // Do not conflict with agent at time t, setting other agent as specified in its path in the context.
+    EDGE_PRIORITY = 4, // Do not conflict with agent at time t_from to t_to, setting other agent as specified in its path in the context.
     VERTEX_STATE_AVOIDANCE = 5, // Do not conflict with agent at a specified configuration at time t.
     EDGE_STATE_AVOIDANCE = 6, // Do not conflict with agent at a specified configuration between time t_from to t_to.
+    ALL_EDGE_VERTEX_REQUEST = 7, // Initially used in Generalized-CBS, this is a request to create vertex and edge constraints for all conflicts available. Used in conflictsToConstraints.
 };
 
 // A map from constraint type to whether it is admissible or not.
@@ -64,8 +65,8 @@ const std::unordered_map<ConstraintType, bool> constraint_type_admissibility = {
     {ConstraintType::VERTEX, true},
     {ConstraintType::EDGE, true},
     {ConstraintType::SPHERE3D, false},
-    {ConstraintType::VERTEX_AVOIDANCE, false},
-    {ConstraintType::EDGE_AVOIDANCE, false},
+    {ConstraintType::VERTEX_PRIORITY, false},
+    {ConstraintType::EDGE_PRIORITY, false},
     {ConstraintType::VERTEX_STATE_AVOIDANCE, false},
     {ConstraintType::EDGE_STATE_AVOIDANCE, false},
 };
@@ -210,14 +211,14 @@ struct VertexAvoidanceConstraint : public Constraint {
         time(time) {
 
         /// @brief The type of the constraint.
-        type = ConstraintType::VERTEX_AVOIDANCE;
+        type = ConstraintType::VERTEX_PRIORITY;
     }
     explicit VertexAvoidanceConstraint(int agent_id_to_avoid, TimeType time) : 
         time(time) {
         agent_ids_to_avoid = {agent_id_to_avoid};
 
         /// @brief The type of the constraint.
-        type = ConstraintType::VERTEX_AVOIDANCE;
+        type = ConstraintType::VERTEX_PRIORITY;
     }
 
     /// @brief Constructor, allowing to set the agent ids to avoid, time, and agent names.
@@ -228,7 +229,7 @@ struct VertexAvoidanceConstraint : public Constraint {
         agent_names_to_avoid(agent_names_to_avoid) {
 
         /// @brief The type of the constraint.
-        type = ConstraintType::VERTEX_AVOIDANCE;
+        type = ConstraintType::VERTEX_PRIORITY;
     }
     explicit VertexAvoidanceConstraint(int agent_id_to_avoid, TimeType time, std::string agent_name_to_avoid) :
         time(time) {
@@ -236,7 +237,7 @@ struct VertexAvoidanceConstraint : public Constraint {
         agent_names_to_avoid = {agent_name_to_avoid};
         
         /// @brief The type of the constraint.
-        type = ConstraintType::VERTEX_AVOIDANCE;
+        type = ConstraintType::VERTEX_PRIORITY;
     }
 
     /// @brief String representation of the constraint.
@@ -283,7 +284,7 @@ struct EdgeAvoidanceConstraint : public Constraint {
         t_to(t_to),
         agent_ids_to_avoid({agent_id_to_avoid}),
         agent_names_to_avoid({agent_name_to_avoid}) {
-        type = ConstraintType::EDGE_AVOIDANCE;
+        type = ConstraintType::EDGE_PRIORITY;
 
         // Check that there is exactly one timestep between `t_from` and `t_to`.
         if (t_to - t_from != 1 && (t_to != -1 && t_from != -1)) {
@@ -300,7 +301,7 @@ struct EdgeAvoidanceConstraint : public Constraint {
         t_to(t_to),
         agent_ids_to_avoid(agent_ids_to_avoid),
         agent_names_to_avoid(agent_names_to_avoid) {
-        type = ConstraintType::EDGE_AVOIDANCE;
+        type = ConstraintType::EDGE_PRIORITY;
 
         // Check that there is exactly one timestep between `t_from` and `t_to`.
         if (t_to - t_from != 1 && (t_to != -1 && t_from != -1)) {

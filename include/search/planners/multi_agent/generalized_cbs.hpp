@@ -174,8 +174,14 @@ protected:
             if (constraint_density_s1 == constraint_density_s2) {
                 if (s1.f == s2.f) {
                     if (s1.g == s2.g) {
-                        return s1.state_id < s2.state_id;
-                    }
+                        int c1 = s1.unresolved_conflicts.size();
+                        int c2 = s2.unresolved_conflicts.size();
+                        // Compare unresolved conflicts count
+                        if (c1 == c2) {
+                            return s1.state_id < s2.state_id;
+                        }
+                        // s1 will come before s2 if it has fewer conflicts.
+                        return c1 < c2;                    }
                     return s1.g < s2.g;
                 }
                 return s1.f < s2.f;
@@ -201,17 +207,17 @@ protected:
             int num_vertex_constraints_s1 = 0;
             int num_vertex_constraints_s2 = 0;
 
-            if (s1.constraint_type_count.find(ConstraintType::EDGE_AVOIDANCE) != s1.constraint_type_count.end()){
-                num_edge_constraints_s1 = s1.constraint_type_count.at(ConstraintType::EDGE_AVOIDANCE);
+            if (s1.constraint_type_count.find(ConstraintType::EDGE_STATE_AVOIDANCE) != s1.constraint_type_count.end()){
+                num_edge_constraints_s1 = s1.constraint_type_count.at(ConstraintType::EDGE_STATE_AVOIDANCE);
             }
-            if (s2.constraint_type_count.find(ConstraintType::EDGE_AVOIDANCE) != s2.constraint_type_count.end()){
-                num_edge_constraints_s2 = s2.constraint_type_count.at(ConstraintType::EDGE_AVOIDANCE);
+            if (s2.constraint_type_count.find(ConstraintType::EDGE_STATE_AVOIDANCE) != s2.constraint_type_count.end()){
+                num_edge_constraints_s2 = s2.constraint_type_count.at(ConstraintType::EDGE_STATE_AVOIDANCE);
             }
-            if (s1.constraint_type_count.find(ConstraintType::VERTEX_AVOIDANCE) != s1.constraint_type_count.end()){
-                num_vertex_constraints_s1 = s1.constraint_type_count.at(ConstraintType::VERTEX_AVOIDANCE);
+            if (s1.constraint_type_count.find(ConstraintType::VERTEX_STATE_AVOIDANCE) != s1.constraint_type_count.end()){
+                num_vertex_constraints_s1 = s1.constraint_type_count.at(ConstraintType::VERTEX_STATE_AVOIDANCE);
             }
-            if (s2.constraint_type_count.find(ConstraintType::VERTEX_AVOIDANCE) != s2.constraint_type_count.end()){
-                num_vertex_constraints_s2 = s2.constraint_type_count.at(ConstraintType::VERTEX_AVOIDANCE);
+            if (s2.constraint_type_count.find(ConstraintType::VERTEX_STATE_AVOIDANCE) != s2.constraint_type_count.end()){
+                num_vertex_constraints_s2 = s2.constraint_type_count.at(ConstraintType::VERTEX_STATE_AVOIDANCE);
             }
 
             constraint_density_s1 = (num_edge_constraints_s1 + num_vertex_constraints_s1) / (double)constraints_count_s1;
@@ -220,7 +226,14 @@ protected:
             if (constraint_density_s1 == constraint_density_s2) {
                 if (s1.f == s2.f) {
                     if (s1.g == s2.g) {
-                        return s1.state_id < s2.state_id;
+                        int c1 = s1.unresolved_conflicts.size();
+                        int c2 = s2.unresolved_conflicts.size();
+                        // Compare unresolved conflicts count
+                        if (c1 == c2) {
+                            return s1.state_id < s2.state_id;
+                        }
+                        // s1 will come before s2 if it has fewer conflicts.
+                        return c1 < c2;
                     }
                     return s1.g < s2.g;
                 }
@@ -231,7 +244,6 @@ protected:
             return constraint_density_s1 > constraint_density_s2;
         }
     };
-
 
     struct GeneralizedCBSConflictCountFocalCompare{
         bool operator()(const SearchState& s1, const SearchState& s2) const{
@@ -250,7 +262,7 @@ protected:
 
     /// @brief Generate descendents of a state, a key method in most search algorithms.
     /// @param state_id
-    void expand(int state_id) override;
+    virtual void expand(int state_id) = 0;
 
     /// @brief Convert conflicts to constraints. In generalized CBS, conflicts are converted to all of the constraints that they can be converted to. That is, more than two constraint sets may be created for a single conflict.
     /// @param conflicts 
@@ -261,6 +273,10 @@ protected:
     /// @return The conflict types.
     /// @note Derived class, aka CBS variants that request different conflict types (e.g., point3d, etc.) should override this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
     virtual std::vector<ConflictType> getConflictTypes() override = 0;
+
+    /// @brief Replan all agents that have unincorporated constraints.
+    /// @param state 
+    virtual bool replanOutdatedAgents(SearchState* state) = 0;
 
     // Public variable. For shadowing.
     /// @brief The conflict types that this algorithm asks for from the action space.
@@ -308,13 +324,15 @@ struct GeneralizedCBSPoint3dParams : public GeneralizedCBSParams {
     double sphere3d_constraint_radius = 0.1;
 
     /// @brief The constraints to create from the conflicts.
-    std::unordered_set<ConstraintType> constraint_types_to_create = {ConstraintType::EDGE, // "Do not traverse this edge between these times."
+    std::unordered_set<ConstraintType> constraint_types_to_create = {
+                                                         ConstraintType::EDGE, // "Do not traverse this edge between these times."
                                                          ConstraintType::VERTEX, // "Do not be at this vertex at this time."
                                                          ConstraintType::SPHERE3D, // "Do not be in this sphere at this time."
-                                                        //  ConstraintType::EDGE_AVOIDANCE, // "Between these times, avoid those agents (whereever they are)."
-                                                        //  ConstraintType::VERTEX_AVOIDANCE, // "At this time, avoid those agents (whereever they are)."
-                                                        //  ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."
-                                                        //  ConstraintType::VERTEX_STATE_AVOIDANCE, // "At this time, avoid those agents taking the specified configurations."
+                                                        //  ConstraintType::ALL_EDGE_VERTEX_REQUEST, // Block all conflicting actions an agent has within a given conflict set.
+                                                         ConstraintType::EDGE_PRIORITY, // "Between these times, avoid those agents (whereever they are)."
+                                                         ConstraintType::VERTEX_PRIORITY, // "At this time, avoid those agents (whereever they are)."
+                                                         ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."
+                                                         ConstraintType::VERTEX_STATE_AVOIDANCE, // "At this time, avoid those agents taking the specified configurations."
                                                         };
 
 };
@@ -378,6 +396,10 @@ protected:
     inline std::vector<ConflictType> getConflictTypes() override {
         return conflict_types_;
     }
+
+    /// @brief Replan all agents that are specified as needing replan.
+    /// @param state 
+    bool replanOutdatedAgents(SearchState* state) override;
 
     // Public variable. For shadowing.
     /// @brief The conflict types that this algorithm asks for from the action space.

@@ -136,7 +136,7 @@ public:
                 break;
             }
 
-            case ims::ConstraintType::VERTEX_AVOIDANCE: {
+            case ims::ConstraintType::VERTEX_PRIORITY: {
                 // Convert to a vertex constraint pointer to get access to its members.
                 auto* vertex_avoidance_constraint_ptr = dynamic_cast<ims::VertexAvoidanceConstraint*>(constraint_ptr.get());
                 if (vertex_avoidance_constraint_ptr != nullptr) {
@@ -162,7 +162,7 @@ public:
                 break;
             }
 
-            case ims::ConstraintType::EDGE_AVOIDANCE: {
+            case ims::ConstraintType::EDGE_PRIORITY: {
                 // Convert to an edge constraint pointer to get access to its members.
                 auto* edge_avoidance_constraint_ptr = dynamic_cast<ims::EdgeAvoidanceConstraint*>(constraint_ptr.get());
                 if (edge_avoidance_constraint_ptr != nullptr) {

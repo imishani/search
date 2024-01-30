@@ -150,7 +150,7 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
         bool found_vertex_avoid_constraint = false;
         bool found_edge_avoid_constraint = false;
         for (auto& constraint_ptr : constraints_collective_ptr->getConstraints()) {
-            if (constraint_ptr->type == ConstraintType::VERTEX_AVOIDANCE) {
+            if (constraint_ptr->type == ConstraintType::VERTEX_PRIORITY) {
                 auto found_vertex_avoid_constraint_ptr = std::dynamic_pointer_cast<VertexAvoidanceConstraint>(constraint_ptr);
                 if (found_vertex_avoid_constraint_ptr->getTimeInterval().first == -1 && found_vertex_avoid_constraint_ptr->getTimeInterval().second == -1) {
                     found_vertex_avoid_constraint_ptr->agent_ids_to_avoid.push_back(agent_id);
@@ -158,7 +158,7 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
                     found_vertex_avoid_constraint = true;
                 }
             }
-            else if (constraint_ptr->type == ConstraintType::EDGE_AVOIDANCE) {
+            else if (constraint_ptr->type == ConstraintType::EDGE_PRIORITY) {
                 auto found_edge_avoid_constraint_ptr = std::dynamic_pointer_cast<EdgeAvoidanceConstraint>(constraint_ptr);
                 if (edge_avoid_constraint_ptr->getTimeInterval().first == -1 && found_edge_avoid_constraint_ptr->getTimeInterval().second == -1) {
                     found_edge_avoid_constraint_ptr->agent_ids_to_avoid.push_back(agent_id);

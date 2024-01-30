@@ -142,9 +142,8 @@ struct SearchState : public ims::BestFirstSearch::SearchState, public SearchStat
     // The counts of the constraints in each constraint type.
     std::unordered_map<ConstraintType, int> constraint_type_count;
 
-    // A set of unincorporated constraints. If there are any constraints here, the f value (aka its sum of costs) of this CT node is only an estimate, as well as potentially other values. If, upon evaluation, the g value become larger than the current g value, then the state is returned to the open list.
-    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> unincorporated_constraints = {};
-    
+    // A set of agent_ids whose paths are out of date. If there are any constraints here, the f value (aka its sum of costs) of this CT node is only an estimate, as well as potentially other values. If, upon evaluation, the g value become larger than the current g value, then the state is returned to the open list.
+    std::vector<int> agent_ids_need_replan = {};
 
     /// @brief Required for FocalQueue
     /// @return 
