@@ -34,7 +34,7 @@
 
 #include "search/planners/nparastar.hpp"
 
-ims::NPARAStar::NPARAStar(const ims::NPARAStarParams &params) : wAStar(params), params_(params)
+ims::NPARAStar::NPARAStar(const ims::NPARAStarParams &params) : ARAStar(params), params_(params)
 {
 }
 
@@ -206,7 +206,7 @@ bool ims::NPARAStar::plan(std::vector<StateType> &path)
         }
         params_.call_number++;
         updateBounds();
-        if (stats_.suboptimality == params_.final_epsilon)
+        if (stats_.suboptimality == 1)
             break;
     }
     if (!path.empty())
@@ -352,13 +352,11 @@ void ims::NPARAStar::reconstructPath(std::vector<StateType> &path, std::vector<d
 
 void ims::NPARAStar::updateBounds()
 {
-    open_.min();
-    // update stats to current suboptimality
+    SearchState *state_ = open_.min();
     stats_.suboptimality = params_.epsilon;
-    // update epsilon
-    params_.epsilon = ((params_.curr_cost - state->g) - state->h) - .00000001;
-    if (params_.epsilon < params_.final_epsilon)
-        params_.epsilon = params_.final_epsilon;
+    params_.epsilon = ((stats_.cost - state_->g) - state_->h) - .00000001;
+    if (params_.epsilon < 1)
+        params_.epsilon = 1;
 }
 
 void ims::NPARAStar::reinitSearchState(ims::NPARAStar::SearchState *state) const
@@ -377,14 +375,14 @@ bool ims::NPARAStar::timedOut()
     switch (params_.type)
     {
     case NPARAStarParams::TIME:
-        if (params_.ara_time_limit == INF_DOUBLE)
+        if (params_.npara_time_limit == INF_DOUBLE)
         {
             return false;
         }
         // get the time elapsed
         double time_elapsed;
         getTimeFromStart(time_elapsed);
-        return time_elapsed > params_.ara_time_limit;
+        return time_elapsed > params_.npara_time_limit;
     case NPARAStarParams::EXPANSIONS:
         if (params_.expansions_limit == INF_DOUBLE)
         {
@@ -396,13 +394,13 @@ bool ims::NPARAStar::timedOut()
         return params_.timed_out_fun();
     default:
         // throw error Unknown type
-        std::cout << RED << "Timed out: Unknown type of ARA* timeout" << RESET << std::endl;
+        std::cout << RED << "Timed out: Unknown type of NPARA* timeout" << RESET << std::endl;
         return true;
     }
 }
 void ims::NPARAStar::resetPlanningData()
 {
-    wAStar::resetPlanningData();
+    ARAStar::resetPlanningData();
     open_.clear();
     incons_.clear();
     for (auto state : states_)

@@ -30,8 +30,7 @@
  * \file   best_first_search.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   3/28/23
-*/
-
+ */
 
 #ifndef SEARCH_BESTFIRSTSEARCH_HPP
 #define SEARCH_BESTFIRSTSEARCH_HPP
@@ -46,38 +45,50 @@
 #include <search/planners/planner.hpp>
 #include "search/heuristics/base_heuristic.hpp"
 
-namespace ims{
+namespace ims
+{
 
     /// @class BestFirstSearch Parameters
     /// @note Before initializing the planner, the heuristic function must be set
     /// So you define a heuristic function and then pass it to the constructor of the BestFirstSearchParams
     /// @note Since this is general BestFS, the heuristic function returns an f value!
-    struct BestFirstSearchParams : public PlannerParams{
+    struct BestFirstSearchParams : public PlannerParams
+    {
         /// @brief Constructor
-        explicit BestFirstSearchParams(BaseHeuristic* heuristic) : PlannerParams(), heuristic_(heuristic) {}
+        explicit BestFirstSearchParams(BaseHeuristic *heuristic) : PlannerParams(), heuristic_(heuristic) {}
 
         /// @brief Destructor
         ~BestFirstSearchParams() override = default;
 
-        BaseHeuristic* heuristic_ = nullptr;
+        BaseHeuristic *heuristic_ = nullptr;
     };
 
     /// @class BestFirstSearch class.
     /// @brief A general search algorithm that uses heuristics and g values to find the optimal path
-    class BestFirstSearch : public Planner{
+    class BestFirstSearch : public Planner
+    {
     private:
-
-        friend class AStar; friend class wAStar; friend class EAwAStarUniformCost;
-        friend class BFS; friend class ARAStar;
-        friend class plannerZero; friend class CBS; friend class CBSBase;
+        friend class AStar;
+        friend class wAStar;
+        friend class EAwAStarUniformCost;
+        friend class BFS;
+        friend class ARAStar;
+        friend class NPARAStar;
+        friend class plannerZero;
+        friend class CBS;
+        friend class CBSBase;
         friend class CBSSphere3d;
         friend class CBSMP;
-        friend class ECBS; friend class ECBSMP;
-        friend class EACBS; friend class EACBSMP;
-        friend class EAECBS; friend class EAECBSMP;
+        friend class ECBS;
+        friend class ECBSMP;
+        friend class EACBS;
+        friend class EACBSMP;
+        friend class EAECBS;
+        friend class EAECBSMP;
 
         /// @brief The search state.
-        struct SearchState: public ims::SearchState {
+        struct SearchState : public ims::SearchState
+        {
 
             /// @brief The parent state
             int parent_id = UNSET;
@@ -91,26 +102,30 @@ namespace ims{
             bool in_closed = false;
 
             /// @brief set the state to open list (make sure it is not in closed list and if it is, update it)
-            void setOpen(){
+            void setOpen()
+            {
                 in_open = true;
                 in_closed = false;
             }
 
             /// @brief set the state to closed list (make sure it is not in open list and if it is, update it)
-            void setClosed(){
+            void setClosed()
+            {
                 in_closed = true;
                 in_open = false;
             }
 
-            void print() override{
+            void print() override
+            {
                 std::cout << "State: " << state_id << " Parent: " << parent_id << " g: " << g << " f: " << f << std::endl;
             }
-
         };
 
         /// @brief The search state compare struct.
-        struct SearchStateCompare{
-            bool operator()(const SearchState& s1, const SearchState& s2) const{
+        struct SearchStateCompare
+        {
+            bool operator()(const SearchState &s1, const SearchState &s2) const
+            {
                 if ((s1.f == s2.f) && (s1.g == s2.g))
                     return (s1.state_id < s2.state_id);
                 else if (s1.f == s2.f)
@@ -124,18 +139,18 @@ namespace ims{
         using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
         OpenList open_;
 
-        std::vector<SearchState*> states_;
+        std::vector<SearchState *> states_;
 
         /// @brief Get the state by id
         /// @param state_id The id of the state
         /// @return The state
         /// @note Use this function only if you are sure that the state exists.
-        auto getSearchState(int state_id) -> SearchState*;
+        auto getSearchState(int state_id) -> SearchState *;
 
         /// @brief Get the state by id or create a new one if it does not exist. If a search state does not exist yet and a new one is created, it's ID will be set, and all other member fields will initialize to default values.
         /// @param state_id The id of the state
         /// @return The state
-        auto getOrCreateSearchState(int state_id) -> SearchState*;
+        auto getOrCreateSearchState(int state_id) -> SearchState *;
 
     public:
         /// @brief Constructor
@@ -149,27 +164,26 @@ namespace ims{
         /// @param action_space_ptr The action space
         /// @param starts Vector of start states
         /// @param goals Vector of goal states
-        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                       const std::vector<StateType>& starts,
-                                       const std::vector<StateType>& goals) override;
+        void initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+                               const std::vector<StateType> &starts,
+                               const std::vector<StateType> &goals) override;
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
         /// @param start The start state
         /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                               const StateType& start, const StateType& goal) override;
+        void initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+                               const StateType &start, const StateType &goal) override;
 
         /// @brief plan a path
         /// @param path The path
         /// @return if the plan was successful or not
-        bool plan(std::vector<StateType>& path) override;
+        bool plan(std::vector<StateType> &path) override;
 
         void resetPlanningData() override;
 
     protected:
-
-        /// @brief 
+        /// @brief
         /// @param state_id The id of the state.
         /// @param parent_id The id of the parent state.
         /// @param cost The cost associated with the search state. For example, in A*, this would be the f value.
@@ -187,19 +201,15 @@ namespace ims{
         /// @brief Expand the current state
         virtual void expand(int state_id);
 
-        void reconstructPath(std::vector<StateType>& path) override;
-        void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
+        void reconstructPath(std::vector<StateType> &path) override;
+        void reconstructPath(std::vector<StateType> &path, std::vector<double> &costs) override;
 
         bool isGoalState(int state_id) override;
 
-        BaseHeuristic* heuristic_ = nullptr;
-
+        BaseHeuristic *heuristic_ = nullptr;
 
     }; // class BestFirstSearch
 
 }
 
-
-
-
-#endif //SEARCH_BESTFIRSTSEARCH_HPP
+#endif // SEARCH_BESTFIRSTSEARCH_HPP

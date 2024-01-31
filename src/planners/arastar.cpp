@@ -355,6 +355,7 @@ void ims::ARAStar::updateBounds()
     // update stats to current suboptimality
     stats_.suboptimality = params_.epsilon;
     // update epsilon
+    std::cout << "the current lowest cost path is " << params_.curr_cost << std::endl;
     params_.epsilon -= params_.epsilon_delta;
     if (params_.epsilon < params_.final_epsilon)
         params_.epsilon = params_.final_epsilon;

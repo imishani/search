@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   run_2d_arastar.cpp
+ * \file   run_2d_NPARAStar.cpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   8/3/23
  */
@@ -40,14 +40,13 @@
 #include <cmath>
 
 // project includes
-#include <search/planners/arastar.hpp>
+#include <search/planners/nparastar.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
 #include "action_space_2d_rob.hpp"
 #include "utils.hpp"
 
 int main(int argc, char **argv)
 {
-
     if (argc < 2)
     {
         std::cout << RED << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <path>" << RESET << std::endl;
@@ -90,9 +89,8 @@ int main(int argc, char **argv)
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
     auto *heuristic = new ims::EuclideanHeuristic();
-    double init_epsilon = 100.0;
-    ims::ARAStarParams params(heuristic, init_epsilon, 10.0);
-    params.ara_time_limit = .005;
+    ims::NPARAStarParams params(heuristic);
+    params.npara_time_limit = .005;
     // construct the scene and the action space
     Scene2DRob scene(map);
     ActionType2dRob action_type;
@@ -119,7 +117,7 @@ int main(int argc, char **argv)
 
         std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
         // construct planner
-        ims::ARAStar planner(params);
+        ims::NPARAStar planner(params);
         // catch the exception if the start or goal is not valid
         try
         {
@@ -153,7 +151,7 @@ int main(int argc, char **argv)
     }
 
     // save the logs to a temporary file
-    logStats(logs, map_index, "ARAstar");
+    logStats(logs, map_index, "NPNPARAStar");
 
     std::string path_file = logPaths(paths, map_index, scale);
 

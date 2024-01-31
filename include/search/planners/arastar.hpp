@@ -30,7 +30,7 @@
  * \file   arastar.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   7/21/23
-*/
+ */
 
 #ifndef SEARCH_SEARCH_INCLUDE_SEARCH_PLANNERS_ARASTAR_HPP_
 #define SEARCH_SEARCH_INCLUDE_SEARCH_PLANNERS_ARASTAR_HPP_
@@ -43,23 +43,26 @@
 // project includes
 #include <search/planners/wastar.hpp>
 
-namespace ims {
+namespace ims
+{
 
     /// @class ARAStarParams class.
     /// @brief The parameters for the ARAStar algorithm
-    struct ARAStarParams : public wAStarParams{
+    struct ARAStarParams : public wAStarParams
+    {
 
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit ARAStarParams(BaseHeuristic* heuristic,
+        explicit ARAStarParams(BaseHeuristic *heuristic,
                                double initial_epsilon,
                                double delta_epsilon,
                                double final_epsilon = 1) : wAStarParams(heuristic, initial_epsilon),
                                                            epsilon_delta(delta_epsilon),
-                                                           final_epsilon(final_epsilon){
+                                                           final_epsilon(final_epsilon)
+        {
             call_number = 0;
             ara_time_limit = INF_DOUBLE; // default: no time limit
-            expansions_limit = INF_INT; // default: no expansion limit
+            expansions_limit = INF_INT;  // default: no expansion limit
             curr_cost = INF_DOUBLE;
             init_epsilon = initial_epsilon;
         }
@@ -71,11 +74,15 @@ namespace ims {
         double final_epsilon, epsilon_delta, init_epsilon;
         double curr_cost;
 
-        enum timing_types {TIME, EXPANSIONS, USER} type = TIME;
-        double ara_time_limit; // TIME: time limit for the search
-        int expansions_limit; // EXPANSIONS: limit on the number of expansions
+        enum timing_types
+        {
+            TIME,
+            EXPANSIONS,
+            USER
+        } type = TIME;
+        double ara_time_limit;               // TIME: time limit for the search
+        int expansions_limit;                // EXPANSIONS: limit on the number of expansions
         std::function<bool()> timed_out_fun; // USER: function to check if the search timed out
-
     };
 
     /// @class ARAStar class (ARA*: Anytime Repairing A*).
@@ -84,40 +91,42 @@ namespace ims {
     /// decreasing it (decreasing bounds on the suboptimality) to return the best solution found
     /// within a given time bound. This algorithm reuses the search tree from the previous search to
     /// improve the efficiency rather the vanilla case which starts from scratch in each iteration.
-    class ARAStar : public wAStar {
+    class ARAStar : public wAStar
+    {
 
         friend class ExperienceARAstar;
+        friend class NPARAStar;
 
     private:
-    struct SearchState : public BestFirstSearch::SearchState {
-        double h {-1} ;
-        double v {INF_DOUBLE};
-        unsigned short call_number {};
-        bool in_incons {false};
-    };
+        struct SearchState : public BestFirstSearch::SearchState
+        {
+            double h{-1};
+            double v{INF_DOUBLE};
+            unsigned short call_number{};
+            bool in_incons{false};
+        };
 
-    /// @brief The open list.
-    using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-    OpenList open_;
-    std::vector<SearchState*> incons_;
-    std::vector<SearchState*> states_;
+        /// @brief The open list.
+        using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
+        OpenList open_;
+        std::vector<SearchState *> incons_;
+        std::vector<SearchState *> states_;
 
-    /// @brief Get the state by id
-    /// @param state_id The id of the state
-    /// @return The state
-    /// @note Use this function only if you are sure that the state exists
-    auto getSearchState(int state_id) -> SearchState*;
+        /// @brief Get the state by id
+        /// @param state_id The id of the state
+        /// @return The state
+        /// @note Use this function only if you are sure that the state exists
+        auto getSearchState(int state_id) -> SearchState *;
 
-    /// @brief Get the state by id or create a new one if it does not exist
-    /// @param state_id The id of the state
-    /// @return The state
-    auto getOrCreateSearchState(int state_id) -> SearchState*;
+        /// @brief Get the state by id or create a new one if it does not exist
+        /// @param state_id The id of the state
+        /// @return The state
+        auto getOrCreateSearchState(int state_id) -> SearchState *;
 
     public:
-
         /// @brief Constructor
         /// @param params The parameters for the ARAStar algorithm
-        explicit ARAStar(const ARAStarParams& params);
+        explicit ARAStar(const ARAStarParams &params);
 
         /// @brief Destructor
         ~ARAStar() override;
@@ -126,16 +135,16 @@ namespace ims {
         /// @param action_space_ptr The action space
         /// @param starts Vector of start states
         /// @param goals Vector of goal states
-        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                               const std::vector<StateType>& starts,
-                               const std::vector<StateType>& goals) override;
+        void initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+                               const std::vector<StateType> &starts,
+                               const std::vector<StateType> &goals) override;
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
         /// @param start The start state
         /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                               const StateType& start, const StateType& goal) override;
+        void initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+                               const StateType &start, const StateType &goal) override;
 
         /// @brief Plan a path
         /// @param path The path to be filled
@@ -143,7 +152,6 @@ namespace ims {
         bool plan(std::vector<StateType> &path) override;
 
     protected:
-
         /// @brief Improve path function (inner loop of the algorithm)
         /// @param path The path to be filled
         /// @return True if a path was found, false otherwise
@@ -153,8 +161,8 @@ namespace ims {
 
         void setStateVals(int state_id, int parent_id, double cost) override;
 
-        void reconstructPath(std::vector<StateType>& path) override;
-        void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
+        void reconstructPath(std::vector<StateType> &path) override;
+        void reconstructPath(std::vector<StateType> &path, std::vector<double> &costs) override;
 
         /// @brief Reorder the open list
         void reorderOpen();
@@ -164,7 +172,7 @@ namespace ims {
 
         /// @brief Reinit search state when in new iteration
         /// @param state The state to be reinitialized
-        void reinitSearchState(SearchState* state) const;
+        void reinitSearchState(SearchState *state) const;
 
         /// @brief Check if the search timed out based on time type
         bool timedOut();
@@ -172,9 +180,7 @@ namespace ims {
         void resetPlanningData() override;
 
         ARAStarParams params_;
-
-
     };
 }
 
-#endif //SEARCH_SEARCH_INCLUDE_SEARCH_PLANNERS_ARASTAR_HPP_
+#endif // SEARCH_SEARCH_INCLUDE_SEARCH_PLANNERS_ARASTAR_HPP_

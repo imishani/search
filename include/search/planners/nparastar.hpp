@@ -41,25 +41,26 @@
 #include <utility>
 #include <algorithm>
 // project includes
-#include <search/planners/wastar.hpp>
+#include <search/planners/arastar.hpp>
 
 namespace ims
 {
 
     /// @class NPARAStarParams class.
     /// @brief The parameters for the NPARAStar algorithm
-    struct NPARAStarParams : public wAStarParams
+    struct NPARAStarParams : public ARAStarParams
     {
-
+        double init_epsilon;
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit NPARAStarParams(BaseHeuristic *heuristic) : wAStarParams(heuristic, INF_DOUBLE)
+        explicit NPARAStarParams(BaseHeuristic *heuristic, double init_epsilon = 1000) : init_epsilon(1000),
+                                                                                         ARAStarParams(heuristic, INF_DOUBLE, 0)
         {
             call_number = 0;
-            ara_time_limit = INF_DOUBLE; // default: no time limit
-            expansions_limit = INF_INT;  // default: no expansion limit
+            npara_time_limit = INF_DOUBLE; // default: no time limit
+            expansions_limit = INF_INT;    // default: no expansion limit
             curr_cost = INF_DOUBLE;
-            init_epsilon = INF_DOUBLE;
+            init_epsilon = 1000;
         }
 
         /// @brief Destructor
@@ -74,7 +75,7 @@ namespace ims
             EXPANSIONS,
             USER
         } type = TIME;
-        double ara_time_limit;               // TIME: time limit for the search
+        double npara_time_limit;             // TIME: time limit for the search
         int expansions_limit;                // EXPANSIONS: limit on the number of expansions
         std::function<bool()> timed_out_fun; // USER: function to check if the search timed out
     };
@@ -85,10 +86,8 @@ namespace ims
     /// decreasing it (decreasing bounds on the suboptimality) to return the best solution found
     /// within a given time bound. This algorithm reuses the search tree from the previous search to
     /// improve the efficiency rather the vanilla case which starts from scratch in each iteration.
-    class NPARAStar : public wAStar
+    class NPARAStar : public ARAStar
     {
-
-        friend class ExperienceNPARAStar;
 
     private:
         struct SearchState : public BestFirstSearch::SearchState
@@ -161,7 +160,7 @@ namespace ims
         void reorderOpen();
 
         /// @brief Update all bounds for the next iteration (time and suboptimality)
-        virtual void updateBounds();
+        virtual void updateBounds() override;
 
         /// @brief Reinit search state when in new iteration
         /// @param state The state to be reinitialized
