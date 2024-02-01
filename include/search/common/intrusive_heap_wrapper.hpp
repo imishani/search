@@ -7,9 +7,7 @@ IntrusiveHeapWrapper<T, Compare>::IntrusiveHeapWrapper() : m_pq() {}
 
 template <class T, class Compare>
 IntrusiveHeapWrapper<T, Compare>::~IntrusiveHeapWrapper() {
-    for (auto& pair : m_map) {
-        delete pair.second;
-    }
+    clear();
 }
 
 template <class T, class Compare>

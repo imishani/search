@@ -140,8 +140,6 @@ public:
     virtual double getLowerBound() const override;
 };
 
-
-
 } // Namespace ims
 
 
