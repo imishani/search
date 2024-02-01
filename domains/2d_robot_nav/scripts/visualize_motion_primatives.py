@@ -13,10 +13,14 @@ def load_data(file_action_prims_map: str):
     with open(file_action_prims_map, "r") as f:
         header = f.readline().strip().split(",")
         # check if the header is correct
+        print("Header = " + str(header))
         if header[0] != "ActionPrimsNumber" :
+            raise ValueError("Invalid header")
+        if header[2] != "StateDiscretization" :
             raise ValueError("Invalid header")
         # get the map index
         num_theta_values = int(header[1])
+        state_discretization = header[3].split(" ")
         # get the theta & action prims pairs
         action_prims_map = {}
         # get the paths
@@ -34,7 +38,7 @@ def load_data(file_action_prims_map: str):
                 # get the action prim
                 discretized_action_prim = f.readline().strip().split(",")
                 # add the action prim
-                discretized_action_prims.append([int(discretized_action_prim[0]), int(discretized_action_prim[1]), int(discretized_action_prim[2])])
+                discretized_action_prims.append([float(discretized_action_prim[0]), float(discretized_action_prim[1]), float(discretized_action_prim[2])])
             action_prims = []
             for _ in range(num_action_prims):
                 # get the action prim
@@ -44,10 +48,10 @@ def load_data(file_action_prims_map: str):
             # add the path
             action_prims_map[theta] = (discretized_action_prims, action_prims)
     # return the data
-    return action_prims_map
+    return action_prims_map, state_discretization
 
 
-def visualize(action_prims_map):
+def visualize(action_prims_map, state_discretization):
     """
     Visualizes each action prim in the map
     :param action_prims_map: A map from theta values to a list of action primatives
@@ -58,7 +62,7 @@ def visualize(action_prims_map):
         discretized_action_prims, action_prims = all_action_prims
         # create the figure
         fig = plt.figure()
-        plt.title("Action Primatives when Theta = " + str(theta))
+        plt.title("Action Primatives: State Discretization=" + str(state_discretization) + ", Theta=" + str(theta))
         
         for action_prim in action_prims:
             x = [0, action_prim[0]]
@@ -102,6 +106,6 @@ if __name__ == "__main__":
     path_to_this_file = os.path.dirname(os.path.abspath(__file__))
 
     # load the data
-    action_prims_map = load_data(args.fileactionprims)
+    action_prims_map, state_discretization = load_data(args.fileactionprims)
     # visualize the paths
-    visualize(action_prims_map)
+    visualize(action_prims_map, state_discretization)

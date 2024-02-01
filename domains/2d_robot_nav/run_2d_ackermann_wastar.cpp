@@ -116,12 +116,12 @@ int main(int argc, char** argv) {
         // print the value in the map
         std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
-        StateType state_discretization = {1, 1, 30};
+        StateType state_discretization = {.5, .5, 20};
         std::shared_ptr<ActionSpace2dAckermannRob> ActionSpace = std::make_shared<ActionSpace2dAckermannRob>(scene, state_discretization);
         
         std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> ActionPrimsMap = ActionSpace->getActionPrimsMap();
 
-        std::string action_prims_map_file = logActionPrimsMap(ActionPrimsMap);
+        std::string action_prims_map_file = logActionPrimsMap(ActionPrimsMap, state_discretization);
 
         std::string folder_name = "/run_2d_ackermann_wastar_action_prims";
         std::string folder_path = full_path.string() + folder_name;

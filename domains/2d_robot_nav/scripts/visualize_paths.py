@@ -84,7 +84,7 @@ def load_data(file_path: str):
                 # get the state
                 state = f.readline().strip().split(",")
                 # add the state
-                states.append([int(state[0]), int(state[1])])
+                states.append([float(state[0]), float(state[1])])
             # add the path
             paths_[path_index] = np.array(states)
     # return the data
