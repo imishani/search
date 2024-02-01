@@ -54,15 +54,15 @@ def load_data(file_action_prims_map: str):
 def visualize(action_prims_map, state_discretization):
     """
     Visualizes each action prim in the map
-    :param action_prims_map: A map from theta values to a list of action primatives
+    :param action_prims_map: A map from theta values to a list of action primitives
     :return:
     """
-    # plot the action primatives
+    # plot the action primitives
     for theta, all_action_prims in action_prims_map.items():
         discretized_action_prims, action_prims = all_action_prims
         # create the figure
         fig = plt.figure()
-        plt.title("Action Primatives: State Discretization=" + str(state_discretization) + ", Theta=" + str(theta))
+        plt.title("Action Primitives: State Discretization=" + str(state_discretization) + ", Theta=" + str(theta))
         
         for action_prim in action_prims:
             x = [0, action_prim[0]]

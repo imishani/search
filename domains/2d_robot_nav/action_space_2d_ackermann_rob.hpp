@@ -70,7 +70,7 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
             action_prims_map_ = makeActionPrimsMap();
         }
         
-        /// @brief Uses Ackermann steering to calculate the action primatives for a given theta.
+        /// @brief Uses Ackermann steering to calculate the action primitives for a given theta.
         /// @param curr_theta Current orientation of the robot. Theta = 0 corresponds to increasing column.
         /// @return A list of possible changes in x, y, and theta based on 5 different steering angles.
         std::vector<Action> getPrimActionsFromTheta(double curr_theta) {
