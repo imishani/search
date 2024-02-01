@@ -194,7 +194,7 @@ struct Sphere3dConstraint : public Constraint {
 // ==========================
 // Constraints used by Prioritized Planning.
 // ==========================
-struct VertexAvoidanceConstraint : public Constraint {
+struct VertexPriorityConstraint : public Constraint {
 
     /// @brief The time of the constraint. If the time is -1, then the constraint is applied at all times.
     TimeType time;
@@ -206,14 +206,14 @@ struct VertexAvoidanceConstraint : public Constraint {
     /// @brief Constructor, allowing to set the agent ids to avoid and when. An overload allows also setting the agent names.
     /// @param agent_ids_to_avoid The agent ids to avoid.
     /// @param time The time of the constraint.
-    explicit VertexAvoidanceConstraint(std::vector<int> agent_ids_to_avoid, TimeType time) : 
+    explicit VertexPriorityConstraint(std::vector<int> agent_ids_to_avoid, TimeType time) : 
         agent_ids_to_avoid(agent_ids_to_avoid), 
         time(time) {
 
         /// @brief The type of the constraint.
         type = ConstraintType::VERTEX_PRIORITY;
     }
-    explicit VertexAvoidanceConstraint(int agent_id_to_avoid, TimeType time) : 
+    explicit VertexPriorityConstraint(int agent_id_to_avoid, TimeType time) : 
         time(time) {
         agent_ids_to_avoid = {agent_id_to_avoid};
 
@@ -223,7 +223,7 @@ struct VertexAvoidanceConstraint : public Constraint {
 
     /// @brief Constructor, allowing to set the agent ids to avoid, time, and agent names.
     /// @param state The state vector.
-    explicit VertexAvoidanceConstraint(int agent_ids_to_avoid, TimeType time, std::vector<std::string> agent_names_to_avoid) :
+    explicit VertexPriorityConstraint(int agent_ids_to_avoid, TimeType time, std::vector<std::string> agent_names_to_avoid) :
         agent_ids_to_avoid(agent_ids_to_avoid), 
         time(time), 
         agent_names_to_avoid(agent_names_to_avoid) {
@@ -231,7 +231,7 @@ struct VertexAvoidanceConstraint : public Constraint {
         /// @brief The type of the constraint.
         type = ConstraintType::VERTEX_PRIORITY;
     }
-    explicit VertexAvoidanceConstraint(int agent_id_to_avoid, TimeType time, std::string agent_name_to_avoid) :
+    explicit VertexPriorityConstraint(int agent_id_to_avoid, TimeType time, std::string agent_name_to_avoid) :
         time(time) {
         agent_ids_to_avoid = {agent_id_to_avoid};
         agent_names_to_avoid = {agent_name_to_avoid};
@@ -244,7 +244,7 @@ struct VertexAvoidanceConstraint : public Constraint {
     /// @return The string representation.
     std::string toString() const override {
         std::stringstream ss;
-        ss << "VertexAvoidanceConstraint: avoid agents: (";
+        ss << "VertexPriorityConstraint: avoid agents: (";
         for (int i = 0; i < agent_ids_to_avoid.size() - 1; i++) {
             ss << agent_ids_to_avoid[i];
             if (i < agent_names_to_avoid.size() - 1) {
@@ -264,7 +264,7 @@ struct VertexAvoidanceConstraint : public Constraint {
     }
 };
 
-struct EdgeAvoidanceConstraint : public Constraint {
+struct EdgePriorityConstraint : public Constraint {
     /// @brief The time interval of the constraint.
     TimeType t_from;
     TimeType t_to;
@@ -279,7 +279,7 @@ struct EdgeAvoidanceConstraint : public Constraint {
     /// @param agent_ids_to_avoid The agent ids to avoid.
     /// @param t_from The time to start avoiding the agents.
     /// @param t_to The time to stop avoiding the agents.
-    explicit EdgeAvoidanceConstraint(int agent_id_to_avoid, TimeType t_from, TimeType t_to, std::string agent_name_to_avoid = "") :
+    explicit EdgePriorityConstraint(int agent_id_to_avoid, TimeType t_from, TimeType t_to, std::string agent_name_to_avoid = "") :
         t_from(t_from),
         t_to(t_to),
         agent_ids_to_avoid({agent_id_to_avoid}),
@@ -288,7 +288,7 @@ struct EdgeAvoidanceConstraint : public Constraint {
 
         // Check that there is exactly one timestep between `t_from` and `t_to`.
         if (t_to - t_from != 1 && (t_to != -1 && t_from != -1)) {
-            throw std::invalid_argument("EdgeAvoidanceConstraint: t_to - t_from != 1. Currently only single-timestep-edges are supported.");
+            throw std::invalid_argument("EdgePriorityConstraint: t_to - t_from != 1. Currently only single-timestep-edges are supported.");
         }
     }
 
@@ -296,7 +296,7 @@ struct EdgeAvoidanceConstraint : public Constraint {
     /// @param agent_ids_to_avoid The agent ids to avoid.
     /// @param t_from The time to start avoiding the agents.
     /// @param t_to The time to stop avoiding the agents.
-    explicit EdgeAvoidanceConstraint(std::vector<int> agent_ids_to_avoid, TimeType t_from, TimeType t_to, std::vector<std::string> agent_names_to_avoid = {}) :
+    explicit EdgePriorityConstraint(std::vector<int> agent_ids_to_avoid, TimeType t_from, TimeType t_to, std::vector<std::string> agent_names_to_avoid = {}) :
         t_from(t_from),
         t_to(t_to),
         agent_ids_to_avoid(agent_ids_to_avoid),
@@ -305,7 +305,7 @@ struct EdgeAvoidanceConstraint : public Constraint {
 
         // Check that there is exactly one timestep between `t_from` and `t_to`.
         if (t_to - t_from != 1 && (t_to != -1 && t_from != -1)) {
-            throw std::invalid_argument("EdgeAvoidanceConstraint: t_to - t_from != 1. Currently only single-timestep-edges are supported.");
+            throw std::invalid_argument("EdgePriorityConstraint: t_to - t_from != 1. Currently only single-timestep-edges are supported.");
         }
     }
 
@@ -313,7 +313,7 @@ struct EdgeAvoidanceConstraint : public Constraint {
     /// @return The string representation.
     std::string toString() const override {
         std::stringstream ss;
-        ss << "EdgeAvoidanceConstraint. Avoiding agent ids: (";
+        ss << "EdgePriorityConstraint. Avoiding agent ids: (";
         for (int i = 0; i < agent_ids_to_avoid.size() - 1; i++) {
             ss << agent_ids_to_avoid[i];
             if (i < agent_names_to_avoid.size() - 1) {

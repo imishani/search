@@ -80,14 +80,14 @@ void point3dVertexConflictToVertexStateAvoidanceConstraints(const Point3dVertexC
 /// @brief Convert andge point3d conflict to an edge avoidance constraint. "Avoid an agent at this time."
 /// @param point3d_conflict_ptr
 /// @param agent_constraints
-void point3dEdgeConflictToEdgeAvoidanceConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+void point3dEdgeConflictToEdgePriorityConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
                                         const std::vector<std::string>& agent_names_to_avoid,
                                         std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
 
 /// @brief Convert a vertex point3d conflict to a vertex avoidance constraint.
 /// @param point3d_conflict_ptr
 /// @param agent_constraints
-void point3dVertexConflictToVertexAvoidanceConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+void point3dVertexConflictToVertexPriorityConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
                                         const std::vector<std::string>& agent_names_to_avoid,
                                         std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
 

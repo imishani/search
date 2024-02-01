@@ -138,12 +138,12 @@ public:
 
             case ims::ConstraintType::VERTEX_PRIORITY: {
                 // Convert to a vertex constraint pointer to get access to its members.
-                auto* vertex_avoidance_constraint_ptr = dynamic_cast<ims::VertexAvoidanceConstraint*>(constraint_ptr.get());
-                if (vertex_avoidance_constraint_ptr != nullptr) {
+                auto* vertex_priority_constraint_ptr = dynamic_cast<ims::VertexPriorityConstraint*>(constraint_ptr.get());
+                if (vertex_priority_constraint_ptr != nullptr) {
                     // The constraint specifies avoidance of multiple agents. Loop through them and check if the state is valid w.r.t the constraint.
-                    for (int other_agent_id : vertex_avoidance_constraint_ptr->agent_ids_to_avoid) {
+                    for (int other_agent_id : vertex_priority_constraint_ptr->agent_ids_to_avoid) {
                         // Check equality of the constrained time and the current time. If the constrained time is -1, then the constraint is a goal constraint and should be checked only at the goal state.
-                        if (vertex_avoidance_constraint_ptr->time != -1 && vertex_avoidance_constraint_ptr->time != next_state_val[2]) {
+                        if (vertex_priority_constraint_ptr->time != -1 && vertex_priority_constraint_ptr->time != next_state_val[2]) {
                             continue;
                         }
 
@@ -164,12 +164,12 @@ public:
 
             case ims::ConstraintType::EDGE_PRIORITY: {
                 // Convert to an edge constraint pointer to get access to its members.
-                auto* edge_avoidance_constraint_ptr = dynamic_cast<ims::EdgeAvoidanceConstraint*>(constraint_ptr.get());
-                if (edge_avoidance_constraint_ptr != nullptr) {
+                auto* edge_priority_constraint_ptr = dynamic_cast<ims::EdgePriorityConstraint*>(constraint_ptr.get());
+                if (edge_priority_constraint_ptr != nullptr) {
                     // The constraint specifies avoidance of multiple agents. Loop through them and check if the state is valid w.r.t the constraint.
-                    for (int other_agent_id : edge_avoidance_constraint_ptr->agent_ids_to_avoid) {
+                    for (int other_agent_id : edge_priority_constraint_ptr->agent_ids_to_avoid) {
                         // Check equality of the constrained time and the current time. If the constrained time is -1, then the constraint is a goal constraint and should be checked only at the goal state.
-                        if (edge_avoidance_constraint_ptr->t_from != -1 && edge_avoidance_constraint_ptr->t_to != -1 && (edge_avoidance_constraint_ptr->t_from != state_val[2] || edge_avoidance_constraint_ptr->t_to != next_state_val[2])) {
+                        if (edge_priority_constraint_ptr->t_from != -1 && edge_priority_constraint_ptr->t_to != -1 && (edge_priority_constraint_ptr->t_from != state_val[2] || edge_priority_constraint_ptr->t_to != next_state_val[2])) {
                             continue;
                         }
 

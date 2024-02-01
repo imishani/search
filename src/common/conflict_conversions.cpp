@@ -179,7 +179,7 @@ void point3dEdgeConflictToEdgeStateAvoidanceConstraints(const Point3dEdgeConflic
     }
 }
 
-void point3dVertexConflictToVertexAvoidanceConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+void point3dVertexConflictToVertexPriorityConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
                                                 const std::vector<std::string>& agent_names,
                                                 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
     // Create a new Vertex avoidance constraint for each of the agents. Point3dVertexConflict assumes private grids, so each agent has its own state.
@@ -198,15 +198,15 @@ void point3dVertexConflictToVertexAvoidanceConstraints(const Point3dVertexConfli
             }
         }
 
-        VertexAvoidanceConstraint constraint = VertexAvoidanceConstraint(agent_ids_to_avoid, time);
+        VertexPriorityConstraint constraint = VertexPriorityConstraint(agent_ids_to_avoid, time);
         constraint.agent_names_to_avoid = agent_names_to_avoid;
 
         // Update the constraints collective to also include the new constraint.
-        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexAvoidanceConstraint>(constraint)});
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexPriorityConstraint>(constraint)});
     }
 }
 
-void point3dEdgeConflictToEdgeAvoidanceConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+void point3dEdgeConflictToEdgePriorityConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
                                                 const std::vector<std::string>& agent_names,
                                                 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
 
@@ -227,11 +227,11 @@ void point3dEdgeConflictToEdgeAvoidanceConstraints(const Point3dEdgeConflict * p
                 agent_names_to_avoid.push_back(agent_names[agent_id_to_avoid]);
             }
         }
-        EdgeAvoidanceConstraint constraint = EdgeAvoidanceConstraint(agent_ids_to_avoid, time_from, time_to);
+        EdgePriorityConstraint constraint = EdgePriorityConstraint(agent_ids_to_avoid, time_from, time_to);
         constraint.agent_names_to_avoid = agent_names_to_avoid;
 
         // Update the constraints collective to also include the new constraint.
-        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeAvoidanceConstraint>(constraint)});
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgePriorityConstraint>(constraint)});
     }
 }
 

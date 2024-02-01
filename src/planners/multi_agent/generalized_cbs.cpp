@@ -38,7 +38,7 @@ ims::GeneralizedCBS::GeneralizedCBS(const ims::GeneralizedCBSParams& params) : p
     // Create the open list.
     // Today (2024-01-12) there are two ways to pop out of this open list. One is to pop the min element (using FOCAL), and the other is to pop the min element in anchor (only according to OpenCompare). 
     open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>();
-    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSAvoidanceConstraintFocalCompare>();
+    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
 
     // Create a stats field for the low-level planner nodes created.
     stats_.bonus_stats["num_low_level_expanded"] = 0;
@@ -242,8 +242,10 @@ bool ims::GeneralizedCBS::plan(MultiAgentPaths& paths) {
 ims::GeneralizedCBSPoint3d::GeneralizedCBSPoint3d(const ims::GeneralizedCBSPoint3dParams& params) : params_(params), GeneralizedCBS(params) {
     // Create the open list.
     // Today (2024-01-12) there are two ways to pop out of this open list. One is to pop the min element (using FOCAL), and the other is to pop the min element in anchor (only according to OpenCompare). 
-    open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>();
-    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSAvoidanceConstraintFocalCompare>();
+    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>();
+    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
+    open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSPriorityConstraintFocalCompare>();
+
 
     // Create a stats field for the low-level planner nodes created.
     stats_.bonus_stats["num_low_level_expanded"] = 0;
@@ -332,7 +334,7 @@ void ims::GeneralizedCBSPoint3d::createRootInOpenList() {
     agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(start_->paths), 
                                                     start_->unresolved_conflicts, 
                                                     getConflictTypes(),
-                                                    -1, 
+                                                    1, 
                                                     agent_names_);
 
     // Set the cost of the CBSState start_.
@@ -354,9 +356,6 @@ void ims::GeneralizedCBSPoint3d::createRootInOpenList() {
     // Push the initial CBS state to the open list.
     stats_.num_generated++;
     open_->push(start_);
-    // Required to push into focal queue
-    // double lower_bound = open_->getLowerBound();
-    // open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
 }
 
 void ims::GeneralizedCBSPoint3d::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
@@ -666,7 +665,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
         // Get the agent-avoidance constraints.
         if (params_.constraint_types_to_create.find(ConstraintType::VERTEX_PRIORITY) != params_.constraint_types_to_create.end()) {
             std::cout << CYAN << "Creating vertex avoidance constraints." << RESET << std::endl;
-            ims::conflict_conversions::point3dVertexConflictToVertexAvoidanceConstraints(point3d_conflict_ptr, agent_names_, agent_constraints);
+            ims::conflict_conversions::point3dVertexConflictToVertexPriorityConstraints(point3d_conflict_ptr, agent_names_, agent_constraints);
         }
 
         // Get the regular vertex constraints.
@@ -700,7 +699,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
         // Get the agent-avoidance constraints.
         if (params_.constraint_types_to_create.find(ConstraintType::EDGE_PRIORITY) != params_.constraint_types_to_create.end()) {
             std::cout << CYAN << "Creating edge avoidance constraints." << RESET << std::endl;
-            ims::conflict_conversions::point3dEdgeConflictToEdgeAvoidanceConstraints(point3d_conflict_ptr, agent_names_, agent_constraints);
+            ims::conflict_conversions::point3dEdgeConflictToEdgePriorityConstraints(point3d_conflict_ptr, agent_names_, agent_constraints);
         }
 
         // Get the regular edge constraints.
