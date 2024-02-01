@@ -77,16 +77,17 @@ struct GeneralizedBCBSParams : public GeneralizedCBSParams {
     double low_level_focal_suboptimality = 2.0;
 
     /// @brief Parameters for specific constraint types.
-    double sphere3d_constraint_radius = 0.1;
+    double sphere3d_constraint_radius = 0.2;
 
     /// @brief The constraints to create from the conflicts.
-    std::unordered_set<ConstraintType> constraint_types_to_create = {ConstraintType::EDGE, // "Do not traverse this edge between these times."
-                                                         ConstraintType::VERTEX, // "Do not be at this vertex at this time."
+    std::unordered_set<ConstraintType> constraint_types_to_create = {
                                                         ConstraintType::SPHERE3D, // "Do not be in this sphere at this time."
-                                                        //  ConstraintType::EDGE_AVOIDANCE, // "Between these times, avoid those agents (whereever they are)."
-                                                        //  ConstraintType::VERTEX_AVOIDANCE, // "At this time, avoid those agents (whereever they are)."
-                                                         //  ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."
-                                                         //  ConstraintType::VERTEX_STATE_AVOIDANCE, // "At this time, avoid those agents taking the specified configurations."
+                                                        ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."
+                                                        ConstraintType::VERTEX_STATE_AVOIDANCE, // "At this time, avoid those agents taking the specified configurations."
+                                                        // ConstraintType::EDGE_PRIORITY, // "Between these times, avoid those agents (whereever they are)."
+                                                        // ConstraintType::VERTEX_PRIORITY, // "At this time, avoid those agents (whereever they are)."
+                                                        ConstraintType::EDGE, // "Do not traverse this edge between these times."
+                                                        ConstraintType::VERTEX, // "Do not be at this vertex at this time."
                                                         };
 };
 
@@ -312,8 +313,14 @@ protected:
             if (constraint_density_s1 == constraint_density_s2) {
                 if (s1.f == s2.f) {
                     if (s1.g == s2.g) {
-                        return s1.state_id < s2.state_id;
-                    }
+                        int c1 = s1.unresolved_conflicts.size();
+                        int c2 = s2.unresolved_conflicts.size();
+                        // Compare unresolved conflicts count
+                        if (c1 == c2) {
+                            return s1.state_id < s2.state_id;
+                        }
+                        // s1 will come before s2 if it has fewer conflicts.
+                        return c1 < c2;                    }
                     return s1.g < s2.g;
                 }
                 return s1.f < s2.f;
@@ -323,6 +330,23 @@ protected:
             return constraint_density_s1 > constraint_density_s2;
         }
     };
+
+
+    struct GeneralizedXECBSConflictCountFocalCompare{
+        bool operator()(const SearchState& s1, const SearchState& s2) const{
+            if (s1.unresolved_conflicts.size() == s2.unresolved_conflicts.size()) {
+                if (s1.f == s2.f) {
+                    if (s1.g == s2.g) {
+                        return s1.state_id < s2.state_id;
+                    }
+                    return s1.g < s2.g;
+                }
+                return s1.f < s2.f;
+            }
+            return s1.unresolved_conflicts.size() < s2.unresolved_conflicts.size();
+        }
+    };
+
 
     /// @brief Generate descendents of a state, a key method in most search algorithms.
     /// @param state_id
@@ -364,7 +388,8 @@ protected:
     int current_priority_function_index_ = 0; 
 
     // The open list. Inherited from GeneralizedCBS.
-    FocalAndAnchorQueueWrapper<SearchState, GeneralizedXECBSOpenCompare, GeneralizedXECBSSphere3dConstraintFocalCompare>* open_;
+    // FocalAndAnchorQueueWrapper<SearchState, GeneralizedXECBSOpenCompare, GeneralizedXECBSSphere3dConstraintFocalCompare>* open_;
+    FocalAndAnchorQueueWrapper<SearchState, GeneralizedXECBSOpenCompare, GeneralizedXECBSConflictCountFocalCompare>* open_;
 
     // Experience reuse type.
     ExperienceReuseType experience_reuse_type_ = ExperienceReuseType::PREVIOUS_SOLUTION;

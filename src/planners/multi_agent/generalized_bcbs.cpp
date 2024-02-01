@@ -37,8 +37,9 @@
 ims::GeneralizedBCBS::GeneralizedBCBS(const ims::GeneralizedBCBSParams& params) : params_(params), GeneralizedCBS(params) {
     // Create the open list.
     // Today (2024-01-12) there are two ways to pop out of this open list. One is to pop the min element (using FOCAL), and the other is to pop the min element in anchor (only according to OpenCompare). 
-    open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>();
+    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedECBSSphere3dConstraintFocalCompare>();
     // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
+    open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedECBSOpenCompare, GeneralizedECBSConflictCountFocalCompare>();
 
     // Create a stats field for the low-level planner nodes created.
     stats_.bonus_stats["num_low_level_expanded"] = 0;
@@ -129,7 +130,7 @@ void ims::GeneralizedBCBS::createRootInOpenList() {
     agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(start_->paths), 
                                                     start_->unresolved_conflicts, 
                                                     getConflictTypes(),
-                                                    1, 
+                                                    -1, 
                                                     agent_names_);
 
     // Set the cost of the CBSState start_.
@@ -150,6 +151,7 @@ void ims::GeneralizedBCBS::createRootInOpenList() {
 
     // Push the initial CT state to the open list.
     open_->push(start_);
+    stats_.num_generated++;
 }
 
 void ims::GeneralizedBCBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
@@ -356,8 +358,6 @@ void ims::GeneralizedBCBS::expand(int state_id) {
 
     // TEST TEST TEST.
     std::cout << "    Creating new states ";
-    stats_.num_generated++;
-
     for (auto& agent_id_constraint : constraints){
 
         // The first element is the agent ID.
@@ -402,7 +402,6 @@ void ims::GeneralizedBCBS::expand(int state_id) {
         new_state->setOpen();
         stats_.num_generated++;
         open_->push(new_state);
-        // We only count this node as being "generated" once we replan for the agents that were constrained.
     }
 
     // TEST TEST TEST.
@@ -601,7 +600,8 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
 ims::GeneralizedXECBS::GeneralizedXECBS(const ims::GeneralizedXECBSParams& params) : params_(params), EACBS(params) {
     // Create the open list.
     // Today (2024-01-12) there are two ways to pop out of this open list. One is to pop the min element (using FOCAL), and the other is to pop the min element in anchor (only according to OpenCompare). 
-    open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedXECBSOpenCompare, GeneralizedXECBSSphere3dConstraintFocalCompare>();
+    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedXECBSOpenCompare, GeneralizedXECBSSphere3dConstraintFocalCompare>();
+    open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedXECBSOpenCompare, GeneralizedXECBSConflictCountFocalCompare>();
 
     // Create a stats field for the low-level planner nodes created.
     stats_.bonus_stats["num_low_level_expanded"] = 0;
@@ -692,7 +692,7 @@ void ims::GeneralizedXECBS::createRootInOpenList() {
     agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(start_->paths), 
                                                     start_->unresolved_conflicts, 
                                                     getConflictTypes(),
-                                                    1, 
+                                                    -1, 
                                                     agent_names_);
 
     // Set the cost of the CBSState start_.
@@ -702,6 +702,7 @@ void ims::GeneralizedXECBS::createRootInOpenList() {
     start_->sum_of_costs = start_soc;
     start_->sum_of_path_cost_lower_bounds = start_soc;
     start_->setOpen();
+    stats_.num_generated++;
 
     // Push the initial CBS state to the open list.
     open_->push(start_);
@@ -987,7 +988,7 @@ void ims::GeneralizedXECBS::expand(int state_id) {
         agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(new_state->paths), 
                                                        new_state->unresolved_conflicts, 
                                                        getConflictTypes(),
-                                                       1,
+                                                       -1,
                                                        agent_names_);
 
         new_state->f = new_state_soc;

@@ -37,7 +37,7 @@
 ims::GeneralizedCBS::GeneralizedCBS(const ims::GeneralizedCBSParams& params) : params_(params), CBS(params) {
     // Create the open list.
     // Today (2024-01-12) there are two ways to pop out of this open list. One is to pop the min element (using FOCAL), and the other is to pop the min element in anchor (only according to OpenCompare). 
-    open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>();
+    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>();
     // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
 
     // Create a stats field for the low-level planner nodes created.
@@ -127,7 +127,7 @@ void ims::GeneralizedCBS::createRootInOpenList() {
     agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(start_->paths), 
                                                     start_->unresolved_conflicts, 
                                                     getConflictTypes(),
-                                                    -1, 
+                                                    1, 
                                                     agent_names_);
 
     // Set the cost of the CBSState start_.
@@ -242,9 +242,9 @@ bool ims::GeneralizedCBS::plan(MultiAgentPaths& paths) {
 ims::GeneralizedCBSPoint3d::GeneralizedCBSPoint3d(const ims::GeneralizedCBSPoint3dParams& params) : params_(params), GeneralizedCBS(params) {
     // Create the open list.
     // Today (2024-01-12) there are two ways to pop out of this open list. One is to pop the min element (using FOCAL), and the other is to pop the min element in anchor (only according to OpenCompare). 
-    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>();
+    open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>();
     // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
-    open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSPriorityConstraintFocalCompare>();
+    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSPriorityConstraintFocalCompare>();
 
 
     // Create a stats field for the low-level planner nodes created.
@@ -485,7 +485,7 @@ bool ims::GeneralizedCBSPoint3d::replanOutdatedAgents(SearchState* state) {
     agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths),
                                                     state->unresolved_conflicts, 
                                                     getConflictTypes(),
-                                                    -1,
+                                                    1,
                                                     agent_names_);
 
     state->f = new_state_soc;
