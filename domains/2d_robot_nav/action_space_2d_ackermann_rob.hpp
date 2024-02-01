@@ -91,12 +91,20 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
 
         /// @brief Iterates through the map to print each key-value pair.
         /// @param map A map with a key type of double (theta) and value type of vector<Action> (action prims).
-        void printActionPrimsMap(const std::map<double, std::vector<Action>> &map) {
+        void printActionPrimsMap(const std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> &map) {
             for (const auto& pair : map) {
                 std::cout << "Key: " << pair.first << ", Values: ";
                 
                 // Print the vector of vectors associated with the current key
-                for (const auto& innerVector : pair.second) {
+                for (const auto& innerVector : pair.second.first) {
+                    std::cout << "[ ";
+                    for (const auto& value : innerVector) {
+                        std::cout << value << " ";
+                    }
+                    std::cout << "] ";
+                }
+                // Print the vector of vectors associated with the current key
+                for (const auto& innerVector : pair.second.second) {
                     std::cout << "[ ";
                     for (const auto& value : innerVector) {
                         std::cout << value << " ";
@@ -110,18 +118,19 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
 
         /// @brief Uses the state discretization of the action space to create a map from each possible theta value to a vector of unique action prims.
         /// @return A map from each possible theta value to a vector of unique action prims.
-        std::map<double, std::vector<Action>> makeActionPrimsMap() {
-            std::map<double, std::vector<Action>> apm;
+        std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> makeActionPrimsMap() {
+            std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> apm;
 
             for(double theta = 0.0; theta < 360.0; theta += state_discretization_[2]){
                 std::vector<Action> action_prims = getPrimActionsFromTheta(theta);
+                std::vector<Action> discretized_action_prims(action_prims.size());
                 for (int i = 0; i < action_prims.size(); i++) {
-                    action_prims[i] = discretizeState(action_prims[i], state_discretization_);
+                    discretized_action_prims[i] = discretizeState(action_prims[i], state_discretization_);
                 }
 
-                action_prims = removeDuplicateActions(action_prims);
+                discretized_action_prims = removeDuplicateActions(discretized_action_prims);
 
-                apm[theta] = action_prims;
+                apm[theta] = {discretized_action_prims, action_prims};
             }
             printActionPrimsMap(apm);
             return apm;
@@ -136,7 +145,7 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
         double dt_;
         StateType state_discretization_;
         std::vector<int> steering_angles_;
-        std::map<double, std::vector<Action>> action_prims_map_;
+        std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> action_prims_map_;
     };
 
 protected:
@@ -162,7 +171,7 @@ public:
         
         ims::RobotState* curr_state = getRobotState(state_id);
         double curr_state_theta = (curr_state->state)[2];
-        std::vector<Action> actions = action_type_->action_prims_map_[curr_state_theta];
+        std::vector<Action> actions = action_type_->action_prims_map_[curr_state_theta].first;
         for (int i {0} ; i < actions.size(); i++){
             Action action = actions[i];
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
@@ -227,7 +236,7 @@ public:
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
     }
 
-    std::map<double, std::vector<Action>> getActionPrimsMap() {
+    std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> getActionPrimsMap() {
         return action_type_->action_prims_map_;
     }
 };
