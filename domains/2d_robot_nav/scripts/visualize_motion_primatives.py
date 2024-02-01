@@ -53,24 +53,27 @@ def visualize(action_prims_map):
     :param action_prims_map: A map from theta values to a list of action primatives
     :return:
     """
-    print(action_prims_map)
     # plot the action primatives
     for theta, all_action_prims in action_prims_map.items():
         discretized_action_prims, action_prims = all_action_prims
         # create the figure
         fig = plt.figure()
         plt.title("Action Primatives when Theta = " + str(theta))
-        for discretized_action_prim in discretized_action_prims:
-            x = [0, discretized_action_prim[0]]
-            y = [0, discretized_action_prim[1]]
-            plt.plot(x, y)
-
+        
         for action_prim in action_prims:
             x = [0, action_prim[0]]
             y = [0, action_prim[1]]
-            plt.plot(x, y)
+            plt.plot(x, y, color="red", label="Initial Action Prim")
+
+        for discretized_action_prim in discretized_action_prims:
+            x = [0, discretized_action_prim[0]]
+            y = [0, discretized_action_prim[1]]
+            plt.plot(x, y, color="blue", label="Discretized Action Prim")
             
         plt.grid()
+        handles, labels = plt.gca().get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        plt.legend(by_label.values(), by_label.keys())
 
         # save the plot to the folder
         if args.folderpath is not None:
