@@ -125,6 +125,7 @@ int main(int argc, char** argv) {
 
         std::string folder_name = "/run_2d_ackermann_wastar_action_prims";
         std::string folder_path = full_path.string() + folder_name;
+        boost::filesystem::create_directories(folder_path);
 
         std::string visualize_motion_primatives_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_motion_primatives.py";
         std::string command = "python3 " + visualize_motion_primatives_path + " --fileactionprims " + action_prims_map_file + " --folderpath " + folder_path;

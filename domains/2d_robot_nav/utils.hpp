@@ -202,7 +202,7 @@ std::string logActionPrimsMap(const std::map<double, std::pair<std::vector<Actio
     // header line
     file << "ActionPrimsNumber," << action_prims_map.size() << std::endl;
     for (const std::pair<const double, std::pair<std::vector<Action>, std::vector<Action>>>& theta_action_prims : action_prims_map) {
-        file << theta_action_prims.first << "," << theta_action_prims.second.first.size() << std::endl;
+        file << theta_action_prims.first << "," << theta_action_prims.second.first.size() << "," << theta_action_prims.second.second.size() << std::endl;
         for (const Action& action_prim : theta_action_prims.second.first) {
             file << action_prim[0] << "," << action_prim[1] << "," << action_prim[2] << std::endl;
         }
