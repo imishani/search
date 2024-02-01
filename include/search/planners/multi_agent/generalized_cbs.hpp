@@ -297,6 +297,51 @@ protected:
 
 
     /// @brief The search state compare structs for the HL focal lists.
+    struct GeneralizedCBSStateAvoidanceConstraintFocalCompare{
+        bool operator()(const SearchState& s1, const SearchState& s2) const{
+            int constraints_count_s1 = std::accumulate(s1.constraint_type_count.begin(), s1.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
+            int constraints_count_s2 = std::accumulate(s2.constraint_type_count.begin(), s2.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
+
+            double constraint_density_s1 = 0;
+            double constraint_density_s2 = 0;
+            
+            int num_edge_constraints_s1 = 0;
+            int num_edge_constraints_s2 = 0;
+            int num_vertex_constraints_s1 = 0;
+            int num_vertex_constraints_s2 = 0;
+
+            if (s1.constraint_type_count.find(ConstraintType::EDGE_STATE_AVOIDANCE) != s1.constraint_type_count.end()){
+                num_edge_constraints_s1 = s1.constraint_type_count.at(ConstraintType::EDGE_STATE_AVOIDANCE);
+            }
+            if (s2.constraint_type_count.find(ConstraintType::EDGE_STATE_AVOIDANCE) != s2.constraint_type_count.end()){
+                num_edge_constraints_s2 = s2.constraint_type_count.at(ConstraintType::EDGE_STATE_AVOIDANCE);
+            }
+            if (s1.constraint_type_count.find(ConstraintType::VERTEX_STATE_AVOIDANCE) != s1.constraint_type_count.end()){
+                num_vertex_constraints_s1 = s1.constraint_type_count.at(ConstraintType::VERTEX_STATE_AVOIDANCE);
+            }
+            if (s2.constraint_type_count.find(ConstraintType::VERTEX_STATE_AVOIDANCE) != s2.constraint_type_count.end()){
+                num_vertex_constraints_s2 = s2.constraint_type_count.at(ConstraintType::VERTEX_STATE_AVOIDANCE);
+            }
+
+            constraint_density_s1 = (num_edge_constraints_s1 + num_vertex_constraints_s1) / (double)constraints_count_s1;
+            constraint_density_s2 = (num_edge_constraints_s2 + num_vertex_constraints_s2) / (double)constraints_count_s2;
+
+            if (constraint_density_s1 == constraint_density_s2) {
+                if (s1.f == s2.f) {
+                    if (s1.g == s2.g) {
+                        return s1.state_id < s2.state_id;
+                    }
+                    return s1.g < s2.g;
+                }
+                return s1.f < s2.f;
+            }
+
+            // s1 will come before s2 if it has a higher constraint density.
+            return constraint_density_s1 > constraint_density_s2;
+        }
+    };
+
+    /// @brief The search state compare structs for the HL focal lists.
     struct GeneralizedECBSStateAvoidanceConstraintFocalCompare{
         bool operator()(const SearchState& s1, const SearchState& s2) const{
             int constraints_count_s1 = std::accumulate(s1.constraint_type_count.begin(), s1.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
@@ -405,7 +450,7 @@ protected:
     int current_priority_function_index_ = 0; 
 
     // The open list.
-    AbstractQueue<SearchState>* open_;
+    MultiFocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare>* open_;
 };
 
 // ==========================

@@ -178,7 +178,8 @@ protected:
     int num_priority_functions_ = 1;
     int current_priority_function_index_ = 0; 
 
-    // The open list. Inherited from GeneralizedCBS.
+    // The open list. Not inherited from GeneralizedCBS as it uses a multifocal queue. TODO(yoraish): make the change to a multifocal queue here as well.
+    AbstractQueue<SearchState>* open_;
 };
 
 

@@ -190,8 +190,8 @@ bool ims::GeneralizedCBS::plan(MultiAgentPaths& paths) {
         //     current_priority_function_index_ = 1;
         // } else {
             std::cout << GREEN << "Pop from focal." << RESET << std::endl;
-            state = open_->min();
-            open_->pop();
+            state = open_->min(0);
+            open_->pop(0);
             // current_priority_function_index_ = 0;
         // }
         // TEST TEST TEST.
@@ -241,10 +241,10 @@ bool ims::GeneralizedCBS::plan(MultiAgentPaths& paths) {
 
 ims::GeneralizedCBSPoint3d::GeneralizedCBSPoint3d(const ims::GeneralizedCBSPoint3dParams& params) : params_(params), GeneralizedCBS(params) {
     // Create the open list.
-    // Today (2024-01-12) there are two ways to pop out of this open list. One is to pop the min element (using FOCAL), and the other is to pop the min element in anchor (only according to OpenCompare). 
-    open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSSphere3dConstraintFocalCompare>();
-    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
-    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSPriorityConstraintFocalCompare>();
+    open_ = new MultiFocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare>();
+    open_->createNewFocalQueueFromComparator<GeneralizedCBSSphere3dConstraintFocalCompare>();
+    open_->createNewFocalQueueFromComparator<GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
+    // open_->createNewFocalQueueFromComparator<GeneralizedCBSOpenCompare>();
 
 
     // Create a stats field for the low-level planner nodes created.
@@ -385,17 +385,11 @@ bool ims::GeneralizedCBSPoint3d::plan(MultiAgentPaths& paths) {
 
         // Get the state of least cost according to the priority function in the round robin.
         SearchState* state;
-        // if (current_priority_function_index_ == 0) {
-        //     std::cout << GREEN << "Pop from anchor." << RESET << std::endl;
-        //     state = open_->minAnchor();
-        //     open_->popAnchor();
-        //     current_priority_function_index_ = 1;
-        // } else {
-            std::cout << GREEN << "Pop from focal." << RESET << std::endl;
-            state = open_->min();
-            open_->pop();
-            // current_priority_function_index_ = 0;
-        // }
+        std::cout << GREEN << "Pop from focal index " << current_priority_function_index_ << "." << RESET << std::endl;
+        state = open_->min(current_priority_function_index_);
+        open_->pop(current_priority_function_index_);
+        current_priority_function_index_ = (current_priority_function_index_ + 1) % open_->getNumFocalQueues();
+
         
                     // TEST TEST TEST.
                     // Print some information about this new state.

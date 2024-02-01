@@ -95,6 +95,10 @@ target_link_libraries(run_2d_mapf_eaecbs search ${Boost_LIBRARIES})
 add_executable(run_2d_mapf_pp domains/2d_mapf/run_2d_pp.cpp)
 target_link_libraries(run_2d_mapf_pp search ${Boost_LIBRARIES})
 
+# Tests.
+add_executable(test_search test/common/test_queue.cpp)
+target_link_libraries(test_search search ${Boost_LIBRARIES})
+
 # Add an uninstall target.
 if(NOT TARGET uninstall)
     configure_file(

@@ -49,7 +49,7 @@ public:
 template <class T, class CompareMain>
 class SimpleQueue : public AbstractQueue<T> {
 private:
-    ::smpl::IntrusiveHeapWrapper<T, CompareMain> m_open;
+    ::smpl::IntrusiveHeapWrapper<T, CompareMain> open_;
 
 public:
     SimpleQueue() = default;
@@ -83,8 +83,9 @@ public:
 template <class T, class CompareMain, class CompareFocal>
 class FocalQueue : public AbstractQueue<T> {
 private:
-    ::smpl::IntrusiveHeapWrapper<T, CompareMain> m_waitlist;
-    ::smpl::IntrusiveHeapWrapper<T, CompareFocal> m_focal;
+    ::smpl::IntrusiveHeapWrapper<T, CompareMain> waitlist_;
+    ::smpl::IntrusiveHeapWrapper<T, CompareFocal> focal_;
+    double previous_lower_bound_ = -std::numeric_limits<double>::infinity();
 
 public:
     virtual T* min() const override;
@@ -115,14 +116,53 @@ public:
 template <class T, class CompareMain, class CompareFocal>
 class FocalAndAnchorQueueWrapper : public AbstractQueue<T> {
 private:
-    FocalQueue<T, CompareMain, CompareFocal> m_focalQ;
-    SimpleQueue<T, CompareMain> m_anchorQ;
+    FocalQueue<T, CompareMain, CompareFocal> focalQ_;
+    SimpleQueue<T, CompareMain> anchorQ_;
 
 public:
     virtual T* min() const override;
     // virtual T* minAnchor() const;
     virtual void pop() override;
     // virtual void popAnchor();
+    virtual void push(T* e) override;
+    virtual void erase(T* e) override;
+    virtual bool empty() const override;
+    virtual void clear() override;
+    virtual void update(T* e) override;
+    virtual size_t size() const override;
+    virtual bool contains(T* e) const override;
+
+    /// @brief Updates focal queue to add more elements satisfying lower bound threshold.
+    /// @param lower_bound_threshold is the absolute value, not a suboptimality factor, queue
+    /// should then only pop() elements that satisfy this bound.
+    virtual void updateWithBound(double lower_bound_threshold) override;
+
+    /// @brief Returns the lower bound of all elements in the Queue.
+    /// @return 
+    /// @note Supported now as we internally have a SimpleQueue which keeps track of the lower bound.
+    virtual double getLowerBound() const override;
+};
+
+
+/// @brief Wrapper class that enables multiple focal queues to be added to a single open list.
+/// @tparam T element type which must support SearchStateLowerBoundMixin.
+/// @tparam CompareMain used for anchor queue. Focal queues are added manually by the user.
+template <class T, class CompareMain>
+class MultiFocalAndAnchorQueueWrapper : public AbstractQueue<T> {
+private:
+    
+    SimpleQueue<T, CompareMain> anchorQ_;
+    std::vector<AbstractQueue<T>*> focalQs_;
+
+public:
+    template <class CompareFocal>
+    void createNewFocalQueueFromComparator();
+    inline int getNumFocalQueues() const {return focalQs_.size();}
+
+    virtual T* min(int focalQ_index) const ;
+    virtual void pop(int focalQ_index) ;
+    virtual inline T* min() const {throw std::runtime_error("Not supported");}
+    virtual inline void pop() {throw std::runtime_error("Not supported");}
     virtual void push(T* e) override;
     virtual void erase(T* e) override;
     virtual bool empty() const override;
