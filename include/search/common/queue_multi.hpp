@@ -62,11 +62,14 @@ public:
     }
 
     virtual T* min() const override {
+        // If min satisfied lower bound (i.e. AbstractQueue is a focal queue), then all good
+        // If min may not, then we check and if violates bound choose to expand from the anchor queue
         return m_chooser->getChosenQueue()->min();
     };
 
     virtual void pop() override {
         m_chooser->getChosenQueue()->pop();
+        /// Need to remove from other queues
     }
 
     virtual void push(T* e) override {
