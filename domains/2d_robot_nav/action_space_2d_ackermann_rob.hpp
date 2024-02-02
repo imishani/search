@@ -90,12 +90,12 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
         }
 
         /// @brief Iterates through the map to print each key-value pair.
-        /// @param map A map with a key type of double (theta) and value type of vector<Action> (action prims).
+        /// @param map A map with a key type of double (theta) and value type of pair<vector<Action>,vector<Action>> (discretized_action prims, unrounded action prims).
         void printActionPrimsMap(const std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> &map) {
             for (const auto& pair : map) {
                 std::cout << "Key: " << pair.first << ", Values: ";
                 
-                // Print the vector of vectors associated with the current key
+                // Print the vector of discretized action prims associated with the current key
                 for (const auto& innerVector : pair.second.first) {
                     std::cout << "[ ";
                     for (const auto& value : innerVector) {
@@ -103,7 +103,7 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
                     }
                     std::cout << "] ";
                 }
-                // Print the vector of vectors associated with the current key
+                // Print the vector of unrounded action prims associated with the current key
                 for (const auto& innerVector : pair.second.second) {
                     std::cout << "[ ";
                     for (const auto& value : innerVector) {
@@ -116,8 +116,8 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
             }
         }
 
-        /// @brief Uses the state discretization of the action space to create a map from each possible theta value to a vector of unique action prims.
-        /// @return A map from each possible theta value to a vector of unique action prims.
+        /// @brief Uses the state discretization of the action space to create a map from each possible theta value to a pair of unique discretized action prims and unrounded action prims.
+        /// @return A map from each possible theta value to a a pair of unique discretized action prims and unrounded action prims.
         std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> makeActionPrimsMap() {
             std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> apm;
 

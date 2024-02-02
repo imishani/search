@@ -46,10 +46,6 @@
 #include "action_space_2d_ackermann_rob.hpp"
 #include "utils.hpp"
 
-void visualizeMotionPrimitives(const std::map<double, std::vector<Action>> &map) {
-    
-}
-
 
 int main(int argc, char** argv) {
 

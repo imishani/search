@@ -7,13 +7,35 @@ import matplotlib.pyplot as plt
 def load_data(file_action_prims_map: str):
     """
     Loads the data from the file
-    :param file_action_prims_map: file containing the log of the action prims map.
-    :return: A map from theta values to a list of action primatives
+    :param file_action_prims_map: file containing the state discretization vector (x, y, theta) and the discretized and unrounded action prims for each theta value.
+    Example:
+    '''
+    ActionPrimsNumber,12,StateDiscretization,1 1 30
+    0,3,5
+    1,0,-30
+    1,-0,0
+    1,-0,30
+    0.939693,0.34202,-40
+    0.984808,0.173648,-20
+    1,-0,0
+    0.984808,-0.173648,20
+    0.939693,-0.34202,40
+    30,3,5
+    1,-1,30
+    1,-0,-30
+    1,-0,0
+    0.984808,-0.173648,-40
+    0.939693,-0.34202,-20
+    0.866025,-0.5,0
+    0.766044,-0.642788,20
+    0.642788,-0.766044,40
+    ...
+    '''
+    :return: A map from theta values to a list of action primatives and a list containing the state discretization factors (x, y, theta)
     """
     with open(file_action_prims_map, "r") as f:
         header = f.readline().strip().split(",")
         # check if the header is correct
-        print("Header = " + str(header))
         if header[0] != "ActionPrimsNumber" :
             raise ValueError("Invalid header")
         if header[2] != "StateDiscretization" :
