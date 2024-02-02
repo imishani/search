@@ -27,14 +27,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   generalized_cbs.hpp
+ * \file   generalized_ecbs.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   2024-01-20
  */
 
-#include <search/planners/multi_agent/generalized_bcbs.hpp>
+#include <search/planners/multi_agent/generalized_ecbs.hpp>
 
-ims::GeneralizedBCBS::GeneralizedBCBS(const ims::GeneralizedBCBSParams& params) : params_(params), GeneralizedCBS(params) {
+ims::GeneralizedECBS::GeneralizedECBS(const ims::GeneralizedECBSParams& params) : params_(params), GeneralizedCBS(params) {
     // Create the open list.
     // Today (2024-01-12) there are two ways to pop out of this open list. One is to pop the min element (using FOCAL), and the other is to pop the min element in anchor (only according to OpenCompare). 
     // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedECBSSphere3dConstraintFocalCompare>();
@@ -45,7 +45,7 @@ ims::GeneralizedBCBS::GeneralizedBCBS(const ims::GeneralizedBCBSParams& params) 
     stats_.bonus_stats["num_low_level_expanded"] = 0;
 }
 
-void ims::GeneralizedBCBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs,
+void ims::GeneralizedECBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
 
     // Create the open list. This list is created in the constructor and reset here.
@@ -81,7 +81,7 @@ void ims::GeneralizedBCBS::initializePlanner(std::vector<std::shared_ptr<Subcost
     }
 }
                                  
-void ims::GeneralizedBCBS::createRootInOpenList() {
+void ims::GeneralizedECBS::createRootInOpenList() {
     // Generate a plan for each of the agents.
     MultiAgentPaths initial_paths;
     std::unordered_map<int, double> initial_paths_costs;
@@ -126,7 +126,7 @@ void ims::GeneralizedBCBS::createRootInOpenList() {
 
     // Get conflicts within the paths.
     // Get any conflicts between the newly computed paths.
-    // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the GeneralizedBCBS class, and then passed to the action_space.
+    // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the GeneralizedECBS class, and then passed to the action_space.
     agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(start_->paths), 
                                                     start_->unresolved_conflicts, 
                                                     getConflictTypes(),
@@ -154,12 +154,12 @@ void ims::GeneralizedBCBS::createRootInOpenList() {
     stats_.num_generated++;
 }
 
-void ims::GeneralizedBCBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
+void ims::GeneralizedECBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
                         agent_names_ = agent_names;
                         initializePlanner(action_space_ptrs, starts, goals);
                         }
 
-bool ims::GeneralizedBCBS::plan(MultiAgentPaths& paths) {
+bool ims::GeneralizedECBS::plan(MultiAgentPaths& paths) {
     startTimer();
     
     // Create the root node in the open list.
@@ -176,7 +176,7 @@ bool ims::GeneralizedBCBS::plan(MultiAgentPaths& paths) {
     while (!open_->empty() && !isTimeOut()) {
         // Report progress every 100 iterations
         if (iter % 10 == 0) {
-            std::cout << "GeneralizedBCBS CT open size: " << open_->size() << std::endl;
+            std::cout << "GeneralizedECBS CT open size: " << open_->size() << std::endl;
         }
 
         // Get the state of least cost according to the priority function in the round robin.
@@ -234,7 +234,7 @@ bool ims::GeneralizedBCBS::plan(MultiAgentPaths& paths) {
     return false;
 }
 
-bool ims::GeneralizedBCBS::replanOutdatedAgents(SearchState* state) {
+bool ims::GeneralizedECBS::replanOutdatedAgents(SearchState* state) {
     // If there are no unincorporated constraints, then there is nothing to do.
     if (state->agent_ids_need_replan.empty()) {
         return true;
@@ -297,7 +297,7 @@ bool ims::GeneralizedBCBS::replanOutdatedAgents(SearchState* state) {
     return true;
 }
 
-void ims::GeneralizedBCBS::expand(int state_id) {
+void ims::GeneralizedECBS::expand(int state_id) {
     auto state = getSearchState(state_id);
 
     // First and foremost, check if this state has already been evaluated. If not, then we need to recompute paths for it using its existing constraints collective.
@@ -408,7 +408,7 @@ void ims::GeneralizedBCBS::expand(int state_id) {
     std::cout << "\n===\n" << std::endl;
 }
 
-std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::GeneralizedBCBS::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
+std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::GeneralizedECBS::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
     std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> agent_constraints;
 
     if (conflicts.empty()) {

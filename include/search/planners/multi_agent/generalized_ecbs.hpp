@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   generalized_bcbs.hpp
+ * \file   generalized_ecbs.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   2024-01-20
  */
@@ -57,17 +57,17 @@
 namespace ims {
 
 // ==========================
-// Related structs: GeneralizedBCBSParams
+// Related structs: GeneralizedECBSParams
 // ==========================
-/// @class GeneralizedBCBSParams class.
-/// @brief The parameters for the GeneralizedBCBS algorithm
-struct GeneralizedBCBSParams : public GeneralizedCBSParams {
+/// @class GeneralizedECBSParams class.
+/// @brief The parameters for the GeneralizedECBS algorithm
+struct GeneralizedECBSParams : public GeneralizedCBSParams {
     /// @brief Constructor
-    explicit GeneralizedBCBSParams() : GeneralizedCBSParams() {
+    explicit GeneralizedECBSParams() : GeneralizedCBSParams() {
     }
 
     /// @brief Destructor
-    ~GeneralizedBCBSParams() override = default;
+    ~GeneralizedECBSParams() override = default;
 
     /// @brief Exhaustive search flag. If true, the algorithm will continue to search until the goal is found or the open list is empty.
     bool exhaustive = false;
@@ -92,20 +92,20 @@ struct GeneralizedBCBSParams : public GeneralizedCBSParams {
 };
 
 // ==========================
-// GeneralizedBCBS Algorithm.
+// GeneralizedECBS Algorithm.
 // ==========================
-/// @class GeneralizedBCBS class.
-/// @brief The GeneralizedBCBS algorithm.
-class GeneralizedBCBS : public GeneralizedCBS {
+/// @class GeneralizedECBS class.
+/// @brief The GeneralizedECBS algorithm.
+class GeneralizedECBS : public GeneralizedCBS {
 private:
 
 public:
     /// @brief Constructor
     /// @param params The parameters
-    explicit GeneralizedBCBS(const GeneralizedBCBSParams& params);
+    explicit GeneralizedECBS(const GeneralizedECBSParams& params);
 
     /// @brief Destructor
-    ~GeneralizedBCBS() override = default;
+    ~GeneralizedECBS() override = default;
 
     /// @brief Initialize the planner.
     /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
@@ -163,7 +163,7 @@ protected:
 
     /// Member variables.
     // The search parameters.
-    GeneralizedBCBSParams params_;
+    GeneralizedECBSParams params_;
 
     // The low-level planners. Overrides the CBS planners set to be wAStar.
     std::vector<std::shared_ptr<FocalwAStar>> agent_planner_ptrs_;
@@ -190,7 +190,7 @@ protected:
 // Related structs: GeneralizedXECBSParams
 // ==========================
 /// @class GeneralizedXECBSParams class.
-/// @brief The parameters for the GeneralizedBCBS algorithm
+/// @brief The parameters for the GeneralizedECBS algorithm
 struct GeneralizedXECBSParams : public EACBSParams {
     /// @brief Constructor
     explicit GeneralizedXECBSParams() : EACBSParams() {
