@@ -165,6 +165,7 @@ bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
 
             // TODO(yoraish): Get the non-weighted (g+h) minimal value from the OPEN list.
             stats_.lower_bound = state->g / params_.epsilon;
+            std::cout << "Found a solution with c: " << state->c << std::endl;
 
             return true;
         }

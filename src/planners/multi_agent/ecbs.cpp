@@ -83,6 +83,16 @@ void ims::ECBS::createRootInOpenList() {
     std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
     std::unordered_map<int, double> initial_paths_lower_bounds;
     for (size_t i{0}; i < num_agents_; ++i) {
+
+        // Update the action-space with the constraints and their context (the paths of the other agents).
+        std::shared_ptr<ConstraintsCollective> constraints_collective_ptr = std::make_shared<ConstraintsCollective>();
+        std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
+        context_ptr->agent_paths = initial_paths;
+        context_ptr->agent_names = agent_names_;
+        constraints_collective_ptr->setContext(context_ptr);
+        agent_action_space_ptrs_[i]->setConstraintsCollective(constraints_collective_ptr);
+
+        
         std::vector<StateType> path;
         agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
         bool is_plan_success = agent_planner_ptrs_[i]->plan(path);
@@ -145,18 +155,18 @@ void ims::ECBS::createRootInOpenList() {
     // open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
 
     // Show the initial paths.
-    std::cout << "Initial paths:" << std::endl;
-    for (auto& path : start_->paths) {
-        std::cout << "Agent " << path.first << ": \n";
-        for (auto state : *(path.second)) {
-            std::cout << "    [";
-            for (auto val : state) {
-                std::cout << val << ", ";
-            }
-            std::cout << "], \n";
-        }
-        std::cout << std::endl;
-    }
+    // std::cout << "Initial paths:" << std::endl;
+    // for (auto& path : start_->paths) {
+    //     std::cout << "Agent " << path.first << ": \n";
+    //     for (auto state : *(path.second)) {
+    //         std::cout << "    [";
+    //         for (auto val : state) {
+    //             std::cout << val << ", ";
+    //         }
+    //         std::cout << "], \n";
+    //     }
+    //     std::cout << std::endl;
+    // }
 }
 
 void ims::ECBS::initializePlanner(std::vector<std::shared_ptr<SubcostConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){

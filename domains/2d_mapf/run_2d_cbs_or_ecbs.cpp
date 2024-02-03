@@ -179,17 +179,17 @@ int main(int argc, char** argv) {
     }
 
     // Print the paths.
-    std::cout << "Paths: " << std::endl;
-    for (int i {0}; i < num_agents; i++){
-        std::cout << "Agent " << i << ": ";
-        for (int j {0}; j < paths[i]->size(); j++){
-            std::cout << "[" << paths[i]->at(j)[0] << ", " << paths[i]->at(j)[1] << ", " << paths[i]->at(j)[2] << "]";
-            if (j < paths[i]->size() - 1){
-                std::cout << ", ";
-            }
-        }
-        std::cout << std::endl;
-    }
+    // std::cout << "Paths: " << std::endl;
+    // for (int i {0}; i < num_agents; i++){
+    //     std::cout << "Agent " << i << ": ";
+    //     for (int j {0}; j < paths[i]->size(); j++){
+    //         std::cout << "[" << paths[i]->at(j)[0] << ", " << paths[i]->at(j)[1] << ", " << paths[i]->at(j)[2] << "]";
+    //         if (j < paths[i]->size() - 1){
+    //             std::cout << ", ";
+    //         }
+    //     }
+    //     std::cout << std::endl;
+    // }
 
     std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
     std::cout << "cost: " << stats.cost << std::endl;

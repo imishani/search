@@ -40,6 +40,7 @@
 #include <search/planners/multi_agent/cbs.hpp>
 
 #include "scene_interface_2d_rob.hpp"
+#include "search/common/mapf_utils.hpp"
 
 struct ActionType2dTimeRob : public ims::ActionType {
     ActionType2dTimeRob() : ims::ActionType() {
@@ -285,13 +286,32 @@ public:
             if (other_agent_path.empty()) {
                 continue;
             }
-            TimeType other_agent_last_time = (TimeType)other_agent_path.back().back();
-            TimeType agent_time = (TimeType)next_state_val.back();
-            TimeType other_agent_time = std::min(other_agent_last_time, agent_time);
-            const StateType& other_agent_state = other_agent_path.at(other_agent_time);
+            // TimeType other_agent_last_time = (TimeType)other_agent_path.back().back();
+            // TimeType agent_time = (TimeType)next_state_val.back();
+            // TimeType other_agent_time = std::min(other_agent_last_time, agent_time);
+            // const StateType& other_agent_state = other_agent_path.at(other_agent_time);
 
-            // Check if the state is valid w.r.t the constraint.
-            if (next_state_val[0] == other_agent_state[0] && next_state_val[1] == other_agent_state[1]) {
+            // Check vertex conflict
+            // if (next_state_val[0] == other_agent_state[0] && next_state_val[1] == other_agent_state[1]) {
+            //     num_conflicts++;
+            // }
+            // Check edge conflict
+            // if (state[0] == other_agent_state[0] && state[1] == other_agent_state[1]) {
+            //     num_conflicts++;
+            // }
+
+            int cur_time = state.back();
+            int next_time = next_state_val.back();
+            const StateType& other_cur_state = getStateAtTime(other_agent_path, cur_time);
+            const StateType& other_next_state = getStateAtTime(other_agent_path, next_time);
+            // if (next_state_val[0] == other_agent_state[0] && next_state_val[1] == other_agent_state[1]) {
+            //     // num_conflicts++;
+            //     assert(isVertexConflict(next_state_val, other_next_state));
+            // }
+            if (isVertexConflict(next_state_val, other_next_state)) {
+                num_conflicts++;
+            }
+            if (isEdgeConflict(state, next_state_val, other_cur_state, other_next_state)) {
                 num_conflicts++;
             }
         }
