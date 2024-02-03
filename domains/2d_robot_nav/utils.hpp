@@ -194,5 +194,29 @@ std::string logPaths(const std::unordered_map<int, PathType>& paths,
     return path_file;
 }
 
+std::string logActionPrimsMap(const std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> action_prims_map, StateType state_discretization) {
+    // save the action primatives map to a temporary file
+    std::string action_prims_map_file = "action_prims_map_tmp.csv";
+    // save action primatives map object to a file
+    std::ofstream file(action_prims_map_file);
+    
+    std::ostringstream oss;
+    std::copy(state_discretization.begin(), state_discretization.end() - 1, std::ostream_iterator<double>(oss, " "));
+    oss << state_discretization.back();
+    // header line
+    file << "ActionPrimsNumber," << action_prims_map.size() << ",StateDiscretization," << oss.str() << std::endl;
+    for (const std::pair<const double, std::pair<std::vector<Action>, std::vector<Action>>>& theta_action_prims : action_prims_map) {
+        file << theta_action_prims.first << "," << theta_action_prims.second.first.size() << "," << theta_action_prims.second.second.size() << std::endl;
+        for (const Action& action_prim : theta_action_prims.second.first) {
+            file << action_prim[0] << "," << action_prim[1] << "," << action_prim[2] << std::endl;
+        }
+        for (const Action& action_prim : theta_action_prims.second.second) {
+            file << action_prim[0] << "," << action_prim[1] << "," << action_prim[2] << std::endl;
+        }
+    }
+    file.close();
+    return action_prims_map_file;
+}
+
 
 #endif //SEARCH_SEARCH_DOMAINS_2D_ROBOT_NAV_UTILS_HPP_
