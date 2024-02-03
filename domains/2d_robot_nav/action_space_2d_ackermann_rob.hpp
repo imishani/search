@@ -33,7 +33,6 @@
 */
 
 #pragma once
-#include <map>
 
 #include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
@@ -71,7 +70,7 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
             action_prims_map_ = makeActionPrimsMap();
         }
         
-        /// @brief Uses Ackermann steering to calculate the action primatives for a given theta.
+        /// @brief Uses Ackermann steering to calculate the action primitives for a given theta.
         /// @param curr_theta Current orientation of the robot. Theta = 0 corresponds to increasing column.
         /// @return A list of possible changes in x, y, and theta based on 5 different steering angles.
         std::vector<Action> getPrimActionsFromTheta(double curr_theta) {
@@ -91,13 +90,21 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
         }
 
         /// @brief Iterates through the map to print each key-value pair.
-        /// @param map A map with a key type of double (theta) and value type of vector<Action> (action prims).
-        void printActionPrimsMap(const std::map<double, std::vector<Action>> &map) {
+        /// @param map A map with a key type of double (theta) and value type of pair<vector<Action>,vector<Action>> (discretized_action prims, unrounded action prims).
+        void printActionPrimsMap(const std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> &map) {
             for (const auto& pair : map) {
                 std::cout << "Key: " << pair.first << ", Values: ";
                 
-                // Print the vector of vectors associated with the current key
-                for (const auto& innerVector : pair.second) {
+                // Print the vector of discretized action prims associated with the current key
+                for (const auto& innerVector : pair.second.first) {
+                    std::cout << "[ ";
+                    for (const auto& value : innerVector) {
+                        std::cout << value << " ";
+                    }
+                    std::cout << "] ";
+                }
+                // Print the vector of unrounded action prims associated with the current key
+                for (const auto& innerVector : pair.second.second) {
                     std::cout << "[ ";
                     for (const auto& value : innerVector) {
                         std::cout << value << " ";
@@ -109,20 +116,21 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
             }
         }
 
-        /// @brief Uses the state discretization of the action space to create a map from each possible theta value to a vector of unique action prims.
-        /// @return A map from each possible theta value to a vector of unique action prims.
-        std::map<double, std::vector<Action>> makeActionPrimsMap() {
-            std::map<double, std::vector<Action>> apm;
+        /// @brief Uses the state discretization of the action space to create a map from each possible theta value to a pair of unique discretized action prims and unrounded action prims.
+        /// @return A map from each possible theta value to a a pair of unique discretized action prims and unrounded action prims.
+        std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> makeActionPrimsMap() {
+            std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> apm;
 
             for(double theta = 0.0; theta < 360.0; theta += state_discretization_[2]){
                 std::vector<Action> action_prims = getPrimActionsFromTheta(theta);
+                std::vector<Action> discretized_action_prims(action_prims.size());
                 for (int i = 0; i < action_prims.size(); i++) {
-                    action_prims[i] = discretizeState(action_prims[i], state_discretization_);
+                    discretized_action_prims[i] = discretizeState(action_prims[i], state_discretization_);
                 }
 
-                action_prims = removeDuplicateActions(action_prims);
+                discretized_action_prims = removeDuplicateActions(discretized_action_prims);
 
-                apm[theta] = action_prims;
+                apm[theta] = {discretized_action_prims, action_prims};
             }
             printActionPrimsMap(apm);
             return apm;
@@ -137,13 +145,12 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
         double dt_;
         StateType state_discretization_;
         std::vector<int> steering_angles_;
-        std::map<double, std::vector<Action>> action_prims_map_;
+        std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> action_prims_map_;
     };
 
 protected:
     std::shared_ptr<Scene2DRob> env_;
     std::shared_ptr<ActionType2dAckermannRob> action_type_;
-    std::map<double, std::vector<Action>> action_prims_map_;
 
 public:
     explicit ActionSpace2dAckermannRob(const Scene2DRob& env, const StateType& state_discretization, double speed = 1, double length = 1, double dt = 1, std::vector<int> steering_angles = {-40, -20, 0, 20, 40}) : ims::ActionSpace(){
@@ -158,13 +165,13 @@ public:
     /// @param check_validity Should be false, validity of the action is checked in the getSuccessors function.
     void getActions(int state_id,
                     std::vector<ActionSequence> &action_seqs,
-                    bool check_validity) override {
+                    bool check_validity) override{
         // validity is checked in the getSuccessors() function, no need to check validity in this function
         assert(check_validity == false);
         
         ims::RobotState* curr_state = getRobotState(state_id);
         double curr_state_theta = (curr_state->state)[2];
-        std::vector<Action> actions = action_type_->action_prims_map_[curr_state_theta];
+        std::vector<Action> actions = action_type_->action_prims_map_[curr_state_theta].first;
         for (int i {0} ; i < actions.size(); i++){
             Action action = actions[i];
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
@@ -227,5 +234,9 @@ public:
     /// @return True if given path is valid, false otherwise.
     bool isPathValid(const PathType& path) override{
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
+    }
+
+    std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> getActionPrimsMap() {
+        return action_type_->action_prims_map_;
     }
 };

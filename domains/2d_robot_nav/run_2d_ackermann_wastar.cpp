@@ -114,6 +114,23 @@ int main(int argc, char** argv) {
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
         StateType state_discretization = {1, 1, 30};
         std::shared_ptr<ActionSpace2dAckermannRob> ActionSpace = std::make_shared<ActionSpace2dAckermannRob>(scene, state_discretization);
+        
+        std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> ActionPrimsMap = ActionSpace->getActionPrimsMap();
+
+        std::string action_prims_map_file = logActionPrimsMap(ActionPrimsMap, state_discretization);
+
+        std::string folder_name = "/run_2d_ackermann_wastar_action_prims";
+        std::string folder_path = full_path.string() + folder_name;
+        boost::filesystem::create_directories(folder_path);
+
+        std::string visualize_motion_primitives_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_motion_primitives.py";
+        std::string command = "python3 " + visualize_motion_primitives_path + " --fileactionprims " + action_prims_map_file + " --folderpath " + folder_path;
+        std::cout << "Running the visualize action primative map script..." << std::endl;
+
+        system(command.c_str());
+
+        std::cout << "Completed running plot script. Visuals saved to " + full_path.string() + folder_name << std::endl;
+
         // construct planner
         ims::wAStar planner(params);
 
@@ -151,12 +168,17 @@ int main(int argc, char** argv) {
     logStats(logs, map_index, "ackerman_wAstar");
 
     std::string path_file = logPaths(paths, map_index, scale);
+    
+    std::string image_name = "/run_2d_ackermann_wastar_map.png";
+    std::string image_path = full_path.string() + image_name;
 
     std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
-    std::string command = "python3 " + plot_path + " --filepath " + path_file;
+    std::string command = "python3 " + plot_path + " --filepath " + path_file + " --imagepath " + image_path;
     std::cout << "Running the plot script..." << std::endl;
 
     system(command.c_str());
+
+    std::cout << "Completed running plot script. Plot saved to " + full_path.string() + image_name << std::endl;
 
     return 0;
 }
