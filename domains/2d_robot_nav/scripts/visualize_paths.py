@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
@@ -82,7 +84,7 @@ def load_data(file_path: str):
                 # get the state
                 state = f.readline().strip().split(",")
                 # add the state
-                states.append([int(state[0]), int(state[1])])
+                states.append([float(state[0]), float(state[1])])
             # add the path
             paths_[path_index] = np.array(states)
     # return the data
@@ -129,6 +131,10 @@ def visualize(map_ind, scaler, paths_dict, path_ids_to_visualize):
         ax.plot(x[0], y[0], 'ro', fillstyle='none', markersize=5)
         # plot a green circle (without fill) at the goal
         ax.plot(x[-1], y[-1], 'go', fillstyle='none', markersize=5)
+
+    if args.imagepath is not None:
+        plt.savefig(args.imagepath)
+
     # show the plot
     fig.tight_layout()
     plt.show()
@@ -142,6 +148,8 @@ if __name__ == "__main__":
     parser.add_argument("--filepath", help="path to the file containing the path solutions")
     parser.add_argument("--path_ids", help="the path ids to visualize (if multiple ids, separate with commas)",
                         default=None)
+    parser.add_argument("--imagepath", help="path to the image file the generated plot will be saved to", 
+                        default=None)
     args = parser.parse_args()
     # if no argument is provided, raise an error
     if args.filepath is None:
@@ -152,7 +160,7 @@ if __name__ == "__main__":
     import os
     path_to_this_file = os.path.dirname(os.path.abspath(__file__))
 
-    MAPS = [path_to_this_file + "/../data/brc202d/brc202d.map",
+    MAPS = [path_to_this_file + "/../data/hrt201n/hrt201n.map",
             path_to_this_file + "/../data/den501d/den501d.map",
             path_to_this_file + "/../data/den520d/den520d.map",
             path_to_this_file + "/../data/ht_chantry/ht_chantry.map",
