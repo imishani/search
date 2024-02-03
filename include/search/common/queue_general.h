@@ -1,7 +1,46 @@
+/*
+ * Copyright (C) 2024, Itamar Mishani
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of the Carnegie Mellon University nor the names of its
+ *       contributors may be used to endorse or promote products derived from
+ *       this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+/*!
+ * \file   queue_general.h
+ * \author Itamar Mishani (imishani@cmu.edu)
+ * \date   2024-02-02
+ */
+
+
 #pragma once
 #include <utility>
 // #include <search/common/intrusive_heap.h>
 #include <search/common/intrusive_heap_wrapper.h>
+#include <boost/random.hpp>
+#include <boost/random/beta_distribution.hpp>
+
+#include <search/common/types.hpp>
 
 namespace ims {
 
@@ -182,6 +221,66 @@ public:
     virtual double getLowerBound() const override;
 };
 
+/// @brief Wrapper class that picks a focal queue to expand based on Dynamic Thompson Sampling.
+/// @tparam T element type which must support SearchStateLowerBoundMixin.
+/// @tparam CompareMain used for anchor queue. Focal queues are added manually by the user.
+template <class T, class CompareMain>
+class MultiFocalAndAnchorDTSQueueWrapper : public MultiFocalAndAnchorQueueWrapper<T, CompareMain> {
+private:
+
+    /// @brief Update the current priority function index. according to Dynamic Thompson Sampling (DTS).
+    void sampleFocalIndexDTS();
+    
+    // Parameters.
+    // Queues.
+    SimpleQueue<T, CompareMain> anchorQ_;
+    std::vector<AbstractQueue<T>*> focalQs_;
+    // Current active queue.
+    int current_focalQ_index_ = 0;
+    // DTS parameters.
+    std::vector<std::pair<double, double>> dts_alpha_beta_;
+    double dts_c_ = 50.0;
+    boost::random::mt19937 rng_;
+
+public:
+    // Constructor.
+    // MultiFocalAndAnchorDTSQueueWrapper() : MultiFocalAndAnchorQueueWrapper<T, CompareMain>() {
+    MultiFocalAndAnchorDTSQueueWrapper() {
+        rng_.seed(static_cast<unsigned int>(std::time(0)));
+    }
+
+    // Methods for handling DTS.
+    /// @brief Update the DTS alpha and beta values given a success or failure of a focal search from the current queue.
+    /// @param success
+    void giveReward(bool success);
+    void giveReward(int focalQ_index, bool success);
+
+    // Metods for handling multiple focal queues.
+    /// @brief Create a new focal queue from a comparator. Also create a new entry in the DTS table with a=b=1.
+    template <class CompareFocal>
+    void createNewFocalQueueFromComparator();
+
+    // Methods for handling the queue.
+    virtual T* min() const override;
+    virtual void pop() override;
+    virtual void push(T* e) override;
+    virtual void erase(T* e) override;
+    virtual bool empty() const override;
+    virtual void clear() override;
+    virtual void update(T* e) override;
+    virtual size_t size() const override;
+    virtual bool contains(T* e) const override;
+    
+    /// @brief Updates focal queue to add more elements satisfying lower bound threshold.
+    /// @param lower_bound_threshold is the absolute value, not a suboptimality factor, queue
+    /// should then only pop() elements that satisfy this bound.
+    virtual void updateWithBound(double lower_bound_threshold) override;
+
+    /// @brief Returns the lower bound of all elements in the Queue.
+    /// @return 
+    /// @note Supported now as we internally have a SimpleQueue which keeps track of the lower bound.
+    virtual double getLowerBound() const override;
+};
 
 
 } // Namespace ims

@@ -39,7 +39,11 @@ ims::GeneralizedECBS::GeneralizedECBS(const ims::GeneralizedECBSParams& params) 
     // Today (2024-01-12) there are two ways to pop out of this open list. One is to pop the min element (using FOCAL), and the other is to pop the min element in anchor (only according to OpenCompare). 
     // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedECBSSphere3dConstraintFocalCompare>();
     // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
-    open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedECBSOpenCompare, GeneralizedECBSConflictCountFocalCompare>();
+    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedECBSOpenCompare, GeneralizedECBSConflictCountFocalCompare>();
+    // open_ = new MultiFocalAndAnchorDTSQueueWrapper<SearchState, GeneralizedECBSOpenCompare>();
+    open_ = new MultiFocalAndAnchorQueueWrapper<SearchState, GeneralizedECBSOpenCompare>();
+    open_->createNewFocalQueueFromComparator<GeneralizedECBSConflictCountFocalCompare>();
+    open_->createNewFocalQueueFromComparator<GeneralizedECBSSphere3dConstraintFocalCompare>();
 
     // Create a stats field for the low-level planner nodes created.
     stats_.bonus_stats["num_low_level_expanded"] = 0;
@@ -188,8 +192,8 @@ bool ims::GeneralizedECBS::plan(MultiAgentPaths& paths) {
         //     current_priority_function_index_ = 1;
         // } else {
             std::cout << GREEN << "Pop from focal." << RESET << std::endl;
-            state = open_->min();
-            open_->pop();
+            state = open_->min(0);
+            open_->pop(0);
             // current_priority_function_index_ = 0;
         // }
 

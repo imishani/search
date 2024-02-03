@@ -149,32 +149,6 @@ protected:
         }   
     };
 
-    /// @brief The search state compare struct.
-    struct GeneralizedECBSOpenCompare{
-        bool operator()(const SearchState& s1, const SearchState& s2) const{
-            double f1 = s1.f;
-            double f2 = s2.f;
-            double g1 = s1.g;
-            double g2 = s2.g;
-            double c1 = s1.unresolved_conflicts.size();
-            double c2 = s2.unresolved_conflicts.size();
-
-            if (f1 == f2) {
-                if (g1 == g2) {
-                    if (c1 == c2) {
-                        return s1.state_id < s2.state_id;
-                    } else {
-                        return c1 < c2;
-                    }
-                } else {
-                    return g1 < g2;
-                }
-            } else {
-                return f1 < f2;
-            }
-        }   
-    };
-
     /// @brief The search state compare structs for the HL focal lists.
     struct GeneralizedCBSSphere3dConstraintFocalCompare{
         bool operator()(const SearchState& s1, const SearchState& s2) const{
@@ -205,96 +179,6 @@ protected:
             return constraint_density_s1 > constraint_density_s2;
         }
     };
-
-    /// @brief The search state compare structs for the HL focal lists.
-    struct GeneralizedECBSSphere3dConstraintFocalCompare{
-        bool operator()(const SearchState& s1, const SearchState& s2) const{
-            int constraints_count_s1 = std::accumulate(s1.constraint_type_count.begin(), s1.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
-            int constraints_count_s2 = std::accumulate(s2.constraint_type_count.begin(), s2.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
-
-            double constraint_density_s1 = 0;
-            double constraint_density_s2 = 0;
-            
-            if (s1.constraint_type_count.find(ConstraintType::SPHERE3D) != s1.constraint_type_count.end()){
-                constraint_density_s1 = s1.constraint_type_count.at(ConstraintType::SPHERE3D) / (double)constraints_count_s1;
-            }
-            if (s2.constraint_type_count.find(ConstraintType::SPHERE3D) != s2.constraint_type_count.end()){
-                constraint_density_s2 = s2.constraint_type_count.at(ConstraintType::SPHERE3D) / (double)constraints_count_s2;
-            }
-
-            if (constraint_density_s1 == constraint_density_s2) {
-                if (s1.f == s2.f) {
-                    if (s1.g == s2.g) {
-                        int c1 = s1.unresolved_conflicts.size();
-                        int c2 = s2.unresolved_conflicts.size();
-                        // Compare unresolved conflicts count
-                        if (c1 == c2) {
-                            return s1.state_id < s2.state_id;
-                        }
-                        // s1 will come before s2 if it has fewer conflicts.
-                        return c1 < c2;                    }
-                    return s1.g < s2.g;
-                }
-                return s1.f < s2.f;
-            }
-
-            // s1 will come before s2 if it has a higher constraint density.
-            return constraint_density_s1 > constraint_density_s2;
-        }
-    };
-
-    /// @brief The search state compare structs for the HL focal lists.
-    struct GeneralizedECBSPriorityConstraintFocalCompare{
-        bool operator()(const SearchState& s1, const SearchState& s2) const{
-            int constraints_count_s1 = std::accumulate(s1.constraint_type_count.begin(), s1.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
-            int constraints_count_s2 = std::accumulate(s2.constraint_type_count.begin(), s2.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
-
-            double constraint_density_s1 = 0;
-            double constraint_density_s2 = 0;
-            
-            int num_edge_constraints_s1 = 0;
-            int num_edge_constraints_s2 = 0;
-            int num_vertex_constraints_s1 = 0;
-            int num_vertex_constraints_s2 = 0;
-
-            if (s1.constraint_type_count.find(ConstraintType::EDGE_PRIORITY) != s1.constraint_type_count.end()){
-                num_edge_constraints_s1 = s1.constraint_type_count.at(ConstraintType::EDGE_PRIORITY);
-            }
-            if (s2.constraint_type_count.find(ConstraintType::EDGE_PRIORITY) != s2.constraint_type_count.end()){
-                num_edge_constraints_s2 = s2.constraint_type_count.at(ConstraintType::EDGE_PRIORITY);
-            }
-            if (s1.constraint_type_count.find(ConstraintType::VERTEX_PRIORITY) != s1.constraint_type_count.end()){
-                num_vertex_constraints_s1 = s1.constraint_type_count.at(ConstraintType::VERTEX_PRIORITY);
-            }
-            if (s2.constraint_type_count.find(ConstraintType::VERTEX_PRIORITY) != s2.constraint_type_count.end()){
-                num_vertex_constraints_s2 = s2.constraint_type_count.at(ConstraintType::VERTEX_PRIORITY);
-            }
-
-            constraint_density_s1 = (num_edge_constraints_s1 + num_vertex_constraints_s1) / (double)constraints_count_s1;
-            constraint_density_s2 = (num_edge_constraints_s2 + num_vertex_constraints_s2) / (double)constraints_count_s2;
-
-            if (constraint_density_s1 == constraint_density_s2) {
-                if (s1.f == s2.f) {
-                    if (s1.g == s2.g) {
-                        int c1 = s1.unresolved_conflicts.size();
-                        int c2 = s2.unresolved_conflicts.size();
-                        // Compare unresolved conflicts count
-                        if (c1 == c2) {
-                            return s1.state_id < s2.state_id;
-                        }
-                        // s1 will come before s2 if it has fewer conflicts.
-                        return c1 < c2;
-                    }
-                    return s1.g < s2.g;
-                }
-                return s1.f < s2.f;
-            }
-
-            // s1 will come before s2 if it has a higher constraint density.
-            return constraint_density_s1 > constraint_density_s2;
-        }
-    };
-
 
     /// @brief The search state compare structs for the HL focal lists.
     struct GeneralizedCBSStateAvoidanceConstraintFocalCompare{
@@ -341,72 +225,6 @@ protected:
         }
     };
 
-    /// @brief The search state compare structs for the HL focal lists.
-    struct GeneralizedECBSStateAvoidanceConstraintFocalCompare{
-        bool operator()(const SearchState& s1, const SearchState& s2) const{
-            int constraints_count_s1 = std::accumulate(s1.constraint_type_count.begin(), s1.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
-            int constraints_count_s2 = std::accumulate(s2.constraint_type_count.begin(), s2.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
-
-            double constraint_density_s1 = 0;
-            double constraint_density_s2 = 0;
-            
-            int num_edge_constraints_s1 = 0;
-            int num_edge_constraints_s2 = 0;
-            int num_vertex_constraints_s1 = 0;
-            int num_vertex_constraints_s2 = 0;
-
-            if (s1.constraint_type_count.find(ConstraintType::EDGE_STATE_AVOIDANCE) != s1.constraint_type_count.end()){
-                num_edge_constraints_s1 = s1.constraint_type_count.at(ConstraintType::EDGE_STATE_AVOIDANCE);
-            }
-            if (s2.constraint_type_count.find(ConstraintType::EDGE_STATE_AVOIDANCE) != s2.constraint_type_count.end()){
-                num_edge_constraints_s2 = s2.constraint_type_count.at(ConstraintType::EDGE_STATE_AVOIDANCE);
-            }
-            if (s1.constraint_type_count.find(ConstraintType::VERTEX_STATE_AVOIDANCE) != s1.constraint_type_count.end()){
-                num_vertex_constraints_s1 = s1.constraint_type_count.at(ConstraintType::VERTEX_STATE_AVOIDANCE);
-            }
-            if (s2.constraint_type_count.find(ConstraintType::VERTEX_STATE_AVOIDANCE) != s2.constraint_type_count.end()){
-                num_vertex_constraints_s2 = s2.constraint_type_count.at(ConstraintType::VERTEX_STATE_AVOIDANCE);
-            }
-
-            constraint_density_s1 = (num_edge_constraints_s1 + num_vertex_constraints_s1) / (double)constraints_count_s1;
-            constraint_density_s2 = (num_edge_constraints_s2 + num_vertex_constraints_s2) / (double)constraints_count_s2;
-
-            if (constraint_density_s1 == constraint_density_s2) {
-                if (s1.f == s2.f) {
-                    if (s1.g == s2.g) {
-                        int c1 = s1.unresolved_conflicts.size();
-                        int c2 = s2.unresolved_conflicts.size();
-                        // Compare unresolved conflicts count
-                        if (c1 == c2) {
-                            return s1.state_id < s2.state_id;
-                        }
-                        // s1 will come before s2 if it has fewer conflicts.
-                        return c1 < c2;
-                    }
-                    return s1.g < s2.g;
-                }
-                return s1.f < s2.f;
-            }
-
-            // s1 will come before s2 if it has a higher constraint density.
-            return constraint_density_s1 > constraint_density_s2;
-        }
-    };
-
-    struct GeneralizedECBSConflictCountFocalCompare{
-        bool operator()(const SearchState& s1, const SearchState& s2) const{
-            if (s1.unresolved_conflicts.size() == s2.unresolved_conflicts.size()) {
-                if (s1.f == s2.f) {
-                    if (s1.g == s2.g) {
-                        return s1.state_id < s2.state_id;
-                    }
-                    return s1.g < s2.g;
-                }
-                return s1.f < s2.f;
-            }
-            return s1.unresolved_conflicts.size() < s2.unresolved_conflicts.size();
-        }
-    };
 
     /// @brief Generate descendents of a state, a key method in most search algorithms.
     /// @param state_id
@@ -446,11 +264,14 @@ protected:
     FocalSearchPlannerStats stats_;
 
     /// @brief The current index in the round-robin priority function for the focal search. Zero means that the anchor queue is being popped.
-    int num_priority_functions_ = 1;
     int current_priority_function_index_ = 0; 
 
     // The open list.
-    MultiFocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare>* open_;
+    MultiFocalAndAnchorDTSQueueWrapper<SearchState, GeneralizedCBSOpenCompare>* open_;
+
+    // Parameters for Dynamic Thompson Sampling (DTS). We keep an alpha and beta for each priority function (each focal queue).
+    std::unordered_map<int, std::pair<double, double>> dts_alpha_beta_;
+    double dts_c_ = 5.0;
 };
 
 // ==========================
@@ -569,7 +390,6 @@ protected:
     FocalSearchPlannerStats stats_;
 
     /// @brief The current index in the round-robin priority function for the focal search. Zero means that the anchor queue is being popped.
-    int num_priority_functions_ = 1;
     int current_priority_function_index_ = 0; 
 
 };

@@ -1,3 +1,37 @@
+/*
+ * Copyright (C) 2024, Itamar Mishani
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of the Carnegie Mellon University nor the names of its
+ *       contributors may be used to endorse or promote products derived from
+ *       this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+/*!
+ * \file   queue_general.hpp
+ * \author Itamar Mishani (imishani@cmu.edu)
+ * \date   2024-02-02
+ */
+
 #pragma once
 #include <search/common/queue_general.h>
 
@@ -165,24 +199,12 @@ T* FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::min() const {
     return focalQ_.min();
 }
 
-// template <class T, class CompareMain, class CompareFocal>
-// T* FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::minAnchor() const {
-//     return anchorQ_.min();
-// }
-
 template <class T, class CompareMain, class CompareFocal>
 void FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::pop() {
     T* e = focalQ_.min();
     focalQ_.pop(); // Remove from focal
     anchorQ_.erase(e); // Remove from anchor
 }
-
-// template <class T, class CompareMain, class CompareFocal>
-// void FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::popAnchor() {
-//     T* e = anchorQ_.min();
-//     anchorQ_.pop(); // Remove from anchor
-//     focalQ_.erase(e); // Remove from focal
-// }
 
 template <class T, class CompareMain, class CompareFocal>
 void FocalAndAnchorQueueWrapper<T, CompareMain, CompareFocal>::push(T* e) {
@@ -255,7 +277,7 @@ T* MultiFocalAndAnchorQueueWrapper<T, CompareMain>::min(int focalQ_index) const 
 
 template <class T, class CompareMain>
 void MultiFocalAndAnchorQueueWrapper<T, CompareMain>::pop(int focalQ_index) {
-    
+
     T* e = focalQs_[focalQ_index]->min();
     focalQs_[focalQ_index]->pop(); // Remove from focal
     // Remove from all other focals.
@@ -333,6 +355,164 @@ double MultiFocalAndAnchorQueueWrapper<T, CompareMain>::getLowerBound() const {
 
 template <class T, class CompareMain>
 bool MultiFocalAndAnchorQueueWrapper<T, CompareMain>::contains(T* e) const {
+    bool contains = false;
+    for (int i = 0; i < focalQs_.size(); i++){
+        if (focalQs_[i]->contains(e)){
+            contains = true;
+        }
+    }
+    return contains;
+}
+
+///////////////////////////////////////////////////////////////
+////////////////////// MultiFocalAndAnchorDTSQueueWrapper below ///////////////////////
+
+template <class T, class CompareMain>
+template <class CompareFocal>
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::createNewFocalQueueFromComparator() {
+    std::cout << "Creating a new focal queue" << std::endl;
+    focalQs_.push_back(new FocalQueue<T, CompareMain, CompareFocal>());
+    dts_alpha_beta_.push_back(std::make_pair(1, 1));
+    std::cout << "Focal queue created, now there are " << focalQs_.size() << " focal queues" << std::endl;
+}
+
+template <class T, class CompareMain>
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::sampleFocalIndexDTS() {
+    // Sample from the beta distributions of each of the focal queues and choose that with the maximum value.
+    std::vector<double> samples;
+    for (int i = 0; i < focalQs_.size(); i++){
+        std::pair<double, double> alpha_beta = dts_alpha_beta_[i];
+        // Define the beta distribution.
+        boost::random::beta_distribution<> beta_dist(alpha_beta.first, alpha_beta.second);
+        // Create a variate generator.
+        boost::variate_generator<boost::random::mt19937&, boost::random::beta_distribution<>> sampler(rng_, beta_dist);
+        // Generate a sample.
+        double sample = sampler();
+        samples.push_back(sample);
+    }
+    current_focalQ_index_ = std::distance(samples.begin(), std::max_element(samples.begin(), samples.end()));
+    std::cout << "Sampled focal queue index: " << current_focalQ_index_ << std::endl;
+}
+
+template <class T, class CompareMain>
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::giveReward(bool success) {
+    // Update the alpha and beta values of the focal queue.
+    std::pair<double, double> alpha_beta = dts_alpha_beta_[current_focalQ_index_];
+    double alpha = alpha_beta.first;
+    double beta = alpha_beta.second;
+    if (success){
+        alpha += 1;
+    } else {
+        beta += 1;
+    }
+    // Cap at alpha+beta = c.
+    if (alpha + beta >  dts_c_){
+        alpha = dts_c_ * alpha / (dts_c_ + 1);
+        beta = dts_c_ * beta / (dts_c_ + 1);
+    }
+    dts_alpha_beta_[current_focalQ_index_] = std::make_pair(alpha, beta);
+    std::cout << "New alpha and beta values for focal queue " << current_focalQ_index_ << " are " << alpha << " and " << beta << std::endl;
+
+    // Given the new distribution change, sample a new active focal queue index.
+    sampleFocalIndexDTS(); 
+}
+
+template <class T, class CompareMain>
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::giveReward(int focalQ_index, bool success) {
+    // Set the current focal queue index to focalQ_index.
+    current_focalQ_index_ = focalQ_index;
+    // Update the alpha and beta values of the focal queue.
+    giveReward(success);
+}
+
+template <class T, class CompareMain>
+T* MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::min() const {
+    std::cout << YELLOW << "Popping from focal queue " << current_focalQ_index_ << RESET << std::endl;
+    return focalQs_[current_focalQ_index_]->min();
+}
+
+template <class T, class CompareMain>
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::pop() {
+    std::cout << YELLOW << "Popping [DTS] from focal queue " << current_focalQ_index_ << RESET << std::endl;
+    T* e = focalQs_[current_focalQ_index_]->min();
+    focalQs_[current_focalQ_index_]->pop(); // Remove from focal
+    // Remove from all other focals.
+    for (int i = 0; i < focalQs_.size(); i++){
+        if (i != current_focalQ_index_){
+            focalQs_[i]->erase(e);
+        }
+    }
+    anchorQ_.erase(e); // Remove from anchor
+    std::cout << " Now the DTS anchor is of size " << anchorQ_.size() << std::endl;
+}
+
+
+template <class T, class CompareMain>
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::push(T* e) {
+    anchorQ_.push(e);
+    for (int i = 0; i < focalQs_.size(); i++){
+        focalQs_[i]->push(e);
+    }
+}
+
+template <class T, class CompareMain>
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::erase(T* e) {
+    anchorQ_.erase(e);
+    for (int i = 0; i < focalQs_.size(); i++){
+        focalQs_[i]->erase(e);
+    }
+}
+
+template <class T, class CompareMain>
+bool MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::empty() const {
+    bool empty = true;
+    for (int i = 0; i < focalQs_.size(); i++){
+        empty = empty && focalQs_[i]->empty();
+    }
+    return empty;
+}
+
+template <class T, class CompareMain>
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::clear() {
+    anchorQ_.clear();
+    for (int i = 0; i < focalQs_.size(); i++){
+        focalQs_[i]->clear();
+    }
+}
+
+template <class T, class CompareMain>
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::update(T* e) {
+    anchorQ_.update(e);
+    for (int i = 0; i < focalQs_.size(); i++){
+        focalQs_[i]->update(e);
+    }
+}
+template <class T, class CompareMain>
+size_t MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::size() const {
+    size_t size = 0;
+    for (int i = 0; i < focalQs_.size(); i++){
+        size += focalQs_[i]->size();
+    }
+    return size;
+}
+
+template <class T, class CompareMain>
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::updateWithBound(double lower_bound) {
+    if (lower_bound < anchorQ_.getLowerBound()){
+        lower_bound = anchorQ_.getLowerBound();
+    }
+    for (int i = 0; i < focalQs_.size(); i++){
+        focalQs_[i]->updateWithBound(lower_bound);
+    }
+}
+
+template <class T, class CompareMain>
+double MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::getLowerBound() const {
+    return anchorQ_.getLowerBound();
+}
+
+template <class T, class CompareMain>
+bool MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::contains(T* e) const {
     bool contains = false;
     for (int i = 0; i < focalQs_.size(); i++){
         if (focalQs_[i]->contains(e)){

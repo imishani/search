@@ -127,7 +127,7 @@ void ims::GeneralizedCBS::createRootInOpenList() {
     agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(start_->paths), 
                                                     start_->unresolved_conflicts, 
                                                     getConflictTypes(),
-                                                    1, 
+                                                    -1, 
                                                     agent_names_);
 
     // Set the cost of the CBSState start_.
@@ -181,19 +181,10 @@ bool ims::GeneralizedCBS::plan(MultiAgentPaths& paths) {
             std::cout << "GeneralizedCBS CT open size: " << open_->size() << std::endl;
         }
 
-        // Get the state of least cost according to the priority function in the round robin.
         SearchState* state;
-        // if (current_priority_function_index_ == 0) {
-        //     std::cout << GREEN << "Pop from anchor." << RESET << std::endl;
-        //     state = open_->minAnchor();
-        //     open_->popAnchor();
-        //     current_priority_function_index_ = 1;
-        // } else {
-            std::cout << GREEN << "Pop from focal." << RESET << std::endl;
-            state = open_->min(0);
-            open_->pop(0);
-            // current_priority_function_index_ = 0;
-        // }
+        state = open_->min();
+        open_->pop();
+
         // TEST TEST TEST.
         // Print some information about this new state.
         std::cout << "State " << state->state_id << " was popped from the open list. with num conflicts: " << state->unresolved_conflicts.size() << std::endl;
@@ -241,11 +232,29 @@ bool ims::GeneralizedCBS::plan(MultiAgentPaths& paths) {
 
 ims::GeneralizedCBSPoint3d::GeneralizedCBSPoint3d(const ims::GeneralizedCBSPoint3dParams& params) : params_(params), GeneralizedCBS(params) {
     // Create the open list.
-    open_ = new MultiFocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare>();
+    open_ = new MultiFocalAndAnchorDTSQueueWrapper<SearchState, GeneralizedCBSOpenCompare>();
     open_->createNewFocalQueueFromComparator<GeneralizedCBSSphere3dConstraintFocalCompare>();
     open_->createNewFocalQueueFromComparator<GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
-    // open_->createNewFocalQueueFromComparator<GeneralizedCBSOpenCompare>();
-
+    open_->giveReward(0, true); // A hack to make the first focal queue the default one.
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
+    open_->giveReward(0, true);
 
     // Create a stats field for the low-level planner nodes created.
     stats_.bonus_stats["num_low_level_expanded"] = 0;
@@ -334,7 +343,7 @@ void ims::GeneralizedCBSPoint3d::createRootInOpenList() {
     agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(start_->paths), 
                                                     start_->unresolved_conflicts, 
                                                     getConflictTypes(),
-                                                    1, 
+                                                    -1, 
                                                     agent_names_);
 
     // Set the cost of the CBSState start_.
@@ -382,13 +391,9 @@ bool ims::GeneralizedCBSPoint3d::plan(MultiAgentPaths& paths) {
         if (iter % 10 == 0) {
             std::cout << "GeneralizedCBSPoint3d CT open size: " << open_->size() << std::endl;
         }
-
-        // Get the state of least cost according to the priority function in the round robin.
         SearchState* state;
-        std::cout << GREEN << "Pop from focal index " << current_priority_function_index_ << "." << RESET << std::endl;
-        state = open_->min(current_priority_function_index_);
-        open_->pop(current_priority_function_index_);
-        current_priority_function_index_ = (current_priority_function_index_ + 1) % open_->getNumFocalQueues();
+        state = open_->min();
+        open_->pop();
 
         
                     // TEST TEST TEST.
@@ -479,7 +484,7 @@ bool ims::GeneralizedCBSPoint3d::replanOutdatedAgents(SearchState* state) {
     agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths),
                                                     state->unresolved_conflicts, 
                                                     getConflictTypes(),
-                                                    1,
+                                                    -1,
                                                     agent_names_);
 
     state->f = new_state_soc;
@@ -497,19 +502,22 @@ void ims::GeneralizedCBSPoint3d::expand(int state_id) {
     // First and foremost, check if this state has already been evaluated. If not, then we need to recompute paths for it using its existing constraints collective.
     if (!state->agent_ids_need_replan.empty()) {
         double f_old = state->f;
+        int c_old = state->unresolved_conflicts.size();
         bool replan_success = replanOutdatedAgents(state); // This method will incorporate any unincorporated constraints into the state's constraints collective and update its f and other values accordingly.
         if (!replan_success) {
             delete state;
             return;
         }
-        // If the new f-value is larger than the previous one, then this state may not have been chosen to be expanded. We put it back in the open list.
-        // if (state->f > f_old) {
-            // Check if the new f would still be put in the focal (according to the new min-f that exists in open now). If not, put back in open. Otherwise, proceed.
-            // if (state->f > open_->getLowerBound() * params_.high_level_focal_suboptimality) {
-                open_->push(state);
-                return;
-            // }
-        // }
+        int c_new = state->unresolved_conflicts.size(); 
+        open_->push(state);
+        // If the new state has less conflicts than the old one, then we will inform the open list about this improvement.
+        if (c_new < c_old) {
+            open_->giveReward(true);
+        }
+        else{
+            open_->giveReward(false);
+        }
+        return;
     }
 
     stats_.num_expanded++;
