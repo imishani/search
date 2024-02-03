@@ -104,8 +104,7 @@ void ims::CBS::createRootInOpenList(){
         path.back().back() = path.size() - 1;
 
         // We use a map since down the line we may only store paths for some agents.
-        // initial_paths.insert(std::make_pair(i, path));
-        initial_paths[i] = path;
+        initial_paths[i] = std::make_shared<PathType>(path);
 
         // Compute the cost of the path.
         initial_paths_costs[i] = agent_planner_ptrs_[i]->stats_.cost;
@@ -279,8 +278,10 @@ void ims::CBS::expand(int state_id) {
         agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);
 
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
-        new_state->paths[agent_id].clear();
-        agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
+        // new_state->paths[agent_id].clear();
+        // agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
+        new_state->paths[agent_id] = std::make_shared<PathType>();
+        agent_planner_ptrs_[agent_id]->plan(*(new_state->paths[agent_id]));
         new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.transition_costs;
         new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.cost;
         new_state->f = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
@@ -294,13 +295,13 @@ void ims::CBS::expand(int state_id) {
         // new_state->f += (double)rand() / RAND_MAX; // Uncomment for nitro boost.
 
         // If there is no path for this agent, then this is not a valid state. Discard it.
-        if (new_state->paths[agent_id].empty()) {
+        if (new_state->paths[agent_id]->empty()) {
             delete new_state;
             continue;
         }
 
         // The goal state returned is at time -1. We need to fix that.
-        new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
+        new_state->paths[agent_id]->back().back() = new_state->paths[agent_id]->size() - 1;
 
         // >>> REMOVE REMOVE REMOVE
         if (!IS_CONFLICT_CREATION_CBS){
@@ -332,18 +333,20 @@ void ims::CBS::expand(int state_id) {
 
 void ims::CBS::padPathsToMaxLength(MultiAgentPaths& paths) {
     // Pad all paths to the same length. Do this by adding the last state of the path to the end of the path (the state is identical, so time may be repeated).
-    int max_path_length = (int)std::max_element(paths.begin(), paths.end(), [](const std::pair<int, std::vector<StateType>>& a, const std::pair<int, std::vector<StateType>>& b) { return a.second.size() < b.second.size(); })->second.size();
+    int max_path_length = (int)std::max_element(paths.begin(), paths.end(), [](const std::pair<int, std::shared_ptr<std::vector<StateType>>>& a, 
+                                                                                const std::pair<int, std::shared_ptr<std::vector<StateType>>>& b) 
+                                                                                { return a.second->size() < b.second->size(); })->second->size();
 
     // Pad all paths to the same length.
     for (auto& path : paths) {
         int agent_id = path.first;
-        int path_length = (int)path.second.size();
+        int path_length = (int)path.second->size();
         for (int i{0}; i < max_path_length - path_length; ++i) {
             // The last state.
-            StateType last_state = path.second.back();
+            StateType last_state = path.second->back();
             // Increment time by 1.
             last_state.back() += 1;
-            path.second.push_back(last_state);
+            path.second->push_back(last_state);
         }
     }
 }

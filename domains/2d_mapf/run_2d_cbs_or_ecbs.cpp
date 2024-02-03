@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
     std::cout << "Constructing planner..." << std::endl;
     bool useECBS = (vm["high_level_focal_suboptimality"].as<double>() > 1.0);
 
-    ims::MultiAgentPaths paths;
+    MultiAgentPaths paths;
     PlannerStats stats;
 
     ///// Extra stuff required for 2D environment for BD heuristic
@@ -182,9 +182,9 @@ int main(int argc, char** argv) {
     std::cout << "Paths: " << std::endl;
     for (int i {0}; i < num_agents; i++){
         std::cout << "Agent " << i << ": ";
-        for (int j {0}; j < paths[i].size(); j++){
-            std::cout << "[" << paths[i][j][0] << ", " << paths[i][j][1] << ", " << paths[i][j][2] << "]";
-            if (j < paths[i].size() - 1){
+        for (int j {0}; j < paths[i]->size(); j++){
+            std::cout << "[" << paths[i]->at(j)[0] << ", " << paths[i]->at(j)[1] << ", " << paths[i]->at(j)[2] << "]";
+            if (j < paths[i]->size() - 1){
                 std::cout << ", ";
             }
         }
@@ -209,9 +209,9 @@ int main(int argc, char** argv) {
     fout << "paths: [ " << std::endl;
     for (int i {0}; i < num_agents; i++){
         fout << "       [ \n";
-        for (int j {0}; j < paths[i].size(); j++){
-            fout << "           [" << paths[i][j][0] << ", " << paths[i][j][1] << ", " << paths[i][j][2] << "]";
-            if (j < paths[i].size() - 1){
+        for (int j {0}; j < paths[i]->size(); j++){
+            fout << "           [" << paths[i]->at(j)[0] << ", " << paths[i]->at(j)[1] << ", " << paths[i]->at(j)[2] << "]";
+            if (j < paths[i]->size() - 1){
                 fout << ",\n";
             }
             else if (i < num_agents - 1){

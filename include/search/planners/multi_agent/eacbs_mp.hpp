@@ -70,10 +70,10 @@ struct EACBSMPParams : public EACBSParams {
 };
 
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
-using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
+// using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
 
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
-using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
+// using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
 // ==========================
 // EACBSMP Algorithm.

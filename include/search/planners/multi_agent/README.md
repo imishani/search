@@ -24,7 +24,7 @@ In a driver code, we'll
 3. And finally, before asking the planner to plan, we initialize it with the action spaces for all agents. Note that the order of the starts, goals, and action spaces should match between all objects such that the `i`th element of each vector corresponds to the `i`th agent.
     ```c++
     planner.initializePlanner(action_spaces, starts, goals);
-    ims::MultiAgentPaths paths;
+    MultiAgentPaths paths;
     planner.plan(paths);
     ``` 
 Nice. We said nothing about how this works though. So let's look into what is happening within the planner. Following the CBS algorithm, upon each iteration of the algorithm it will choose the least cost high-level (conflict tree (CT)) node from it priority queue and expand it. Some notes here:

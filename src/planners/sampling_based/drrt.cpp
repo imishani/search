@@ -335,7 +335,7 @@ void ims::dRRT::reconstructPath(SearchState* goal_state, MultiAgentPaths& paths)
         for (auto step_state_ids : path_state_ids) {
             int agent_state_id = states_.at(step_state_ids)->agent_state_ids[agent_id];
             StateType agent_state = agent_action_space_ptrs_[agent_id]->getRobotState(agent_state_id)->state;
-            paths[agent_id].push_back(agent_state); 
+            paths[agent_id]->push_back(agent_state); 
         }
     }
 }

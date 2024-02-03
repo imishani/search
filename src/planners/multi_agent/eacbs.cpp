@@ -130,7 +130,7 @@ void ims::EACBS::createRootInOpenList() {
 
         // We use a map since down the line we may only store paths for some agents.
         // initial_paths.insert(std::make_pair(i, path));
-        initial_paths[i] = path;
+        initial_paths[i] = std::make_shared<PathType>(path);
 
         // Compute the cost of the path.
         initial_paths_costs[i] = agent_planner_ptrs_[i]->stats_.cost;
@@ -288,12 +288,12 @@ void ims::EACBS::expand(int state_id) {
             case ExperienceReuseType::PREVIOUS_SOLUTION: {
                 // std::cout << "Experience reuse type is PREVIOUS_SOLUTION. Updating the experiences collective with the previous solution." << std::endl;
                 agent_action_space_ptrs_[agent_id]->clearPathExperiences();
-                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(*(state->paths[agent_id]), state->paths_transition_costs[agent_id]));
                 break;
             }
             case ExperienceReuseType::CT_BRANCH: {
                 // std::cout << "Experience reuse type is CT_BRANCH. Updating the experiences collective with the solution on branch." << std::endl;
-                new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(*(state->paths[agent_id]), state->paths_transition_costs[agent_id]));
 
                 // Update the action-space with the updated experiences.
                 agent_action_space_ptrs_[agent_id]->setExperiencesCollective(std::make_shared<ExperiencesCollective>(new_state->experiences_collectives[agent_id]));
@@ -301,7 +301,7 @@ void ims::EACBS::expand(int state_id) {
             }
             case ExperienceReuseType::CT_GLOBAL: {
                 // std::cout << "Experience reuse type is CT_GLOBAL. Updating the experiences collective with all previous solutions." << std::endl;
-                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(*(state->paths[agent_id]), state->paths_transition_costs[agent_id]));
                 break;
             }
             default: {
@@ -314,8 +314,10 @@ void ims::EACBS::expand(int state_id) {
 
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
         // The replanning will be using the updated constraints and experiences stored within the action space.
-        new_state->paths[agent_id].clear();
-        agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
+        // new_state->paths[agent_id].clear();
+        // agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
+        new_state->paths[agent_id] = std::make_shared<PathType>();
+        agent_planner_ptrs_[agent_id]->plan(*(new_state->paths[agent_id]));
         new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.transition_costs;
         new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.cost;
         new_state->f = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
@@ -324,13 +326,13 @@ void ims::EACBS::expand(int state_id) {
         stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[agent_id]->stats_.num_expanded;
 
         // If there is no path for this agent, then this is not a valid state. Discard it.
-        if (new_state->paths[agent_id].empty()) {
+        if (new_state->paths[agent_id]->empty()) {
             delete new_state;
             continue;
         }
 
         // The goal state returned is at time -1. We need to fix that.
-        new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
+        new_state->paths[agent_id]->back().back() = new_state->paths[agent_id]->size() - 1;
 
         // Push the new state to the open list.
         open_.push(new_state);
@@ -343,18 +345,21 @@ void ims::EACBS::expand(int state_id) {
 
 void ims::EACBS::padPathsToMaxLength(MultiAgentPaths& paths) {
     // Pad all paths to the same length. Do this by adding the last state of the path to the end of the path (the state is identical, so time may be repeated).
-    int max_path_length = (int)std::max_element(paths.begin(), paths.end(), [](const std::pair<int, std::vector<StateType>>& a, const std::pair<int, std::vector<StateType>>& b) { return a.second.size() < b.second.size(); })->second.size();
+    // int max_path_length = (int)std::max_element(paths.begin(), paths.end(), [](const std::pair<int, std::vector<StateType>>& a, const std::pair<int, std::vector<StateType>>& b) { return a.second.size() < b.second.size(); })->second->size();
+    int max_path_length = (int)std::max_element(paths.begin(), paths.end(), [](const std::pair<int, std::shared_ptr<std::vector<StateType>>>& a, 
+                                                                                const std::pair<int, std::shared_ptr<std::vector<StateType>>>& b) 
+                                                                                { return a.second->size() < b.second->size(); })->second->size();
 
     // Pad all paths to the same length.
     for (auto& path : paths) {
         int agent_id = path.first;
-        int path_length = (int)path.second.size();
+        int path_length = (int)path.second->size();
         for (int i{0}; i < max_path_length - path_length; ++i) {
             // The last state.
-            StateType last_state = path.second.back();
+            StateType last_state = path.second->back();
             // Increment time by 1.
             last_state.back() += 1;
-            path.second.push_back(last_state);
+            path.second->push_back(last_state);
         }
     }
 }

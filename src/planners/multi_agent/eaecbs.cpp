@@ -144,7 +144,7 @@ void ims::EAECBS::createRootInOpenList() {
 
         // We use a map since down the line we may only store paths for some agents.
         // initial_paths.insert(std::make_pair(i, path));
-        initial_paths[i] = path;
+        initial_paths[i] = std::make_shared<PathType>(path);
 
         // Compute the cost of the path.
         initial_paths_costs[i] = agent_planner_ptrs_[i]->getStats().cost;
@@ -324,12 +324,12 @@ void ims::EAECBS::expand(int state_id) {
             case ExperienceReuseType::PREVIOUS_SOLUTION: {
                 // std::cout << "Experience reuse type is PREVIOUS_SOLUTION. Updating the experiences collective with the previous solution." << std::endl;
                 agent_action_space_ptrs_[agent_id]->clearPathExperiences();
-                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(*(state->paths[agent_id]), state->paths_transition_costs[agent_id]));
                 break;
             }
             case ExperienceReuseType::CT_BRANCH: {
                 // std::cout << "Experience reuse type is CT_BRANCH. Updating the experiences collective with the solution on branch." << std::endl;
-                new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(*(state->paths[agent_id]), state->paths_transition_costs[agent_id]));
 
                 // Update the action-space with the updated experiences.
                 agent_action_space_ptrs_[agent_id]->setExperiencesCollective(std::make_shared<ExperiencesCollective>(new_state->experiences_collectives[agent_id]));
@@ -337,7 +337,7 @@ void ims::EAECBS::expand(int state_id) {
             }
             case ExperienceReuseType::CT_GLOBAL: {
                 // std::cout << "Experience reuse type is CT_GLOBAL. Updating the experiences collective with all previous solutions." << std::endl;
-                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(*(state->paths[agent_id]), state->paths_transition_costs[agent_id]));
                 break;
             }
             default: {
@@ -349,8 +349,8 @@ void ims::EAECBS::expand(int state_id) {
         agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);
 
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
-        new_state->paths[agent_id].clear();
-        agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
+        new_state->paths[agent_id] = std::make_shared<PathType>();
+        agent_planner_ptrs_[agent_id]->plan(*(new_state->paths[agent_id]));
         new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().transition_costs;
         new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().cost;
         new_state->path_cost_lower_bounds[agent_id] = agent_planner_ptrs_[agent_id]->getStats().lower_bound;
@@ -364,13 +364,13 @@ void ims::EAECBS::expand(int state_id) {
         double new_state_lb = std::accumulate(new_state->path_cost_lower_bounds.begin(), new_state->path_cost_lower_bounds.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
 
         // If there is no path for this agent, then this is not a valid state. Discard it.
-        if (new_state->paths[agent_id].empty()) {
+        if (new_state->paths[agent_id]->empty()) {
             delete new_state;
             continue;
         }
 
         // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
-        new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
+        new_state->paths[agent_id]->back().back() = new_state->paths[agent_id]->size() - 1;
 
         // Get any conflicts between the newly computed paths.
         // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the ECBS class, and then passed to the action_space.

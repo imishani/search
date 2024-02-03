@@ -76,10 +76,10 @@ struct ECBSParams : public CBSParams {
 };
 
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
-using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
+// using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
 
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
-using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
+// using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 
 // ==========================
 // ECBS Algorithm.
@@ -192,6 +192,8 @@ protected:
 
     // Statistics.
     FocalSearchPlannerStats stats_;
+
+    // void memoryHelper(SearchState* parent, SearchState* child);
 
 };
 

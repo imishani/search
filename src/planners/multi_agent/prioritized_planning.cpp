@@ -135,14 +135,14 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
         path.back().back() = path.size() - 1;
 
         // Add the path to the paths.
-        paths[agent_id] = path;
+        paths[agent_id] = std::make_shared<PathType>(path);
 
         /* Set the constraints on this agent. These constraints are all avoidance constraints: avoiding all other planned (higher-priority) agents. 
            The current agent a_l gets a constraint for avoiding another agent a_h at all times when a_h is planned. An extra constraint is added 
            for avoiding the goal of a_h at "all times." This constraint is required to keep a_l from colliding with a_h at a_h's goal after a_h has gotten there, 
            and while doing it not to extend the time of the last constraint on a_l such that it could accept a goal state for a_l at a time after all other agents have stopped planning.*/
         // Add the newly planned path to the constraints context.
-        constraints_context_ptr->agent_paths[agent_id] = path;
+        constraints_context_ptr->agent_paths[agent_id] = paths[agent_id];
         constraints_collective_ptr->setContext(constraints_context_ptr);
 
         // Add a constraint for avoiding the agent at all times. Reminder: if we want the next planned agent to be disallowed from terminating the search before all other previous agent have terminated their motions, we need to specify a latest constraint time directly. This time is often used by planners to determine if a goal state can be found.
@@ -202,18 +202,21 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
 
 void ims::PrioritizedPlanning::padPathsToMaxLength(MultiAgentPaths& paths) {
     // Pad all paths to the same length. Do this by adding the last state of the path to the end of the path (the state is identical, so time may be repeated).
-    int max_path_length = (int)std::max_element(paths.begin(), paths.end(), [](const std::pair<int, std::vector<StateType>>& a, const std::pair<int, std::vector<StateType>>& b) { return a.second.size() < b.second.size(); })->second.size();
+    // int max_path_length = (int)std::max_element(paths.begin(), paths.end(), [](const std::pair<int, std::vector<StateType>>& a, const std::pair<int, std::vector<StateType>>& b) { return a.second.size() < b.second.size(); })->second->size();
+    int max_path_length = (int)std::max_element(paths.begin(), paths.end(), [](const std::pair<int, std::shared_ptr<std::vector<StateType>>>& a, 
+                                                                                const std::pair<int, std::shared_ptr<std::vector<StateType>>>& b) 
+                                                                                { return a.second->size() < b.second->size(); })->second->size();
 
     // Pad all paths to the same length.
     for (auto& path : paths) {
         int agent_id = path.first;
-        int path_length = (int)path.second.size();
+        int path_length = (int)path.second->size();
         for (int i{0}; i < max_path_length - path_length; ++i) {
             // The last state.
-            StateType last_state = path.second.back();
+            StateType last_state = path.second->back();
             // Increment time by 1.
             last_state.back() += 1;
-            path.second.push_back(last_state);
+            path.second->push_back(last_state);
         }
     }
 }

@@ -102,7 +102,7 @@ void ims::ECBS::createRootInOpenList() {
 
         // We use a map since down the line we may only store paths for some agents.
         // initial_paths.insert(std::make_pair(i, path));
-        initial_paths[i] = path;
+        initial_paths[i] = std::make_shared<PathType>(path);
 
         // Compute the cost of the path.
         // initial_paths_costs.insert(std::make_pair(i, agent_planner_ptrs_[i]->stats_.cost));
@@ -148,7 +148,7 @@ void ims::ECBS::createRootInOpenList() {
     std::cout << "Initial paths:" << std::endl;
     for (auto& path : start_->paths) {
         std::cout << "Agent " << path.first << ": \n";
-        for (auto state : path.second) {
+        for (auto state : *(path.second)) {
             std::cout << "    [";
             for (auto val : state) {
                 std::cout << val << ", ";
@@ -216,6 +216,16 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
     return false;
 }
 
+// void ims::ECBS::memoryHelper(SearchState* state, SearchState* new_state) {
+//     new_state->parent_id = state->state_id;
+//     new_state->paths = state->paths;
+//     new_state->paths_costs = state->paths_costs;
+//     new_state->paths_transition_costs = state->paths_transition_costs;
+//     new_state->path_cost_lower_bounds = state->path_cost_lower_bounds;
+//     new_state->f = state->f;
+//     new_state->constraints_collectives = state->constraints_collectives;
+// }
+
 void ims::ECBS::expand(int state_id) {
     auto state = getSearchState(state_id);
     std::vector<int> successors;
@@ -253,7 +263,8 @@ void ims::ECBS::expand(int state_id) {
         new_state->constraints_collectives = state->constraints_collectives;
 
         // Remove prior information for the agent that is being replanned-for. This is important for the constraints context, such that it only includes context from other agents.
-        new_state->paths[agent_id].clear();
+        // new_state->paths[agent_id].clear();
+        new_state->paths[agent_id] = std::make_shared<PathType>();
         new_state->paths_costs[agent_id] = 0.0;
         new_state->paths_transition_costs[agent_id].clear();
 
@@ -272,7 +283,7 @@ void ims::ECBS::expand(int state_id) {
         agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);
 
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
-        agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
+        agent_planner_ptrs_[agent_id]->plan(*(new_state->paths[agent_id]));
         new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().transition_costs;
         new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().cost;
         new_state->path_cost_lower_bounds[agent_id] = agent_planner_ptrs_[agent_id]->getStats().lower_bound;
@@ -281,13 +292,13 @@ void ims::ECBS::expand(int state_id) {
         stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[agent_id]->getStats().num_expanded;
 
         // If there is no path for this agent, then this is not a valid state. Discard it.
-        if (new_state->paths[agent_id].empty()) {
+        if (new_state->paths[agent_id]->empty()) {
             delete new_state;
             continue;
         }
 
         // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
-        new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
+        new_state->paths[agent_id]->back().back() = new_state->paths[agent_id]->size() - 1;
         // Get the sum of costs for the new state.
         double new_state_soc = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
         double new_state_lb = std::accumulate(new_state->path_cost_lower_bounds.begin(), new_state->path_cost_lower_bounds.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
@@ -304,7 +315,7 @@ void ims::ECBS::expand(int state_id) {
         new_state->sum_of_costs = new_state_soc;
         new_state->sum_of_path_cost_lower_bounds = new_state_lb;
         // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
-        new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
+        new_state->paths[agent_id]->back().back() = new_state->paths[agent_id]->size() - 1;
 
         // Push the new state to the open list.
         open_->push(new_state);

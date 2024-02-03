@@ -219,7 +219,7 @@ public:
         return getSuccessors(curr_state_ind, successors, costs);
     }
     
-    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths,
+    void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths,
                            std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs,
                            const std::vector<ims::ConflictType>& conflict_types, int max_conflicts,
                            const std::vector<std::string> & names, TimeType time_start, TimeType time_end) override {
@@ -232,8 +232,8 @@ public:
         // Length of the longest path.
         int max_path_length = 0;
         for (auto& path : *paths) {
-            if (path.second.size() > max_path_length) {
-                max_path_length = (int)path.second.size();
+            if (path.second->size() > max_path_length) {
+                max_path_length = (int)path.second->size();
             }
         }
 
@@ -243,13 +243,13 @@ public:
             for (int i{0}; i < paths->size(); i++) {
                 for (int j{i + 1}; j < paths->size(); j++) {
                     // Get the position of the two robots at time t. If one of the robots is at its goal (aka its path is shorter than t), then use its last position.
-                    int t_i = std::min(t, (int)paths->at(i).size() - 1);
-                    int t_j = std::min(t, (int)paths->at(j).size() - 1);
+                    int t_i = std::min(t, (int)paths->at(i)->size() - 1);
+                    int t_j = std::min(t, (int)paths->at(j)->size() - 1);
 
                     // Check if the two paths are in a vertex conflict.
-                    if (paths->at(i)[t_i][0] == paths->at(j)[t_j][0] && paths->at(i)[t_i][1] == paths->at(j)[t_j][1]) {
+                    if (paths->at(i)->at(t_i)[0] == paths->at(j)->at(t_j)[0] && paths->at(i)->at(t_i)[1] == paths->at(j)->at(t_j)[1]) {
                         // If they are, then add a conflict to the vector.
-                        StateType conflict_state = {paths->at(i)[t_i][0], paths->at(i)[t_i][1], (double)t};
+                        StateType conflict_state = {paths->at(i)->at(t_i)[0], paths->at(i)->at(t_i)[1], (double)t};
                         std::shared_ptr<ims::VertexConflict> conflict_ptr = std::make_shared<ims::VertexConflict>(std::vector<StateType>{conflict_state, conflict_state}, std::vector<int>{i, j});
                         conflicts_ptrs.push_back(conflict_ptr);
 
@@ -259,16 +259,17 @@ public:
                     }
 
                     // Check if the two paths are in an edge conflict. The first check if for t being the at least before the last time step of the path, in which case there is no edge conflict.
-                    if (t < paths->at(i).size() - 1 && t < paths->at(j).size() - 1) {
-                        if (paths->at(i)[t][0] == paths->at(j)[t + 1][0] && paths->at(i)[t][1] == paths->at(j)[t + 1][1] && paths->at(i)[t + 1][0] == paths->at(j)[t][0] && paths->at(i)[t + 1][1] == paths->at(j)[t][1]) {
+                    if (t < paths->at(i)->size() - 1 && t < paths->at(j)->size() - 1) {
+                        if (paths->at(i)->at(t)[0] == paths->at(j)->at(t + 1)[0] && paths->at(i)->at(t)[1] == paths->at(j)->at(t + 1)[1] && 
+                                paths->at(i)->at(t + 1)[0] == paths->at(j)->at(t)[0] && paths->at(i)->at(t + 1)[1] == paths->at(j)->at(t)[1]) {
                             // If they are, then add a conflict to the vector.
                             int agent_id_from = i;
-                            StateType conflict_state_i_from = {paths->at(i)[t][0], paths->at(i)[t][1], (double)t};
-                            StateType conflict_state_i_to = {paths->at(i)[t + 1][0], paths->at(i)[t + 1][1], (double)(t + 1)};
+                            StateType conflict_state_i_from = {paths->at(i)->at(t)[0], paths->at(i)->at(t)[1], (double)t};
+                            StateType conflict_state_i_to = {paths->at(i)->at(t + 1)[0], paths->at(i)->at(t + 1)[1], (double)(t + 1)};
 
                             int agent_id_to = j;
-                            StateType conflict_state_j_from = {paths->at(j)[t][0], paths->at(j)[t][1], (double)t};
-                            StateType conflict_state_j_to = {paths->at(j)[t + 1][0], paths->at(j)[t + 1][1], (double)(t + 1)};
+                            StateType conflict_state_j_from = {paths->at(j)->at(t)[0], paths->at(j)->at(t)[1], (double)t};
+                            StateType conflict_state_j_to = {paths->at(j)->at(t + 1)[0], paths->at(j)->at(t + 1)[1], (double)(t + 1)};
 
                             std::vector<StateType> states_from = {conflict_state_i_from, conflict_state_j_from};
                             std::vector<StateType> states_to = {conflict_state_i_to, conflict_state_j_to};
@@ -466,9 +467,9 @@ public:
 
 
     void computeTransitionConflictsCost(const StateType& state, const StateType& next_state_val, double & num_conflicts) override {
-        for (auto other_agent_id_and_path : constraints_collective_ptr_->getConstraintsContext()->agent_paths) {
+        for (auto& other_agent_id_and_path : constraints_collective_ptr_->getConstraintsContext()->agent_paths) {
             int other_agent_id = other_agent_id_and_path.first;
-            PathType other_agent_path = other_agent_id_and_path.second;
+            const PathType& other_agent_path = *(other_agent_id_and_path.second);
 
             // Get the state of the other agent at the current time step. Get this from the constraints context.
             // The check here is for vertex conflicts.
@@ -502,7 +503,7 @@ public:
         return cost;
     }
 
-    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths, std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs, const std::vector<ims::ConflictType>& conflict_types, int max_conflicts, const std::vector<std::string> & names, TimeType time_start = 0, TimeType time_end = -1) {
+    void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths, std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs, const std::vector<ims::ConflictType>& conflict_types, int max_conflicts, const std::vector<std::string> & names, TimeType time_start = 0, TimeType time_end = -1) {
         // Loop through the paths and check for conflicts.
         // If requested, get all the conflicts available.
         if (max_conflicts == -1) {
@@ -512,8 +513,8 @@ public:
         // Length of the longest path.
         int max_path_length = 0;
         for (auto& path : *paths) {
-            if (path.second.size() > max_path_length) {
-                max_path_length = path.second.size();
+            if (path.second->size() > max_path_length) {
+                max_path_length = path.second->size();
             }
         }
 
@@ -523,13 +524,13 @@ public:
             for (int i{0}; i < paths->size(); i++) {
                 for (int j{i + 1}; j < paths->size(); j++) {
                     // Get the position of the two robots at time t. If one of the robots is at its goal (aka its path is shorter than t), then use its last position.
-                    int t_i = std::min(t, (int)paths->at(i).size() - 1);
-                    int t_j = std::min(t, (int)paths->at(j).size() - 1);
+                    int t_i = std::min(t, (int)paths->at(i)->size() - 1);
+                    int t_j = std::min(t, (int)paths->at(j)->size() - 1);
 
                     // Check if the two paths are in a vertex conflict.
-                    if (paths->at(i)[t_i][0] == paths->at(j)[t_j][0] && paths->at(i)[t_i][1] == paths->at(j)[t_j][1]) {
+                    if (paths->at(i)->at(t_i)[0] == paths->at(j)->at(t_j)[0] && paths->at(i)->at(t_i)[1] == paths->at(j)->at(t_j)[1]) {
                         // If they are, then add a conflict to the vector.
-                        StateType conflict_state = {paths->at(i)[t_i][0], paths->at(i)[t_i][1], (double)t};
+                        StateType conflict_state = {paths->at(i)->at(t_i)[0], paths->at(i)->at(t_i)[1], (double)t};
                         std::shared_ptr<ims::VertexConflict> conflict_ptr = std::make_shared<ims::VertexConflict>(std::vector<StateType>{conflict_state, conflict_state}, std::vector<int>{i, j});
                         conflicts_ptrs.push_back(conflict_ptr);
 
@@ -539,16 +540,17 @@ public:
                     }
 
                     // Check if the two paths are in an edge conflict. The first check if for t being the at least before the last time step of the path, in which case there is no edge conflict.
-                    if (t < paths->at(i).size() - 1 && t < paths->at(j).size() - 1) {
-                        if (paths->at(i)[t][0] == paths->at(j)[t + 1][0] && paths->at(i)[t][1] == paths->at(j)[t + 1][1] && paths->at(i)[t + 1][0] == paths->at(j)[t][0] && paths->at(i)[t + 1][1] == paths->at(j)[t][1]) {
+                    if (t < paths->at(i)->size() - 1 && t < paths->at(j)->size() - 1) {
+                        if (paths->at(i)->at(t)[0] == paths->at(j)->at(t + 1)[0] && paths->at(i)->at(t)[1] == paths->at(j)->at(t + 1)[1] && 
+                                paths->at(i)->at(t + 1)[0] == paths->at(j)->at(t)[0] && paths->at(i)->at(t + 1)[1] == paths->at(j)->at(t)[1]) {
                             // If they are, then add a conflict to the vector.
                             int agent_id_from = i;
-                            StateType conflict_state_i_from = {paths->at(i)[t][0], paths->at(i)[t][1], (double)t};
-                            StateType conflict_state_i_to = {paths->at(i)[t + 1][0], paths->at(i)[t + 1][1], (double)(t + 1)};
+                            StateType conflict_state_i_from = {paths->at(i)->at(t)[0], paths->at(i)->at(t)[1], (double)t};
+                            StateType conflict_state_i_to = {paths->at(i)->at(t + 1)[0], paths->at(i)->at(t + 1)[1], (double)(t + 1)};
 
                             int agent_id_to = j;
-                            StateType conflict_state_j_from = {paths->at(j)[t][0], paths->at(j)[t][1], (double)t};
-                            StateType conflict_state_j_to = {paths->at(j)[t + 1][0], paths->at(j)[t + 1][1], (double)(t + 1)};
+                            StateType conflict_state_j_from = {paths->at(j)->at(t)[0], paths->at(j)->at(t)[1], (double)t};
+                            StateType conflict_state_j_to = {paths->at(j)->at(t + 1)[0], paths->at(j)->at(t + 1)[1], (double)(t + 1)};
 
                             std::vector<StateType> states_from = {conflict_state_i_from, conflict_state_j_from};
                             std::vector<StateType> states_to = {conflict_state_i_to, conflict_state_j_to};
