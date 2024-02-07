@@ -235,26 +235,7 @@ ims::GeneralizedCBSPoint3d::GeneralizedCBSPoint3d(const ims::GeneralizedCBSPoint
     open_ = new MultiFocalAndAnchorDTSQueueWrapper<SearchState, GeneralizedCBSOpenCompare>();
     open_->createNewFocalQueueFromComparator<GeneralizedCBSSphere3dConstraintFocalCompare>();
     open_->createNewFocalQueueFromComparator<GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
-    open_->giveReward(0, true); // A hack to make the first focal queue the default one.
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
-    open_->giveReward(0, true);
+    open_->giveRewardOrPenalty(0, 5); // A hack to make the first focal queue the default one.
 
     // Create a stats field for the low-level planner nodes created.
     stats_.bonus_stats["num_low_level_expanded"] = 0;
@@ -512,10 +493,10 @@ void ims::GeneralizedCBSPoint3d::expand(int state_id) {
         open_->push(state);
         // If the new state has less conflicts than the old one, then we will inform the open list about this improvement.
         if (c_new < c_old) {
-            open_->giveReward(true);
+            open_->giveReward();
         }
         else{
-            open_->giveReward(false);
+            open_->givePenalty();
         }
         return;
     }

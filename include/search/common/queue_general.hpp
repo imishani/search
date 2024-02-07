@@ -391,19 +391,25 @@ void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::sampleFocalIndexDTS() {
         samples.push_back(sample);
     }
     current_focalQ_index_ = std::distance(samples.begin(), std::max_element(samples.begin(), samples.end()));
-    std::cout << "Sampled focal queue index: " << current_focalQ_index_ << std::endl;
+    std::cout << GREEN << "Sampled focal queue index: " << current_focalQ_index_ << " with alpha, beta = " << dts_alpha_beta_[current_focalQ_index_].first << ", " << dts_alpha_beta_[current_focalQ_index_].second << RESET << std::endl;
 }
 
 template <class T, class CompareMain>
-void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::giveReward(bool success) {
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::giveRewardOrPenalty(double reward) {
     // Update the alpha and beta values of the focal queue.
     std::pair<double, double> alpha_beta = dts_alpha_beta_[current_focalQ_index_];
     double alpha = alpha_beta.first;
     double beta = alpha_beta.second;
-    if (success){
-        alpha += 1;
+    if (reward >= 0){
+        alpha += reward;
+        if (alpha + beta > dts_c_ + 1){
+            alpha = dts_c_ + 1 - beta;
+        }
     } else {
-        beta += 1;
+        beta -= reward;
+        if (beta + alpha > dts_c_ + 1){
+            beta = dts_c_ + 1 - alpha;
+        }
     }
     // Cap at alpha+beta = c.
     if (alpha + beta >  dts_c_){
@@ -411,18 +417,26 @@ void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::giveReward(bool success
         beta = dts_c_ * beta / (dts_c_ + 1);
     }
     dts_alpha_beta_[current_focalQ_index_] = std::make_pair(alpha, beta);
-    std::cout << "New alpha and beta values for focal queue " << current_focalQ_index_ << " are " << alpha << " and " << beta << std::endl;
-
     // Given the new distribution change, sample a new active focal queue index.
     sampleFocalIndexDTS(); 
 }
 
 template <class T, class CompareMain>
-void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::giveReward(int focalQ_index, bool success) {
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::givePenalty() {
+    giveRewardOrPenalty(-1);
+}
+
+template <class T, class CompareMain>
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::giveReward() {
+    giveRewardOrPenalty(1);
+}
+
+template <class T, class CompareMain>
+void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::giveRewardOrPenalty(int focalQ_index, double reward) {
     // Set the current focal queue index to focalQ_index.
     current_focalQ_index_ = focalQ_index;
     // Update the alpha and beta values of the focal queue.
-    giveReward(success);
+    giveRewardOrPenalty(reward);
 }
 
 template <class T, class CompareMain>

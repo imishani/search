@@ -41,9 +41,11 @@ ims::GeneralizedECBS::GeneralizedECBS(const ims::GeneralizedECBSParams& params) 
     // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
     // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedECBSOpenCompare, GeneralizedECBSConflictCountFocalCompare>();
     // open_ = new MultiFocalAndAnchorDTSQueueWrapper<SearchState, GeneralizedECBSOpenCompare>();
-    open_ = new MultiFocalAndAnchorQueueWrapper<SearchState, GeneralizedECBSOpenCompare>();
+    open_ = new MultiFocalAndAnchorDTSQueueWrapper<SearchState, GeneralizedECBSOpenCompare>();
     open_->createNewFocalQueueFromComparator<GeneralizedECBSConflictCountFocalCompare>();
     open_->createNewFocalQueueFromComparator<GeneralizedECBSSphere3dConstraintFocalCompare>();
+    open_->createNewFocalQueueFromComparator<GeneralizedECBSStateAvoidanceConstraintFocalCompare>();
+    open_->giveRewardOrPenalty(0, 5);
 
     // Create a stats field for the low-level planner nodes created.
     stats_.bonus_stats["num_low_level_expanded"] = 0;
@@ -192,8 +194,8 @@ bool ims::GeneralizedECBS::plan(MultiAgentPaths& paths) {
         //     current_priority_function_index_ = 1;
         // } else {
             std::cout << GREEN << "Pop from focal." << RESET << std::endl;
-            state = open_->min(0);
-            open_->pop(0);
+            state = open_->min();
+            open_->pop();
             // current_priority_function_index_ = 0;
         // }
 
@@ -307,19 +309,22 @@ void ims::GeneralizedECBS::expand(int state_id) {
     // First and foremost, check if this state has already been evaluated. If not, then we need to recompute paths for it using its existing constraints collective.
     if (!state->agent_ids_need_replan.empty()) {
         double f_old = state->f;
+        int c_old = state->unresolved_conflicts.size();
         bool replan_success = replanOutdatedAgents(state); // This method will incorporate any unincorporated constraints into the state's constraints collective and update its f and other values accordingly.
         if (!replan_success) {
             delete state;
             return;
         }
-        // If the new f-value is larger than the previous one, then this state may not have been chosen to be expanded. We put it back in the open list.
-        // if (state->f > f_old) {
-            // Check if the new f would still be put in the focal (according to the new min-f that exists in open now). If not, put back in open. Otherwise, proceed.
-            // if (state->f > open_->getLowerBound() * params_.high_level_focal_suboptimality) {
-                open_->push(state);
-                return;
-            // }
-        // }
+        int c_new = state->unresolved_conflicts.size(); 
+        open_->push(state);
+        // If the new state has less conflicts than the old one, then we will inform the open list about this improvement.
+        if (c_new < c_old) {
+            open_->giveReward();
+        }
+        else{
+            open_->givePenalty();
+        }
+        return;
     }
 
     stats_.num_expanded++;    

@@ -239,7 +239,7 @@ private:
     int current_focalQ_index_ = 0;
     // DTS parameters.
     std::vector<std::pair<double, double>> dts_alpha_beta_;
-    double dts_c_ = 50.0;
+    double dts_c_ = 10.0;
     boost::random::mt19937 rng_;
 
 public:
@@ -252,8 +252,11 @@ public:
     // Methods for handling DTS.
     /// @brief Update the DTS alpha and beta values given a success or failure of a focal search from the current queue.
     /// @param success
-    void giveReward(bool success);
-    void giveReward(int focalQ_index, bool success);
+    void giveReward();
+    void givePenalty();
+    void giveRewardOrPenalty(double reward); // Reward can be positive or negative.
+    void giveRewardOrPenalty(int focalQ_index, double reward); // Reward can be positive or negative.
+    inline void setC(int c){dts_c_ = c;}
 
     // Metods for handling multiple focal queues.
     /// @brief Create a new focal queue from a comparator. Also create a new entry in the DTS table with a=b=1.

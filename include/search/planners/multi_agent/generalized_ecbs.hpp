@@ -84,10 +84,11 @@ struct GeneralizedECBSParams : public GeneralizedCBSParams {
                                                         ConstraintType::SPHERE3D, // "Do not be in this sphere at this time."
                                                         ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."
                                                         ConstraintType::VERTEX_STATE_AVOIDANCE, // "At this time, avoid those agents taking the specified configurations."
-                                                        // ConstraintType::EDGE_PRIORITY, // "Between these times, avoid those agents (whereever they are)."
-                                                        // ConstraintType::VERTEX_PRIORITY, // "At this time, avoid those agents (whereever they are)."
                                                         ConstraintType::EDGE, // "Do not traverse this edge between these times."
                                                         ConstraintType::VERTEX, // "Do not be at this vertex at this time."
+
+                                                        // ConstraintType::EDGE_PRIORITY, // "Between these times, avoid those agents (whereever they are)."
+                                                        // ConstraintType::VERTEX_PRIORITY, // "At this time, avoid those agents (whereever they are)."
                                                         };
 };
 
@@ -362,7 +363,7 @@ protected:
 
     // The open list. Not inherited from GeneralizedCBS as it uses a multifocal queue. TODO(yoraish): make the change to a multifocal queue here as well.
     // AbstractQueue<SearchState>* open_;
-    MultiFocalAndAnchorQueueWrapper<SearchState, GeneralizedECBSOpenCompare>* open_;
+    MultiFocalAndAnchorDTSQueueWrapper<SearchState, GeneralizedECBSOpenCompare>* open_;
 };
 
 
