@@ -44,6 +44,15 @@
 
 namespace ims {
 
+/// @brief Declare types for focal queues.
+enum class FocalQueueType {
+    F_VALUE = 0, 
+    SPHERE3D_CONSTRAINT_DENSITY = 1, 
+    STATE_AVOIDANCE_CONSTRAINT_DENSITY = 2, 
+    PRIORITY_CONSTRAINT_DENSITY = 3,
+    CONFLICT_COUNT = 4,
+};
+
 /// @brief Require LowerBound function for elements.
 struct SearchStateLowerBoundMixin {
     virtual double getLowerBound() const = 0;

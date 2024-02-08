@@ -86,10 +86,19 @@ struct GeneralizedECBSParams : public GeneralizedCBSParams {
                                                         ConstraintType::VERTEX_STATE_AVOIDANCE, // "At this time, avoid those agents taking the specified configurations."
                                                         ConstraintType::EDGE, // "Do not traverse this edge between these times."
                                                         ConstraintType::VERTEX, // "Do not be at this vertex at this time."
-
-                                                        // ConstraintType::EDGE_PRIORITY, // "Between these times, avoid those agents (whereever they are)."
-                                                        // ConstraintType::VERTEX_PRIORITY, // "At this time, avoid those agents (whereever they are)."
+                                                        ConstraintType::EDGE_PRIORITY, // "Between these times, avoid those agents (whereever they are)."
+                                                        ConstraintType::VERTEX_PRIORITY, // "At this time, avoid those agents (whereever they are)."
                                                         };
+
+    /// @brief The focal queues that should be created.
+    std::vector<FocalQueueType> focal_queue_types = {FocalQueueType::SPHERE3D_CONSTRAINT_DENSITY, 
+                                                     FocalQueueType::PRIORITY_CONSTRAINT_DENSITY, 
+                                                     FocalQueueType::STATE_AVOIDANCE_CONSTRAINT_DENSITY, 
+                                                    //  FocalQueueType::CONFLICT_COUNT
+                                                     };
+
+    /// @brief Whether to use One-Step-Lazy evaluations.
+    bool use_one_step_lazy = true;
 };
 
 // ==========================
@@ -178,24 +187,22 @@ protected:
                 constraint_density_s2 = s2.constraint_type_count.at(ConstraintType::SPHERE3D) / (double)constraints_count_s2;
             }
 
-            if (constraint_density_s1 == constraint_density_s2) {
-                if (s1.f == s2.f) {
-                    if (s1.g == s2.g) {
-                        int c1 = s1.unresolved_conflicts.size();
-                        int c2 = s2.unresolved_conflicts.size();
-                        // Compare unresolved conflicts count
-                        if (c1 == c2) {
+            int c1 = s1.unresolved_conflicts.size();
+            int c2 = s2.unresolved_conflicts.size();
+            if (c1 == c2) {
+                if (constraint_density_s1 == constraint_density_s2) {
+                    if (s1.f == s2.f) {
+                        if (s1.g == s2.g) {
+                            // Compare unresolved conflicts count
                             return s1.state_id < s2.state_id;
                         }
-                        // s1 will come before s2 if it has fewer conflicts.
-                        return c1 < c2;                    }
-                    return s1.g < s2.g;
+                        return s1.g < s2.g;
+                    }
+                    return s1.f < s2.f;
                 }
-                return s1.f < s2.f;
+                return constraint_density_s1 > constraint_density_s2;
             }
-
-            // s1 will come before s2 if it has a higher constraint density.
-            return constraint_density_s1 > constraint_density_s2;
+            return c1 < c2;
         }
     };
 
@@ -229,25 +236,22 @@ protected:
             constraint_density_s1 = (num_edge_constraints_s1 + num_vertex_constraints_s1) / (double)constraints_count_s1;
             constraint_density_s2 = (num_edge_constraints_s2 + num_vertex_constraints_s2) / (double)constraints_count_s2;
 
-            if (constraint_density_s1 == constraint_density_s2) {
-                if (s1.f == s2.f) {
-                    if (s1.g == s2.g) {
-                        int c1 = s1.unresolved_conflicts.size();
-                        int c2 = s2.unresolved_conflicts.size();
-                        // Compare unresolved conflicts count
-                        if (c1 == c2) {
+            int c1 = s1.unresolved_conflicts.size();
+            int c2 = s2.unresolved_conflicts.size();
+            if (c1 == c2) {
+                if (constraint_density_s1 == constraint_density_s2) {
+                    if (s1.f == s2.f) {
+                        if (s1.g == s2.g) {
+                            // Compare unresolved conflicts count
                             return s1.state_id < s2.state_id;
                         }
-                        // s1 will come before s2 if it has fewer conflicts.
-                        return c1 < c2;
+                        return s1.g < s2.g;
                     }
-                    return s1.g < s2.g;
+                    return s1.f < s2.f;
                 }
-                return s1.f < s2.f;
+                return constraint_density_s1 > constraint_density_s2;
             }
-
-            // s1 will come before s2 if it has a higher constraint density.
-            return constraint_density_s1 > constraint_density_s2;
+            return c1 < c2;
         }
     };
 
@@ -282,25 +286,22 @@ protected:
             constraint_density_s1 = (num_edge_constraints_s1 + num_vertex_constraints_s1) / (double)constraints_count_s1;
             constraint_density_s2 = (num_edge_constraints_s2 + num_vertex_constraints_s2) / (double)constraints_count_s2;
 
-            if (constraint_density_s1 == constraint_density_s2) {
-                if (s1.f == s2.f) {
-                    if (s1.g == s2.g) {
-                        int c1 = s1.unresolved_conflicts.size();
-                        int c2 = s2.unresolved_conflicts.size();
-                        // Compare unresolved conflicts count
-                        if (c1 == c2) {
+            int c1 = s1.unresolved_conflicts.size();
+            int c2 = s2.unresolved_conflicts.size();
+            if (c1 == c2) {
+                if (constraint_density_s1 == constraint_density_s2) {
+                    if (s1.f == s2.f) {
+                        if (s1.g == s2.g) {
+                            // Compare unresolved conflicts count
                             return s1.state_id < s2.state_id;
                         }
-                        // s1 will come before s2 if it has fewer conflicts.
-                        return c1 < c2;
+                        return s1.g < s2.g;
                     }
-                    return s1.g < s2.g;
+                    return s1.f < s2.f;
                 }
-                return s1.f < s2.f;
+                return constraint_density_s1 > constraint_density_s2;
             }
-
-            // s1 will come before s2 if it has a higher constraint density.
-            return constraint_density_s1 > constraint_density_s2;
+            return c1 < c2;
         }
     };
 
@@ -495,24 +496,22 @@ protected:
                 constraint_density_s2 = s2.constraint_type_count.at(ConstraintType::SPHERE3D) / (double)constraints_count_s2;
             }
 
-            if (constraint_density_s1 == constraint_density_s2) {
-                if (s1.f == s2.f) {
-                    if (s1.g == s2.g) {
-                        int c1 = s1.unresolved_conflicts.size();
-                        int c2 = s2.unresolved_conflicts.size();
-                        // Compare unresolved conflicts count
-                        if (c1 == c2) {
+            int c1 = s1.unresolved_conflicts.size();
+            int c2 = s2.unresolved_conflicts.size();
+            if (c1 == c2) {
+                if (constraint_density_s1 == constraint_density_s2) {
+                    if (s1.f == s2.f) {
+                        if (s1.g == s2.g) {
+                            // Compare unresolved conflicts count
                             return s1.state_id < s2.state_id;
                         }
-                        // s1 will come before s2 if it has fewer conflicts.
-                        return c1 < c2;                    }
-                    return s1.g < s2.g;
+                        return s1.g < s2.g;
+                    }
+                    return s1.f < s2.f;
                 }
-                return s1.f < s2.f;
+                return constraint_density_s1 > constraint_density_s2;
             }
-
-            // s1 will come before s2 if it has a higher constraint density.
-            return constraint_density_s1 > constraint_density_s2;
+            return c1 < c2;
         }
     };
 

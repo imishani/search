@@ -36,16 +36,28 @@
 
 ims::GeneralizedECBS::GeneralizedECBS(const ims::GeneralizedECBSParams& params) : params_(params), GeneralizedCBS(params) {
     // Create the open list.
-    // Today (2024-01-12) there are two ways to pop out of this open list. One is to pop the min element (using FOCAL), and the other is to pop the min element in anchor (only according to OpenCompare). 
-    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedECBSSphere3dConstraintFocalCompare>();
-    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedCBSOpenCompare, GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
-    // open_ = new FocalAndAnchorQueueWrapper<SearchState, GeneralizedECBSOpenCompare, GeneralizedECBSConflictCountFocalCompare>();
-    // open_ = new MultiFocalAndAnchorDTSQueueWrapper<SearchState, GeneralizedECBSOpenCompare>();
     open_ = new MultiFocalAndAnchorDTSQueueWrapper<SearchState, GeneralizedECBSOpenCompare>();
-    open_->createNewFocalQueueFromComparator<GeneralizedECBSConflictCountFocalCompare>();
-    open_->createNewFocalQueueFromComparator<GeneralizedECBSSphere3dConstraintFocalCompare>();
-    open_->createNewFocalQueueFromComparator<GeneralizedECBSStateAvoidanceConstraintFocalCompare>();
-    open_->giveRewardOrPenalty(0, 5);
+    for (auto focal_queue_type : params_.focal_queue_types){
+        switch (focal_queue_type) {
+            case FocalQueueType::CONFLICT_COUNT: {
+                open_->createNewFocalQueueFromComparator<GeneralizedECBSConflictCountFocalCompare>();
+                open_->giveRewardOrPenalty(0, 9);
+                break;}
+            case FocalQueueType::SPHERE3D_CONSTRAINT_DENSITY: {
+                open_->createNewFocalQueueFromComparator<GeneralizedECBSSphere3dConstraintFocalCompare>();
+                break;}
+            case FocalQueueType::STATE_AVOIDANCE_CONSTRAINT_DENSITY: {
+                open_->createNewFocalQueueFromComparator<GeneralizedECBSStateAvoidanceConstraintFocalCompare>();
+                break;}
+            case FocalQueueType::PRIORITY_CONSTRAINT_DENSITY: {
+                open_->createNewFocalQueueFromComparator<GeneralizedECBSPriorityConstraintFocalCompare>();
+                break;}
+            default: {
+                throw std::runtime_error("Focal queue type not recognized.");
+            }
+        }
+    }
+
 
     // Create a stats field for the low-level planner nodes created.
     stats_.bonus_stats["num_low_level_expanded"] = 0;
@@ -187,17 +199,9 @@ bool ims::GeneralizedECBS::plan(MultiAgentPaths& paths) {
 
         // Get the state of least cost according to the priority function in the round robin.
         SearchState* state;
-        // if (current_priority_function_index_ == 0) {
-        //     std::cout << GREEN << "Pop from anchor." << RESET << std::endl;
-        //     state = open_->minAnchor();
-        //     open_->popAnchor();
-        //     current_priority_function_index_ = 1;
-        // } else {
-            std::cout << GREEN << "Pop from focal." << RESET << std::endl;
-            state = open_->min();
-            open_->pop();
-            // current_priority_function_index_ = 0;
-        // }
+        std::cout << GREEN << "Pop from focal." << RESET << std::endl;
+        state = open_->min();
+        open_->pop();
 
                     // TEST TEST TEST.
                     // Print some information about this new state.
@@ -248,7 +252,7 @@ bool ims::GeneralizedECBS::replanOutdatedAgents(SearchState* state) {
 
     // Otherwise, replan for each agent that has unincorporated constraints.
     for (int agent_id : state->agent_ids_need_replan) {
-
+        std::cout << RED << "    Replanning for agent " << agent_id << "." << RESET << std::endl;
         // Remove prior information for the agent that is being replanned. This is important for the constraints context, such that it only includes context from other agents.
         state->paths[agent_id].clear();
         state->paths_costs[agent_id] = 0.0;
@@ -406,6 +410,17 @@ void ims::GeneralizedECBS::expand(int state_id) {
 
         // Mark this agent id as needing a replan.
         new_state->agent_ids_need_replan.push_back(agent_id);
+
+        // If there is no need to use one-step-lazy evaluations, then immediately evaluate the new state and push it to the open list.
+        if (!params_.use_one_step_lazy){
+            std::cout << RED << "No one-step-lazy evaluations, will be replanning for " << new_state->agent_ids_need_replan.size() << " agents." << RESET << std::endl;
+            bool replan_success = replanOutdatedAgents(new_state); // This method will incorporate any unincorporated constraints into the state's constraints collective and update its f and other values accordingly.
+            if ( isTimeOut()){return;}
+            if (!replan_success) { 
+                delete new_state;
+                continue;
+            }
+        }
        
         // Push the new state to the open list.
         new_state->setOpen();
