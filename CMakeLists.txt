@@ -7,8 +7,10 @@ set(CMAKE_CXX_STANDARD 14)
 include_directories(include)
 
 # link boost libraries
+find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
-include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${EIGEN3_INCLUDE_DIR}
+                    ${Boost_INCLUDE_DIRS})
 
 add_library(search SHARED
         src/planners/best_first_search.cpp
@@ -92,6 +94,9 @@ target_link_libraries(run_2d_mapf_eaecbs search ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_pp domains/2d_mapf/run_2d_pp.cpp)
 target_link_libraries(run_2d_mapf_pp search ${Boost_LIBRARIES})
+
+add_executable(run_sliding_tiles_wastar domains/sliding_tiles/run_sliding_tiles_wastar.cpp)
+target_link_libraries(run_sliding_tiles_wastar search ${Boost_LIBRARIES})
 
 # Add an uninstall target.
 if(NOT TARGET uninstall)
