@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
@@ -96,7 +98,7 @@ def load_data(file_path: str):
                 # get the state
                 state = f.readline().strip().split(",")
                 # add the state
-                states.append([int(state[0]), int(state[1])])
+                states.append([float(state[0]), float(state[1])])
             # add the path
             paths_[path_index] = np.array(states)
     # return the data
@@ -144,6 +146,10 @@ def visualize(map_ind, scaler, threshold, paths_dict, path_ids_to_visualize):
         ax.plot(x[0], y[0], 'ro', fillstyle='none', markersize=5)
         # plot a green circle (without fill) at the goal
         ax.plot(x[-1], y[-1], 'go', fillstyle='none', markersize=5)
+
+    if args.imagepath is not None:
+        plt.savefig(args.imagepath)
+
     # show the plot
     fig.tight_layout()
     plt.show()
@@ -156,6 +162,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--filepath", help="path to the file containing the path solutions")
     parser.add_argument("--path_ids", help="the path ids to visualize (if multiple ids, separate with commas)",
+                        default=None)
+    parser.add_argument("--imagepath", help="path to the image file the generated plot will be saved to", 
                         default=None)
     args = parser.parse_args()
     # if no argument is provided, raise an error
