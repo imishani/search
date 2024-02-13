@@ -21,6 +21,7 @@ add_library(search SHARED
         src/planners/arastar.cpp
         src/planners/bfs.cpp
         src/planners/egraph_wastar.cpp
+        src/planners/multi_path_wastar.cpp
         src/planners/focal_search/focal_search.cpp
         src/planners/focal_search/focal_wastar.cpp
         src/planners/focal_search/focal_eawastar.cpp
@@ -38,6 +39,7 @@ add_library(search SHARED
         src/common/experience_graph.cpp
         src/common/conflict_conversions.cpp
         src/common/bfs3d.cpp
+        include/search/planners/multi_path_wastar.hpp
 )
 
 set($(PROJECT_NAME)_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")

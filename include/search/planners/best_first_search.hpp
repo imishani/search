@@ -38,6 +38,7 @@
 
 // standard includes
 #include <functional>
+#include <unordered_set>
 // Standard includes
 #include <utility>
 #include <algorithm>
@@ -68,6 +69,7 @@ namespace ims{
     private:
 
         friend class AStar; friend class wAStar; friend class EAwAStarUniformCost;
+        friend class MultiPathwAStar;
         friend class BFS; friend class ARAStar;
         friend class plannerZero; friend class CBS; friend class CBSBase;
         friend class CBSSphere3d;
@@ -89,6 +91,8 @@ namespace ims{
             bool in_open = false;
             /// @brief closed list boolean
             bool in_closed = false;
+            /// @brief history of parents
+            std::unordered_set<int> parent_ids_;
 
             /// @brief set the state to open list (make sure it is not in closed list and if it is, update it)
             void setOpen(){
