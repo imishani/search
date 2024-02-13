@@ -100,6 +100,9 @@ target_link_libraries(run_2d_mapf_pp search ${Boost_LIBRARIES})
 add_executable(run_sliding_tiles_wastar domains/sliding_tiles/run_sliding_tiles_wastar.cpp)
 target_link_libraries(run_sliding_tiles_wastar search ${Boost_LIBRARIES})
 
+add_executable(run_sliding_tiles_mpwa domains/sliding_tiles/run_sliding_tiles_mpwa.cpp)
+target_link_libraries(run_sliding_tiles_mpwa search ${Boost_LIBRARIES})
+
 # Add an uninstall target.
 if(NOT TARGET uninstall)
     configure_file(
