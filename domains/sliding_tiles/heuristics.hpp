@@ -119,7 +119,7 @@ struct LinearConflictHeuristic : public ims::BaseHeuristic {
   }
 };
 
-/// @brief The Manhattan distance heuristic for the sliding puzzle
+/// @brief The Manhattan distance plus Linear Conflict heuristic (admissible) for the sliding puzzle
 struct ManhattanPlusLinearConflictHeuristic : public ims::BaseHeuristic {
   bool getHeuristic(const StateType& s1, const StateType& s2,
                     double& dist) override {
