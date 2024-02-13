@@ -27,9 +27,9 @@
 //
 
 /*!
- * \file run_sliding_tiles_astar.cpp 
+ * \file run_sliding_tiles_mpwa.cpp
  * \author Ram Natarajan (rnataraj@cs.cmu.edu)
- * \date 2/10/24
+ * \date 2/13/24
 */
 
 #include <boost/filesystem.hpp>
@@ -40,20 +40,22 @@
 #include <cmath>
 
 // project includes
-#include <search/planners/wastar.hpp>
-#include <search/heuristics/standard_heuristics.hpp>
+#include <search/planners/multi_path_wastar.hpp>
 #include "action_space_sliding_puzzle.hpp"
 #include "heuristics.hpp"
 #include "utils.hpp"
 
 
 int main(int argc, char** argv) {
-  srand(time(NULL));
+//  srand(time(NULL));
+  srand(12);
 
   if (argc < 2) {
     std::cout << "Usage: " << argv[0] << " <puzzle_size> <num_runs>" << std::endl;
     return 0;
   }
+  std::string planner_name = "mpwa";
+  std::string domain_name = "sliding_tiles";
   int puzzle_size = std::stoi(argv[1]);
   int num_runs = std::stoi(argv[2]);
 
@@ -70,7 +72,7 @@ int main(int argc, char** argv) {
   ManhattanPlusLinearConflictHeuristic* heuristic = new ManhattanPlusLinearConflictHeuristic();
   double epsilon = 10.0;
   int num_jumble = 750;
-  ims::wAStarParams params (heuristic, epsilon);
+  ims::MultiPathwAStarParams params (heuristic, epsilon);
   // construct the scene and the action space
   SceneSlidingTiles scene (puzzle_size);
   ActionTypeSlidingTiles action_type;
@@ -91,7 +93,7 @@ int main(int argc, char** argv) {
 
     std::shared_ptr<actionSpaceSlidingTiles> ActionSpace = std::make_shared<actionSpaceSlidingTiles>(scene, action_type);
     // construct planner
-    ims::wAStar planner(params);
+    ims::MultiPathwAStar planner(params);
 
     // catch the exception if the start or goal is not valid
     try {
@@ -110,9 +112,9 @@ int main(int argc, char** argv) {
     else
       std::cout << GREEN << "Path found!" << RESET << std::endl;
 
-    std::cout << "path found is " << std::endl;
-    for (auto& state : path_)
-      std::cout << Eigen::Map<const MatDf>(state.data(), puzzle_size, puzzle_size) << std::endl << "-----------" << std::endl;
+//    std::cout << "path found is " << std::endl;
+//    for (auto& state : path_)
+//      std::cout << Eigen::Map<const MatDf>(state.data(), puzzle_size, puzzle_size) << std::endl << "-----------" << std::endl;
 
     PlannerStats stats = planner.reportStats();
     std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
@@ -123,6 +125,21 @@ int main(int argc, char** argv) {
     std::cout << "suboptimality: " << stats.suboptimality << RESET << std::endl;
     logs[i] = stats; // log the stats
     paths[i] = path_; // log the path
+
+    auto sid_to_fval = planner.reconstructFValue();
+
+    ///// DATA FORMAT /////
+    /// planner
+    /// map ID
+    /// start
+    /// goal
+    /// epsilon (w)
+    /// g h f state
+
+    std::string fpath = "../domains/" + domain_name + "/data/phai/" + std::to_string(i) + ".txt";
+    std::string map_id = "NA";
+    planner.writeDataToFile(fpath, planner_name, map_id,
+                            start, goal, epsilon, sid_to_fval);
   }
 
   return 0;

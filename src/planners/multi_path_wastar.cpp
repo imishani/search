@@ -34,6 +34,7 @@
 
 #include "search/planners/multi_path_wastar.hpp"
 #include <queue>
+#include <fstream>
 
 ims::MultiPathwAStar::MultiPathwAStar(const ims::MultiPathwAStarParams &params) : params_(params), wAStar(params) {}
 
@@ -51,6 +52,8 @@ void ims::MultiPathwAStar::expand(int state_id){
     int successor_id = successors[i];
     double cost = costs[i];
     auto successor = getOrCreateSearchState(successor_id);
+    assert(state_id>=0);
+    successor->parent_ids_.insert(state_id); /// Keeping track of visitation by every state
     if (successor->in_closed){
       continue;
     }
@@ -60,7 +63,6 @@ void ims::MultiPathwAStar::expand(int state_id){
     if (successor->in_open){
       if (successor->g > state_->g + cost){
         successor->parent_id = state_->state_id;
-        successor->parent_ids_.insert(state_id);
         successor->g = state_->g + cost;
         successor->f = successor->g + params_.epsilon*successor->h;
         open_.update(successor);
@@ -74,38 +76,50 @@ void ims::MultiPathwAStar::expand(int state_id){
   stats_.num_expanded++;
 }
 
-// Breadth-First Search (BFS) function
-void ims::MultiPathwAStar::BFSUtil(const std::unordered_map<int, std::unordered_set<int>>& graph, int startVertex) {
-  std::unordered_set<int> visited;
-  std::queue<int> queue;
 
-  queue.push(startVertex);
+std::unordered_map<int, double> ims::MultiPathwAStar::Dijkstra(std::unordered_map<int, std::vector<int>>& graph,
+                                                               std::unordered_map<int, std::vector<double>>& costs,
+                                                               int start_id) {
 
-  while (!queue.empty()) {
-    int currentVertex = queue.front();
-    queue.pop();
+  std::priority_queue<std::pair<double, int>, std::vector<std::pair<double, int>>, std::greater<>> pq;
+  std::unordered_map<int, double> fval;
 
-    if (visited.find(currentVertex) != visited.end()) {
-      continue; // Skip if vertex is already visited
+  fval[start_id] = 0.0;
+  pq.emplace(0.0, start_id);
+
+  int i = 0;
+  while (!pq.empty()) {
+    int u = pq.top().second;
+    int dist_u = pq.top().first;
+    pq.pop();
+
+    if (dist_u > fval.at(u)) {
+      continue; // Skip outdated entries in priority queue
     }
 
-    visited.insert(currentVertex);
+    for (int i=0; i<graph.at(u).size(); ++i) {
+      int v = graph.at(u)[i];
+      double weight = costs.at(u)[i];
 
-    // Iterate over adjacent vertices
-    const auto& adjacentVertices = graph.at(currentVertex);
-    for (int adjacentVertex : adjacentVertices) {
-      if (visited.find(adjacentVertex) == visited.end()) {
-        queue.push(adjacentVertex);
+      if (fval.find(v) == fval.end()) {
+        fval[v] = fval.at(u) + weight;
+        pq.emplace(fval.at(v), v);
+      } else if (fval.at(u) + weight < fval.at(v)) {
+        fval.at(v) = fval.at(u) + weight;
+        pq.emplace(fval.at(v), v);
       }
     }
   }
+
+  for (const auto id : fval) {
+    fval.at(id.first) += getSearchState(id.first)->g;
+  }
+
+  return fval;
 }
 
 
-void ims::MultiPathwAStar::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
-  path.clear();
-  costs.clear();
-
+std::unordered_map<int, double> ims::MultiPathwAStar::reconstructFValue() {
   /// Construct the backward graph
   std::unordered_map<int, std::vector<int>> bwg;
   std::unordered_map<int, std::vector<double>> bwg_costs;
@@ -113,37 +127,64 @@ void ims::MultiPathwAStar::reconstructPath(std::vector<StateType>& path, std::ve
     SearchState* sid = getSearchState(s->state_id);
     for (const auto bp : sid->parent_ids_) {
       bwg[s->state_id].push_back(bp);
-      double c = s->g - getSearchState(s->parent_id)->g;
+      double c = fabs(s->g - getSearchState(bp)->g);
       bwg_costs[s->state_id].push_back(c);
     }
   }
+  auto id_to_fval = Dijkstra(bwg, bwg_costs, goal_);
+  return id_to_fval;
 
-
-  costs.push_back(0); // The goal state gets a transition cost of 0.
-  SearchState* state_ = getSearchState(goal_);
-  while (state_->parent_id != -1){
-    path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-
-    // Get the transition cost. This is the difference between the g values of the current state and its parent.
-    double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
-    costs.push_back(transition_cost);
-
-    state_ = getSearchState(state_->parent_id);
-  }
-  path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-
-  std::reverse(path.begin(), path.end());
-  std::reverse(costs.begin(), costs.end());
+//  std::unordered_map<ims::wAStar::SearchState*, double> state_to_fval;
+//  for (const auto id : id_to_fval) {
+//    state_to_fval[getSearchState(id.first)] = id.second;
+//  }
+//  return state_to_fval;
 }
 
-void ims::MultiPathwAStar::reconstructPath(std::vector<StateType>& path) {
-  SearchState* state_ = getSearchState(goal_);
-  while (state_->parent_id != -1){
-    path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-    state_ = getSearchState(state_->parent_id);
-  }
-  path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-  std::reverse(path.begin(), path.end());
+double ims::MultiPathwAStar::getGValue(int state_id) {
+  return wAStar::getSearchState(state_id)->g;
 }
 
+double ims::MultiPathwAStar::getHValue(int state_id) {
+  return wAStar::getSearchState(state_id)->h;
+}
 
+StateType ims::MultiPathwAStar::getState(int state_id) {
+  return action_space_ptr_->getRobotState(state_id)->state;
+}
+
+void ims::MultiPathwAStar::writeDataToFile(std::string fpath, std::string planner_name,
+                                           std::string map_id, std::vector<double> start, std::vector<double> goal,
+                                           double epsilon, std::unordered_map<int, double>& sid_to_fval) {
+
+  std::ofstream opfile(fpath);
+
+  // Write each variable on a new line
+  if (opfile.is_open()) {
+    opfile << planner_name << std::endl;
+    opfile << map_id << std::endl;
+    for (const auto& val : start)
+      opfile << val << " ";
+    opfile << std::endl;
+    for (const auto& val : goal)
+      opfile << val << " ";
+    opfile << std::endl;
+    opfile << epsilon << std::endl;
+    for (auto sidtof : sid_to_fval) {
+      opfile << getGValue(sidtof.first) << " "
+             << getHValue(sidtof.first) << " "
+             << sid_to_fval[sidtof.first] << " ";
+      auto state = getState(sidtof.first);
+      for (auto s : state) {
+        opfile << s << " ";
+      }
+      opfile << std::endl;
+    }
+
+    // Close the file
+    opfile.close();
+    std::cout << "Data has been written to data.txt" << std::endl;
+  } else {
+    std::cerr << "Unable to open file!" << std::endl;
+  }
+}

@@ -77,18 +77,31 @@ namespace ims{
         /// @brief Destructor
         ~MultiPathwAStar() override;
 
+      /// @brief Calculate a approx f* for ALL the expanded and MANY visited nodes by
+      /// reconstructing a backward graph using the cached backpointers.
+      std::unordered_map<int, double> reconstructFValue();
+
+      double getGValue(int state_id);
+
+      double getHValue(int state_id);
+
+      StateType getState(int state_id);
+
+      void writeDataToFile(std::string fpath,
+                           std::string planner_name,
+                           std::string map_id,
+                           std::vector<double> start,
+                           std::vector<double> goal,
+                           double epsilon,
+                           std::unordered_map<int, double>& sid_to_fval);
+
     protected:
 
         void expand(int state_id) override;
 
-        void BFSUtil(const std::unordered_map<int, std::unordered_set<int>>& graph, int startVertex);
-
-        void reconstructPath(std::vector<StateType>& path) override;
-
-        /// @brief Reconstruct the path and also get the transition costs.
-        /// @param path The path to be populated
-        /// @param costs The costs to be populated. Cost at index i is the cost of the transition from state i to state i+1. Thus, the cost at the goal state is zero as there is no transition from the goal state.
-        void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
+        std::unordered_map<int, double> Dijkstra(std::unordered_map<int, std::vector<int>>& graph,
+                                                 std::unordered_map<int, std::vector<double>>& costs,
+                                                 int start_id);
 
         MultiPathwAStarParams params_;
 
