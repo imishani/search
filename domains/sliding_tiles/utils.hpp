@@ -115,4 +115,25 @@ StateType generateSolvableStartState(StateType& goal, int num_jumble, int puzzle
   return solvable_state;
 }
 
+/// @brief Log the statistics of a planner to a file.
+/// @param stats The statistics of the planner.
+/// @param map_index The index of the map.
+/// @param planner_name The name of the planner.
+void logStats(const std::unordered_map<int, PlannerStats>& stats,
+              int map_index,
+              const std::string& planner_name) {
+  // save the logs to a file in current directory
+  std::string log_file = "logs_map" + std::to_string(map_index) + "_" + planner_name + ".csv";
+  // save logs object to a file
+  std::ofstream file(log_file);
+  // header line
+  file << "Problem,Time,Cost,Num_expanded,Num_generated" << std::endl;
+  for (auto& log : stats) {
+    file << log.first << "," << log.second.time << "," << log.second.cost << "," <<
+         log.second.num_expanded << "," << log.second.num_generated << std::endl;
+  }
+  file.close();
+}
+
+
 #endif //SEARCH_UTILS_HPP
