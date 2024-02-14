@@ -25,26 +25,38 @@
 #   * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   * POSSIBILITY OF SUCH DAMAGE.
 #
+#
+
+import os
+
+domain_name = 'sliding_tiles'
+data_dir = os.path.join("../", domain_name, "data/phai")
+num_files = len(os.listdir(data_dir))
+
+
 
 sample_dict = {'g': -1, 'h': -1, 'f': -1, 'state': []}
-data = []
+data = {}
 
-# Open the file for reading
-with open("../data/phai/0.txt", "r") as file:
-    # Read each line from the file
-    planner_name = file.readline().strip()
-    map_id = file.readline().strip()
-    start = list(map(float, file.readline().strip().split()))
-    goal = list(map(float, file.readline().strip().split()))
-    epsilon = float(file.readline().strip())
-    for line in file:
-        d = line.strip().split(' ')
-        sample_dict['g'] = float(d[0])
-        sample_dict['h'] = float(d[1])
-        sample_dict['f'] = float(d[2])
-        state = [float(val) for val in d[3:]]
-        sample_dict['state'] = state
-        data.append(sample_dict)
+for i in range(num_files):
+    fname = os.path.join(data_dir, str(i) + ".txt")
+    sample = []
+    with open(fname, "r") as file:
+        # Read each line from the file
+        planner_name = file.readline().strip()
+        map_id = file.readline().strip()
+        start = list(map(float, file.readline().strip().split()))
+        goal = list(map(float, file.readline().strip().split()))
+        epsilon = float(file.readline().strip())
+        for line in file:
+            d = line.strip().split(' ')
+            sample_dict['g'] = float(d[0])
+            sample_dict['h'] = float(d[1])
+            sample_dict['f'] = float(d[2])
+            state = [float(val) for val in d[3:]]
+            sample_dict['state'] = state
+            sample.append(sample_dict)
+    data[i] = sample
 
 # Output the read data
 print("Planner Name:", planner_name)
@@ -54,5 +66,5 @@ print("Goal:", goal)
 print("Epsilon:", epsilon)
 print("state data")
 for sd in data:
-    print(sd)
+    print(data[sd])
 
