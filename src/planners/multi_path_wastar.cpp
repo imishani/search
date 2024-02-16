@@ -40,7 +40,6 @@ ims::MultiPathwAStar::MultiPathwAStar(const ims::MultiPathwAStarParams &params) 
 
 ims::MultiPathwAStar::~MultiPathwAStar() {
     for (auto state_ : states_){
-        state_->heap_data->~HeapData();
         delete state_;
     }
 }
