@@ -79,7 +79,7 @@ namespace ims{
                 /// @brief The heuristic value
                 double h {-1};
             };
-            HeapData heap_data;
+            HeapData heap_data[1];
         };
         struct HeapCompare {
             bool operator()(const SearchState::HeapData& s1,

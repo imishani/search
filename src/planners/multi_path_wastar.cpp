@@ -40,7 +40,7 @@ ims::MultiPathwAStar::MultiPathwAStar(const ims::MultiPathwAStarParams &params) 
 
 ims::MultiPathwAStar::~MultiPathwAStar() {
     for (auto state_ : states_){
-        state_->heap_data.~HeapData();
+        state_->heap_data->~HeapData();
         delete state_;
     }
 }
@@ -71,9 +71,9 @@ void ims::MultiPathwAStar::initializePlanner(const std::shared_ptr<ActionSpace> 
     goals_.push_back(goal_ind_);
 
     // Evaluate the goal state
-    goal_->heap_data.parent_id = PARENT_TYPE(GOAL);
+    goal_->heap_data->parent_id = PARENT_TYPE(GOAL);
     heuristic_->setGoal(const_cast<StateType &>(goals[0]));
-    goal_->heap_data.h = 0;
+    goal_->heap_data->h = 0;
 
     for (auto &start : starts) {
         // check if start is valid
@@ -83,13 +83,13 @@ void ims::MultiPathwAStar::initializePlanner(const std::shared_ptr<ActionSpace> 
         // Evaluate the start state
         int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
         auto start_ = getOrCreateSearchState(start_ind_);
-        start_->heap_data.parent_id = PARENT_TYPE(START);
+        start_->heap_data->parent_id = PARENT_TYPE(START);
         heuristic_->setStart(const_cast<StateType &>(start));
-        start_->heap_data.g = 0;
-        start_->heap_data.h = computeHeuristic(start_ind_);
-        start_->heap_data.f = start_->heap_data.g + params_.epsilon*start_->heap_data.h;
-        open_.push(&start_->heap_data);
-        start_->heap_data.setOpen();
+        start_->heap_data->g = 0;
+        start_->heap_data->h = computeHeuristic(start_ind_);
+        start_->heap_data->f = start_->heap_data->g + params_.epsilon*start_->heap_data->h;
+        open_.push(start_->heap_data);
+        start_->heap_data->setOpen();
     }
     stats_.suboptimality = params_.epsilon;
 }
@@ -118,19 +118,19 @@ void ims::MultiPathwAStar::initializePlanner(const std::shared_ptr<ActionSpace>&
     auto goal_ = getOrCreateSearchState(goal_ind_);
     goals_.push_back(goal_ind_);
 
-    start_->heap_data.parent_id = PARENT_TYPE(START);
+    start_->heap_data->parent_id = PARENT_TYPE(START);
     heuristic_->setStart(const_cast<StateType &>(start));
     // Evaluate the goal state
-    goal_->heap_data.parent_id = PARENT_TYPE(GOAL);
+    goal_->heap_data->parent_id = PARENT_TYPE(GOAL);
     heuristic_->setGoal(const_cast<StateType &>(goal));
-    goal_->heap_data.h = 0;
+    goal_->heap_data->h = 0;
     // Evaluate the start state
-    start_->heap_data.g = 0;
-    start_->heap_data.h = computeHeuristic(start_ind_);
-    start_->heap_data.f = start_->heap_data.g + params_.epsilon*start_->heap_data.h;
-    start_->heap_data.setOpen();
+    start_->heap_data->g = 0;
+    start_->heap_data->h = computeHeuristic(start_ind_);
+    start_->heap_data->f = start_->heap_data->g + params_.epsilon*start_->heap_data->h;
+    start_->heap_data->setOpen();
 
-    open_.push(&start_->heap_data);
+    open_.push(start_->heap_data);
     // update stats suboptimality
     stats_.suboptimality = params_.epsilon;
 }
@@ -147,7 +147,7 @@ auto ims::MultiPathwAStar::getOrCreateSearchState(int state_id) -> ims::MultiPat
     if (states_[state_id] == nullptr){
         assert(state_id < states_.size() && state_id >= 0);
         states_[state_id] = new SearchState;
-        states_[state_id]->heap_data.state_id = state_id;
+        states_[state_id]->heap_data->state_id = state_id;
     }
     return states_[state_id];
 }
@@ -184,30 +184,30 @@ void ims::MultiPathwAStar::expand(int state_id){
   auto state_ = getSearchState(state_id);
   std::vector<int> successors;
   std::vector<double> costs;
-  action_space_ptr_->getSuccessors(state_->heap_data.state_id, successors, costs);
+  action_space_ptr_->getSuccessors(state_->heap_data->state_id, successors, costs);
   for (size_t i {0} ; i < successors.size() ; ++i){
     int successor_id = successors[i];
     double cost = costs[i];
     auto successor = getOrCreateSearchState(successor_id);
     assert(state_id>=0);
     successor->parent_ids_.insert(state_id); /// Keeping track of visitation by every state
-    if (successor->heap_data.in_closed){
+    if (successor->heap_data->in_closed){
       continue;
     }
     if (isGoalState(successor_id) && params_.verbose ){
       std::cout << "Added Goal to open list" << std::endl;
     }
-    if (successor->heap_data.in_open){
-      if (successor->heap_data.g > state_->heap_data.g + cost){
-        successor->heap_data.parent_id = state_->heap_data.state_id;
-        successor->heap_data.g = state_->heap_data.g + cost;
-        successor->heap_data.f = successor->heap_data.g + params_.epsilon*successor->heap_data.h;
-        open_.update(&successor->heap_data);
+    if (successor->heap_data->in_open){
+      if (successor->heap_data->g > state_->heap_data->g + cost){
+        successor->heap_data->parent_id = state_->heap_data->state_id;
+        successor->heap_data->g = state_->heap_data->g + cost;
+        successor->heap_data->f = successor->heap_data->g + params_.epsilon*successor->heap_data->h;
+        open_.update(successor->heap_data);
       }
     } else {
-      setStateVals(successor->heap_data.state_id, state_->heap_data.state_id, cost);
-      open_.push(&successor->heap_data);
-      successor->heap_data.setOpen();
+      setStateVals(successor->heap_data->state_id, state_->heap_data->state_id, cost);
+      open_.push(successor->heap_data);
+      successor->heap_data->setOpen();
     }
   }
   stats_.num_expanded++;
@@ -249,7 +249,7 @@ std::unordered_map<int, double> ims::MultiPathwAStar::Dijkstra(std::unordered_ma
   }
 
   for (const auto id : fval) {
-    fval.at(id.first) += getSearchState(id.first)->heap_data.g;
+    fval.at(id.first) += getSearchState(id.first)->heap_data->g;
   }
 
   return fval;
@@ -261,11 +261,11 @@ std::unordered_map<int, double> ims::MultiPathwAStar::reconstructFValue() {
   std::unordered_map<int, std::vector<int>> bwg;
   std::unordered_map<int, std::vector<double>> bwg_costs;
   for (auto s : states_) {
-    SearchState* sid = getSearchState(s->heap_data.state_id);
+    SearchState* sid = getSearchState(s->heap_data->state_id);
     for (const auto bp : sid->parent_ids_) {
-      bwg[s->heap_data.state_id].push_back(bp);
-      double c = fabs(s->heap_data.g - getSearchState(bp)->heap_data.g);
-      bwg_costs[s->heap_data.state_id].push_back(c);
+      bwg[s->heap_data->state_id].push_back(bp);
+      double c = fabs(s->heap_data->g - getSearchState(bp)->heap_data->g);
+      bwg_costs[s->heap_data->state_id].push_back(c);
     }
   }
   auto id_to_fval = Dijkstra(bwg, bwg_costs, goal_);
@@ -279,11 +279,11 @@ std::unordered_map<int, double> ims::MultiPathwAStar::reconstructFValue() {
 }
 
 double ims::MultiPathwAStar::getGValue(int state_id) {
-  return getSearchState(state_id)->heap_data.g;
+  return getSearchState(state_id)->heap_data->g;
 }
 
 double ims::MultiPathwAStar::getHValue(int state_id) {
-  return getSearchState(state_id)->heap_data.h;
+  return getSearchState(state_id)->heap_data->h;
 }
 
 StateType ims::MultiPathwAStar::getState(int state_id) {
@@ -331,10 +331,10 @@ void ims::MultiPathwAStar::setStateVals(int state_id, int parent_id, double cost
 {
     auto state_ = getSearchState(state_id);
     auto parent = getSearchState(parent_id);
-    state_->heap_data.parent_id = parent_id;
-    state_->heap_data.g = parent->heap_data.g + cost;
-    state_->heap_data.h = computeHeuristic(state_id);
-    state_->heap_data.f = state_->heap_data.g + params_.epsilon*state_->heap_data.h;
+    state_->heap_data->parent_id = parent_id;
+    state_->heap_data->g = parent->heap_data->g + cost;
+    state_->heap_data->h = computeHeuristic(state_id);
+    state_->heap_data->f = state_->heap_data->g + params_.epsilon*state_->heap_data->h;
 }
 
 
@@ -344,16 +344,16 @@ void ims::MultiPathwAStar::reconstructPath(std::vector<StateType>& path, std::ve
 
     costs.push_back(0); // The goal state gets a transition cost of 0.
     SearchState* state_ = getSearchState(goal_);
-    while (state_->heap_data.parent_id != -1){
-        path.push_back(action_space_ptr_->getRobotState(state_->heap_data.state_id)->state);
+    while (state_->heap_data->parent_id != -1){
+        path.push_back(action_space_ptr_->getRobotState(state_->heap_data->state_id)->state);
 
         // Get the transition cost. This is the difference between the g values of the current state and its parent.
-        double transition_cost = state_->heap_data.g - getSearchState(state_->heap_data.parent_id)->heap_data.g;
+        double transition_cost = state_->heap_data->g - getSearchState(state_->heap_data->parent_id)->heap_data->g;
         costs.push_back(transition_cost);
 
-        state_ = getSearchState(state_->heap_data.parent_id);
+        state_ = getSearchState(state_->heap_data->parent_id);
     }
-    path.push_back(action_space_ptr_->getRobotState(state_->heap_data.state_id)->state);
+    path.push_back(action_space_ptr_->getRobotState(state_->heap_data->state_id)->state);
 
     std::reverse(path.begin(), path.end());
     std::reverse(costs.begin(), costs.end());
@@ -361,11 +361,11 @@ void ims::MultiPathwAStar::reconstructPath(std::vector<StateType>& path, std::ve
 
 void ims::MultiPathwAStar::reconstructPath(std::vector<StateType>& path) {
     SearchState* state_ = getSearchState(goal_);
-    while (state_->heap_data.parent_id != -1){
-        path.push_back(action_space_ptr_->getRobotState(state_->heap_data.state_id)->state);
-        state_ = getSearchState(state_->heap_data.parent_id);
+    while (state_->heap_data->parent_id != -1){
+        path.push_back(action_space_ptr_->getRobotState(state_->heap_data->state_id)->state);
+        state_ = getSearchState(state_->heap_data->parent_id);
     }
-    path.push_back(action_space_ptr_->getRobotState(state_->heap_data.state_id)->state);
+    path.push_back(action_space_ptr_->getRobotState(state_->heap_data->state_id)->state);
     std::reverse(path.begin(), path.end());
 }
 
