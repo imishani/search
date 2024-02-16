@@ -39,7 +39,9 @@
 ims::MultiPathwAStar::MultiPathwAStar(const ims::MultiPathwAStarParams &params) : params_(params), wAStar(params) {}
 
 ims::MultiPathwAStar::~MultiPathwAStar() {
-
+    for (auto &state : states_) {
+        delete state;
+    }
 }
 
 void ims::MultiPathwAStar::expand(int state_id){
