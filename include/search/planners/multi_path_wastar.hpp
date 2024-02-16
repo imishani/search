@@ -68,6 +68,48 @@ namespace ims{
     /// uses inflation of the heuristic function to find a solution with a cost that is within a factor of epsilon
     /// of the optimal solution (epsilon-suboptimality).
     class MultiPathwAStar : public wAStar{
+    private:
+        /// @brief The search state.
+        struct SearchState {
+            /// @brief history of parents
+            std::unordered_set<int> parent_ids_;
+
+            struct HeapData : public ims::BestFirstSearch::SearchState{
+                SearchState* me;
+                /// @brief The heuristic value
+                double h {-1};
+            };
+            HeapData heap_data;
+        };
+        struct HeapCompare {
+            bool operator()(const SearchState::HeapData& s1,
+                    const SearchState::HeapData& s2) const {
+                if ((s1.f == s2.f) && (s1.g == s2.g))
+                    return (s1.me->state_id < s2.me->state_id);
+                else if (s1.f == s2.f)
+                    // For tie breaking, we prefer the state with the larger g value as it is closer to the goal (lower h in the case of an informed search).
+                    return s1.g > s2.g;
+                else
+                    return s1.f < s2.f;
+            }
+        };
+
+        /// @brief The open lists
+        using OpenList = ::smpl::IntrusiveHeap<SearchState::HeapData, HeapCompare>;
+        OpenList open_;
+
+        std::vector<SearchState*> states_;
+
+        /// @brief Get the state by id
+        /// @param state_id The id of the state
+        /// @return The state
+        /// @note Use this function only if you are sure that the state exists
+        auto getSearchState(int state_id) -> SearchState*;
+
+        /// @brief Get the state by id or create a new one if it does not exist
+        /// @param state_id The id of the state
+        /// @return The state
+        auto getOrCreateSearchState(int state_id) -> SearchState*;
 
     public:
         /// @brief Constructor
@@ -77,17 +119,45 @@ namespace ims{
         /// @brief Destructor
         ~MultiPathwAStar() override;
 
-      /// @brief Calculate a approx f* for ALL the expanded and MANY visited nodes by
-      /// reconstructing a backward graph using the cached backpointers.
-      std::unordered_map<int, double> reconstructFValue();
+        /// @brief Initialize the planner
+        /// @param action_space_ptr The action space
+        /// @param starts Vector of start states
+        /// @param goals Vector of goal states
+        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                               const std::vector<StateType>& starts,
+                               const std::vector<StateType>& goals) override;
 
-      double getGValue(int state_id);
+        /// @brief Initialize the planner
+        /// @param action_space_ptr The action space
+        /// @param start The start state
+        /// @param goal The goal state
+        void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                               const StateType& start, const StateType& goal) override;
 
-      double getHValue(int state_id);
+        /// @brief plan a path
+        /// @param path The path
+        /// @return if the plan was successful or not
+        bool plan(std::vector<StateType> &path) override;
 
-      StateType getState(int state_id);
+        /// @brief Reset the planner
+        void resetPlanningData() override;
 
-      void writeDataToFile(std::string fpath,
+        /// @brief Get all the search states.
+        /// @return The states.
+        auto getAllSearchStates() -> std::vector<SearchState*>;
+
+
+        /// @brief Calculate a approx f* for ALL the expanded and MANY visited nodes by
+        /// reconstructing a backward graph using the cached backpointers.
+        std::unordered_map<int, double> reconstructFValue();
+
+        double getGValue(int state_id);
+
+        double getHValue(int state_id);
+
+        StateType getState(int state_id);
+
+        void writeDataToFile(std::string fpath,
                            std::string planner_name,
                            std::string map_id,
                            std::vector<double> start,
@@ -97,11 +167,21 @@ namespace ims{
 
     protected:
 
+        void setStateVals(int state_id, int parent_id, double cost) override;
+
         void expand(int state_id) override;
 
         std::unordered_map<int, double> Dijkstra(std::unordered_map<int, std::vector<int>>& graph,
                                                  std::unordered_map<int, std::vector<double>>& costs,
                                                  int start_id);
+
+        void reconstructPath(std::vector<StateType>& path) override;
+
+        /// @brief Reconstruct the path and also get the transition costs.
+        /// @param path The path to be populated
+        /// @param costs The costs to be populated. Cost at index i is the cost of the transition from state i to state i+1. Thus, the cost at the goal state is zero as there is no transition from the goal state.
+        void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
+
 
         MultiPathwAStarParams params_;
 
