@@ -67,6 +67,7 @@ to use the library. The examples are in two domains:
 -----  
 Run the following to see an example of 2D grid search in action!
 ~~~
-./build/run_2d_rob_nav_wastar 1 50 1
+cd build
+./run_2d_rob_nav_wastar 1 50 1
 ~~~
 
