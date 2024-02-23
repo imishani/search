@@ -149,82 +149,83 @@ protected:
         }   
     };
 
-    /// @brief The search state compare structs for the HL focal lists.
-    struct GeneralizedCBSSphere3dConstraintFocalCompare{
+    struct GeneralizedCBSConstraintDensityFocalCompare {
+    protected:
+        std::vector<ConstraintType> constraint_types_;
+    public:
         bool operator()(const SearchState& s1, const SearchState& s2) const{
             int constraints_count_s1 = std::accumulate(s1.constraint_type_count.begin(), s1.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
             int constraints_count_s2 = std::accumulate(s2.constraint_type_count.begin(), s2.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
 
             double constraint_density_s1 = 0;
             double constraint_density_s2 = 0;
-            
-            if (s1.constraint_type_count.find(ConstraintType::SPHERE3D) != s1.constraint_type_count.end()){
-                constraint_density_s1 = s1.constraint_type_count.at(ConstraintType::SPHERE3D) / (double)constraints_count_s1;
+            int num_constraint_type_s1 = 0;
+            int num_constraint_type_s2 = 0;
+
+            for (const auto& constraint_type : constraint_types_){
+                if (s1.constraint_type_count.find(constraint_type) != s1.constraint_type_count.end()){
+                    num_constraint_type_s1 += s1.constraint_type_count.at(constraint_type);
+                }
+                if (s2.constraint_type_count.find(constraint_type) != s2.constraint_type_count.end()){
+                    num_constraint_type_s2 += s2.constraint_type_count.at(constraint_type);
+                }
             }
-            if (s2.constraint_type_count.find(ConstraintType::SPHERE3D) != s2.constraint_type_count.end()){
-                constraint_density_s2 = s2.constraint_type_count.at(ConstraintType::SPHERE3D) / (double)constraints_count_s2;
-            }
+            constraint_density_s1 = num_constraint_type_s1 / (double)constraints_count_s1;
+            constraint_density_s2 = num_constraint_type_s2 / (double)constraints_count_s2;
 
             if (constraint_density_s1 == constraint_density_s2) {
                 if (s1.f == s2.f) {
                     if (s1.g == s2.g) {
+                        // Compare unresolved conflicts count
                         return s1.state_id < s2.state_id;
                     }
                     return s1.g < s2.g;
                 }
                 return s1.f < s2.f;
             }
-
-            // s1 will come before s2 if it has a higher constraint density.
             return constraint_density_s1 > constraint_density_s2;
         }
     };
 
     /// @brief The search state compare structs for the HL focal lists.
-    struct GeneralizedCBSStateAvoidanceConstraintFocalCompare{
-        bool operator()(const SearchState& s1, const SearchState& s2) const{
-            int constraints_count_s1 = std::accumulate(s1.constraint_type_count.begin(), s1.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
-            int constraints_count_s2 = std::accumulate(s2.constraint_type_count.begin(), s2.constraint_type_count.end(), 0, [](int sum, const std::pair<ConstraintType, int>& p){return sum + p.second;});
-
-            double constraint_density_s1 = 0;
-            double constraint_density_s2 = 0;
-            
-            int num_edge_constraints_s1 = 0;
-            int num_edge_constraints_s2 = 0;
-            int num_vertex_constraints_s1 = 0;
-            int num_vertex_constraints_s2 = 0;
-
-            if (s1.constraint_type_count.find(ConstraintType::EDGE_STATE_AVOIDANCE) != s1.constraint_type_count.end()){
-                num_edge_constraints_s1 = s1.constraint_type_count.at(ConstraintType::EDGE_STATE_AVOIDANCE);
-            }
-            if (s2.constraint_type_count.find(ConstraintType::EDGE_STATE_AVOIDANCE) != s2.constraint_type_count.end()){
-                num_edge_constraints_s2 = s2.constraint_type_count.at(ConstraintType::EDGE_STATE_AVOIDANCE);
-            }
-            if (s1.constraint_type_count.find(ConstraintType::VERTEX_STATE_AVOIDANCE) != s1.constraint_type_count.end()){
-                num_vertex_constraints_s1 = s1.constraint_type_count.at(ConstraintType::VERTEX_STATE_AVOIDANCE);
-            }
-            if (s2.constraint_type_count.find(ConstraintType::VERTEX_STATE_AVOIDANCE) != s2.constraint_type_count.end()){
-                num_vertex_constraints_s2 = s2.constraint_type_count.at(ConstraintType::VERTEX_STATE_AVOIDANCE);
-            }
-
-            constraint_density_s1 = (num_edge_constraints_s1 + num_vertex_constraints_s1) / (double)constraints_count_s1;
-            constraint_density_s2 = (num_edge_constraints_s2 + num_vertex_constraints_s2) / (double)constraints_count_s2;
-
-            if (constraint_density_s1 == constraint_density_s2) {
-                if (s1.f == s2.f) {
-                    if (s1.g == s2.g) {
-                        return s1.state_id < s2.state_id;
-                    }
-                    return s1.g < s2.g;
-                }
-                return s1.f < s2.f;
-            }
-
-            // s1 will come before s2 if it has a higher constraint density.
-            return constraint_density_s1 > constraint_density_s2;
+    struct GeneralizedCBSSphere3dConstraintFocalCompare : public GeneralizedCBSConstraintDensityFocalCompare{
+        GeneralizedCBSSphere3dConstraintFocalCompare() {
+            constraint_types_ = {ConstraintType::SPHERE3D};
         }
     };
 
+    struct GeneralizedCBSSphere3dLargeConstraintFocalCompare : public GeneralizedCBSConstraintDensityFocalCompare{
+        GeneralizedCBSSphere3dLargeConstraintFocalCompare() {
+            constraint_types_ = {ConstraintType::SPHERE3DLARGE};
+        }
+    };
+
+    struct GeneralizedCBSSphere3dXLargeConstraintFocalCompare : public GeneralizedCBSConstraintDensityFocalCompare{
+        GeneralizedCBSSphere3dXLargeConstraintFocalCompare() {
+            constraint_types_ = {ConstraintType::SPHERE3DXLARGE};
+        }
+    };
+
+    /// @brief The search state compare structs for the HL focal lists.
+    struct GeneralizedCBSPriorityConstraintFocalCompare : public GeneralizedCBSConstraintDensityFocalCompare{
+        GeneralizedCBSPriorityConstraintFocalCompare() {
+            constraint_types_ = {ConstraintType::EDGE_PRIORITY, ConstraintType::VERTEX_PRIORITY};
+        }
+    };
+
+    /// @brief The search state compare structs for the HL focal lists.
+    struct GeneralizedCBSStateAvoidanceConstraintFocalCompare : public GeneralizedCBSConstraintDensityFocalCompare{
+        GeneralizedCBSStateAvoidanceConstraintFocalCompare() {
+            constraint_types_ = {ConstraintType::EDGE_STATE_AVOIDANCE, ConstraintType::VERTEX_STATE_AVOIDANCE};
+        }
+    };
+
+    /// @brief The search state compare structs for the HL focal lists prioritizing path constraints.
+    struct GeneralizedCBSPathPriorityConstraintFocalCompare : public GeneralizedCBSConstraintDensityFocalCompare{
+        GeneralizedCBSPathPriorityConstraintFocalCompare() {
+            constraint_types_ = {ConstraintType::PATH_PRIORITY};
+        }
+    };
 
     /// @brief Generate descendents of a state, a key method in most search algorithms.
     /// @param state_id
@@ -238,7 +239,7 @@ protected:
     /// @brief Get the conflict types requested by the algorithm.
     /// @return The conflict types.
     /// @note Derived class, aka CBS variants that request different conflict types (e.g., point3d, etc.) should override this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
-    virtual std::vector<ConflictType> getConflictTypes() override = 0;
+    std::vector<ConflictType> getConflictTypes() override = 0;
 
     /// @brief Replan all agents that have unincorporated constraints.
     /// @param state 
@@ -294,15 +295,30 @@ struct GeneralizedCBSPoint3dParams : public GeneralizedCBSParams {
 
     /// @brief The constraints to create from the conflicts.
     std::unordered_set<ConstraintType> constraint_types_to_create = {
-                                                         ConstraintType::EDGE, // "Do not traverse this edge between these times."
-                                                         ConstraintType::VERTEX, // "Do not be at this vertex at this time."
-                                                         ConstraintType::SPHERE3D, // "Do not be in this sphere at this time."
-                                                        //  ConstraintType::ALL_EDGE_VERTEX_REQUEST, // Block all conflicting actions an agent has within a given conflict set.
-                                                         ConstraintType::EDGE_PRIORITY, // "Between these times, avoid those agents (whereever they are)."
-                                                         ConstraintType::VERTEX_PRIORITY, // "At this time, avoid those agents (whereever they are)."
-                                                         ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."
-                                                         ConstraintType::VERTEX_STATE_AVOIDANCE, // "At this time, avoid those agents taking the specified configurations."
-                                                        };
+            ConstraintType::SPHERE3D, // "Do not be in this sphere at this time."
+            ConstraintType::SPHERE3DLARGE,
+            ConstraintType::SPHERE3DXLARGE ,
+            ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."
+            ConstraintType::VERTEX_STATE_AVOIDANCE, // "At this time, avoid those agents taking the specified configurations."
+            ConstraintType::EDGE, // "Do not traverse this edge between these times."
+            ConstraintType::VERTEX, // "Do not be at this vertex at this time."
+            ConstraintType::EDGE_PRIORITY, // "Between these times, avoid those agents (whereever they are)."
+            ConstraintType::VERTEX_PRIORITY, // "At this time, avoid those agents (whereever they are)."
+//            ConstraintType::PATH_PRIORITY,
+    };
+
+    /// @brief The focal queues that should be created.
+    std::vector<FocalQueueType> focal_queue_types = {
+            FocalQueueType::SPHERE3D_CONSTRAINT_DENSITY,
+            FocalQueueType::SPHERE3D_LARGE_CONSTRAINT_DENSITY,
+            FocalQueueType::SPHERE3D_XLARGE_CONSTRAINT_DENSITY,
+            FocalQueueType::PRIORITY_CONSTRAINT_DENSITY,
+            FocalQueueType::STATE_AVOIDANCE_CONSTRAINT_DENSITY,
+//            FocalQueueType::PATH_PRIORITY_CONSTRAINT_DENSITY,
+    };
+
+    /// @brief Whether to use One-Step-Lazy evaluations.
+    bool use_one_step_lazy = true;
 
 };
 

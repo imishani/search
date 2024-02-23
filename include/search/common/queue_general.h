@@ -51,6 +51,9 @@ enum class FocalQueueType {
     STATE_AVOIDANCE_CONSTRAINT_DENSITY = 2, 
     PRIORITY_CONSTRAINT_DENSITY = 3,
     CONFLICT_COUNT = 4,
+    SPHERE3D_LARGE_CONSTRAINT_DENSITY = 5,
+    SPHERE3D_XLARGE_CONSTRAINT_DENSITY = 6,
+    PATH_PRIORITY_CONSTRAINT_DENSITY = 7,
 };
 
 /// @brief Require LowerBound function for elements.
@@ -267,10 +270,11 @@ public:
     void giveRewardOrPenalty(int focalQ_index, double reward); // Reward can be positive or negative.
     inline void setC(int c){dts_c_ = c;}
 
-    // Metods for handling multiple focal queues.
+    // Methods for handling multiple focal queues.
     /// @brief Create a new focal queue from a comparator. Also create a new entry in the DTS table with a=b=1.
     template <class CompareFocal>
     void createNewFocalQueueFromComparator();
+    inline int getNumFocalQueues() const {return focalQs_.size();}
 
     // Methods for handling the queue.
     virtual T* min() const override;

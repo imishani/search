@@ -43,13 +43,17 @@ namespace ims {
 
 template <class T, class CompareMain>
 T* SimpleQueue<T, CompareMain>::min() const {
-    assert(!open_.empty());
+    if(open_.empty()){
+        throw std::runtime_error("Open list is empty. Nothing to work with.");
+    }
     return open_.min();
 }
 
 template <class T, class CompareMain>
 void SimpleQueue<T, CompareMain>::pop() {
-    assert(!open_.empty());
+    if(open_.empty()){
+        throw std::runtime_error("Open list is empty. Nothing to work with.");
+    }
     return open_.pop();
 }
 
@@ -91,7 +95,9 @@ void SimpleQueue<T, CompareMain>::updateWithBound(double lower_bound) {
 
 template <class T, class CompareMain>
 double SimpleQueue<T, CompareMain>::getLowerBound() const {
-    assert(!open_.empty());
+    if(open_.empty()){
+        throw std::runtime_error("Open list is empty. Nothing to work with.");
+    }
     return open_.min()->getLowerBound();
 }
 
@@ -267,7 +273,7 @@ template <class CompareFocal>
 void MultiFocalAndAnchorQueueWrapper<T, CompareMain>::createNewFocalQueueFromComparator() {
     std::cout << "Creating a new focal queue" << std::endl;
     focalQs_.push_back(new FocalQueue<T, CompareMain, CompareFocal>());
-    std::cout << "Focal queue created, now there are " << focalQs_.size() << " focal queues" << std::endl;
+    std::cout << "Focal queue created, now there are " << getNumFocalQueues() << " focal queues" << std::endl;
 }
 
 template <class T, class CompareMain>
@@ -372,7 +378,7 @@ template <class CompareFocal>
 void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::createNewFocalQueueFromComparator() {
     std::cout << "Creating a new focal queue" << std::endl;
     focalQs_.push_back(new FocalQueue<T, CompareMain, CompareFocal>());
-    dts_alpha_beta_.push_back(std::make_pair(1, 1));
+    dts_alpha_beta_.push_back(std::make_pair(1, 2));
     std::cout << "Focal queue created, now there are " << focalQs_.size() << " focal queues" << std::endl;
 }
 
@@ -401,11 +407,13 @@ void MultiFocalAndAnchorDTSQueueWrapper<T, CompareMain>::giveRewardOrPenalty(dou
     double alpha = alpha_beta.first;
     double beta = alpha_beta.second;
     if (reward >= 0){
+        std::cout << GREEN << "Rewarding focal queue " << current_focalQ_index_ << " with reward " << reward << RESET << std::endl;
         alpha += reward;
         if (alpha + beta > dts_c_ + 1){
             alpha = dts_c_ + 1 - beta;
         }
     } else {
+        std::cout << GREEN << "Penalizing focal queue " << current_focalQ_index_ << " with penalty " << reward << RESET << std::endl;
         beta -= reward;
         if (beta + alpha > dts_c_ + 1){
             beta = dts_c_ + 1 - alpha;

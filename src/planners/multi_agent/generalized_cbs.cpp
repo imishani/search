@@ -233,9 +233,33 @@ bool ims::GeneralizedCBS::plan(MultiAgentPaths& paths) {
 ims::GeneralizedCBSPoint3d::GeneralizedCBSPoint3d(const ims::GeneralizedCBSPoint3dParams& params) : params_(params), GeneralizedCBS(params) {
     // Create the open list.
     open_ = new MultiFocalAndAnchorDTSQueueWrapper<SearchState, GeneralizedCBSOpenCompare>();
-    open_->createNewFocalQueueFromComparator<GeneralizedCBSSphere3dConstraintFocalCompare>();
-    open_->createNewFocalQueueFromComparator<GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
-    open_->giveRewardOrPenalty(0, 5); // A hack to make the first focal queue the default one.
+    for (auto focal_queue_type : params_.focal_queue_types){
+        switch (focal_queue_type) {
+            case FocalQueueType::SPHERE3D_CONSTRAINT_DENSITY: {
+                open_->createNewFocalQueueFromComparator<GeneralizedCBSSphere3dConstraintFocalCompare>();
+               open_->giveRewardOrPenalty(open_->getNumFocalQueues()-1, 2);
+                break;}
+            case FocalQueueType::STATE_AVOIDANCE_CONSTRAINT_DENSITY: {
+                open_->createNewFocalQueueFromComparator<GeneralizedCBSStateAvoidanceConstraintFocalCompare>();
+                break;}
+            case FocalQueueType::PRIORITY_CONSTRAINT_DENSITY: {
+                open_->createNewFocalQueueFromComparator<GeneralizedCBSPriorityConstraintFocalCompare>();
+                break;}
+            case FocalQueueType::SPHERE3D_LARGE_CONSTRAINT_DENSITY: {
+                open_->createNewFocalQueueFromComparator<GeneralizedCBSSphere3dLargeConstraintFocalCompare>();
+                break;}
+            case FocalQueueType::SPHERE3D_XLARGE_CONSTRAINT_DENSITY: {
+                open_->createNewFocalQueueFromComparator<GeneralizedCBSSphere3dXLargeConstraintFocalCompare>();
+                open_->giveRewardOrPenalty(open_->getNumFocalQueues()-1, -9);
+                break;}
+            case FocalQueueType::PATH_PRIORITY_CONSTRAINT_DENSITY: {
+                open_->createNewFocalQueueFromComparator<GeneralizedCBSPathPriorityConstraintFocalCompare>();
+                break;}
+            default: {
+                throw std::runtime_error("Focal queue type not recognized.");
+            }
+        }
+    }
 
     // Create a stats field for the low-level planner nodes created.
     stats_.bonus_stats["num_low_level_expanded"] = 0;
@@ -505,37 +529,8 @@ void ims::GeneralizedCBSPoint3d::expand(int state_id) {
     std::vector<int> successors;
     std::vector<double> costs;
 
-    bool only_add_admissible_constraints_to_admissible_nodes = false;
-    bool is_state_pure_admissible = true;
-    if (only_add_admissible_constraints_to_admissible_nodes) {
-        // Determine if this state is a pure-admissible state. This is the case if all of its constraints are admissible ones.
-        // TODO(yoraish): this should be a flag in the state itself that is toggled to false when a non-admissible constraint is added.
-        for (auto& constraint_type_count : state->constraint_type_count) {
-            if (constraint_type_admissibility.at(constraint_type_count.first) == false) {
-                is_state_pure_admissible = false;
-                break;
-            }
-        }
-    }
-
     // First, convert all conflicts to pairs of (agent_id, constraint). We pass all of the detected conflicts to the function. It will process the set to only create some constraints from the first conflict and/or all of them. Algorithm dependent.
     std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> constraints = conflictsToConstraints(state->unresolved_conflicts);
-
-    if (only_add_admissible_constraints_to_admissible_nodes){
-        // If the state is not pure-admissible, then we can discard all admissible constraints, and choose randomly from the rest.
-        if (!is_state_pure_admissible) {
-            // Create a new vector of constraints that only includes non-admissible constraints.
-            std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> non_admissible_constraints;
-            for (auto& constraint : constraints) {
-                if (constraint_type_admissibility.at(constraint.second[0]->type) == false) { // FIX THIS. This is a hack to get the first constraint type. We should not assume that all constraints in the vector are of the same type.
-                    non_admissible_constraints.push_back(constraint);
-                }
-            }
-            // From those constraints, choose one randomly.
-            // non_admissible_constraints = {non_admissible_constraints[rand() % non_admissible_constraints.size()]};
-            constraints = non_admissible_constraints;
-        }
-    }
 
     // TEST TEST TEST.
     std::cout << "    Creating new states ";
@@ -580,12 +575,22 @@ void ims::GeneralizedCBSPoint3d::expand(int state_id) {
 
         // Mark this agent id as needing a replan.
         new_state->agent_ids_need_replan.push_back(agent_id);
-       
+
+        // If there is no need to use one-step-lazy evaluations, then immediately evaluate the new state and push it to the open list.
+        if (!params_.use_one_step_lazy){
+            std::cout << RED << "No one-step-lazy evaluations, will be replanning for " << new_state->agent_ids_need_replan.size() << " agents." << RESET << std::endl;
+            bool replan_success = replanOutdatedAgents(new_state); // This method will incorporate any unincorporated constraints into the state's constraints collective and update its f and other values accordingly.
+            if ( isTimeOut()){return;}
+            if (!replan_success) {
+                delete new_state;
+                continue;
+            }
+        }
+
         // Push the new state to the open list.
         new_state->setOpen();
         stats_.num_generated++;
         open_->push(new_state);
-        // We only count this node as being "generated" once we replan for the agents that were constrained.
     }
 
     // TEST TEST TEST.
@@ -645,18 +650,23 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             ims::conflict_conversions::point3dVertexConflictToVertexStateAvoidanceConstraints(point3d_conflict_ptr, agent_constraints);
         }
 
-        // Get the agent-avoidance constraints.
+        // Get the agent-avoidance (priority) constraints.
         if (params_.constraint_types_to_create.find(ConstraintType::VERTEX_PRIORITY) != params_.constraint_types_to_create.end()) {
             std::cout << CYAN << "Creating vertex avoidance constraints." << RESET << std::endl;
             ims::conflict_conversions::point3dVertexConflictToVertexPriorityConstraints(point3d_conflict_ptr, agent_names_, agent_constraints);
         }
 
+        // Get the path priority constraints.
+        if (params_.constraint_types_to_create.find(ConstraintType::PATH_PRIORITY) != params_.constraint_types_to_create.end()) {
+            std::cout << CYAN << "Creating path priority constraints." << RESET << std::endl;
+            ims::conflict_conversions::point3dVertexConflictToPathPriorityConstraints(point3d_conflict_ptr, agent_names_, agent_constraints);
+        }
+
         // Get the regular vertex constraints.
         if (params_.constraint_types_to_create.find(ConstraintType::VERTEX) != params_.constraint_types_to_create.end()) {
             std::cout << CYAN << "Creating vertex constraints." << RESET << std::endl;
-            ims::conflict_conversions::point3dVertexConflictToVertexConstraints(point3d_conflict_ptr, agent_constraints);
+            ims::conflict_conversions::point3dVertexConflictToVertexConstraints(point3d_conflict_ptr,agent_constraints);
         }
-        
     }
 
     else if (first_conflict_ptr->type == ConflictType::POINT3D_EDGE) {
@@ -679,10 +689,16 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             ims::conflict_conversions::point3dEdgeConflictToEdgeStateAvoidanceConstraints(point3d_conflict_ptr, agent_constraints);
         }
 
-        // Get the agent-avoidance constraints.
+        // Get the agent-avoidance (priority) constraints.
         if (params_.constraint_types_to_create.find(ConstraintType::EDGE_PRIORITY) != params_.constraint_types_to_create.end()) {
             std::cout << CYAN << "Creating edge avoidance constraints." << RESET << std::endl;
             ims::conflict_conversions::point3dEdgeConflictToEdgePriorityConstraints(point3d_conflict_ptr, agent_names_, agent_constraints);
+        }
+
+        // Get the path priority constraints.
+        if (params_.constraint_types_to_create.find(ConstraintType::PATH_PRIORITY) != params_.constraint_types_to_create.end()) {
+            std::cout << CYAN << "Creating path priority constraints." << RESET << std::endl;
+            ims::conflict_conversions::point3dEdgeConflictToPathPriorityConstraints(point3d_conflict_ptr, agent_names_, agent_constraints);
         }
 
         // Get the regular edge constraints.
@@ -690,9 +706,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             std::cout << CYAN << "Creating edge constraints." << RESET << std::endl;
             ims::conflict_conversions::point3dEdgeConflictToEdgeConstraints(point3d_conflict_ptr, agent_constraints);
         }
-
-    }   
-
+    }
 
     ///////////////////////////////////
     // All conflicts CT node request.

@@ -83,11 +83,17 @@ void point3dVertexConflictToVertexStateAvoidanceConstraints(const Point3dVertexC
 void point3dEdgeConflictToEdgePriorityConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
                                         const std::vector<std::string>& agent_names_to_avoid,
                                         std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
+void point3dEdgeConflictToPathPriorityConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+                                        const std::vector<std::string>& agent_names_to_avoid,
+                                        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
 
 /// @brief Convert a vertex point3d conflict to a vertex avoidance constraint.
 /// @param point3d_conflict_ptr
 /// @param agent_constraints
 void point3dVertexConflictToVertexPriorityConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+                                        const std::vector<std::string>& agent_names_to_avoid,
+                                        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
+void point3dVertexConflictToPathPriorityConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
                                         const std::vector<std::string>& agent_names_to_avoid,
                                         std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
 
@@ -104,15 +110,20 @@ void edgeConflictToEdgeStateAvoidanceConstraints(const EdgeConflict * edge_confl
 /// @note This function adds pairs of <agent_id, constraints> to the agent_constraints vector.
 void point3dVertexConflictToSphere3dConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius);
-
+void point3dVertexConflictToSphere3dLargeConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius);
+void point3dVertexConflictToSphere3dXLargeConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius);
 /// @brief Convert a point3d conflict to a sphere3d constraint.
 /// @param point3d_conflict_ptr
 /// @return
 /// @note This function adds pairs of <agent_id, constraints> to the agent_constraints vector.
 void point3dEdgeConflictToSphere3dConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius);
-
-
+void point3dEdgeConflictToSphere3dLargeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius);
+void point3dEdgeConflictToSphere3dXLargeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius);
 /// @brief Convert a point3d conflict to edge or vertex constraints.
 /// @param point3d_conflict_ptr
 /// @return

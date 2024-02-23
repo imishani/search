@@ -251,6 +251,37 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
     }
 }
 
+void point3dVertexConflictToSphere3dLargeConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius){
+
+    // Create a new vertex constraint for each of the agents. Point3dVertexConflict assumes private grids, so each agent has its own state.
+    for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
+        int agent_id = point3d_conflict_ptr->agent_ids[i];
+        auto time = (TimeType)point3d_conflict_ptr->states.front().back();
+
+        // Create a new sphere3d constraint for this timestep.
+        Sphere3dLargeConstraint constraint = Sphere3dLargeConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time);
+
+        // Update the constraints collective to also include the new constraint.
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<Sphere3dLargeConstraint>(constraint)});
+    }
+}
+void point3dVertexConflictToSphere3dXLargeConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+                                                     std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius){
+
+    // Create a new vertex constraint for each of the agents. Point3dVertexConflict assumes private grids, so each agent has its own state.
+    for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
+        int agent_id = point3d_conflict_ptr->agent_ids[i];
+        auto time = (TimeType)point3d_conflict_ptr->states.front().back();
+
+        // Create a new sphere3d constraint for this timestep.
+        Sphere3dXLargeConstraint constraint = Sphere3dXLargeConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time);
+
+        // Update the constraints collective to also include the new constraint.
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<Sphere3dXLargeConstraint>(constraint)});
+    }
+}
+
 void point3dEdgeConflictToSphere3dConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius){
 
@@ -259,7 +290,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
         int agent_id = point3d_conflict_ptr->agent_ids[i];
 
         auto time_from = (TimeType)std::round(point3d_conflict_ptr->from_states[i].back());
-        TimeType time_to = time_from + 1; // TODO(yoraish): this +1 should come from a discretization object. It is within the action type that may not be available to the actionspace object, which the planner holds.
+        TimeType time_to = time_from + 1;
 
         // Create a new sphere3d constraint for each of the two timesteps.
         Sphere3dConstraint constraint_from = Sphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_from);
@@ -271,8 +302,47 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
     }
 }
 
+void point3dEdgeConflictToSphere3dLargeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius){
+
+    // Create a new edge constraint for each of the agents. Point3DConflict assumes private grids, so each agent has its own state.
+    for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
+        int agent_id = point3d_conflict_ptr->agent_ids[i];
+
+        auto time_from = (TimeType)std::round(point3d_conflict_ptr->from_states[i].back());
+        TimeType time_to = time_from + 1;
+
+        // Create a new sphere3d constraint for each of the two timesteps.
+        Sphere3dLargeConstraint constraint_from = Sphere3dLargeConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_from);
+        Sphere3dLargeConstraint constraint_to = Sphere3dLargeConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_to);
+
+        // Update the constraints collective to also include the new constraint.
+        // Notice that the two constraints are added together to one agent. 
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<Sphere3dLargeConstraint>(constraint_from), std::make_shared<Sphere3dLargeConstraint>(constraint_to)});
+    }
+}
+void point3dEdgeConflictToSphere3dXLargeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+                                                   std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius){
+
+    // Create a new edge constraint for each of the agents. Point3DConflict assumes private grids, so each agent has its own state.
+    for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
+        int agent_id = point3d_conflict_ptr->agent_ids[i];
+
+        auto time_from = (TimeType)std::round(point3d_conflict_ptr->from_states[i].back());
+        TimeType time_to = time_from + 1;
+
+        // Create a new sphere3d constraint for each of the two timesteps.
+        Sphere3dXLargeConstraint constraint_from = Sphere3dXLargeConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_from);
+        Sphere3dXLargeConstraint constraint_to = Sphere3dXLargeConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_to);
+
+        // Update the constraints collective to also include the new constraint.
+        // Notice that the two constraints are added together to one agent.
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<Sphere3dXLargeConstraint>(constraint_from), std::make_shared<Sphere3dXLargeConstraint>(constraint_to)});
+    }
+}
+
 void point3dVertexConflictToVertexConstraints(const Point3dVertexConflict * point3d_conflict_ptr, 
-                                       std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraintss){
+                                       std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
     // Assert that the time is integral.
     assert(point3d_conflict_ptr->states.back().back() == std::round(point3d_conflict_ptr->states.back().back()));
 
@@ -284,12 +354,12 @@ void point3dVertexConflictToVertexConstraints(const Point3dVertexConflict * poin
         VertexConstraint constraint = VertexConstraint(point3d_conflict_ptr->states.at(i));
 
         // Update the constraints vector to also include the new constraint.
-        agent_constraintss.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexConstraint>(constraint)});
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexConstraint>(constraint)});
     }
 }
 
 void point3dEdgeConflictToEdgeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr, 
-                                       std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraintss){
+                                       std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
     // Create a new edge constraint for each of the agents. Point3dEdgeConflict assumes private grids, so each agent has its own state.
     for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
         int agent_id = point3d_conflict_ptr->agent_ids[i];
@@ -298,10 +368,65 @@ void point3dEdgeConflictToEdgeConstraints(const Point3dEdgeConflict * point3d_co
         EdgeConstraint constraint = EdgeConstraint(point3d_conflict_ptr->from_states[i], point3d_conflict_ptr->to_states[i]);
 
         // Update the constraints vector to also include the new constraint.
-        agent_constraintss.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint)});
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint)});
     }
 }
 
+void point3dVertexConflictToPathPriorityConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+                                                      const std::vector<std::string>& agent_names,
+                                                      std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
+    // Create a new Vertex avoidance constraint for each of the agents. Point3dVertexConflict assumes private grids, so each agent has its own state.
+    for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
+        int agent_id = point3d_conflict_ptr->agent_ids[i];
+
+        // Create a new Vertex constraint. The agent states are the other states that the agent should avoid. Their corresponding agent ids are also passed.
+        auto time = (TimeType)point3d_conflict_ptr->states.front().back();
+        // The agent names to avoid are the agent names corresponding to the agent ids to avoid.
+        std::vector<int> agent_ids_to_avoid;
+        std::vector<std::string> agent_names_to_avoid;
+        for (int agent_id_to_avoid : point3d_conflict_ptr->agent_ids) {
+            if (agent_id_to_avoid != agent_id) {
+                agent_ids_to_avoid.push_back(agent_id_to_avoid);
+                agent_names_to_avoid.push_back(agent_names[agent_id_to_avoid]);
+            }
+        }
+
+        PathPriorityConstraint constraint = PathPriorityConstraint(agent_ids_to_avoid);
+        constraint.agent_names_to_avoid = agent_names_to_avoid;
+
+        // Update the constraints collective to also include the new constraint.
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<PathPriorityConstraint>(constraint)});
+    }
+}
+
+void point3dEdgeConflictToPathPriorityConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+                                                  const std::vector<std::string>& agent_names,
+                                                  std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
+
+    // Create a new edge avoidance constraint for each of the agents. Point3dEdgeConflict assumes private grids, so each agent has its own state.
+    for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
+        int agent_id = point3d_conflict_ptr->agent_ids[i];
+
+        // Create a new edge constraint. The agent states are the other states that the agent should avoid. Their corresponding agent ids are also passed.
+        auto time_from = (TimeType)std::round(point3d_conflict_ptr->from_states[i].back());
+        auto time_to = (TimeType)std::round(point3d_conflict_ptr->to_states[i].back());
+
+        // The agent names to avoid are the agent names corresponding to the agent ids to avoid.
+        std::vector<int> agent_ids_to_avoid;
+        std::vector<std::string> agent_names_to_avoid;
+        for (int agent_id_to_avoid : point3d_conflict_ptr->agent_ids) {
+            if (agent_id_to_avoid != agent_id) {
+                agent_ids_to_avoid.push_back(agent_id_to_avoid);
+                agent_names_to_avoid.push_back(agent_names[agent_id_to_avoid]);
+            }
+        }
+        PathPriorityConstraint constraint = PathPriorityConstraint(agent_ids_to_avoid);
+        constraint.agent_names_to_avoid = agent_names_to_avoid;
+
+        // Update the constraints collective to also include the new constraint.
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<PathPriorityConstraint>(constraint)});
+    }
+}
 
 }  // namespace conflict_conversions
 }  // namespace ims

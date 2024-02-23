@@ -57,6 +57,9 @@ enum class ConstraintType {
     VERTEX_STATE_AVOIDANCE = 5, // Do not conflict with agent at a specified configuration at time t.
     EDGE_STATE_AVOIDANCE = 6, // Do not conflict with agent at a specified configuration between time t_from to t_to.
     ALL_EDGE_VERTEX_REQUEST = 7, // Initially used in Generalized-CBS, this is a request to create vertex and edge constraints for all conflicts available. Used in conflictsToConstraints.
+    SPHERE3DLARGE = 8, // Do not be in sphere at time t, but with a larger radius.
+    SPHERE3DXLARGE = 10, // Do not be in sphere at time t, but with a much larger radius.
+    PATH_PRIORITY = 11, // Do not be in sphere at time t, but with a much much larger radius.
 };
 
 // A map from constraint type to whether it is admissible or not.
@@ -174,7 +177,7 @@ struct Sphere3dConstraint : public Constraint {
 
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param state The state vector.
-    explicit Sphere3dConstraint(Eigen::Vector3d center, double radius, TimeType time) : center(center), radius(radius), time(time) {
+    explicit Sphere3dConstraint(Eigen::Vector3d center, double radius, TimeType time) : center(std::move(center)), radius(radius), time(time) {
         /// @brief The type of the constraint.
         type = ConstraintType::SPHERE3D;
     }
@@ -188,6 +191,32 @@ struct Sphere3dConstraint : public Constraint {
     /// @brief The time interval of the constraint.
     std::pair<int, int> getTimeInterval() const override {
         return std::make_pair(time, time);
+    }
+};
+
+struct Sphere3dLargeConstraint : public Sphere3dConstraint {
+
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param center The center of the constrained sphere.
+    /// @param radius The radius of the sphere.
+    /// @param time The time of the constraint.
+    explicit Sphere3dLargeConstraint(Eigen::Vector3d center, double radius, TimeType time) : 
+        Sphere3dConstraint(std::move(center), radius, time) {
+        /// @brief The type of the constraint.
+        type = ConstraintType::SPHERE3DLARGE;
+    }
+};
+
+struct Sphere3dXLargeConstraint : public Sphere3dConstraint {
+
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param center The center of the constrained sphere.
+    /// @param radius The radius of the sphere.
+    /// @param time The time of the constraint.
+    explicit Sphere3dXLargeConstraint(Eigen::Vector3d center, double radius, TimeType time) :
+            Sphere3dConstraint(std::move(center), radius, time) {
+        /// @brief The type of the constraint.
+        type = ConstraintType::SPHERE3DXLARGE;
     }
 };
 
@@ -206,7 +235,7 @@ struct VertexPriorityConstraint : public Constraint {
     /// @brief Constructor, allowing to set the agent ids to avoid and when. An overload allows also setting the agent names.
     /// @param agent_ids_to_avoid The agent ids to avoid.
     /// @param time The time of the constraint.
-    explicit VertexPriorityConstraint(std::vector<int> agent_ids_to_avoid, TimeType time) : 
+    explicit VertexPriorityConstraint(std::vector<int> agent_ids_to_avoid, TimeType time) :
         agent_ids_to_avoid(agent_ids_to_avoid), 
         time(time) {
 
@@ -223,7 +252,7 @@ struct VertexPriorityConstraint : public Constraint {
 
     /// @brief Constructor, allowing to set the agent ids to avoid, time, and agent names.
     /// @param state The state vector.
-    explicit VertexPriorityConstraint(int agent_ids_to_avoid, TimeType time, std::vector<std::string> agent_names_to_avoid) :
+    explicit VertexPriorityConstraint(std::vector<int> agent_ids_to_avoid, TimeType time, std::vector<std::string> agent_names_to_avoid) :
         agent_ids_to_avoid(agent_ids_to_avoid), 
         time(time), 
         agent_names_to_avoid(agent_names_to_avoid) {
@@ -278,7 +307,9 @@ struct EdgePriorityConstraint : public Constraint {
     /// @brief Constructor, allowing to set the agent ids to avoid and when.
     /// @param agent_ids_to_avoid The agent ids to avoid.
     /// @param t_from The time to start avoiding the agents.
-    /// @param t_to The time to stop avoiding the agents.
+    /// @param t_to T        // TEST TEST TEST!!!
+//        EdgePriorityConstraint constraint = EdgePriorityConstraint(agent_ids_to_avoid, -1, -1);
+        // END TEST TEST TEST!!!he time to stop avoiding the agents.
     explicit EdgePriorityConstraint(int agent_id_to_avoid, TimeType t_from, TimeType t_to, std::string agent_name_to_avoid = "") :
         t_from(t_from),
         t_to(t_to),
@@ -330,6 +361,26 @@ struct EdgePriorityConstraint : public Constraint {
     /// @brief The time interval of the constraint.
     std::pair<int, int> getTimeInterval() const override {
         return std::make_pair(t_from, t_to);
+    }
+};
+
+struct PathPriorityConstraint : public VertexPriorityConstraint {
+    /// @brief Constructor, allowing to set the agent ids to avoid and when.
+    /// @param agent_ids_to_avoid The agent ids to avoid.
+    /// @param t_from The time to start avoiding the agents.
+    /// @param t_to The time to stop avoiding the agents.
+    explicit PathPriorityConstraint(int agent_id_to_avoid, std::string agent_name_to_avoid = "") :
+        VertexPriorityConstraint(agent_id_to_avoid, -1, agent_name_to_avoid) {
+        type = ConstraintType::PATH_PRIORITY;
+    }
+
+    /// @brief Constructor, allowing to set the agent ids to avoid and when.
+    /// @param agent_ids_to_avoid The agent ids to avoid.
+    /// @param t_from The time to start avoiding the agents.
+    /// @param t_to The time to stop avoiding the agents.
+    explicit PathPriorityConstraint(std::vector<int> agent_ids_to_avoid, std::vector<std::string> agent_names_to_avoid = {}) :
+        VertexPriorityConstraint(agent_ids_to_avoid, -1, agent_names_to_avoid) {
+        type = ConstraintType::PATH_PRIORITY;
     }
 };
 
