@@ -73,6 +73,7 @@ namespace ims{
         struct SearchState: public ims::BestFirstSearch::SearchState{
             /// @brief The heuristic value
             double h {-1};
+            double rhs {-1};
         };
 
         /// @brief The open list.
@@ -99,6 +100,16 @@ namespace ims{
 
         /// @brief Destructor
         ~LPAStar() override;
+
+         /// @brief Calculte the key pair to insert in priority queue
+         /// @param s A search state
+         /// @return A pair of keys to insert into priority queue
+        std::pair<double, double> calculateKeys(const ims::LPAStar::SearchState *s);
+
+        /// @brief Initialize the priority queue and g(s) and rhs(s) values 
+        void initialize();
+
+
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space

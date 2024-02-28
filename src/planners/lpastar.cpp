@@ -33,6 +33,7 @@
 */
 
 #include <search/planners/lpastar.hpp>
+#include <utility>
 
 ims::LPAStar::LPAStar(const ims::LPAStarParams &params) : params_(params), BestFirstSearch(params) {}
 
@@ -40,6 +41,37 @@ ims::LPAStar::~LPAStar() {
     for (ims::LPAStar::SearchState *&state : states_) {
         delete state;
     }
+}
+
+std::pair<double, double> ims::LPAStar::calculateKeys(const ims::LPAStar::SearchState *s) {
+    std::pair<double, double> key;
+    key.first = std::min(s->g, s->rhs) + s->h;
+    key.second = std::min(s->g, s->rhs);
+    return key;
+}
+
+void ims::LPAStar::initialize() {
+    // U = {}, use open_ as the priority queue
+    // for all s in S rhs(s) = g(s) = inf
+    // rhs(s_start) = 0
+    // U.insert(s_start, calculateKeys(s_start))
+
+}
+
+void ims::LPAStar::updateVertex(const ims::LPAStar::SearchState *s) {
+    // if s != s_start then rhs(s) = min(s' in Pred(s))(g(s') + c(s', u))
+    // if s in U then remove s from U
+    // if g(s) != rhs(u) then U.insert(u, CalculateKey(s))
+}
+
+void ims::LPAStar::computeShortestPath() {
+    // while (U.TopKey < CalculateKey(s_goal or rhs(goal) != g(goal)))
+        // s = U.pop()
+        // if (g(s) > rhs(s))
+            // for all s in Succ(s) UpdateVertex(s)
+        // else 
+            // g(s) = inf
+            // for all s' in Succ(s) U {s} Update(s')
 }
 
 void ims::LPAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
@@ -107,10 +139,10 @@ void ims::LPAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_
         throw std::runtime_error("Goal state is not valid");
     }
     int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-    auto start_ = getOrCreateSearchState(start_ind_);
+    ims::LPAStar::SearchState *start_ = getOrCreateSearchState(start_ind_);
 
     int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
-    auto goal_ = getOrCreateSearchState(goal_ind_);
+    ims::LPAStar::SearchState *goal_ = getOrCreateSearchState(goal_ind_);
     goals_.push_back(goal_ind_);
 
     start_->parent_id = PARENT_TYPE(START);
