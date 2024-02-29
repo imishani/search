@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16.3)
 project(search)
 
 set(CMAKE_CXX_STANDARD 14)
+set(CXX_COMPL)
 
 # add include directories
 include_directories(include)
@@ -97,9 +98,14 @@ target_link_libraries(run_2d_mapf_pp search ${Boost_LIBRARIES})
 # Add test executables.
 add_executable(test_distance test/common/test_distance.cpp)
 target_link_libraries(test_distance PRIVATE Catch2::Catch2WithMain search)
+
+add_executable(test_constraints test/common/test_constraints.cpp)
+target_link_libraries(test_constraints PRIVATE Catch2::Catch2WithMain search)
+
 include(CTest)
 include(Catch)
 catch_discover_tests(test_distance)
+catch_discover_tests(test_constraints)
 
 # Add an uninstall target.
 if(NOT TARGET uninstall)
