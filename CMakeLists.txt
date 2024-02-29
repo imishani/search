@@ -8,6 +8,7 @@ include_directories(include)
 
 # link boost libraries
 find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
+find_package(Catch2 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 add_library(search SHARED
@@ -92,6 +93,10 @@ target_link_libraries(run_2d_mapf_eaecbs search ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_pp domains/2d_mapf/run_2d_pp.cpp)
 target_link_libraries(run_2d_mapf_pp search ${Boost_LIBRARIES})
+
+# Add test executables.
+add_executable(test_distance test/common/test_distance.cpp)
+target_link_libraries(test_distance PRIVATE Catch2::Catch2WithMain search)
 
 # Add an uninstall target.
 if(NOT TARGET uninstall)
