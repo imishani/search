@@ -1,0 +1,27 @@
+image: ubuntu:22.04
+
+build:
+  stage: build
+  before_script:
+    - apt-get update -qy
+    - apt-get install -y g++ cmake libboost-all-dev libeigen3-dev
+    - apt -y install catch2
+  script:
+    - mkdir build_debug
+    - cd build_debug
+    - cmake -DCMAKE_BUILD_TYPE=Debug ..
+    - make
+  artifacts:
+    paths:
+      - build_debug/
+
+test:
+  stage: test
+  before_script:
+    - apt-get update -qy
+    - apt-get install -y cmake  # Install CMake to get access to ctest
+  script:
+    - cd build_debug
+    - ctest
+  dependencies:
+    - build
