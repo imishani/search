@@ -17,6 +17,7 @@ add_library(search SHARED
         src/planners/wastar.cpp
         src/planners/eawastar.cpp
         src/planners/arastar.cpp
+        src/planners/nparastar.cpp
         src/planners/bfs.cpp
         src/planners/egraph_wastar.cpp
         src/planners/focal_search/focal_search.cpp
@@ -71,6 +72,9 @@ target_link_libraries(run_2d_rotation_rob_nav_wastar search ${Boost_LIBRARIES})
 
 add_executable(run_2d_rob_nav_arastar domains/2d_robot_nav/run_2d_arastar.cpp)
 target_link_libraries(run_2d_rob_nav_arastar search ${Boost_LIBRARIES})
+
+add_executable(run_2d_rob_nav_nparastar domains/2d_robot_nav/run_2d_nparastar.cpp)
+target_link_libraries(run_2d_rob_nav_nparastar search ${Boost_LIBRARIES})
 
 add_executable(run_2d_rob_nav_wastar_local_heu domains/2d_robot_nav/run_2d_wastar_local_heu.cpp)
 target_link_libraries(run_2d_rob_nav_wastar_local_heu search ${Boost_LIBRARIES})
