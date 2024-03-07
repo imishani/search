@@ -28,8 +28,8 @@
  */
 /*!
  * \file   action_space_2d_rob.hpp
- * \author Itamar Mishani (imishani@cmu.edu)
- * \date   4/1/23
+ * \author Michelle Liu (mmliu@cmu.edu)
+ * \date   3/6/24
 */
 
 #ifndef SEARCH_ACTIONSCENE2DROB_HPP
@@ -38,42 +38,20 @@
 #include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
 
+#include "scene_2d_rob_arm.cpp"
 
-class Scene2DRob : public ims::SceneInterface {
-public:
-    explicit Scene2DRob(std::vector<std::vector<int>>* map_) : ims::SceneInterface(){
-        map = map_;
-        map_size = {map->size(), map[0].size()};
-        threshold = 500;
-    }
-    explicit Scene2DRob(std::vector<std::vector<int>>* map_, int t) : ims::SceneInterface(){
-        map = map_;
-        map_size = {map->size(), map[0].size()};
-        threshold = t;
-    }
+struct ActionType2dRobArm : public ims::ActionType {
 
-    std::vector<std::vector<int>>* map;
-    std::vector<size_t> map_size;
-    int threshold;
-};
-
-struct ActionType2dRob : public ims::ActionType {
-
-    ActionType2dRob() : ims::ActionType() {
+    ActionType2dRobArm() : ims::ActionType() {
         name = "ActionType2dRob";
-        num_actions = 8;
-        action_names = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
-        action_costs = {1, 1.414, 1, 1.414, 1, 1.414, 1, 1.414};
-        action_prims = {{0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}, {-1, 1}};
-        state_discretization_ = {1, 1};
+        num_actions = 2;
+        action_names = {"R", "L"};
+        action_costs = {1, 1};
+        action_prims = {{1}, {-1}};
     }
 
     std::vector<Action> getPrimActions() override{
         return action_prims;
-    }
-
-    void Discretization(StateType& state_des) override{
-        state_discretization_ = state_des;
     }
 
     std::string name;
@@ -87,14 +65,14 @@ struct ActionType2dRob : public ims::ActionType {
 class actionSpace2dRob : public ims::ActionSpace {
 
 protected:
-    std::shared_ptr<Scene2DRob> env_;
-    std::shared_ptr<ActionType2dRob> action_type_;
+    std::shared_ptr<Scene2DRobArm> env_;
+    std::shared_ptr<ActionType2dRobArm> action_type_;
 
 public:
-    actionSpace2dRob(const Scene2DRob& env,
-                     const ActionType2dRob& actions_ptr) : ims::ActionSpace(){
-        this->env_ = std::make_shared<Scene2DRob>(env);
-        this->action_type_ = std::make_shared<ActionType2dRob>(actions_ptr);
+    actionSpace2dRob(const Scene2DRobArm& env,
+                     const ActionType2dRobArm& actions_ptr) : ims::ActionSpace(){
+        this->env_ = std::make_shared<Scene2DRobArm>(env);
+        this->action_type_ = std::make_shared<ActionType2dRobArm>(actions_ptr);
     }
 
     void getActions(int state_id,
@@ -131,33 +109,23 @@ public:
             StateType action = actions[i][0];
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-
+            // Keep theta value between 0 and 359
+            next_state_val[0] = (int(next_state_val[0])+360) % 360;
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
-                costs.push_back(getWeightedAverageCost(curr_state->state, next_state_val, i));
+                costs.push_back(action_type_->action_costs[i]);
             }
         }
         return true;
     }
 
     bool isStateValid(const StateType& state_val) override{
-        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
+        if (env.isColliding()) {
             return false;
         }
-        int map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
-        if (map_val >= env_->threshold){
-            return false;
-        }
+
         return true;
-    }
-
-    int getWeightedAverageCost(const StateType& curr_state, const StateType& next_state_val, int i) {
-        return (getStateCost(next_state_val) + getStateCost(next_state_val)) / 2 * action_type_->action_costs[i];
-    }
-
-    int getStateCost(const StateType& state_val) {
-        return env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
     }
 
     bool isPathValid(const PathType& path) override{
