@@ -69,16 +69,41 @@ namespace ims{
         friend class AStar; friend class Dijkstra;
         friend class ExperienceWAstar; friend class EAwAStarUniformCost;
 
+        /// @brief The custom comparison function for predecessor cost pairs
+        struct PredecessorCostCompare {
+            bool operator()(const std::pair<int, double>& lhs, const std::pair<int, double>& rhs) const {
+                // Compare based on the first element of the pair
+                return lhs.first < rhs.first;
+            }
+        };
+
         /// @brief The search state.
         struct SearchState: public ims::BestFirstSearch::SearchState{
             /// @brief The heuristic value
             double h {-1};
             double rhs {-1};
+            double g {-1};
+            std::pair<double, double> key {-1, -1};
+            std::set <std::pair<int, double>, PredecessorCostCompare> predecessors {};
+        };
+        
+        /// @brief The search state compare struct.
+        struct SearchStateCompare: public ims::BestFirstSearch::SearchStateCompare{
+            bool operator()(const SearchState& s1, const SearchState& s2) const{
+                if ((s1.key.first == s2.key.first) && (s1.key.second == s2.key.second))
+                    return (s1.state_id < s2.state_id);
+                else if (s1.key.first == s2.key.first)
+                    return s1.key.second > s2.key.second;
+                else
+                    return s1.f < s2.f;
+            }
         };
 
-        /// @brief The open list.
+        /// @brief The open list (priority queue).
         using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-        OpenList open_;
+        OpenList U;
+
+        SearchState *s_start;
 
         std::vector<SearchState*> states_;
 
@@ -104,12 +129,18 @@ namespace ims{
          /// @brief Calculte the key pair to insert in priority queue
          /// @param s A search state
          /// @return A pair of keys to insert into priority queue
-        std::pair<double, double> calculateKeys(const ims::LPAStar::SearchState *s);
+        std::pair<double, double> calculateKeys(ims::LPAStar::SearchState *s);
 
         /// @brief Initialize the priority queue and g(s) and rhs(s) values 
-        void initialize();
+        /// @param start The start state
+        void initialize(ims::LPAStar::SearchState *start);
 
+        /// @brief Updates the rhs value of a vertex and re-insert into priority queue
+        /// @param s A search state
+        void updateVertex(ims::LPAStar::SearchState *s);
 
+        /// @brief Computes the shortest path between a start and goal
+        void computeShortestPath();
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
