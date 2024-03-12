@@ -45,36 +45,45 @@ ims::LPAStar::~LPAStar() {
 
 std::pair<double, double> ims::LPAStar::calculateKeys(ims::LPAStar::SearchState *s) {
     std::pair<double, double> k;
-    k.first = std::min(s->g, s->rhs) + s->h;
-    k.second = std::min(s->g, s->rhs);
+    s->h = computeHeuristic(s->state_id);
+    // -1 represents infinity in our code
+    if (s->g == -1 && s->rhs == -1) {
+        k.first = -1;
+        k.second = -1;
+    } else {
+        k.first = std::min(s->g, s->rhs) + s->h;
+        k.second = std::min(s->g, s->rhs);
+    }
     s->key = k;
     return k;
 }
 
 void ims::LPAStar::updateVertex(ims::LPAStar::SearchState *s) {
-    if (s != s_start) {
-        for (std::pair<int, double> pred : s->predecessors) {
-            ims::LPAStar::SearchState *pred_state = getSearchState(pred.first);
-            if (s->rhs == -1) {
+    for (std::pair<int, double> pred : s->predecessors) {
+        ims::LPAStar::SearchState *pred_state = getSearchState(pred.first);
+        if (s->rhs == -1) {
+            s->rhs = pred_state->g + pred.second;
+            s->parent_id = pred_state->state_id;
+        } else {
+            if (pred_state->g + pred.second <= s->rhs) {
                 s->rhs = pred_state->g + pred.second;
-            } else {
-                s->rhs = std::min(s->rhs, pred_state->g + pred.second);
+                s->parent_id = pred_state->state_id;
             }
         }
     }
-    if (U.contains(s)){
-        U.erase(s);
+    if (U_.contains(s)){
+        U_.erase(s);
     }
     if (s->g != s->rhs){
-        U.push(s);
+        U_.push(s);
     }
 }
 
 void ims::LPAStar::computeShortestPath(ims::LPAStar::SearchState *goal) {
     calculateKeys(goal);
-    while (U.min() < goal || goal->rhs != goal->g) {
-        ims::LPAStar::SearchState *s = U.min();
-        U.pop();
+    while (U_.min() < goal || goal->rhs != goal->g) {
+        ims::LPAStar::SearchState *s = U_.min();
+        U_.pop();
         if (s->g > s->rhs || s->g == -1) {
             std::vector<int> successors;
             std::vector<double> costs;
@@ -140,16 +149,14 @@ void ims::LPAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_
             throw std::runtime_error("Start state is not valid");
         }
         // Evaluate the start state
-        int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-        ims::LPAStar::SearchState *start_ = getOrCreateSearchState(start_ind_);
-        start_->parent_id = PARENT_TYPE(START);
+        int start_ind = action_space_ptr_->getOrCreateRobotState(start);
+        ims::LPAStar::SearchState *start_state = getOrCreateSearchState(start_ind);
+        start_state->parent_id = PARENT_TYPE(START);
         heuristic_->setStart(const_cast<StateType &>(start));
-        start_->h = computeHeuristic(start_ind_);
-        s_start = s_start;
-        s_start->rhs = 0;
-        calculateKeys(s_start);
-        U.push(s_start);
-        start_->setOpen();
+        start_state->h = computeHeuristic(start_ind);
+        start_state->rhs = 0;
+        calculateKeys(start_state);
+        U_.push(start_state);
     }
 }
 
@@ -170,25 +177,24 @@ void ims::LPAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_
     if (!action_space_ptr_->isStateValid(goal)){
         throw std::runtime_error("Goal state is not valid");
     }
-    int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-    ims::LPAStar::SearchState *start_ = getOrCreateSearchState(start_ind_);
+    int start_ind = action_space_ptr_->getOrCreateRobotState(start);
+    ims::LPAStar::SearchState *start_ss = getOrCreateSearchState(start_ind);
 
     int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
-    ims::LPAStar::SearchState *goal_ = getOrCreateSearchState(goal_ind_);
-    goals_.push_back(goal_ind_);
+    ims::LPAStar::SearchState *goal_ss = getOrCreateSearchState(goal_ind_);
+    goal_ = goal_ind_;
 
-    start_->parent_id = PARENT_TYPE(START);
+    start_ss->parent_id = PARENT_TYPE(START);
     heuristic_->setStart(const_cast<StateType &>(start));
     // Evaluate the goal state
-    goal_->parent_id = PARENT_TYPE(GOAL);
+    goal_ss->parent_id = PARENT_TYPE(GOAL);
     heuristic_->setGoal(const_cast<StateType &>(goal));
-    goal_->h = 0;
+    goal_ss->h = 0;
     // Evaluate the start state
-    s_start->rhs = 0;
-    calculateKeys(s_start);
-    U.push(s_start);
-    start_->h = computeHeuristic(start_ind_);
-    start_->setOpen();
+    start_ss->rhs = 0;
+    calculateKeys(start_ss);
+    U_.push(start_ss);
+    start_ss->h = computeHeuristic(start_ind);
 }
 
 ims::LPAStar::SearchState *ims::LPAStar::getSearchState(int state_id) {
@@ -211,60 +217,53 @@ ims::LPAStar::SearchState *ims::LPAStar::getOrCreateSearchState(int state_id){
 bool ims::LPAStar::plan(std::vector<StateType>& path) {
     startTimer();
     int iter {0};
-    while (!open_.empty() && !isTimeOut()){
+    ims::LPAStar::SearchState *goal = getSearchState(goal_);
+    while ((U_.min() < goal || goal->rhs != goal->g) && !isTimeOut()) {
         // report progress every 1000 iterations
         if (iter % 100000 == 0 && params_.verbose){
-            std::cout << "Iter: " << iter << " open size: " << open_.size() << std::endl;
+            std::cout << "Iter: " << iter << " U size: " << U_.size() << std::endl;
         }
-        ims::LPAStar::SearchState *state  = open_.min();
-        open_.pop();
-        state->setClosed();
-        if (isGoalState(state->state_id)){
-            goal_ = state->state_id;
-            getTimeFromStart(stats_.time);
-            reconstructPath(path, stats_.transition_costs);
-            stats_.cost = state->g;
-            stats_.path_length = (int)path.size();
-            stats_.num_generated = (int)action_space_ptr_->states_.size();
-            return true;
-        }
-        expand(state->state_id);
-        ++iter;
-    }
-    getTimeFromStart(stats_.time);
-    return false;
-}
-
-void ims::LPAStar::expand(int state_id){
-
-    ims::LPAStar::SearchState *state_ = getSearchState(state_id);
-    std::vector<int> successors;
-    std::vector<double> costs;
-    action_space_ptr_->getSuccessors(state_->state_id, successors, costs);
-    for (size_t i {0} ; i < successors.size() ; ++i){
-        int successor_id = successors[i];
-        double cost = costs[i];
-        ims::LPAStar::SearchState *successor = getOrCreateSearchState(successor_id);
-        if (successor->in_closed){
-            continue;
-        }
-        if (isGoalState(successor_id) && params_.verbose ){
-            std::cout << "Added Goal to open list" << std::endl;
-        }
-        if (successor->in_open){
-            if (successor->g > state_->g + cost){
-                successor->parent_id = state_->state_id;
-                successor->g = state_->g + cost;
-                successor->f = successor->g + successor->h;
-                open_.update(successor);
+        ims::LPAStar::SearchState *s = U_.min();
+        U_.pop();
+        if (s->g > s->rhs || s->g == -1) {
+            std::vector<int> successors;
+            std::vector<double> costs;
+            action_space_ptr_->getSuccessors(s->state_id, successors, costs);
+            for (int i = 0; i < successors.size(); i++) {
+                int successor_id = successors[i];
+                int cost = costs[i];
+                ims::LPAStar::SearchState *successor = getOrCreateSearchState(successor_id);
+                // insert predecessor and cost pair into predecessors set
+                successor->predecessors.insert(std::make_pair(s->state_id, cost));
+                updateVertex(successor);
             }
         } else {
-            setStateVals(successor->state_id, state_->state_id, cost);
-            open_.push(successor);
-            successor->setOpen();
-        }
+            s->g = -1;
+            updateVertex(s);
+            std::vector<int> successors;
+            std::vector<double> costs;
+            action_space_ptr_->getSuccessors(s->state_id, successors, costs);
+            for (int i = 0; i < successors.size(); i++) {
+                int successor_id = successors[i];
+                int cost = costs[i];
+                ims::LPAStar::SearchState *successor = getOrCreateSearchState(successor_id);
+                // insert predecessor and cost pair into predecessors set
+                successor->predecessors.insert(std::make_pair(s->state_id, cost));
+                updateVertex(successor);
+            }
+        } 
+        ++iter;
     }
-    stats_.num_expanded++;
+    if (!isTimeOut()) {
+        getTimeFromStart(stats_.time);
+        reconstructPath(path, stats_.transition_costs);
+        stats_.cost = goal->g;
+        stats_.path_length = (int)path.size();
+        stats_.num_generated = (int)action_space_ptr_->states_.size();
+        return true;
+    } 
+    getTimeFromStart(stats_.time);
+    return false;
 }
 
 void ims::LPAStar::setStateVals(int state_id, int parent_id, double cost)
@@ -276,7 +275,6 @@ void ims::LPAStar::setStateVals(int state_id, int parent_id, double cost)
     state_->h = computeHeuristic(state_id);
     state_->f = state_->g + state_->h;
 }
-
 
 void ims::LPAStar::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
     path.clear();
@@ -314,7 +312,7 @@ void ims::LPAStar::resetPlanningData(){
         delete state_;
     }
     states_.clear();
-    open_.clear();
+    U_.clear();
     goals_.clear();
     goal_ = -1;
     stats_ = PlannerStats();

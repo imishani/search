@@ -92,16 +92,31 @@ namespace ims{
             bool operator()(const SearchState& s1, const SearchState& s2) const{
                 if ((s1.key.first == s2.key.first) && (s1.key.second == s2.key.second))
                     return (s1.state_id < s2.state_id);
-                else if (s1.key.first == s2.key.first)
-                    return s1.key.second > s2.key.second;
+                else if (s1.key.first == s2.key.first) {
+                    // In our code, -1 represents infinity.
+                    if (s2.key.second == -1) {
+                        return true;
+                    } else if (s1.key.second == -1) {
+                        return false;
+                    } else {
+                        return s1.key.second < s2.key.second;
+                    }
+                }
                 else
-                    return s1.f < s2.f;
+                    // In our code, -1 represents infinity.
+                    if (s2.key.first == -1) {
+                        return true;
+                    } else if (s1.key.first == -1) {
+                        return false;
+                    } else {
+                        return s1.key.first < s2.key.first;
+                    }
             }
         };
 
         /// @brief The open list (priority queue).
         using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-        OpenList U;
+        OpenList U_;
 
         SearchState *s_start;
 
@@ -140,7 +155,7 @@ namespace ims{
         void updateVertex(ims::LPAStar::SearchState *s);
 
         /// @brief Computes the shortest path between a start and goal
-        void computeShortestPath();
+        void computeShortestPath(ims::LPAStar::SearchState *goal);
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
@@ -173,8 +188,6 @@ namespace ims{
     protected:
 
         void setStateVals(int state_id, int parent_id, double cost) override;
-
-        void expand(int state_id) override;
 
         void reconstructPath(std::vector<StateType>& path) override;
 

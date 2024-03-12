@@ -15,6 +15,7 @@ add_library(search SHARED
         src/planners/dijkstra.cpp
         src/planners/astar.cpp
         src/planners/wastar.cpp
+        src/planners/lpastar.cpp
         src/planners/eawastar.cpp
         src/planners/arastar.cpp
         src/planners/bfs.cpp
@@ -65,6 +66,9 @@ target_link_libraries(run_2d_rob_nav_bfs search ${Boost_LIBRARIES})
 
 add_executable(run_2d_rob_nav_wastar domains/2d_robot_nav/run_2d_wastar.cpp)
 target_link_libraries(run_2d_rob_nav_wastar search ${Boost_LIBRARIES})
+
+add_executable(run_2d_rob_nav_lpastar domains/2d_robot_nav/run_2d_lpastar.cpp)
+target_link_libraries(run_2d_rob_nav_lpastar search ${Boost_LIBRARIES})
 
 add_executable(run_2d_rotation_rob_nav_wastar domains/2d_robot_nav/run_2d_rotation_wastar.cpp)
 target_link_libraries(run_2d_rotation_rob_nav_wastar search ${Boost_LIBRARIES})

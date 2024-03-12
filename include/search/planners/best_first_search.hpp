@@ -75,6 +75,7 @@ namespace ims{
         friend class ECBS; friend class ECBSMP;
         friend class EACBS; friend class EACBSMP;
         friend class EAECBS; friend class EAECBSMP;
+        friend class LPAStar;
 
         /// @brief The search state.
         struct SearchState: public ims::SearchState {
@@ -113,8 +114,9 @@ namespace ims{
             bool operator()(const SearchState& s1, const SearchState& s2) const{
                 if ((s1.f == s2.f) && (s1.g == s2.g))
                     return (s1.state_id < s2.state_id);
-                else if (s1.key.first == s2.key.first)
-                    return s1.key.second > s2.key.second;
+                else if (s1.f == s2.f)
+                    // For tie breaking, we prefer the state with the larger g value as it is closer to the goal (lower h in the case of an informed search).
+                    return s1.g > s2.g;
                 else
                     return s1.f < s2.f;
             }
