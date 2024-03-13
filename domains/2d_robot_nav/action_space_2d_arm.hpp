@@ -38,20 +38,39 @@
 #include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
 
-#include "scene_2d_rob_arm.cpp"
+#include "scene_2d_arm.cpp"
 
-struct ActionType2dRobArm : public ims::ActionType {
+struct ActionType2dArm : public ims::ActionType {
 
-    ActionType2dRobArm() : ims::ActionType() {
-        name = "ActionType2dRob";
-        num_actions = 2;
-        action_names = {"R", "L"};
-        action_costs = {1, 1};
-        action_prims = {{1}, {-1}};
+    ActionType2dArm(int num_links = 3, int angle_incr = 2) : ims::ActionType() {
+
+        name = "ActionType2dArm";
+        num_actions = 2*num_links;
+        action_names = {};
+        action_costs = {};
+        action_prims = {};
+        for (double i = 0; i < num_links; i++) {
+            action_names.push_back("R"+to_string(i));
+            action_costs.push_back(1);
+            std::vector<double> action_prim_R(num_links, 0);
+            action_prim_R[i] = angle_incr;
+            action_prims.push_back(action_prim_R);
+
+            action_names.push_back("L"+to_string(i));
+            action_costs.push_back(1);
+            std::vector<double> action_prim_L(num_links, 0);
+            action_prim_L[i] = -angle_incr;
+            action_prims.push_back(action_prim_L);
+        }
+
     }
 
     std::vector<Action> getPrimActions() override{
         return action_prims;
+    }
+
+    void Discretization(StateType& state_des) override{
+        state_discretization_ = state_des;
     }
 
     std::string name;
@@ -62,17 +81,17 @@ struct ActionType2dRobArm : public ims::ActionType {
 
 };
 
-class actionSpace2dRob : public ims::ActionSpace {
+class actionSpace2dArm : public ims::ActionSpace {
 
 protected:
-    std::shared_ptr<Scene2DRobArm> env_;
-    std::shared_ptr<ActionType2dRobArm> action_type_;
+    std::shared_ptr<Scene2DArm> env_;
+    std::shared_ptr<ActionType2dArm> action_type_;
 
 public:
-    actionSpace2dRob(const Scene2DRobArm& env,
-                     const ActionType2dRobArm& actions_ptr) : ims::ActionSpace(){
-        this->env_ = std::make_shared<Scene2DRobArm>(env);
-        this->action_type_ = std::make_shared<ActionType2dRobArm>(actions_ptr);
+    actionSpace2dArm(const Scene2DArm& env,
+                     const ActionType2dArm& actions_ptr) : ims::ActionSpace(){
+        this->env_ = std::make_shared<Scene2DArm>(env);
+        this->action_type_ = std::make_shared<ActionType2dArm>(actions_ptr);
     }
 
     void getActions(int state_id,
@@ -94,6 +113,7 @@ public:
             ActionSequence action_seq;
             action_seq.push_back(action);
             action_seqs.push_back(action_seq);
+
         }
     }
 
@@ -109,8 +129,8 @@ public:
             StateType action = actions[i][0];
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-            // Keep theta value between 0 and 359
-            next_state_val[0] = (int(next_state_val[0])+360) % 360;
+            // Keep theta value between -180 and 180
+            next_state_val[0] = (int(next_state_val[0])+180) % 360 - 180;
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
@@ -121,7 +141,10 @@ public:
     }
 
     bool isStateValid(const StateType& state_val) override{
-        if (env.isColliding()) {
+
+        env_->setAngles(state_val);
+
+        if (env_->isColliding()) {
             return false;
         }
 

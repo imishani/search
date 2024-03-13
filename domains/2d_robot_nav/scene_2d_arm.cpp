@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   scene_2d_rob_arm.cpp
+ * \file   scene_2d_arm.cpp
  * \author Michelle Liu (mmliu@cmu.edu)
  * \date   3/6/24
 */
@@ -37,10 +37,10 @@
 #include <vector>
 using namespace std;
 
-class Scene2DRobArm : public ims::SceneInterface {
+class Scene2DArm : public ims::SceneInterface {
 public:
-    explicit Scene2DRobArm(vector<float> link_lengths_, const vector<vector<int>> obstacle_map,
-                           float angle_incr_=0.01 * b2_pi) : ims::SceneInterface(){
+    explicit Scene2DArm(vector<float> link_lengths_, const vector<b2PolygonShape> obstacle_polygons_,
+                        vector<b2Transform> obstacle_transforms_, float angle_incr_=0.01 * b2_pi) : ims::SceneInterface(){
 
         link_lengths = link_lengths_;
         angle_incr = angle_incr_;
@@ -55,13 +55,8 @@ public:
             x_pos += link_lengths[i];
         }
 
-        // convert obstacle map to box2d shapes
-        // b2PolygonShape obst_polygon1;
-        // b2Transform obst_transform1;
-        // obst_polygon1.SetAsBox(5.0f, 5.0f, b2Vec2 (5.0f, 0.0f), 0.0f);
-        // obst_transform1.Set(b2Vec2(5.0f, 10.0f), 0.0f);
-        // obstacle_polygons.push_back(obst_polygon1);
-        // obstacle_transforms.push_back(obst_transform1);
+        obstacle_polygons = obstacle_polygons_;
+        obstacle_transforms = obstacle_transforms_;
     }
 
     vector<float> link_lengths;
@@ -106,6 +101,24 @@ public:
         return angles;
     }
 
+    bool setAngles(vector<double> angles) {
+
+        transforms[0].Set(transforms[0].p, angles[0]/180.0f*b2_pi);
+
+        for (int i = 0; i < num_links-1; i++) {
+            float link_lenA = link_lengths[i];
+
+            float a_angle = transforms[i].q.GetAngle();
+            float b_angle = a_angle + angles[i+1]/180.0f*b2_pi;
+            float b_x = transforms[i].p.x + link_lenA*cos(a_angle);
+            float b_y = transforms[i].p.y + link_lenA*sin(a_angle);
+            b2Vec2 b_position = b2Vec2(b_x, b_y);
+            transforms[i+1].Set(b_position, b_angle);
+        }
+
+        return true;
+    }
+
     bool rotate(int link_idx, int direction) {  // direction: -1 or 1
 
         float delta = angle_incr*direction;
@@ -137,3 +150,4 @@ public:
         return manifold;
     }
 };
+

@@ -192,6 +192,26 @@ std::string logPaths(const std::unordered_map<int, PathType>& paths,
     return path_file;
 }
 
+std::string logPathsRobotArm(std::unordered_map<int, PathType> paths) {
+    // save the paths to a temporary file
+    std::string path_file = "paths_tmp.csv";
+    // save paths object to a file
+    std::ofstream file(path_file);
+    // header line
+    file << "PathsNumber," << paths.size() << std::endl;
+    for (auto& path : paths) {
+        file << path.first << "," << path.second.size() << std::endl;
+        for (auto& state : path.second) {
+            for (int i=0; i<state.size()-1; i++) {
+                file << state[i] << ",";
+            }
+            file << state[state.size()-1] << std::endl;
+        }
+    }
+    file.close();
+    return path_file;
+}
+
 void process_start_goal(const std::vector<std::vector<int>>& map, std::vector<double>& start, 
                                                             std::vector<double>& goal) {
     // round the start and goal to the nearest integer
@@ -251,7 +271,17 @@ void display_image(std::unordered_map<int, PathType> paths, int mapidx, int scal
     system(command.c_str());
 }
 
-void findAllPlans(std::shared_ptr<ims::ActionSpace> ActionSpace, ims::Planner *planner,
+void display_robot_arm_animation(std::unordered_map<int, PathType> paths) {
+    boost::filesystem::path full_path( boost::filesystem::current_path() );
+    std::string path_file = logPathsRobotArm(paths);
+
+    std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_robot_arm_path.py";
+    std::string command = "python3 " + plot_path + " --filepath " + path_file;
+    std::cout << "Running the plot script..." << std::endl;
+    system(command.c_str());
+}
+
+void findAllPlans(std::shared_ptr<ims::ActionSpace> actionSpace, ims::Planner *planner,
                   std::vector<std::vector<double>> starts,
                   std::vector<std::vector<double>> goals,
                   std::vector<std::vector<int>>* map,
@@ -264,7 +294,7 @@ void findAllPlans(std::shared_ptr<ims::ActionSpace> ActionSpace, ims::Planner *p
     for (int i {0}; i < starts.size(); i++){
         process_start_goal(*map, starts[i], goals[i]); // modifies starts and goals
         std::vector<StateType> path_;
-        if (find_plan(ActionSpace, planner, starts[i], goals[i], &path_) != 0) {
+        if (find_plan(actionSpace, planner, starts[i], goals[i], &path_) != 0) {
             continue;
         }
         // logs[i] = stats; // log the stats
@@ -273,6 +303,30 @@ void findAllPlans(std::shared_ptr<ims::ActionSpace> ActionSpace, ims::Planner *p
         planner->resetPlanningData();
     }
     display_image(paths, mapidx, scale, threshold);
+}
+
+void findAllPlansArm(std::shared_ptr<ims::ActionSpace> actionSpace, ims::Planner *planner,
+                  std::vector<std::vector<double>> starts,
+                  std::vector<std::vector<double>> goals) {
+
+    std::unordered_map<int, PathType> paths;
+
+    for (int i {0}; i < starts.size(); i++){
+        std::vector<StateType> path_;
+        if (find_plan(actionSpace, planner, starts[i], goals[i], &path_) != 0) {
+            continue;
+        }
+        paths[i] = path_; // log the path
+
+        planner->resetPlanningData();
+
+        // for (const StateType& s: path_) {
+        //     std::cout << actionSpace->isStateValid(s) << std::endl;
+        // }
+    }
+
+
+    display_robot_arm_animation(paths);
 }
 
 #endif //SEARCH_SEARCH_DOMAINS_2D_ROBOT_NAV_UTILS_HPP_
