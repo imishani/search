@@ -61,10 +61,31 @@ public:
     /// @brief Destructor
     ~ConstrainedActionSpace() = default;
 
-    /// @brief If a given configuration transition is valid with respect to the constraints. 
-    virtual bool isSatisfyingConstraints(const StateType& state, const StateType& next_state) = 0;
+    /// @brief Whether the state is satisfying a specific constraint.
+    /// @param state_val The state value to check. Timed.
+    /// @param next_state_val The next state value to check. Timed.
+    /// @param constraint_ptr The constraint to check.
+    /// @return True if the constraint is satisfied, false otherwise.
+    virtual bool isSatisfyingConstraint(const StateType &state_val, const StateType &next_state_val, const std::shared_ptr<Constraint> &constraint_ptr) = 0;
+
+    /// @brief If a given timed configuration transition is valid with respect to all of the constraints. It is assumed that agents can be at state, and so next_state along with the transition to it is checked.
+    inline bool isSatisfyingAllConstraints(const StateType& state, const StateType& next_state) {
+        for (const auto& constraint_ptr : constraints_collective_ptr_->getConstraints()) {
+            if (!isSatisfyingConstraint(state, next_state, constraint_ptr)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// @brief Get safe intervals for a given configuration.
+    /// @param state_id The id of the configuration. The RobotState.
+    /// @return A vector of safe intervals.
+    // virtual void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) = 0;
 
 };
+
+
 
 }  // namespace ims
 

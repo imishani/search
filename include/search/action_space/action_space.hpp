@@ -42,6 +42,7 @@
 // project includes
 #include "search/common/scene_interface.hpp"
 #include "search/common/types.hpp"
+#include "search/common/utils.hpp"
 
 namespace ims {
 

@@ -31,9 +31,7 @@
  * \author Yorai Shaoul (yorai@cmu.edu)
  * \date   July 13 2023
 */
-
-#ifndef SEARCH_COMMON_CONSTRAINTS_HPP
-#define SEARCH_COMMON_CONSTRAINTS_HPP
+#pragma once
 
 // standard includes
 #include <functional>
@@ -54,10 +52,26 @@ enum class ConstraintType {
     VERTEX = 0, // Do not be at v at time t.
     EDGE = 1, // Do not cross edge (u, v) at time t to t+1.
     SPHERE3D = 2, // Do not be in sphere at time t.
-    VERTEX_AVOIDANCE = 3, // Do not conflict with agent at time t, setting other agent as specified in its path in the context.
-    EDGE_AVOIDANCE = 4, // Do not conflict with agent at time t_from to t_to, setting other agent as specified in its path in the context.
+    VERTEX_PRIORITY = 3, // Do not conflict with agent at time t, setting other agent as specified in its path in the context.
+    EDGE_PRIORITY = 4, // Do not conflict with agent at time t_from to t_to, setting other agent as specified in its path in the context.
     VERTEX_STATE_AVOIDANCE = 5, // Do not conflict with agent at a specified configuration at time t.
     EDGE_STATE_AVOIDANCE = 6, // Do not conflict with agent at a specified configuration between time t_from to t_to.
+    ALL_EDGE_VERTEX_REQUEST = 7, // Initially used in Generalized-CBS, this is a request to create vertex and edge constraints for all conflicts available. Used in conflictsToConstraints.
+    SPHERE3DLARGE = 8, // Do not be in sphere at time t, but with a larger radius.
+    SPHERE3DXLARGE = 10, // Do not be in sphere at time t, but with a much larger radius.
+    PATH_PRIORITY = 11, // Do not be in sphere at time t, but with a much much larger radius.
+};
+
+// A map from constraint type to whether it is admissible or not.
+const std::unordered_map<ConstraintType, bool> constraint_type_admissibility = {
+    {ConstraintType::UNSET, false},
+    {ConstraintType::VERTEX, true},
+    {ConstraintType::EDGE, true},
+    {ConstraintType::SPHERE3D, false},
+    {ConstraintType::VERTEX_PRIORITY, false},
+    {ConstraintType::EDGE_PRIORITY, false},
+    {ConstraintType::VERTEX_STATE_AVOIDANCE, false},
+    {ConstraintType::EDGE_STATE_AVOIDANCE, false},
 };
 
 /// @brief Base class for all search constraints.
@@ -163,7 +177,7 @@ struct Sphere3dConstraint : public Constraint {
 
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param state The state vector.
-    explicit Sphere3dConstraint(Eigen::Vector3d center, double radius, TimeType time) : center(center), radius(radius), time(time) {
+    explicit Sphere3dConstraint(Eigen::Vector3d center, double radius, TimeType time) : center(std::move(center)), radius(radius), time(time) {
         /// @brief The type of the constraint.
         type = ConstraintType::SPHERE3D;
     }
@@ -180,10 +194,36 @@ struct Sphere3dConstraint : public Constraint {
     }
 };
 
+struct Sphere3dLargeConstraint : public Sphere3dConstraint {
+
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param center The center of the constrained sphere.
+    /// @param radius The radius of the sphere.
+    /// @param time The time of the constraint.
+    explicit Sphere3dLargeConstraint(Eigen::Vector3d center, double radius, TimeType time) : 
+        Sphere3dConstraint(std::move(center), radius, time) {
+        /// @brief The type of the constraint.
+        type = ConstraintType::SPHERE3DLARGE;
+    }
+};
+
+struct Sphere3dXLargeConstraint : public Sphere3dConstraint {
+
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param center The center of the constrained sphere.
+    /// @param radius The radius of the sphere.
+    /// @param time The time of the constraint.
+    explicit Sphere3dXLargeConstraint(Eigen::Vector3d center, double radius, TimeType time) :
+            Sphere3dConstraint(std::move(center), radius, time) {
+        /// @brief The type of the constraint.
+        type = ConstraintType::SPHERE3DXLARGE;
+    }
+};
+
 // ==========================
 // Constraints used by Prioritized Planning.
 // ==========================
-struct VertexAvoidanceConstraint : public Constraint {
+struct VertexPriorityConstraint : public Constraint {
 
     /// @brief The time of the constraint. If the time is -1, then the constraint is applied at all times.
     TimeType time;
@@ -195,45 +235,45 @@ struct VertexAvoidanceConstraint : public Constraint {
     /// @brief Constructor, allowing to set the agent ids to avoid and when. An overload allows also setting the agent names.
     /// @param agent_ids_to_avoid The agent ids to avoid.
     /// @param time The time of the constraint.
-    explicit VertexAvoidanceConstraint(std::vector<int> agent_ids_to_avoid, TimeType time) : 
+    explicit VertexPriorityConstraint(std::vector<int> agent_ids_to_avoid, TimeType time) :
         agent_ids_to_avoid(agent_ids_to_avoid), 
         time(time) {
 
         /// @brief The type of the constraint.
-        type = ConstraintType::VERTEX_AVOIDANCE;
+        type = ConstraintType::VERTEX_PRIORITY;
     }
-    explicit VertexAvoidanceConstraint(int agent_id_to_avoid, TimeType time) : 
+    explicit VertexPriorityConstraint(int agent_id_to_avoid, TimeType time) : 
         time(time) {
         agent_ids_to_avoid = {agent_id_to_avoid};
 
         /// @brief The type of the constraint.
-        type = ConstraintType::VERTEX_AVOIDANCE;
+        type = ConstraintType::VERTEX_PRIORITY;
     }
 
     /// @brief Constructor, allowing to set the agent ids to avoid, time, and agent names.
     /// @param state The state vector.
-    explicit VertexAvoidanceConstraint(int agent_ids_to_avoid, TimeType time, std::vector<std::string> agent_names_to_avoid) :
+    explicit VertexPriorityConstraint(std::vector<int> agent_ids_to_avoid, TimeType time, std::vector<std::string> agent_names_to_avoid) :
         agent_ids_to_avoid(agent_ids_to_avoid), 
         time(time), 
         agent_names_to_avoid(agent_names_to_avoid) {
 
         /// @brief The type of the constraint.
-        type = ConstraintType::VERTEX_AVOIDANCE;
+        type = ConstraintType::VERTEX_PRIORITY;
     }
-    explicit VertexAvoidanceConstraint(int agent_id_to_avoid, TimeType time, std::string agent_name_to_avoid) :
+    explicit VertexPriorityConstraint(int agent_id_to_avoid, TimeType time, std::string agent_name_to_avoid) :
         time(time) {
         agent_ids_to_avoid = {agent_id_to_avoid};
         agent_names_to_avoid = {agent_name_to_avoid};
         
         /// @brief The type of the constraint.
-        type = ConstraintType::VERTEX_AVOIDANCE;
+        type = ConstraintType::VERTEX_PRIORITY;
     }
 
     /// @brief String representation of the constraint.
     /// @return The string representation.
     std::string toString() const override {
         std::stringstream ss;
-        ss << "VertexAvoidanceConstraint: avoid agents: (";
+        ss << "VertexPriorityConstraint: avoid agents: (";
         for (int i = 0; i < agent_ids_to_avoid.size() - 1; i++) {
             ss << agent_ids_to_avoid[i];
             if (i < agent_names_to_avoid.size() - 1) {
@@ -253,7 +293,7 @@ struct VertexAvoidanceConstraint : public Constraint {
     }
 };
 
-struct EdgeAvoidanceConstraint : public Constraint {
+struct EdgePriorityConstraint : public Constraint {
     /// @brief The time interval of the constraint.
     TimeType t_from;
     TimeType t_to;
@@ -267,17 +307,19 @@ struct EdgeAvoidanceConstraint : public Constraint {
     /// @brief Constructor, allowing to set the agent ids to avoid and when.
     /// @param agent_ids_to_avoid The agent ids to avoid.
     /// @param t_from The time to start avoiding the agents.
-    /// @param t_to The time to stop avoiding the agents.
-    explicit EdgeAvoidanceConstraint(int agent_id_to_avoid, TimeType t_from, TimeType t_to, std::string agent_name_to_avoid = "") :
+    /// @param t_to T        // TEST TEST TEST!!!
+//        EdgePriorityConstraint constraint = EdgePriorityConstraint(agent_ids_to_avoid, -1, -1);
+        // END TEST TEST TEST!!!he time to stop avoiding the agents.
+    explicit EdgePriorityConstraint(int agent_id_to_avoid, TimeType t_from, TimeType t_to, std::string agent_name_to_avoid = "") :
         t_from(t_from),
         t_to(t_to),
         agent_ids_to_avoid({agent_id_to_avoid}),
         agent_names_to_avoid({agent_name_to_avoid}) {
-        type = ConstraintType::EDGE_AVOIDANCE;
+        type = ConstraintType::EDGE_PRIORITY;
 
         // Check that there is exactly one timestep between `t_from` and `t_to`.
         if (t_to - t_from != 1 && (t_to != -1 && t_from != -1)) {
-            throw std::invalid_argument("EdgeAvoidanceConstraint: t_to - t_from != 1. Currently only single-timestep-edges are supported.");
+            throw std::invalid_argument("EdgePriorityConstraint: t_to - t_from != 1. Currently only single-timestep-edges are supported.");
         }
     }
 
@@ -285,16 +327,16 @@ struct EdgeAvoidanceConstraint : public Constraint {
     /// @param agent_ids_to_avoid The agent ids to avoid.
     /// @param t_from The time to start avoiding the agents.
     /// @param t_to The time to stop avoiding the agents.
-    explicit EdgeAvoidanceConstraint(std::vector<int> agent_ids_to_avoid, TimeType t_from, TimeType t_to, std::vector<std::string> agent_names_to_avoid = {}) :
+    explicit EdgePriorityConstraint(std::vector<int> agent_ids_to_avoid, TimeType t_from, TimeType t_to, std::vector<std::string> agent_names_to_avoid = {}) :
         t_from(t_from),
         t_to(t_to),
         agent_ids_to_avoid(agent_ids_to_avoid),
         agent_names_to_avoid(agent_names_to_avoid) {
-        type = ConstraintType::EDGE_AVOIDANCE;
+        type = ConstraintType::EDGE_PRIORITY;
 
         // Check that there is exactly one timestep between `t_from` and `t_to`.
         if (t_to - t_from != 1 && (t_to != -1 && t_from != -1)) {
-            throw std::invalid_argument("EdgeAvoidanceConstraint: t_to - t_from != 1. Currently only single-timestep-edges are supported.");
+            throw std::invalid_argument("EdgePriorityConstraint: t_to - t_from != 1. Currently only single-timestep-edges are supported.");
         }
     }
 
@@ -302,7 +344,7 @@ struct EdgeAvoidanceConstraint : public Constraint {
     /// @return The string representation.
     std::string toString() const override {
         std::stringstream ss;
-        ss << "EdgeAvoidanceConstraint. Avoiding agent ids: (";
+        ss << "EdgePriorityConstraint. Avoiding agent ids: (";
         for (int i = 0; i < agent_ids_to_avoid.size() - 1; i++) {
             ss << agent_ids_to_avoid[i];
             if (i < agent_names_to_avoid.size() - 1) {
@@ -319,6 +361,26 @@ struct EdgeAvoidanceConstraint : public Constraint {
     /// @brief The time interval of the constraint.
     std::pair<int, int> getTimeInterval() const override {
         return std::make_pair(t_from, t_to);
+    }
+};
+
+struct PathPriorityConstraint : public VertexPriorityConstraint {
+    /// @brief Constructor, allowing to set the agent ids to avoid and when.
+    /// @param agent_ids_to_avoid The agent ids to avoid.
+    /// @param t_from The time to start avoiding the agents.
+    /// @param t_to The time to stop avoiding the agents.
+    explicit PathPriorityConstraint(int agent_id_to_avoid, std::string agent_name_to_avoid = "") :
+        VertexPriorityConstraint(agent_id_to_avoid, -1, agent_name_to_avoid) {
+        type = ConstraintType::PATH_PRIORITY;
+    }
+
+    /// @brief Constructor, allowing to set the agent ids to avoid and when.
+    /// @param agent_ids_to_avoid The agent ids to avoid.
+    /// @param t_from The time to start avoiding the agents.
+    /// @param t_to The time to stop avoiding the agents.
+    explicit PathPriorityConstraint(std::vector<int> agent_ids_to_avoid, std::vector<std::string> agent_names_to_avoid = {}) :
+        VertexPriorityConstraint(agent_ids_to_avoid, -1, agent_names_to_avoid) {
+        type = ConstraintType::PATH_PRIORITY;
     }
 };
 
@@ -525,10 +587,14 @@ struct ConstraintsCollective {
     /// @brief Set the constraints.
     /// @param constraints The constraints to set.
     void setConstraints(const std::vector<std::shared_ptr<Constraint>>& constraints) {
+        constraints_ptrs_.clear();
+        time_to_constraints_ptrs_.clear();
+        last_constraint_time_ = -1;
+
+        // Set the constraints and their counts after.
         constraints_ptrs_ = constraints;
 
         // Set the time_to_constraints_ptrs_ map.
-        time_to_constraints_ptrs_.clear();
         for (const auto& constraint_ptr : constraints_ptrs_) {
             for (int t = constraint_ptr->getTimeInterval().first; t <= constraint_ptr->getTimeInterval().second; t++) {
                 time_to_constraints_ptrs_[t].push_back(constraint_ptr);
@@ -643,4 +709,3 @@ using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsColle
 
 }  // namespace ims
 
-#endif //SEARCH_COMMON_CONSTRAINTS_HPP

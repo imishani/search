@@ -113,11 +113,6 @@ public:
     /// @brief Create the root node in the open list. This node has single-agent plans that were planned without any constraints.
     void createRootInOpenList() override;
 
-    /// @brief Checks that the start and goals states are valid. The checks are for time (all initial times are zero and all goal times are -1), for individual agents, and between agents.
-    /// @param starts
-    /// @param goals
-    void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
-
     /// @brief plan a path
     /// @param path The path
     /// @return whether the plan was successful or not

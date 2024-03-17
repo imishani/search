@@ -152,6 +152,9 @@ protected:
         // The low level experiences collecitve. This is a map from agent id to experience collective.
         MultiAgentExperiencesCollective experiences_collectives;
 
+        // The counts of the constraints in each constraint type.
+        std::unordered_map<ConstraintType, int> constraint_type_count;
+        
         /// @brief Get the cost of the state.
         /// @return 
         double getLowerBound() const override {
@@ -178,11 +181,6 @@ protected:
     /// @return The search state
     auto getOrCreateSearchState(int state_id) -> SearchState*;
 
-    /// @brief Pad a set of paths such that they are all the maximum length.
-    /// @note The padding is done by repeating the last state and incrementing time accordingly.
-    /// @param paths The paths to pad.
-    void padPathsToMaxLength(MultiAgentPaths& paths);
-
     std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
 
     /// @brief Set the search state struct values.
@@ -194,11 +192,6 @@ protected:
     /// @brief Generate descendents of a state, a key method in most search algorithms.
     /// @param state_id
     void expand(int state_id) override;
-
-    /// @brief Checks that the start and goals states are valid. The checks are for time (all initial times are zero and all goal times are -1), for individual agents, and between agents.
-    /// @param starts
-    /// @param goals
-    void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
 
     /// @brief Get the conflict types requested by the algorithm.
     /// @return The conflict types.

@@ -143,23 +143,23 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
         constraints_collective_ptr->setContext(constraints_context_ptr);
 
         // Add a constraint for avoiding the agent at all times. Reminder: if we want the next planned agent to be disallowed from terminating the search before all other previous agent have terminated their motions, we need to specify a latest constraint time directly. This time is often used by planners to determine if a goal state can be found.
-        std::shared_ptr<VertexAvoidanceConstraint> vertex_avoid_constraint_ptr = std::make_shared<VertexAvoidanceConstraint>(agent_id, -1, agent_names_[agent_id]);
-        std::shared_ptr<EdgeAvoidanceConstraint> edge_avoid_constraint_ptr = std::make_shared<EdgeAvoidanceConstraint>(agent_id, -1, -1, agent_names_[agent_id]);
+        std::shared_ptr<VertexPriorityConstraint> vertex_avoid_constraint_ptr = std::make_shared<VertexPriorityConstraint>(agent_id, -1, agent_names_[agent_id]);
+        std::shared_ptr<EdgePriorityConstraint> edge_avoid_constraint_ptr = std::make_shared<EdgePriorityConstraint>(agent_id, -1, -1, agent_names_[agent_id]);
 
         // Uniquely in PP, if the constraints collective already has a vertex-avoid and/or edge-avoid constraints for this infinite time-interval, simply modify those to also include this agent.
         bool found_vertex_avoid_constraint = false;
         bool found_edge_avoid_constraint = false;
         for (auto& constraint_ptr : constraints_collective_ptr->getConstraints()) {
-            if (constraint_ptr->type == ConstraintType::VERTEX_AVOIDANCE) {
-                auto found_vertex_avoid_constraint_ptr = std::dynamic_pointer_cast<VertexAvoidanceConstraint>(constraint_ptr);
+            if (constraint_ptr->type == ConstraintType::VERTEX_PRIORITY) {
+                auto found_vertex_avoid_constraint_ptr = std::dynamic_pointer_cast<VertexPriorityConstraint>(constraint_ptr);
                 if (found_vertex_avoid_constraint_ptr->getTimeInterval().first == -1 && found_vertex_avoid_constraint_ptr->getTimeInterval().second == -1) {
                     found_vertex_avoid_constraint_ptr->agent_ids_to_avoid.push_back(agent_id);
                     found_vertex_avoid_constraint_ptr->agent_names_to_avoid.push_back(agent_names_[agent_id]);
                     found_vertex_avoid_constraint = true;
                 }
             }
-            else if (constraint_ptr->type == ConstraintType::EDGE_AVOIDANCE) {
-                auto found_edge_avoid_constraint_ptr = std::dynamic_pointer_cast<EdgeAvoidanceConstraint>(constraint_ptr);
+            else if (constraint_ptr->type == ConstraintType::EDGE_PRIORITY) {
+                auto found_edge_avoid_constraint_ptr = std::dynamic_pointer_cast<EdgePriorityConstraint>(constraint_ptr);
                 if (edge_avoid_constraint_ptr->getTimeInterval().first == -1 && found_edge_avoid_constraint_ptr->getTimeInterval().second == -1) {
                     found_edge_avoid_constraint_ptr->agent_ids_to_avoid.push_back(agent_id);
                     found_edge_avoid_constraint_ptr->agent_names_to_avoid.push_back(agent_names_[agent_id]);
@@ -194,24 +194,6 @@ bool ims::PrioritizedPlanning::plan(MultiAgentPaths& paths) {
     }
     else {
         return false;
-    }
-}
-
-void ims::PrioritizedPlanning::padPathsToMaxLength(MultiAgentPaths& paths) {
-    // Pad all paths to the same length. Do this by adding the last state of the path to the end of the path (the state is identical, so time may be repeated).
-    int max_path_length = (int)std::max_element(paths.begin(), paths.end(), [](const std::pair<int, std::vector<StateType>>& a, const std::pair<int, std::vector<StateType>>& b) { return a.second.size() < b.second.size(); })->second.size();
-
-    // Pad all paths to the same length.
-    for (auto& path : paths) {
-        int agent_id = path.first;
-        int path_length = (int)path.second.size();
-        for (int i{0}; i < max_path_length - path_length; ++i) {
-            // The last state.
-            StateType last_state = path.second.back();
-            // Increment time by 1.
-            last_state.back() += 1;
-            path.second.push_back(last_state);
-        }
     }
 }
 

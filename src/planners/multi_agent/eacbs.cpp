@@ -87,7 +87,8 @@ void ims::EACBS::initializePlanner(std::vector<std::shared_ptr<ExperienceAcceler
     }
 
     // Check start and end states for validity. Individually and between agents.
-    verifyStartAndGoalInputStates(starts, goals);
+    std::vector<std::shared_ptr<ims::ConstrainedActionSpace>> constrained_action_space_ptrs(agent_action_space_ptrs_.begin(), agent_action_space_ptrs_.end());
+    verifyStartAndGoalInputStates(starts, goals, constrained_action_space_ptrs);
 
     // Store the starts and goals.
     starts_ = starts;
@@ -341,24 +342,6 @@ void ims::EACBS::expand(int state_id) {
     }
 }
 
-void ims::EACBS::padPathsToMaxLength(MultiAgentPaths& paths) {
-    // Pad all paths to the same length. Do this by adding the last state of the path to the end of the path (the state is identical, so time may be repeated).
-    int max_path_length = (int)std::max_element(paths.begin(), paths.end(), [](const std::pair<int, std::vector<StateType>>& a, const std::pair<int, std::vector<StateType>>& b) { return a.second.size() < b.second.size(); })->second.size();
-
-    // Pad all paths to the same length.
-    for (auto& path : paths) {
-        int agent_id = path.first;
-        int path_length = (int)path.second.size();
-        for (int i{0}; i < max_path_length - path_length; ++i) {
-            // The last state.
-            StateType last_state = path.second.back();
-            // Increment time by 1.
-            last_state.back() += 1;
-            path.second.push_back(last_state);
-        }
-    }
-}
-
 void ims::EACBS::setStateVals(int state_id, int parent_id, double cost) {
     auto state = getSearchState(state_id);
     auto parent = getSearchState(parent_id);
@@ -399,33 +382,4 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
     }
 
     return agent_constraints;
-}
-
-void ims::EACBS::verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
-    // Check all goals have starts.
-    if (starts.size() != goals.size()) {
-        throw std::runtime_error("Start state vector size (" + std::to_string(starts.size()) + ") does not match the goal state vector size (" + std::to_string(goals.size()) + ")");
-    }
-    // Check if the start and goal states are valid w.r.t time. All starts are t=0 and all goals are t=-1.
-    for (size_t i{0}; i < starts.size(); ++i) {
-        if (starts[i].back() != 0) {
-            throw std::runtime_error("Start state for agent " + std::to_string(i) + " is not at time 0");
-        }
-        if (goals[i].back() != -1) {
-            throw std::runtime_error("Goal state for agent " + std::to_string(i) + " is not at time -1");
-        }
-    }
-
-    // Check if the start and goal states are valid. For each agent.
-    for (size_t i{0}; i < starts.size(); ++i) {
-        if (!agent_action_space_ptrs_[i]->isStateValid(starts[i])) {
-            throw std::runtime_error("Start state for agent " + std::to_string(i) + " is not valid");
-        }
-    }
-
-    for (size_t i{0}; i < goals.size(); ++i) {
-        if (!agent_action_space_ptrs_[i]->isStateValid(goals[i])) {
-            throw std::runtime_error("Goal state for agent " + std::to_string(i) + " is not valid");
-        }
-    }
 }

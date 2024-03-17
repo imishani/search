@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
 
     // Construct the scene and the action space.
     scene2DRob scene (map);
-    actionType2dRob action_type;
+    ActionType2dRobTimed action_type;
 
     // Construct the parameters.
     std::vector<StateType> start_state_vals;

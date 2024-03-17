@@ -47,14 +47,24 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
     for (auto& conflict_ptr : conflicts) {
         // Create a new constraint given the conflict.
         switch (conflict_ptr->type) {
-            case ConflictType::POINT3D: {
+            case ConflictType::POINT3D_VERTEX: {
                 // Get the location of each of the agents. Each one is specified in its own grid.
-                auto* point3d_conflict_ptr = dynamic_cast<Point3dConflict*>(conflict_ptr.get());
+                auto* point3d_conflict_ptr = dynamic_cast<Point3dVertexConflict*>(conflict_ptr.get());
                 // Check if the conversion succeeded.
                 if (point3d_conflict_ptr == nullptr) {
-                    throw std::runtime_error("Conflict is a point3d conflict, but could not be converted to a Point3dConflict.");
+                    throw std::runtime_error("Conflict is a point3d vertex conflict, but could not be converted to a Point3dVertexConflict.");
                 }
-                ims::conflict_conversions::point3dConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, sphere3d_constraint_radius_);
+                ims::conflict_conversions::point3dVertexConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, sphere3d_constraint_radius_);
+                break;
+            }
+            case ConflictType::POINT3D_EDGE: {
+                // Get the location of each of the agents. Each one is specified in its own grid.
+                auto* point3d_conflict_ptr = dynamic_cast<Point3dEdgeConflict*>(conflict_ptr.get());
+                // Check if the conversion succeeded.
+                if (point3d_conflict_ptr == nullptr) {
+                    throw std::runtime_error("Conflict is a point3d edge conflict, but could not be converted to a Point3dEdgeConflict.");
+                }
+                ims::conflict_conversions::point3dEdgeConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, sphere3d_constraint_radius_);
                 break;
             }
             default:

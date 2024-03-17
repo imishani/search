@@ -52,7 +52,8 @@ enum class ConflictType {
     UNSET = -1,
     VERTEX = 0,
     EDGE = 1,
-    POINT3D = 4,
+    POINT3D_EDGE = 4,
+    POINT3D_VERTEX = 5,
 };
 
 /// @brief Base class for all search conflicts.
@@ -154,7 +155,7 @@ struct EdgeConflict : public Conflict {
 // Conflicts for MRAMP.
 // ==========================
 /// @brief A struct for storing a vertex conflict on private grids.
-struct Point3dConflict : public Conflict {
+struct Point3dEdgeConflict : public Conflict {
     /// @brief The state vector. Could be a robot configuration.
     // We specify the states directly since their ID may change in future low-level plan iterations. The collision either happened in a transition between states or in a state itself. If a conflict is specified for a transition, then we specify both the from and to states. If a conflict is specified for a state, then those are going to be the same.
     std::vector<StateType> from_states;
@@ -168,7 +169,7 @@ struct Point3dConflict : public Conflict {
 
     /// @brief Constructor, allowing to set the state_from, state_to, ids, and point.
     /// @param state The state vector.
-    explicit Point3dConflict(const std::vector<StateType>& from_states,
+    explicit Point3dEdgeConflict(const std::vector<StateType>& from_states,
                              const std::vector<StateType>& to_states, 
                              const std::vector<int> & agent_ids,
                              Eigen::Vector3d  point) :
@@ -178,27 +179,11 @@ struct Point3dConflict : public Conflict {
                                 point(std::move(point)) {
     
     /// @brief The type of the Conflict.
-    type = ConflictType::POINT3D;
-    }
-
-    /// @brief Constructor, allowing to set the from state, ids, and point.
-    /// @param state The state vector.
-    explicit Point3dConflict(const std::vector<StateType>& from_states,
-                             const std::vector<int> & agent_ids,
-                             Eigen::Vector3d  point) :
-                                from_states(from_states),
-                                agent_ids(agent_ids),
-                                point(std::move(point)) {
-    
-    /// @brief The type of the Conflict.
-    type = ConflictType::POINT3D;
-
-    // Set the to states to be empty.
-    to_states = {};
+    type = ConflictType::POINT3D_EDGE;
     }
 
     std::string toString() const override {
-        std::string str = "Point3d conflict at states: ";
+        std::string str = "Point3d Edge conflict at states: ";
         for (const auto& s : from_states) {
             for (const auto& ss : s) {
                 str += std::to_string(ss) + " ";
@@ -207,6 +192,49 @@ struct Point3dConflict : public Conflict {
         }
         str += "and ";
         for (const auto& s : to_states) {
+            for (const auto& ss : s) {
+                str += std::to_string(ss) + " ";
+            }
+            str += "and ";
+        }
+        str += "for agents: ";
+        for (const auto& a : agent_ids) {
+            str += std::to_string(a) + " ";
+        }
+        str += "at point: " + std::to_string(point[0]) + " " + std::to_string(point[1]) + " " + std::to_string(point[2]);
+        return str;
+    }
+};
+
+
+/// @brief A struct for storing a vertex conflict on private grids.
+struct Point3dVertexConflict : public Conflict {
+    /// @brief The state vector. Could be a robot configuration.
+    // We specify the states directly since their ID may change in future low-level plan iterations. The collision either happened in a transition between states or in a state itself. If a conflict is specified for a transition, then we specify both the from and to states. If a conflict is specified for a state, then those are going to be the same.
+    std::vector<StateType> states; // Timed.
+
+    // The agent IDs.
+    std::vector<int> agent_ids;
+
+    // The point of conflict.
+    Eigen::Vector3d point;
+
+    /// @brief Constructor, allowing to set the state_from, state_to, ids, and point.
+    /// @param state The state vector.
+    explicit Point3dVertexConflict(const std::vector<StateType>& states,
+                             const std::vector<int> & agent_ids,
+                             Eigen::Vector3d  point) :
+                                states(states),
+                                agent_ids(agent_ids),
+                                point(std::move(point)) {
+    
+    /// @brief The type of the Conflict.
+    type = ConflictType::POINT3D_VERTEX;
+    }
+
+    std::string toString() const override {
+        std::string str = "Point3d Vertex conflict at states: ";
+        for (const auto& s : states) {
             for (const auto& ss : s) {
                 str += std::to_string(ss) + " ";
             }
