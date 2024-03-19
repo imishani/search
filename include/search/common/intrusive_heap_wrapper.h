@@ -40,6 +40,8 @@ public:
     virtual bool contains(T* e) const;
     virtual bool empty() const;
     virtual size_t size() const;
+    void update(T* e);
+    void clear();
 };
 
 } // namespace smpl

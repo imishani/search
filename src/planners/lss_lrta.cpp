@@ -1,19 +1,19 @@
-#include <search/planners/realTimePlanner.hpp>
+#include <search/planners/lss_lrta.hpp>
 
 using namespace ims;
 
-ims::realTimePlanner::realTimePlanner(const realTimePlannerParams &params) : params_(params), Planner(PlannerParams()){
+ims::lssLRTA::lssLRTA(const lssLRTAPlannerParams &params) : realTimePlanner(realTimePlannerParams(params.heuristic_, params.N_, false)),
+                                                            params_(params){
     heuristic_ = params.heuristic_;
 }
 
-
-ims::realTimePlanner::~realTimePlanner() {
+ims::lssLRTA::~lssLRTA() {
     for (auto &state : states_){
         delete state;
     }
 }
 
-void ims::realTimePlanner::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+void ims::lssLRTA::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                              const std::vector<StateType> &starts,
                                              const std::vector<StateType> &goals) {
     action_space_ptr_ = action_space_ptr;
@@ -45,13 +45,14 @@ void ims::realTimePlanner::initializePlanner(const std::shared_ptr<ActionSpace> 
         start_->g = 0;
         start_->f = computeHeuristic(start_ind_);
         open_.push(start_);
+        open_H.push(start_);
         start_->setOpen();
     }
 
 }
 
 
-void ims::realTimePlanner::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+void ims::lssLRTA::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                              const StateType& start, const StateType& goal) {
                                              
     action_space_ptr_ = action_space_ptr;
@@ -85,16 +86,17 @@ void ims::realTimePlanner::initializePlanner(const std::shared_ptr<ActionSpace>&
     start_->h = computeHeuristic(start_ind_);
     start_->f = computeHeuristic(start_ind_);
     open_.push(start_);
+    open_H.push(start_);
     start_->setOpen();
                                              
 
 }
 
-auto ims::realTimePlanner::getSearchState(int state_id) -> ims::realTimePlanner::SearchState * {
+auto ims::lssLRTA::getSearchState(int state_id) -> ims::lssLRTA::SearchState * {
     return states_[state_id];
 }
 
-auto ims::realTimePlanner::getOrCreateSearchState(int state_id) -> ims::realTimePlanner::SearchState *{
+auto ims::lssLRTA::getOrCreateSearchState(int state_id) -> ims::lssLRTA::SearchState *{
     if (state_id >= states_.size()){
         states_.resize(state_id + 1, nullptr);
     }
@@ -111,16 +113,19 @@ auto ims::realTimePlanner::getOrCreateSearchState(int state_id) -> ims::realTime
 /// @param start start state of the agent
 /// @param path the path that the robot took updated cumulatively
 /// @return "found" if a solution is found, "failed" if there is no solution, "continue" if the current plan is not finished
-std::string ims::realTimePlanner::budgetedPopulateOpen(SearchState* start, std::vector<StateType>& path){
+std::string ims::lssLRTA::budgetedPopulateOpen(SearchState* start, std::vector<StateType>& path){
     int count = 0;
     int iter {0};
     SearchState* state;
     open_.clear();
+    open_H.clear();
     open_.push(start);
+    open_H.push(start);
 
     while (!open_.empty() && count < params_.N_){
         state = open_.min();
         open_.pop();
+        open_H.erase(state);
         state->setClosed();
         if (isGoalState(state->state_id)){
             goal_ = state->state_id;
@@ -147,7 +152,7 @@ std::string ims::realTimePlanner::budgetedPopulateOpen(SearchState* start, std::
 /// @param start the starting state of the current iteration of budgeted plan
 /// @param path the path that the robot took updated cumulatively
 /// @return the current state of the agent after execution
-auto ims::realTimePlanner::executePartialPlan(SearchState* start, std::vector<StateType>& path){
+auto ims::lssLRTA::executePartialPlan(SearchState* start, std::vector<StateType>& path){
     int sID = open_.min()->state_id;
     constructPartialPath(sID,start->state_id,path);
     close_.clear();
@@ -158,7 +163,7 @@ auto ims::realTimePlanner::executePartialPlan(SearchState* start, std::vector<St
 /// @brief plan for a path
 /// @param path the solution of the path
 /// @return if a solution was found
-bool ims::realTimePlanner::plan(std::vector<StateType>& path){
+bool ims::lssLRTA::plan(std::vector<StateType>& path){
     startTimer();
     SearchState *start = open_.min();
     std::string res = "continue";
@@ -171,11 +176,7 @@ bool ims::realTimePlanner::plan(std::vector<StateType>& path){
         }else if (res == "found"){
             return true;
         }
-        if (params_.rtaa_){
-            updateHeuristicRTAA();
-        }else{
-            updateHeuristicLRTA();
-        }
+        updateHeuristicLRTA();
         start = executePartialPlan(start, path);
     }
     getTimeFromStart(stats_.time);
@@ -183,62 +184,68 @@ bool ims::realTimePlanner::plan(std::vector<StateType>& path){
 }
 
 
-/// @brief update the heuristic of visited states in the dictionary using the RTAA* algorithm
-void ims::realTimePlanner::updateHeuristicRTAA(){
-    OpenList temp;
-    SearchState *min_state = open_.min();
-    double min_cost = min_state->f;
-    for (size_t i = 0; i < close_.size(); i++){
-        heuristic_dict_[close_[i]] = min_cost - close_[i]->g;
-    }
-}
-
 /// @brief update the heuristic of visited states in the dictionary using the LRTA* algorithm
-void ims::realTimePlanner::updateHeuristicLRTA(){
-    std::map<SearchState*, double> closed_heu;
-    for (int i = close_.size()-1; i >= 0; i--) {
-        closed_heu[close_[i]] = INF_DOUBLE;
+void ims::lssLRTA::updateHeuristicLRTA(){ //naming change
+    for (SearchState *s : close_){
+        heuristic_dict_[s] = INF_DOUBLE;
     }
-    std::map<SearchState*, double> h_value_record;
+    while (!open_H.empty()){
+        SearchState* min_state = open_H.min();
+        open_H.pop();
+        auto pos = close_.end();
+        if ((pos = close_.find(min_state)) != close_.end()) {
+            close_.erase(pos);
+        }
 
-    //https://www.tutorialspoint.com/cpp_standard_library/cpp_map_operator_equal_to.htm
-    //"==" builtin operator to check if two dictionaries are equal
-    while (h_value_record != closed_heu) {   //checking for convergence   
-        h_value_record = closed_heu;
-        for (int i = close_.size()-1; i >= 0; i--) {  //starting from the most recently expanded states
-            std::vector<double> f_neighbours; //record c(s',s)+h(s') for all successors s' of s
-            std::vector<int> successors;
-            std::vector<double> costs;
-            SearchState* curr = close_[i];
-            action_space_ptr_->getSuccessors(curr->state_id, successors, costs);
-            for (size_t i = 0; i < successors.size(); i++){
-                int s_next = successors[i];
-                //if s_next is not expanded in current expansion
-                if (std::find(close_.begin(), close_.end(), getOrCreateSearchState(s_next)) == close_.end()){
-                    //compute from the original heuristic
-                    f_neighbours.push_back(costs[i] + computeHeuristic(s_next));
-                }
-                else{
-                    //compute from updated heuristic
-                    double tmp = costs[i] + closed_heu[getOrCreateSearchState(s_next)];
-                    f_neighbours.push_back(tmp);
+        std::vector<std::tuple<SearchState*, double>> parents = parent_[min_state];
+
+        for (size_t i = 0; i < parents.size(); i++){
+            SearchState* s_parent = get<0>(parents[i]);
+            double s_heu = computeHeuristic(min_state->state_id);
+            double sp_heu = computeHeuristic(s_parent->state_id);
+            if (close_.find(s_parent) != close_.end() && sp_heu > get<1>(parents[i]) + s_heu){
+                heuristic_dict_[s_parent] = get<1>(parents[i]) + s_heu;
+                auto sp_state = getOrCreateSearchState(s_parent->state_id);
+                if (!open_H.contains(sp_state)){
+                    open_H.push(sp_state);
                 }
             }
-            //compute the updated heuristic as min(c(s', s) + h(s')) where s' is a successor of s
-            closed_heu[curr] = *std::min_element(f_neighbours.begin(), f_neighbours.end());
         }
     }
-    //update the heuristic of expanded states
-    for (int i = close_.size()-1; i >= 0; i--){
-        heuristic_dict_[close_[i]] = closed_heu[close_[i]];
-    }
+    //copy queue for open_H to open_
 }
+
+//void updateHeuristicLRTA_K(int k){
+//    std::queue<SearchState*> Q;
+//    k -= 1;
+//    while (!Q.empty()){
+//        SearchState* curr = Q.pop();
+//        std::vector<int> successors;
+//        std::vector<double> costs;
+//        action_space_ptr_->getSuccessors(curr->state_id, successors, costs);
+//        double min = INF_DOUBLE;
+//        for (size_t i = 0; i < successors.size(); i++){
+//            int s_next = successors[i];
+//            double y = costs[i] + computeHeuristic(s_next);
+//        }
+//        if (computeHeuristic(curr) < min){
+//            heuristic_dict_[curr] = min;
+//            for (size_t i = 0; i < successors.size(); i++){
+//                SearchState* s_next = getOrCreateSearchState(successors[i]);
+//                if (k > 0){
+//                    Q.push(s_next);
+//                    k -= 1;
+//                }
+//            }
+//        }
+//    }
+//}
 
 /// @brief construct the path from current iteration of budgeted planning
 /// @param state_id the starting position of the current plan
 /// @param target_id the end position of the current plan
 /// @param path the path that the robot took updated cumulatively
-void ims::realTimePlanner::constructPartialPath(int state_id, int target_id, std::vector<StateType>& path){
+void ims::lssLRTA::constructPartialPath(int state_id, int target_id, std::vector<StateType>& path){
     int preLen = (int) path.size();
     auto start = getSearchState(state_id);
     while (start->state_id != target_id){
@@ -251,39 +258,45 @@ void ims::realTimePlanner::constructPartialPath(int state_id, int target_id, std
 
 /// @brief expand the neighbors of the current state by updating the close and open list
 /// @param state_id current state to be expanded
-void ims::realTimePlanner::expand(int state_id){
-    auto state_ = getSearchState(state_id);
-    close_.push_back(state_);
+void ims::lssLRTA::expand(int state_id){
+    auto state = getSearchState(state_id);
+    close_.insert(state);
     std::vector<int> successors;
     std::vector<double> costs;
-    action_space_ptr_->getSuccessors(state_->state_id, successors, costs);
+    action_space_ptr_->getSuccessors(state->state_id, successors, costs);
     for (size_t i = 0; i < successors.size(); i++){
         int successor_id = successors[i];
         double cost = costs[i];
         auto successor = getOrCreateSearchState(successor_id);
-        if (std::find(close_.begin(), close_.end(),successor) != close_.end()){
+        // if (!parent_.contains(successor)){ 
+        //     parent_[successor] = std::vector<SearchState*>();
+        // }
+        parent_[successor].emplace_back(state, cost);     //consider changing this to map
+        if (close_.find(successor) != close_.end()){
             continue;
         }
         if (isGoalState(successor_id) && params_.verbose ){
             std::cout << "Added Goal to open list" << std::endl;
         }
         if (open_.contains(successor)){
-           if (successor->g > state_->g + cost){
-                successor->parent_id = state_->state_id;
-                successor->g = state_->g + cost;
+           if (successor->g > state->g + cost){
+                successor->parent_id = state->state_id;
+                successor->g = state->g + cost;
                 successor->f = successor->g + successor->h;
                 open_.update(successor);
+                open_H.update(successor);
             }
         }else{
-            setSearchStateVals(successor->state_id, state_->state_id, cost);
+            setSearchStateVals(successor->state_id, state->state_id, cost);
             open_.push(successor);
+            open_H.push(successor);
             successor->setOpen();
         }
     }
     stats_.num_expanded++;
 }
 
-void ims::realTimePlanner::setSearchStateVals(int state_id, int parent_id, double cost){
+void ims::lssLRTA::setSearchStateVals(int state_id, int parent_id, double cost){
     auto state_ = getSearchState(state_id);
     auto parent = getSearchState(parent_id);
     state_->parent_id = parent_id;
@@ -292,7 +305,7 @@ void ims::realTimePlanner::setSearchStateVals(int state_id, int parent_id, doubl
     state_->f = state_->g + state_->h;
 }
 
-double ims::realTimePlanner::computeHeuristic(int state_id) {
+double ims::lssLRTA::computeHeuristic(int state_id) {
     double dist;
     auto s = action_space_ptr_->getRobotState(state_id);
     auto look_up = getSearchState(state_id);
@@ -308,7 +321,7 @@ double ims::realTimePlanner::computeHeuristic(int state_id) {
 }
 
 
-void ims::realTimePlanner::reconstructPath(std::vector<StateType>& path) {
+void ims::lssLRTA::reconstructPath(std::vector<StateType>& path) {
     SearchState* state = getSearchState(goal_);
     while (state->parent_id != -1){
         path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
@@ -318,16 +331,17 @@ void ims::realTimePlanner::reconstructPath(std::vector<StateType>& path) {
     std::reverse(path.begin(), path.end());
 }
 
-bool ims::realTimePlanner::isGoalState(int state_id){
+bool ims::lssLRTA::isGoalState(int state_id){
     return std::any_of(goals_.begin(), goals_.end(), [&state_id](int goal_ind) {return state_id == goal_ind;});
 }
 
-void ims::realTimePlanner::resetPlanningData(){
+void ims::lssLRTA::resetPlanningData(){
     for (auto state_ : states_){
         delete state_;
     }
     states_.clear();
     open_.clear();
+    open_H.clear();
     close_.clear();
     goals_.clear();
     heuristic_dict_.clear();

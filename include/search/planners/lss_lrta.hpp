@@ -5,112 +5,73 @@
 #include <map>
 #include <algorithm>
 #include <stack>
+#include <set>
+#include <queue>
 // project includes
 #include "search/action_space/action_space.hpp"
 #include <search/planners/planner.hpp>
 #include <search/common/intrusive_heap.h>
+#include <search/common/intrusive_heap_wrapper.h>
+#include <search/common/queue_general.h>
+#include <search/planners/realTimePlanner.hpp>
 #include <search/common/types.hpp>
 #include "search/heuristics/base_heuristic.hpp"
 
-
-
 namespace ims{
 
-    /// @class realTimePlannerParams class.
-    /// @brief The parameters for the real-time planning algorithm
-    struct realTimePlannerParams : public PlannerParams{
-
-        /// @brief constructor
-        /// @param heuristic base heuristic
-        /// @param N number of expanded states in each iteration
-        /// @param rtaa whether to use the rtaa* or lrta* algorithm
-        explicit realTimePlannerParams(BaseHeuristic* heuristic, int N, bool rtaa): PlannerParams(){
+    struct lssLRTAPlannerParams: public realTimePlannerParams{
+        explicit lssLRTAPlannerParams(BaseHeuristic* heuristic, int N) : realTimePlannerParams(heuristic, N, false) {
+            N_ = N;
             heuristic_ = heuristic;
-            time_limit_ = 10000;
-            N_ = N;     
-            rtaa_ = rtaa;
         }
 
-        /// @brief destructor
-        virtual ~realTimePlannerParams() override = default;
 
-        /// @brief number of expanded states in each iteration
+        /// @brief Destructor
+        ~lssLRTAPlannerParams() override = default;
+
         int N_;
-        /// @brief whether to use the rtaa* or lrta* algorithm
-        bool rtaa_;
         /// @brief the base heuristic of the map
         BaseHeuristic* heuristic_ = nullptr;
     };
 
-    class realTimePlanner : public Planner{
-        
-    protected:
+    class lssLRTA : public realTimePlanner{
+    
+    private:
 
-        struct SearchState: public ims::SearchState {
-
-            /// @brief The parent state
-            int parent_id = UNSET;
-            /// @brief The cost to come
-            double g = INF_DOUBLE;
-            /// @brief The f value
-            double f = INF_DOUBLE;
-            double h = INF_DOUBLE;
-            /// @brief open list boolean
-            bool in_open = false;
-            /// @brief closed list boolean
-            bool in_closed = false;
-
-            /// @brief set the state to open list (make sure it is not in closed list and if it is, update it)
-            void setOpen(){
-                in_open = true;
-                in_closed = false;
-            }
-
-            /// @brief set the state to closed list (make sure it is not in open list and if it is, update it)
-            void setClosed(){
-                in_closed = true;
-                in_open = false;
-            }
-
-            void print() override{
-                std::cout << "State: " << state_id << " Parent: " << parent_id << " g: " << g << " f: " << f << std::endl;
+        class heuristicCompare {
+        public:
+            bool operator()(const SearchState& a, const SearchState &b) const
+            {
+                return a.h <= b.h;
             }
         };
 
-        /// @brief The search state compare struct.
-        struct SearchStateCompare{
-            bool operator()(const SearchState& s1, const SearchState& s2) const{
-                if ((s1.f == s2.f) && (s1.g == s2.g))
-                    return (s1.state_id < s2.state_id);
-                else if (s1.f == s2.f)
-                    return s1.g < s2.g;
-                else
-                    return s1.f < s2.f;
-            }
-        };
+        // using OpenList = SimpleQueue<SearchState, SearchStateCompare>;
+        // OpenList open_;
+        ::smpl::IntrusiveHeapWrapper<SearchState, SearchStateCompare> open_;
 
-        using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-        OpenList open_;
+        // using OpenList_h = SimpleQueue<SearchState, heuristicCompare>;
+        // OpenList_h open_H;
+        ::smpl::IntrusiveHeapWrapper<SearchState, heuristicCompare> open_H;
 
         std::vector<SearchState*> states_;
 
-        std::vector<SearchState*> close_;
-
-        /// @brief the updated heurisitc as states expand
         std::map<SearchState*, double> heuristic_dict_;
 
+        std::map<SearchState*, std::vector<std::tuple<SearchState*, double>> > parent_;
+
+        std::set<SearchState*> close_;
+
         auto getSearchState(int state_id) -> SearchState*;
-
-        auto getOrCreateSearchState(int state_id) -> SearchState*;
-
+    
     public:
 
-        explicit realTimePlanner(const realTimePlannerParams &params);
+        explicit lssLRTA(const lssLRTAPlannerParams &params);
 
-        ~realTimePlanner() override;
+        ~lssLRTA() override;
 
 
-        /// @brief Initialize the planner
+    /// @brief Initialize the planner
         /// @param action_space_ptr The action space
         /// @param starts Vector of start states
         /// @param goals Vector of goal states
@@ -137,12 +98,11 @@ namespace ims{
         /// @return if a solution was found
         bool plan(std::vector<StateType> &path) override;
 
-        /// @brief update the heuristic of visited states in the dictionary using the RTAA* algorithm
-        void updateHeuristicRTAA();
-
+    
         /// @brief update the heuristic of visited states in the dictionary using the LRTA* algorithm
         void updateHeuristicLRTA();
 
+        void updateHeuristicLRTA_K();
 
         /// @brief moves onto the most promising adjacent state and construct the current partial path
         /// @param start the starting state of the current iteration of budgeted plan
@@ -165,6 +125,8 @@ namespace ims{
     protected:
 
         void setSearchStateVals(int state_id, int parent_id, double cost) ;
+
+        auto getOrCreateSearchState(int state_id) -> SearchState*;
 
         /// @brief expand the neighbors of the current state by updating the close and open list
         /// @param state_id current state to be expanded

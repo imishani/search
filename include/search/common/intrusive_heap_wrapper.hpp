@@ -7,9 +7,7 @@ IntrusiveHeapWrapper<T, Compare>::IntrusiveHeapWrapper() : m_pq() {}
 
 template <class T, class Compare>
 IntrusiveHeapWrapper<T, Compare>::~IntrusiveHeapWrapper() {
-    for (auto& pair : m_map) {
-        delete pair.second;
-    }
+    clear();
 }
 
 template <class T, class Compare>
@@ -33,7 +31,8 @@ void IntrusiveHeapWrapper<T, Compare>::push(T* e) {
     if (m_map.find(e) != m_map.end()) {
         throw std::runtime_error("Element already in heap");
     }
-    m_map[e] = new HeapElementWrapper(e); // Add to map
+    auto tmp = new HeapElementWrapper(e);
+    m_map[e] = tmp; //new HeapElementWrapper(e); // Add to map
     m_pq.push(m_map[e]); // Add to queue
 }
 
@@ -60,6 +59,23 @@ bool IntrusiveHeapWrapper<T, Compare>::empty() const {
 template <class T, class Compare>
 size_t IntrusiveHeapWrapper<T, Compare>::size() const {
     return m_pq.size();
+}
+
+template <class T, class Compare>
+void IntrusiveHeapWrapper<T, Compare>::update(T* e) {
+    if (m_map.find(e) == m_map.end()) {
+        throw std::runtime_error("Element not in heap");
+    }
+    m_pq.update(m_map[e]);
+}
+
+template <class T, class Compare>
+void IntrusiveHeapWrapper<T, Compare>::clear() {
+    for (auto& pair : m_map) {
+        delete pair.second;
+    }
+    m_map.clear();
+    m_pq.clear();
 }
 
 
