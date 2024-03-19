@@ -147,12 +147,17 @@ int main(int argc, char** argv) {
     logStats(logs, map_index, "wAstar");
 
     std::string path_file = logPaths(paths, map_index, scale);
+    
+    std::string image_name = "/run_2d_wastar_map.png";
+    std::string image_path = full_path.string() + image_name;
 
     std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
-    std::string command = "python3 " + plot_path + " --filepath " + path_file;
+    std::string command = "python3 " + plot_path + " --filepath " + path_file + " --imagepath " + image_path;
     std::cout << "Running the plot script..." << std::endl;
 
     system(command.c_str());
+
+    std::cout << "Completed running plot script. Plot saved to " + full_path.string() + image_name << std::endl;
 
     return 0;
 }

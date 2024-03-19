@@ -35,6 +35,8 @@
 #include <search/planners/lpastar.hpp>
 #include <utility>
 
+const int LARGENUM = 123456789;
+
 ims::LPAStar::LPAStar(const ims::LPAStarParams &params) : params_(params), BestFirstSearch(params) {}
 
 ims::LPAStar::~LPAStar() {
@@ -51,68 +53,83 @@ std::pair<double, double> ims::LPAStar::calculateKeys(ims::LPAStar::SearchState 
         k.first = -1;
         k.second = -1;
     } else {
-        k.first = std::min(s->g, s->rhs) + s->h;
-        k.second = std::min(s->g, s->rhs);
+        if (s->g == -1) {
+            k.first = s->rhs + s->h;
+            k.second = s->rhs;
+        } else if (s->rhs == -1) {
+            k.first = s->g + s->h;
+            k.second = s->g;
+        } else {
+            k.first = std::min(s->g, s->rhs) + s->h;
+            k.second = std::min(s->g, s->rhs);
+        }
     }
     s->key = k;
     return k;
 }
 
 void ims::LPAStar::updateVertex(ims::LPAStar::SearchState *s) {
+    double min_rhs = -1; // infinity
+    int parent_id = -1;
+    if (s->g == 0)
+        return;
+    // loop through predecessors u and find minimum g(pred) + cost(pred, s)
     for (std::pair<int, double> pred : s->predecessors) {
         ims::LPAStar::SearchState *pred_state = getSearchState(pred.first);
-        if (s->rhs == -1) {
-            s->rhs = pred_state->g + pred.second;
-            s->parent_id = pred_state->state_id;
-        } else {
-            if (pred_state->g + pred.second <= s->rhs) {
-                s->rhs = pred_state->g + pred.second;
-                s->parent_id = pred_state->state_id;
-            }
+        double cost = pred.second;
+        if (pred_state->g != -1 && (pred_state->g + cost < min_rhs || min_rhs == -1)) {
+            min_rhs = pred_state->g + cost;
+            parent_id = pred_state->state_id;
         }
     }
+    s->rhs = min_rhs;
+    s->parent_id = parent_id;
+    // remove from U
     if (U_.contains(s)){
         U_.erase(s);
     }
+    // Add back into U
     if (s->g != s->rhs){
+        calculateKeys(s);
         U_.push(s);
     }
 }
 
-void ims::LPAStar::computeShortestPath(ims::LPAStar::SearchState *goal) {
-    calculateKeys(goal);
-    while (U_.min() < goal || goal->rhs != goal->g) {
-        ims::LPAStar::SearchState *s = U_.min();
-        U_.pop();
-        if (s->g > s->rhs || s->g == -1) {
-            std::vector<int> successors;
-            std::vector<double> costs;
-            action_space_ptr_->getSuccessors(s->state_id, successors, costs);
-            for (int i = 0; i < successors.size(); i++) {
-                int successor_id = successors[i];
-                int cost = costs[i];
-                ims::LPAStar::SearchState *successor = getOrCreateSearchState(successor_id);
-                // insert predecessor and cost pair into predecessors set
-                successor->predecessors.insert(std::make_pair(s->state_id, cost));
-                updateVertex(successor);
-            }
-        } else {
-            s->g = -1;
-            updateVertex(s);
-            std::vector<int> successors;
-            std::vector<double> costs;
-            action_space_ptr_->getSuccessors(s->state_id, successors, costs);
-            for (int i = 0; i < successors.size(); i++) {
-                int successor_id = successors[i];
-                int cost = costs[i];
-                ims::LPAStar::SearchState *successor = getOrCreateSearchState(successor_id);
-                // insert predecessor and cost pair into predecessors set
-                successor->predecessors.insert(std::make_pair(s->state_id, cost));
-                updateVertex(successor);
-            }
-        }  
-    }
-}
+// void ims::LPAStar::computeShortestPath(ims::LPAStar::SearchState *goal) {
+//     calculateKeys(goal);
+//     while (U_.min() < goal || goal->rhs != goal->g) {
+//         ims::LPAStar::SearchState *s = U_.min();
+//         U_.pop();
+//         if (s->g > s->rhs || s->g == -1 && s->rhs != -1) {
+//             s->g = s->rhs;
+//             std::vector<int> successors;
+//             std::vector<double> costs;
+//             action_space_ptr_->getSuccessors(s->state_id, successors, costs);
+//             for (int i = 0; i < successors.size(); i++) {
+//                 int successor_id = successors[i];
+//                 int cost = costs[i];
+//                 ims::LPAStar::SearchState *successor = getOrCreateSearchState(successor_id);
+//                 // insert predecessor and cost pair into predecessors set
+//                 successor->predecessors.insert(std::make_pair(s->state_id, cost));
+//                 updateVertex(successor);
+//             }
+//         } else {
+//             s->g = -1;
+//             updateVertex(s);
+//             std::vector<int> successors;
+//             std::vector<double> costs;
+//             action_space_ptr_->getSuccessors(s->state_id, successors, costs);
+//             for (int i = 0; i < successors.size(); i++) {
+//                 int successor_id = successors[i];
+//                 int cost = costs[i];
+//                 ims::LPAStar::SearchState *successor = getOrCreateSearchState(successor_id);
+//                 // insert predecessor and cost pair into predecessors set
+//                 successor->predecessors.insert(std::make_pair(s->state_id, cost));
+//                 updateVertex(successor);
+//             }
+//         }  
+//     }
+// }
 
 void ims::LPAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                     const std::vector<StateType> &starts,
@@ -218,28 +235,21 @@ bool ims::LPAStar::plan(std::vector<StateType>& path) {
     startTimer();
     int iter {0};
     ims::LPAStar::SearchState *goal = getSearchState(goal_);
-    while ((U_.min() < goal || goal->rhs != goal->g) && !isTimeOut()) {
+    // while ((U_.min() < goal || goal->rhs != goal->g) && !isTimeOut()) {
         // report progress every 1000 iterations
-        if (iter % 100000 == 0 && params_.verbose){
+    SearchStateCompare tmpComparator;
+    while (!isTimeOut()) {
+        // No better path to the goal will be found, so we can break loop.
+        if (tmpComparator(*goal, *U_.min())) {
+            break;
+        }
+        if (iter % 100000 == 0 && params_.verbose) {
             std::cout << "Iter: " << iter << " U size: " << U_.size() << std::endl;
         }
         ims::LPAStar::SearchState *s = U_.min();
         U_.pop();
-        if (s->g > s->rhs || s->g == -1) {
-            std::vector<int> successors;
-            std::vector<double> costs;
-            action_space_ptr_->getSuccessors(s->state_id, successors, costs);
-            for (int i = 0; i < successors.size(); i++) {
-                int successor_id = successors[i];
-                int cost = costs[i];
-                ims::LPAStar::SearchState *successor = getOrCreateSearchState(successor_id);
-                // insert predecessor and cost pair into predecessors set
-                successor->predecessors.insert(std::make_pair(s->state_id, cost));
-                updateVertex(successor);
-            }
-        } else {
-            s->g = -1;
-            updateVertex(s);
+        if (s->g > s->rhs || s->g == -1 && s->rhs != -1) {
+            s->g = s->rhs;
             std::vector<int> successors;
             std::vector<double> costs;
             action_space_ptr_->getSuccessors(s->state_id, successors, costs);
@@ -252,6 +262,21 @@ bool ims::LPAStar::plan(std::vector<StateType>& path) {
                 updateVertex(successor);
             }
         } 
+        // else {
+        //     s->g = -1;
+        //     updateVertex(s);
+        //     std::vector<int> successors;
+        //     std::vector<double> costs;
+        //     action_space_ptr_->getSuccessors(s->state_id, successors, costs);
+        //     for (int i = 0; i < successors.size(); i++) {
+        //         int successor_id = successors[i];
+        //         int cost = costs[i];
+        //         ims::LPAStar::SearchState *successor = getOrCreateSearchState(successor_id);
+        //         // insert predecessor and cost pair into predecessors set
+        //         successor->predecessors.insert(std::make_pair(s->state_id, cost));
+        //         updateVertex(successor);
+        //     }
+        // } 
         ++iter;
     }
     if (!isTimeOut()) {
@@ -288,6 +313,10 @@ void ims::LPAStar::reconstructPath(std::vector<StateType>& path, std::vector<dou
         // Get the transition cost. This is the difference between the g values of the current state and its parent.
         double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
         costs.push_back(transition_cost);
+
+        // if (state_->g < getSearchState(state_->parent_id)->g) {
+        //     std::cout << "SOMETHING WRONG" << std::endl;
+        // }
 
         state_ = getSearchState(state_->parent_id);
     }
