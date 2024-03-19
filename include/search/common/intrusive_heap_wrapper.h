@@ -39,9 +39,9 @@ public:
     virtual void erase(T* e);
     virtual bool contains(T* e) const;
     virtual bool empty() const;
+    virtual void clear();
+    virtual void update(T* e);
     virtual size_t size() const;
-    void update(T* e);
-    void clear();
 };
 
 } // namespace smpl

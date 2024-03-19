@@ -135,7 +135,7 @@ public:
 protected:
     // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
     /// @brief The search state.
-    struct SearchState : public ims::BestFirstSearch::SearchState, public LowerBoundMixin {
+    struct SearchState : public ims::BestFirstSearch::SearchState, public SearchStateLowerBoundMixin {
         // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
         MultiAgentPaths paths;
 

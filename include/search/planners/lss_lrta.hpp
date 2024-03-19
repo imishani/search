@@ -48,11 +48,11 @@ namespace ims{
 
         // using OpenList = SimpleQueue<SearchState, SearchStateCompare>;
         // OpenList open_;
-        ::smpl::IntrusiveHeapWrapper<SearchState, SearchStateCompare> open_;
+        SimpleQueue<SearchState, SearchStateCompare> open_;
 
         // using OpenList_h = SimpleQueue<SearchState, heuristicCompare>;
         // OpenList_h open_H;
-        ::smpl::IntrusiveHeapWrapper<SearchState, heuristicCompare> open_H;
+        SimpleQueue<SearchState, heuristicCompare> open_H;
 
         std::vector<SearchState*> states_;
 
