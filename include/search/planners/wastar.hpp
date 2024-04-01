@@ -73,7 +73,7 @@ namespace ims{
 
         friend class AStar; friend class Dijkstra;
         friend class ExperienceWAstar; friend class EAwAStarUniformCost;
-        friend class MultiPathwAStar;
+        friend class MultiPathwAStar; friend class Phai;
 
         /// @brief The search state.
         struct SearchState: public ims::BestFirstSearch::SearchState{
