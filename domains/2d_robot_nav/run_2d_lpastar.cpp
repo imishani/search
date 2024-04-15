@@ -39,6 +39,8 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <random>
+#include <algorithm>
 
 // project includes
 #include <search/planners/lpastar.hpp>
@@ -46,6 +48,50 @@
 #include "action_space_2d_rob.hpp"
 #include "utils.hpp"
 
+
+std::vector<std::vector<size_t>> convertAndShuffleIndices(const std::vector<std::vector<int>> map) {
+    std::vector<std::vector<size_t>> map_indices;
+    
+    for (const std::vector<int>& row : map) {
+        for (size_t i = 0; i < map.size(); ++i) {
+            for (size_t j = 0; j < map[i].size(); ++j) {
+                map_indices.push_back({i, j});
+            }
+        }
+    }
+   
+    std::random_device rd;
+    std::mt19937 g(rd());
+    shuffle(map_indices.begin(), map_indices.end(), g);
+    return map_indices;
+}
+
+
+std::vector<std::vector<std::vector<size_t>>> splitIndices(const std::vector<std::vector<size_t>>& indices) {
+    std::vector<std::vector<std::vector<size_t>>> result;
+    int partSize = indices.size() / 5;
+    for (int i = 0; i < 5; ++i) {
+        std::vector<std::vector<size_t>> part(indices.begin() + i * partSize, indices.begin() + (i + 1) * partSize);
+        result.push_back(part);
+    }
+    return result;
+}
+
+std::vector<std::vector<int>> reconstructMap(std::vector<std::vector<int>> map, std::vector<std::vector<std::vector<size_t>>> map_parts, int index) {
+    if (index >= map_parts.size() - 1) {
+        // use entire map
+        return map;
+    } else {
+        std::vector<std::vector<int>> result(map.size(), std::vector<int>(map[0].size(), 0));
+        for (int i = 0; i <= index; i++) {
+            std::vector<std::vector<size_t>> included_indices = map_parts[i];
+            for (const std::vector<size_t> index : included_indices) {
+                result[index[0]][index[1]] = map[index[0]][index[1]];
+            }
+        }
+        return result;
+    }
+}
 
 int main(int argc, char** argv) {
 
@@ -81,6 +127,11 @@ int main(int argc, char** argv) {
     std::string type;
     int width, height;
     std::vector<std::vector<int>> map = loadMap(map_file.c_str(), type, width, height, scale);
+    std::vector<std::vector<size_t>> shuffled_map_indices = convertAndShuffleIndices(map);
+
+    std::vector<std::vector<std::vector<size_t>>> map_parts = splitIndices(shuffled_map_indices);
+
+    std::vector<std::vector<int>> new_map = reconstructMap(map, map_parts, 0);
 
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
@@ -91,7 +142,7 @@ int main(int argc, char** argv) {
     ims::EuclideanHeuristic* heuristic = new ims::EuclideanHeuristic();
     ims::LPAStarParams params (heuristic);
     // construct the scene and the action space
-    Scene2DRob scene (map);
+    Scene2DRob scene (new_map);
     ActionType2dRob action_type;
 
     // log the results
@@ -109,8 +160,8 @@ int main(int argc, char** argv) {
         std::cout << "Rounded Goal: " << goals[i][0] << ", " << goals[i][1] << std::endl;
 
         // print the value in the map
-        std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
-        std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
+        std::cout << "Start value: " << new_map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
+        std::cout << "Goal value: " << new_map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
 
         std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
         // construct planner
