@@ -48,6 +48,14 @@
 #include "action_space_2d_rob.hpp"
 #include "utils.hpp"
 
+std::string createPartialMapFile(std::vector<std::vector<int>> partial_map) {
+    int height = partial_map.size();
+    int width = partial_map[0].size();
+    std::string map_type = "octile";
+    std::string partial_map_file = logPartialMap(partial_map, height, width, map_type);
+    return partial_map_file;
+}
+
 
 std::vector<std::vector<size_t>> convertAndShuffleIndices(const std::vector<std::vector<int>> map) {
     std::vector<std::vector<size_t>> map_indices;
@@ -197,12 +205,13 @@ int main(int argc, char** argv) {
     logStats(logs, map_index, "LPAstar");
 
     std::string path_file = logPaths(paths, map_index, scale);
+    std::string partial_map_file = createPartialMapFile(new_map);
     
     std::string image_name = "/run_2d_lpastar_map.png";
     std::string image_path = full_path.string() + image_name;
 
-    std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
-    std::string command = "python3 " + plot_path + " --filepath " + path_file + " --imagepath " + image_path;
+    std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths_partial_map.py";
+    std::string command = "python3 " + plot_path + " --filepath " + path_file + " --mapfile " + partial_map_file + " --imagepath " + image_path;
     std::cout << "Running the plot script..." << std::endl;
 
     system(command.c_str());

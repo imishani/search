@@ -215,7 +215,32 @@ std::string logActionPrimsMap(const std::map<double, std::pair<std::vector<Actio
         }
     }
     file.close();
-    return action_prims_map_file;
+    return action_prims_map_file; 
+}
+
+std::string logPartialMap(std::vector<std::vector<int>> partial_map, int height, int width, std::string map_type) {
+    // save the partial map to a temporary file
+    std::string partial_map_file = "partial_map_tmp.csv";
+    // save partial map object to a file
+    std::ofstream file(partial_map_file);
+    
+    // header line
+    file << "type " + map_type << std::endl;
+    file << "height " << height << std::endl;
+    file << "width " << width << std::endl;
+    file << "map" << std::endl;
+    for (const std::vector<int>& row : partial_map) {
+        for (int val : row){
+            if (val == 100) { // obstacle
+                file << "@";
+            } else { // open space
+                file << ".";
+            }
+        }
+        file << std::endl;
+    }
+    file.close();
+    return partial_map_file;
 }
 
 
