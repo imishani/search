@@ -229,8 +229,9 @@ std::string logPartialMap(std::vector<std::vector<int>> partial_map, int height,
     file << "height " << height << std::endl;
     file << "width " << width << std::endl;
     file << "map" << std::endl;
-    for (const std::vector<int>& row : partial_map) {
-        for (int val : row){
+    for (int col = 0; col < partial_map[0].size(); ++col) {
+        for (int row = 0; row < partial_map.size(); ++row) {
+            int val = partial_map[row][col];
             if (val == 100) { // obstacle
                 file << "@";
             } else { // open space

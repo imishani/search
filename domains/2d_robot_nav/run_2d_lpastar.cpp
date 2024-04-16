@@ -48,33 +48,38 @@
 #include "action_space_2d_rob.hpp"
 #include "utils.hpp"
 
+/// @brief 
+/// @param partial_map 
+/// @return 
 std::string createPartialMapFile(std::vector<std::vector<int>> partial_map) {
-    int height = partial_map.size();
-    int width = partial_map[0].size();
+    int width = partial_map.size();
+    int height = partial_map[0].size();
     std::string map_type = "octile";
     std::string partial_map_file = logPartialMap(partial_map, height, width, map_type);
     return partial_map_file;
 }
 
-
+/// @brief 
+/// @param map 
+/// @return 
 std::vector<std::vector<size_t>> convertAndShuffleIndices(const std::vector<std::vector<int>> map) {
     std::vector<std::vector<size_t>> map_indices;
     
-    for (const std::vector<int>& row : map) {
-        for (size_t i = 0; i < map.size(); ++i) {
-            for (size_t j = 0; j < map[i].size(); ++j) {
-                map_indices.push_back({i, j});
-            }
+    for (size_t y = 0; y < map.size(); ++y) {
+        for (size_t x = 0; x < map[y].size(); ++x) {
+            map_indices.push_back({x, y});
         }
     }
-   
+
     std::random_device rd;
     std::mt19937 g(rd());
     shuffle(map_indices.begin(), map_indices.end(), g);
     return map_indices;
 }
 
-
+/// @brief Splits vector of map indices into five equal parts
+/// @param indices Vector of shuffled map indices
+/// @return Vector containing all the map indices equally split into five parts
 std::vector<std::vector<std::vector<size_t>>> splitIndices(const std::vector<std::vector<size_t>>& indices) {
     std::vector<std::vector<std::vector<size_t>>> result;
     int partSize = indices.size() / 5;
@@ -85,16 +90,23 @@ std::vector<std::vector<std::vector<size_t>>> splitIndices(const std::vector<std
     return result;
 }
 
+/// @brief Rebuilds the map with only the obstacles specifed in a specified percentage of the original map
+/// @param map Vector of the original map values
+/// @param map_parts Vector a shuffled map indices split into five equal parts
+/// @param index The max index of map parts we will use for the new map
+/// @return The new partial map
 std::vector<std::vector<int>> reconstructMap(std::vector<std::vector<int>> map, std::vector<std::vector<std::vector<size_t>>> map_parts, int index) {
     if (index >= map_parts.size() - 1) {
-        // use entire map
+        // use entire original map
         return map;
     } else {
+        // create empty map of 0s
         std::vector<std::vector<int>> result(map.size(), std::vector<int>(map[0].size(), 0));
+        // add obstacles from original map
         for (int i = 0; i <= index; i++) {
             std::vector<std::vector<size_t>> included_indices = map_parts[i];
-            for (const std::vector<size_t> index : included_indices) {
-                result[index[0]][index[1]] = map[index[0]][index[1]];
+            for (const std::vector<size_t> pos : included_indices) {
+                result[pos[1]][pos[0]] = map[pos[1]][pos[0]];
             }
         }
         return result;
@@ -139,7 +151,7 @@ int main(int argc, char** argv) {
 
     std::vector<std::vector<std::vector<size_t>>> map_parts = splitIndices(shuffled_map_indices);
 
-    std::vector<std::vector<int>> new_map = reconstructMap(map, map_parts, 0);
+    std::vector<std::vector<int>> new_map = reconstructMap(map, map_parts, 3);
 
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
