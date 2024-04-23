@@ -72,9 +72,12 @@ void ims::LPAStar::updateVertex(ims::LPAStar::SearchState *s) {
     if (s->g == 0)
         return;
     // loop through predecessors u and find minimum g(pred) + cost(pred, s)
-    for (std::pair<int, double> pred : s->predecessors) {
-        ims::LPAStar::SearchState *pred_state = getSearchState(pred.first);
-        double cost = pred.second;
+    for (int pred : s->predecessors) {
+        ims::LPAStar::SearchState *pred_state = getSearchState(pred);
+        StateType &u = (action_space_ptr_->getRobotState(pred_state->state_id))->state;
+        StateType &v = (action_space_ptr_->getRobotState(s->state_id))->state;
+        // get cost from action space
+        double cost = action_space_ptr_->getEdgeCost(u, v);
         if (pred_state->g != -1 && (pred_state->g + cost < min_rhs || min_rhs == -1)) {
             min_rhs = pred_state->g + cost;
             parent_id = pred_state->state_id;
@@ -193,6 +196,17 @@ ims::LPAStar::SearchState *ims::LPAStar::getOrCreateSearchState(int state_id){
     return states_[state_id];
 }
 
+void ims::LPAStar::updateVertices(std::vector<std::vector<size_t>> updated_indices, std::vector<std::vector<int>> curr_map) {
+    for (const std::vector<size_t> map_loc : updated_indices) {
+        double x = map_loc[0];
+        double y = map_loc[1];
+        // if updated index is now an obstacle
+        if (curr_map[y][x] == 100) {
+            
+        }
+    }
+}
+
 bool ims::LPAStar::plan(std::vector<StateType>& path) {
     startTimer();
     int iter {0};
@@ -219,7 +233,7 @@ bool ims::LPAStar::plan(std::vector<StateType>& path) {
                 int cost = costs[i];
                 ims::LPAStar::SearchState *successor = getOrCreateSearchState(successor_id);
                 // insert predecessor and cost pair into predecessors set
-                successor->predecessors.insert(std::make_pair(s->state_id, cost));
+                successor->predecessors.insert(s->state_id);
                 updateVertex(successor);
             }
         } 

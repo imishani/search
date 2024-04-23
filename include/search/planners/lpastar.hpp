@@ -69,14 +69,6 @@ namespace ims{
         friend class AStar; friend class Dijkstra;
         friend class ExperienceWAstar; friend class EAwAStarUniformCost;
 
-        /// @brief The custom comparison function for predecessor cost pairs
-        struct PredecessorCostCompare {
-            bool operator()(const std::pair<int, double>& lhs, const std::pair<int, double>& rhs) const {
-                // Compare based on the first element of the pair
-                return lhs.first < rhs.first;
-            }
-        };
-
         /// @brief The search state.
         struct SearchState: public ims::BestFirstSearch::SearchState{
             /// @brief The heuristic value
@@ -84,7 +76,7 @@ namespace ims{
             double rhs {-1};
             double g {-1};
             std::pair<double, double> key {-1, -1};
-            std::set <std::pair<int, double>, PredecessorCostCompare> predecessors {};
+            std::set <int> predecessors {};
         };
         
         /// @brief The search state compare struct.
@@ -171,6 +163,11 @@ namespace ims{
         /// @param goal The goal state
         void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                const StateType& start, const StateType& goal) override;
+
+        /// @brief Updates the precessors sets based on updated map
+        /// @param updated_indices The indices of the map that have been updated
+        /// @param curr_map A 2D vector of the map values
+        void updateVertices(std::vector<std::vector<size_t>> updated_indices, std::vector<std::vector<int>> curr_map);
 
         /// @brief plan a path
         /// @param path The path

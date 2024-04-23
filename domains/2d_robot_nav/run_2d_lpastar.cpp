@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
 
     std::vector<std::vector<std::vector<size_t>>> map_parts = splitIndices(shuffled_map_indices);
 
-    std::vector<std::vector<int>> new_map = reconstructMap(map, map_parts, 3);
+    std::vector<std::vector<int>> curr_map = reconstructMap(map, map_parts, 0);
 
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
@@ -162,7 +162,7 @@ int main(int argc, char** argv) {
     ims::EuclideanHeuristic* heuristic = new ims::EuclideanHeuristic();
     ims::LPAStarParams params (heuristic);
     // construct the scene and the action space
-    Scene2DRob scene (new_map);
+    Scene2DRob scene (curr_map);
     ActionType2dRob action_type;
 
     // log the results
@@ -180,28 +180,57 @@ int main(int argc, char** argv) {
         std::cout << "Rounded Goal: " << goals[i][0] << ", " << goals[i][1] << std::endl;
 
         // print the value in the map
-        std::cout << "Start value: " << new_map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
-        std::cout << "Goal value: " << new_map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
+        std::cout << "Start value: " << curr_map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
+        std::cout << "Goal value: " << curr_map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
 
-        std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
+        std::shared_ptr<actionSpace2dRob> action_space = std::make_shared<actionSpace2dRob>(scene, action_type);
         // construct planner
         ims::LPAStar planner(params);
         // catch the exception if the start or goal is not valid
         try {
-            planner.initializePlanner(ActionSpace, starts[i], goals[i]);
+            planner.initializePlanner(action_space, starts[i], goals[i]);
         }
         catch (std::exception& e) {
             std::cout << RED << "Start or goal is not valid!" <<RESET << std::endl;
             continue;
         }
-        // plan
-        std::cout << "Planning..." << std::endl;
         std::vector<StateType> path_;
-        if (!planner.plan(path_)) {
-            std::cout << RED << "No path found!" << RESET << std::endl;
+        for (int k {0}; k < 5; k++) {
+            // plan
+            std::cout << "Planning..." << std::endl;
+            path_.clear();
+            if (!planner.plan(path_)) {
+                std::cout << RED << "No path found!" << RESET << std::endl;
+            }
+            else {
+                std::cout << GREEN << "Path found!" << RESET << std::endl;
+
+                // save the logs to a temporary file
+                logStats(logs, map_index, "LPAstar");
+
+                std::string path_file = logPaths(paths, map_index, scale);
+                std::string partial_map_file = createPartialMapFile(curr_map);
+                
+                std::string image_name = "/run_2d_lpastar_map" + std::to_string(k) + ".png";
+                std::string image_path = full_path.string() + image_name;
+
+                std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths_partial_map.py";
+                std::string command = "python3 " + plot_path + " --filepath " + path_file + " --mapfile " + partial_map_file + " --imagepath " + image_path;
+                std::cout << "Running the plot script..." << std::endl;
+
+                system(command.c_str());
+
+                std::cout << "Completed running plot script. Plot saved to " + full_path.string() + image_name << std::endl;
+            }
+            if (k != 4) {
+                // update map
+                curr_map = reconstructMap(map, map_parts, k+1);
+                std::vector<std::vector<size_t>> updated_indices = map_parts[k+1];
+                Scene2DRob scene (curr_map);
+                action_space->updateActionSpace(scene);
+                planner.updateVertices(updated_indices, curr_map);
+            }
         }
-        else
-            std::cout << GREEN << "Path found!" << RESET << std::endl;
         PlannerStats stats = planner.reportStats();
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
         std::cout << "cost: " << stats.cost << std::endl;
@@ -211,24 +240,28 @@ int main(int argc, char** argv) {
         std::cout << "suboptimality: " << stats.suboptimality << RESET << std::endl;
         logs[i] = stats; // log the stats
         paths[i] = path_; // log the path
+        
+        // reset map
+        curr_map = reconstructMap(map, map_parts, 0);
     }
 
-    // save the logs to a temporary file
-    logStats(logs, map_index, "LPAstar");
+    // curr_map = reconstructMap(map, map_parts, 4);
+    // // save the logs to a temporary file
+    // logStats(logs, map_index, "LPAstar");
 
-    std::string path_file = logPaths(paths, map_index, scale);
-    std::string partial_map_file = createPartialMapFile(new_map);
+    // std::string path_file = logPaths(paths, map_index, scale);
+    // std::string partial_map_file = createPartialMapFile(curr_map);
     
-    std::string image_name = "/run_2d_lpastar_map.png";
-    std::string image_path = full_path.string() + image_name;
+    // std::string image_name = "/run_2d_lpastar_map.png";
+    // std::string image_path = full_path.string() + image_name;
 
-    std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths_partial_map.py";
-    std::string command = "python3 " + plot_path + " --filepath " + path_file + " --mapfile " + partial_map_file + " --imagepath " + image_path;
-    std::cout << "Running the plot script..." << std::endl;
+    // std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths_partial_map.py";
+    // std::string command = "python3 " + plot_path + " --filepath " + path_file + " --mapfile " + partial_map_file + " --imagepath " + image_path;
+    // std::cout << "Running the plot script..." << std::endl;
 
-    system(command.c_str());
+    // system(command.c_str());
 
-    std::cout << "Completed running plot script. Plot saved to " + full_path.string() + image_name << std::endl;
+    // std::cout << "Completed running plot script. Plot saved to " + full_path.string() + image_name << std::endl;
 
     return 0;
 }
