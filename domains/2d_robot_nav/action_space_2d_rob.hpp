@@ -134,26 +134,6 @@ public:
         return true;
     }
 
-    double getEdgeCost(StateType &u, StateType &v) {
-        int map_val_v = env_->map->at((size_t)v[0]).at((size_t)v[1]);
-        if (map_val_v == 100) {
-            // state v is an obstacle
-            return 100;
-        } else if (abs(u[0] - v[0]) > 1 || abs(u[1] - v[1]) > 1) {
-            // states are not next to each other
-            return 100;
-        } else if (u[0] == v[0] && u[1] == v[1]) {
-            // the states are the same
-            return 0;
-        } else if (u[0] == v[0] || u[1] == v[1]) {
-            // N, E, W, S
-            return 1;
-        } else {
-            // NE, SW, NW, SE
-            return 1.414;
-        }
-    }
-
     bool isStateValid(const StateType& state_val) override{
         if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
             return false;

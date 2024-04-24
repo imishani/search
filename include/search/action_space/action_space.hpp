@@ -217,12 +217,6 @@ namespace ims {
                                    std::vector<int>& successors,
                                    std::vector<double>& costs) = 0;
 
-        /// @brief  
-        /// @param u 
-        /// @param v 
-        /// @return 
-        virtual double getEdgeCost(StateType &u, StateType &v);
-
         /// @brief check if the state is valid
         /// @param state_val The values if the state
         /// @return Validity bool

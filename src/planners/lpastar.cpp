@@ -43,6 +43,28 @@ ims::LPAStar::~LPAStar() {
     }
 }
 
+double ims::LPAStar::getEdgeCost(StateType &u, StateType &v) {
+        if (action_space_ptr_->isStateValid(v)){
+            if (abs(u[0] - v[0]) > 1 || abs(u[1] - v[1]) > 1) {
+                // states are not next to each other
+                return 100;
+            } else if (u[0] == v[0] && u[1] == v[1]) {
+                // the states are the same
+                return 0;
+            } else if (u[0] == v[0] || u[1] == v[1]) {
+                // N, E, W, S
+                return 1;
+            } else {
+                // NE, SW, NW, SE
+                return 1.414;
+            }
+        } else {
+            // state v is an obstacle
+            return 100;
+        }
+        
+    }
+
 std::pair<double, double> ims::LPAStar::calculateKeys(ims::LPAStar::SearchState *s) {
     std::pair<double, double> k;
     s->h = computeHeuristic(s->state_id);
@@ -77,7 +99,7 @@ void ims::LPAStar::updateVertex(ims::LPAStar::SearchState *s) {
         StateType &u = (action_space_ptr_->getRobotState(pred_state->state_id))->state;
         StateType &v = (action_space_ptr_->getRobotState(s->state_id))->state;
         // get cost from action space
-        double cost = action_space_ptr_->getEdgeCost(u, v);
+        double cost = getEdgeCost(u, v);
         if (pred_state->g != -1 && (pred_state->g + cost < min_rhs || min_rhs == -1)) {
             min_rhs = pred_state->g + cost;
             parent_id = pred_state->state_id;
@@ -196,13 +218,19 @@ ims::LPAStar::SearchState *ims::LPAStar::getOrCreateSearchState(int state_id){
     return states_[state_id];
 }
 
-void ims::LPAStar::updateVertices(std::vector<std::vector<size_t>> updated_indices, std::vector<std::vector<int>> curr_map) {
+void ims::LPAStar::updateVertices(std::vector<std::vector<size_t>> updated_indices, 
+                                    std::vector<std::vector<int>> curr_map) {
     for (const std::vector<size_t> map_loc : updated_indices) {
         double x = map_loc[0];
         double y = map_loc[1];
         // if updated index is now an obstacle
         if (curr_map[y][x] == 100) {
-            
+            // need to call updateVertex on the map loc
+            StateType xy = {x, y};
+            StateType &s = xy;
+            int state_id = action_space_ptr_->getRobotStateId(s);
+            ims::LPAStar::SearchState *search_state = getSearchState(state_id);
+            updateVertex(search_state);
         }
     }
 }

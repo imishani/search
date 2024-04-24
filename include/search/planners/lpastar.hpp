@@ -133,6 +133,9 @@ namespace ims{
         /// @brief Destructor
         ~LPAStar() override;
 
+        
+        double getEdgeCost(StateType &u, StateType &v);
+
          /// @brief Calculte the key pair to insert in priority queue
          /// @param s A search state
          /// @return A pair of keys to insert into priority queue
