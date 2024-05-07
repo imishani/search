@@ -178,6 +178,13 @@ namespace ims {
             }
         }
 
+        virtual bool checkIfContainsRobotState(const StateType& state_val){
+            auto* curr_state = new RobotState;
+            curr_state->state = state_val;
+            auto it = state_to_id_.find(curr_state);
+            return (it != state_to_id_.end());
+        }
+
         /// @brief Get or create state by state value
         /// @param state_val The state value
         /// @return The state id

@@ -59,10 +59,9 @@ double ims::LPAStar::getEdgeCost(StateType &u, StateType &v) {
                 return 1.414;
             }
         } else {
-            // state v is an obstacle
+            // state u or v is an obstacle
             return 100;
         }
-        
     }
 
 std::pair<double, double> ims::LPAStar::calculateKeys(ims::LPAStar::SearchState *s) {
@@ -228,9 +227,12 @@ void ims::LPAStar::updateVertices(std::vector<std::vector<size_t>> updated_indic
             // need to call updateVertex on the map loc
             StateType xy = {x, y};
             StateType &s = xy;
-            int state_id = action_space_ptr_->getRobotStateId(s);
-            ims::LPAStar::SearchState *search_state = getSearchState(state_id);
-            updateVertex(search_state);
+            bool stateExists = action_space_ptr_->checkIfContainsRobotState(s);
+            if (stateExists) {
+                int state_id = action_space_ptr_->getOrCreateRobotState(s);
+                ims::LPAStar::SearchState *search_state = getOrCreateSearchState(state_id);
+                updateVertex(search_state);
+            }
         }
     }
 }
@@ -260,7 +262,7 @@ bool ims::LPAStar::plan(std::vector<StateType>& path) {
                 int successor_id = successors[i];
                 int cost = costs[i];
                 ims::LPAStar::SearchState *successor = getOrCreateSearchState(successor_id);
-                // insert predecessor and cost pair into predecessors set
+                // insert predecessor into predecessors set
                 successor->predecessors.insert(s->state_id);
                 updateVertex(successor);
             }

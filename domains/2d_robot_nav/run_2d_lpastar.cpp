@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
     // log the results
     std::unordered_map<int, PlannerStats> logs;
     std::unordered_map<int, PathType> paths;
-    for (int i {0}; i < starts.size(); i++){
+    for (int i {0}; i < 1; i++){
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
         std::cout << "Goal: " << goals[i][0] << ", " << goals[i][1] << std::endl;
@@ -204,6 +204,15 @@ int main(int argc, char** argv) {
             }
             else {
                 std::cout << GREEN << "Path found!" << RESET << std::endl;
+                PlannerStats stats = planner.reportStats();
+                std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
+                std::cout << "cost: " << stats.cost << std::endl;
+                std::cout << "Path length: " << path_.size() << std::endl;
+                std::cout << "Number of nodes expanded: " << stats.num_expanded << std::endl;
+                std::cout << "Number of nodes generated: " << stats.num_generated << std::endl;
+                std::cout << "suboptimality: " << stats.suboptimality << RESET << std::endl;
+                logs[i] = stats; // log the stats
+                paths[i] = path_; // log the path
 
                 // save the logs to a temporary file
                 logStats(logs, map_index, "LPAstar");
@@ -231,16 +240,6 @@ int main(int argc, char** argv) {
                 planner.updateVertices(updated_indices, curr_map);
             }
         }
-        PlannerStats stats = planner.reportStats();
-        std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
-        std::cout << "cost: " << stats.cost << std::endl;
-        std::cout << "Path length: " << path_.size() << std::endl;
-        std::cout << "Number of nodes expanded: " << stats.num_expanded << std::endl;
-        std::cout << "Number of nodes generated: " << stats.num_generated << std::endl;
-        std::cout << "suboptimality: " << stats.suboptimality << RESET << std::endl;
-        logs[i] = stats; // log the stats
-        paths[i] = path_; // log the path
-        
         // reset map
         curr_map = reconstructMap(map, map_parts, 0);
     }
