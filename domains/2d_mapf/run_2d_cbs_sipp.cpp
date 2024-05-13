@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
 
     // Construct the parameters.
     ims::CBSSIPPParams params;
-    params.weight_low_level_heuristic = 20.0;
+    params.weight_low_level_heuristic = 1.0;
     for (int i {0}; i < num_agents; i++){
         params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanHeuristic);
     }
@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << ", " << starts[i][2] << std::endl;
         starts[i].emplace_back(0);
         goals[i].emplace_back(-1);
-        
+
         start_state_vals.emplace_back(starts[i]);
         goal_state_vals.emplace_back(goals[i]);
 
@@ -156,7 +156,7 @@ int main(int argc, char** argv) {
     // Plan.
     ims::MultiAgentPaths paths;
     planner.plan(paths);
-    
+
     if (paths.empty()){
         std::cout << "No solution found." << std::endl;
         return 0;
@@ -186,7 +186,7 @@ int main(int argc, char** argv) {
     std::ofstream fout("paths.yaml");
     // Merge the full_path and the map path, adjusting for '../' in the map path.
     std::string map_global_path = (boost::filesystem::weakly_canonical(boost::filesystem::current_path() / boost::filesystem::path(map_file))).string();
-     
+
     fout << "map_path: \"" << map_global_path << "\"" << std::endl;
     fout << "paths: [ " << std::endl;
     for (int i {0}; i < num_agents; i++){

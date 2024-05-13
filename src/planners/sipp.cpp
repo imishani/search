@@ -78,7 +78,6 @@ auto ims::SIPP::getOrCreateSearchStateFromCfgIdAndSafeInterval(int cfg_state_id,
     return new_state;
 }
 
-
 void ims::SIPP::initializePlanner(const std::shared_ptr<ConstrainedActionSpace>& action_space_ptr,
                                    const StateType& start, const StateType& goal) {
     // Space pointer.
@@ -89,8 +88,8 @@ void ims::SIPP::initializePlanner(const std::shared_ptr<ConstrainedActionSpace>&
     resetPlanningData();
 
     // Get start and goal without time.
-    TimeType start_time = start.back();
-    TimeType goal_time = goal.back();
+    auto start_time = (TimeType)start.back();
+    auto goal_time = (TimeType)goal.back();
     StateType start_wo_time{start.begin(), start.end() - 1};
     StateType goal_wo_time{goal.begin(), goal.end() - 1};
 
@@ -149,7 +148,6 @@ void ims::SIPP::initializePlanner(const std::shared_ptr<ConstrainedActionSpace>&
     stats_.suboptimality = params_.epsilon;
 }
 
-
 bool ims::SIPP::plan(std::vector<StateType>& path) {
     startTimer();
     int iter {0};
@@ -193,29 +191,31 @@ void ims::SIPP::expand(int state_id){
         int transition_time = (int)cost;
         assert(transition_time != 0);
         // The earliest time of reaching a successor.
-        TimeType start_t = state->g + transition_time;
+        TimeType arrival_start_t = (TimeType)state->g + transition_time;
         // The latest time of reaching a successor.
-        TimeType end_t = state->safe_interval.second + transition_time;
+        TimeType arrival_end_t = state->safe_interval.second + transition_time;
         // Iterate over the safe intervals of the successor configuration.
         std::vector<SafeIntervalType> succ_safe_intervals;
         action_space_ptr_->getSafeIntervals(successor_cfg_state_id, succ_safe_intervals);
         for (const SafeIntervalType& succ_safe_interval : succ_safe_intervals){
             // If the safe interval starts after the latest time of reaching the successor, or ends before the earliest time of reaching the successor, then it is not relevant.
-            if (succ_safe_interval.first > end_t || succ_safe_interval.second < start_t){
+            if (succ_safe_interval.first > arrival_end_t || succ_safe_interval.second < arrival_start_t){
                 continue;
             }
             // Compute the earliest valid arrival time to the successor. This necessitates a validity check w.r.t. constraints. The static obstacles are already checked in the getSuccessors function.
             TimeType arrival_t = -1;
-            for (TimeType t = start_t ; t <= std::min(end_t, succ_safe_interval.second) ; ++t){
+            for (TimeType t = arrival_start_t ; t <= std::min(arrival_end_t, succ_safe_interval.second) ; ++t){
                 // Construct the configurations of the state and the successor.
                 StateType robot_cfg_state{state_wo_time};
                 StateType succ_robot_cfg_state{succ_state_wo_time};
                 robot_cfg_state.push_back(t - transition_time);
                 succ_robot_cfg_state.push_back(t);
 
-                if (action_space_ptr_->isSatisfyingAllConstraints(robot_cfg_state, succ_robot_cfg_state) && t >= succ_safe_interval.first && t <= succ_safe_interval.second){
+                if (action_space_ptr_->isSatisfyingAllConstraints(robot_cfg_state,succ_robot_cfg_state)
+                                                                  && t >= succ_safe_interval.first
+                                                                  && t <= succ_safe_interval.second){
                     if (params_.verbose){
-                        std::cout << " * Found valid arrival time: " << t << " from " << action_space_ptr_->getRobotState(state->cfg_state_id)->state << " to " << action_space_ptr_->getRobotState(successor_cfg_state_id)->state << std::endl;
+                        std::cout << GREEN << " * Found valid arrival time: " << t << " from " << action_space_ptr_->getRobotState(state->cfg_state_id)->state << " to " << action_space_ptr_->getRobotState(successor_cfg_state_id)->state << RESET << std::endl;
                     }
                     
                     arrival_t = t;
@@ -224,6 +224,14 @@ void ims::SIPP::expand(int state_id){
                 else{
                     if (params_.verbose){
                         std::cout << RED << " * Invalid arrival time: " << t << " from " << action_space_ptr_->getRobotState(state->cfg_state_id)->state << " to " << action_space_ptr_->getRobotState(successor_cfg_state_id)->state << RESET << std::endl;
+                        std::cout << RED << " * The reason is: ";
+                        if (!action_space_ptr_->isSatisfyingAllConstraints(robot_cfg_state,succ_robot_cfg_state)){
+                            std::cout << "Constraints are not satisfied." << std::endl;
+                        }
+                        if (t < succ_safe_interval.first || t > succ_safe_interval.second){
+                            std::cout << "Arrival time is not in the safe interval." << std::endl;
+                        }
+                        std::cout << RESET;
                     }
                 }
             }
@@ -261,20 +269,24 @@ void ims::SIPP::expand(int state_id){
 double ims::SIPP::computeHeuristic(int state_id) {
     double dist;
     auto s = action_space_ptr_->getRobotState(state_id);
-    if (!heuristic_->getHeuristic(s->state, dist))
+    if (!heuristic_->getHeuristic(s->state, dist)) {
         throw std::runtime_error("Heuristic function failed");
-    else
+    }
+    else {
         return dist;
+    }
 }
 
 double ims::SIPP::computeHeuristic(int s1_id, int s2_id) {
     double dist;
     auto s1 = action_space_ptr_->getRobotState(s1_id);
     auto s2 = action_space_ptr_->getRobotState(s2_id);
-    if (!heuristic_->getHeuristic(s1->state, s2->state, dist))
+    if (!heuristic_->getHeuristic(s1->state, s2->state, dist)) {
         throw std::runtime_error("Heuristic function failed");
-    else
+    }
+    else {
         return dist;
+    }
 }
 
 void ims::SIPP::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
@@ -282,7 +294,7 @@ void ims::SIPP::reconstructPath(std::vector<StateType>& path, std::vector<double
     costs.clear();
 
     SearchState* search_state = getSearchState(goal_);
-    TimeType goal_time = search_state->g;
+    auto goal_time = (TimeType)search_state->g;
     // Add the goal state.
     StateType goal_state = action_space_ptr_->getRobotState(search_state->cfg_state_id)->state;
     goal_state.push_back(goal_time);
@@ -293,9 +305,9 @@ void ims::SIPP::reconstructPath(std::vector<StateType>& path, std::vector<double
 
     while (search_state->parent_id != START){
         // Get the arrival time of the state.
-        double state_time = search_state->g;
+        auto state_time = (TimeType)search_state->g;
         // Get the previous arrival time.
-        double child_state_time = path.back().back();
+        auto child_state_time = (TimeType)path.back().back();
         // Get the state configuration.
         StateType state = action_space_ptr_->getRobotState(search_state->cfg_state_id)->state;
 
@@ -316,15 +328,15 @@ void ims::SIPP::reconstructPath(std::vector<StateType>& path, std::vector<double
     }
     // Add the start state.
     // Get the arrival time of the state.
-    double state_time = search_state->g;
+    auto state_time = (TimeType)search_state->g;
     // Get the previous arrival time.
-    double child_state_time = path.back().back();
+    auto child_state_time = (TimeType)path.back().back();
     // Get the state configuration.
     StateType state = action_space_ptr_->getRobotState(search_state->cfg_state_id)->state;
 
     // If the state time is not exactly 1 unit away from the parent time, then we'll add more than one states waiting at this configuration.
     int num_states_to_add = child_state_time - state_time;
-    double transition_cost = 1 ;//search_state->g;
+    double transition_cost = 1 ;  // search_state->g;
     double cost = transition_cost;
 
     // Add the states.

@@ -157,7 +157,7 @@ int ConstraintsCollective::getLastConstraintTime() const {
 /// @param state The state configuration without a time component.
 void ConstraintsCollective::createSafeIntervals(const StateType & state){
 
-    int num_states_in_map_before = state_to_safe_intervals_.size();
+    int num_states_in_map_before = (int)state_to_safe_intervals_.size();
 
     // Get the initial safe intervals. This is an empty vector.
     std::vector<SafeIntervalType> safe_intervals = {};
@@ -188,7 +188,7 @@ void ConstraintsCollective::createSafeIntervals(const StateType & state){
     });
 
     // Merge unsafe intervals that overlap.
-    if (unsafe_intervals.size() > 0) {
+    if (!unsafe_intervals.empty()) {
         std::vector<SafeIntervalType> merged_unsafe_intervals = {unsafe_intervals[0]};
         for (int i = 1; i < unsafe_intervals.size(); i++) {
             if (merged_unsafe_intervals.back().second >= unsafe_intervals[i].first) {
@@ -205,23 +205,23 @@ void ConstraintsCollective::createSafeIntervals(const StateType & state){
     // Create the safe intervals. 
     // If there are no unsafe intervals, then the safe interval is zero to infinity.
     if (unsafe_intervals.empty()) {
-        safe_intervals.emplace_back(std::make_pair(0, INF_TIME_TYPE));
+        safe_intervals.emplace_back(0, INF_TIME_TYPE);
     }
     else{
         // If there are unsafe intervals, then the safe intervals are the intervals between the unsafe intervals. Starting from time zero.
         TimeType first_safe_time = 0;
         for (const auto& unsafe_interval : unsafe_intervals) {
-            safe_intervals.emplace_back(std::make_pair(first_safe_time, unsafe_interval.first - 1));
+            safe_intervals.emplace_back(first_safe_time, unsafe_interval.first - 1);
             first_safe_time = unsafe_interval.second + 1;
         }
         // Add the last safe interval.
-        safe_intervals.emplace_back(std::make_pair(first_safe_time, INF_TIME_TYPE));
+        safe_intervals.emplace_back(first_safe_time, INF_TIME_TYPE);
     }
 
     // Add the safe intervals to the map.
     state_to_safe_intervals_[state] = safe_intervals;
 
-    int num_states_in_map_after = state_to_safe_intervals_.size();
+    int num_states_in_map_after = (int)state_to_safe_intervals_.size();
     if (num_states_in_map_after <= num_states_in_map_before) {
         throw std::runtime_error("The number of states in the map did not increase.");
     }
@@ -254,7 +254,7 @@ void ConstraintsCollective::updateSafeIntervals(const std::shared_ptr<Constraint
     // Get the time interval of the constraint.
     std::pair<TimeType, TimeType> constraint_time_interval = constraint_ptr->getTimeInterval();
 
-    // Iterate over the states configuratoins (that already have safe intervals) and update their safe intervals.
+    // Iterate over the states configurations (that already have safe intervals) and update their safe intervals.
     for (auto& state_to_safe_intervals_pair : state_to_safe_intervals_) {
         // Get the state.
         const StateType& state = state_to_safe_intervals_pair.first;
@@ -294,13 +294,13 @@ void ConstraintsCollective::updateSafeIntervals(const std::shared_ptr<Constraint
 
         // Update the original vector with the new safe intervals.
         safe_intervals = std::move(updated_safe_intervals);
-    }     
+    }
 }
 
 int ConstraintsCollective::getNumSafeIntervals(){
     int num = 0;
     for (const auto& state_to_safe_intervals_pair : state_to_safe_intervals_) {
-        num += state_to_safe_intervals_pair.second.size();
+        num += (int)state_to_safe_intervals_pair.second.size();
     }
     return num;
 }

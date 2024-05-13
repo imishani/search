@@ -116,7 +116,13 @@ protected:
 /// @return The constraints. Each conflict is converted to a pair mapping agent id to a vector of constraints.
 virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) = 0;
 
-virtual void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals, const std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs);
+/// @brief Verify that the sets of starts and goals are valid.
+/// @param starts The start states.
+/// @param goals The goal states.
+/// @param action_space_ptrs The action spaces.
+void verifyStartAndGoalInputStates(const std::vector<StateType>& starts,
+                                   const std::vector<StateType>& goals,
+                                   const std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs);
 
 // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
 /// @brief The search state.

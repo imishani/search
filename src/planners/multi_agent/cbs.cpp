@@ -208,7 +208,7 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
     int iter{0};
     while (!open_->empty() && !isTimeOut()) {
         // Report progress every 100 iterations
-        if (iter % 10 == 0) {
+        if (iter % 100 == 0) {
             std::cout << "CBS CT open size: " << open_->size() << std::endl;
         }
 
@@ -229,7 +229,7 @@ bool ims::CBS::plan(MultiAgentPaths& paths) {
             agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(state->paths), 
                                                         state->unresolved_conflicts, 
                                                         getConflictTypes()   ,
-                                                        1, 
+                                                        1,
                                                         agent_names_);
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             ++get_paths_conflicts_counter;

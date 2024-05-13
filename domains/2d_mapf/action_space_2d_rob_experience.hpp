@@ -61,7 +61,7 @@ struct ActionType2dRob : public ims::ActionType {
         this->num_actions = 4;
         this->action_names = {"N", "E", "S", "W",};
         this->action_costs = {1, 1, 1, 1};
-        this->action_deltas = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}, {0, 0}};
+        this->action_deltas = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
         this->state_discretization_ = {1, 1};
     }
 

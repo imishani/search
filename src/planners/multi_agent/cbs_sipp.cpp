@@ -40,7 +40,7 @@ ims::CBSSIPP::CBSSIPP(const ims::CBSSIPPParams& params) : params_(params), ims::
 
 void ims::CBSSIPP::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
-    // Reset the open list. Do this by deleteing it and creating it again. TODO(yoraish): add `clear` method to our custom queues.
+    // Reset the open list. Do this by deleting it and creating it again. TODO(yoraish): add `clear` method to our custom queues.
     open_->clear();
     
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
@@ -52,7 +52,7 @@ void ims::CBSSIPP::initializePlanner(std::vector<std::shared_ptr<ConstrainedActi
     }
 
     // Check start and end states for validity. Individually and between agents.
-    verifyStartAndGoalInputStates(starts, goals);
+    verifyStartAndGoalInputStates(starts, goals, agent_action_space_ptrs_);
 
     // Store the starts and goals.
     starts_ = starts;
@@ -64,6 +64,7 @@ void ims::CBSSIPP::initializePlanner(std::vector<std::shared_ptr<ConstrainedActi
     // Create all the low-level planners.
     for (size_t i{0}; i < starts.size(); ++i) {
         ims::SIPPParams sipp_params(params_.low_level_heuristic_ptrs[i], params_.weight_low_level_heuristic);
+        sipp_params.verbose = params_.verbose;
         
         agent_planner_ptrs_.push_back(std::make_shared<ims::SIPP>(sipp_params));
     }
@@ -77,7 +78,7 @@ void ims::CBSSIPP::createRootInOpenList(){
     std::unordered_map<int, double> initial_paths_lower_bounds;
     double initial_sum_of_path_cost_lower_bounds{0.0};
 
-    for (size_t i{0}; i < num_agents_; ++i) {
+    for (int i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
         agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
         bool is_plan_success = agent_planner_ptrs_[i]->plan(path);
@@ -93,7 +94,7 @@ void ims::CBSSIPP::createRootInOpenList(){
             return;
         }
         // Fix the last path state to have a correct time and not -1.
-        path.back().back() = path.size() - 1;
+        path.back().back() = (TimeType)(path.size() - 1);
 
         // We use a map since down the line we may only store paths for some agents.
         // initial_paths.insert(std::make_pair(i, path));
@@ -133,7 +134,6 @@ void ims::CBSSIPP::createRootInOpenList(){
 
     }
 
-
     // Push the initial CBS state to the open list.
     open_->push(start_);
 }
@@ -157,7 +157,7 @@ void ims::CBSSIPP::expand(int state_id) {
         // The second element is a shared pointer to the constraint.
         auto constraint_ptr = agent_id_constraint.second;
 
-        // Create a new search state. In this implementation ther is no check for whether the search state already exists (same starts, goals, and constraints), so we always create a new search state and push(...) it to the open list. Otherwise, we would check if the search state already exists, and if so, we would update(...) the open list heap.
+        // Create a new search state. In this implementation there is no check for whether the search state already exists (same starts, goals, and constraints), so we always create a new search state and push(...) it to the open list. Otherwise, we would check if the search state already exists, and if so, we would update(...) the open list heap.
         // NOTE(yoraish): lock below for parallelization. Think of copying action-spaces and planners as well for each thread?
         int new_state_id = (int)states_.size();
         auto new_state = getOrCreateSearchState(new_state_id);
@@ -177,7 +177,8 @@ void ims::CBSSIPP::expand(int state_id) {
         new_state->constraints_collectives[agent_id].addConstraints(constraint_ptr);
 
         // Update the action-space. Start with the constraints and their context.
-        std::shared_ptr<ConstraintsCollective> constraints_collective_ptr = std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]);
+        std::shared_ptr<ConstraintsCollective> constraints_collective_ptr =
+                std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]);
         std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
         // context_ptr->agent_paths = new_state->paths;
         context_ptr->agent_names = agent_names_;
@@ -186,7 +187,9 @@ void ims::CBSSIPP::expand(int state_id) {
         agent_action_space_ptrs_[agent_id]->setConstraintsCollective(constraints_collective_ptr);
 
         // Update the low-level planner for this agent.
-        agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);
+        agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id],
+                                                         starts_[agent_id],
+                                                         goals_[agent_id]);
 
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
         new_state->paths[agent_id].clear();
