@@ -47,10 +47,10 @@ double ims::LPAStar::getEdgeCost(StateType &u, StateType &v) {
         if (action_space_ptr_->isStateValid(v)){
             if (abs(u[0] - v[0]) > 1 || abs(u[1] - v[1]) > 1) {
                 // states are not next to each other
-                return 100;
+                throw std::runtime_error("getEdgeCost should not be called if the states are not next to eachother.");
             } else if (u[0] == v[0] && u[1] == v[1]) {
                 // the states are the same
-                return 0;
+                 throw std::runtime_error("getEdgeCost should not be called if the states are the same.");
             } else if (u[0] == v[0] || u[1] == v[1]) {
                 // N, E, W, S
                 return 1;
@@ -60,7 +60,7 @@ double ims::LPAStar::getEdgeCost(StateType &u, StateType &v) {
             }
         } else {
             // state u or v is an obstacle
-            return 100;
+            return 100000;
         }
     }
 
@@ -222,15 +222,16 @@ void ims::LPAStar::updateVertices(std::vector<std::vector<size_t>> updated_indic
     for (const std::vector<size_t> map_loc : updated_indices) {
         double x = map_loc[0];
         double y = map_loc[1];
+        StateType xy = {x, y};
         // if updated index is now an obstacle
-        if (curr_map[y][x] == 100) {
+        if (action_space_ptr_->isStateValid(xy) == 100) {
             // need to call updateVertex on the map loc
-            StateType xy = {x, y};
             StateType &s = xy;
             bool stateExists = action_space_ptr_->checkIfContainsRobotState(s);
             if (stateExists) {
                 int state_id = action_space_ptr_->getOrCreateRobotState(s);
                 ims::LPAStar::SearchState *search_state = getOrCreateSearchState(state_id);
+                // search state should be an obstacle and edge costs going into search state should has cost of 100.
                 updateVertex(search_state);
             }
         }

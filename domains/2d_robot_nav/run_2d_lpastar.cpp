@@ -195,8 +195,7 @@ int main(int argc, char** argv) {
             continue;
         }
         std::vector<StateType> path_;
-        for (int k {0}; k < 5; k++) {
-            // plan
+        for (int k {0}; k < 5; k++) { // plan
             std::cout << "Planning..." << std::endl;
             path_.clear();
             if (!planner.plan(path_)) {
@@ -234,8 +233,14 @@ int main(int argc, char** argv) {
             if (k != 4) {
                 // update map
                 curr_map = reconstructMap(map, map_parts, k+1);
+                std::cout << "Shape 0: " << curr_map.size() << "Shape 1: " << curr_map[0].size() << std::endl;
                 std::vector<std::vector<size_t>> updated_indices = map_parts[k+1];
                 Scene2DRob scene (curr_map);
+                std::cout << "Scene map size: " << scene.map_size[0] << scene.map_size[1] << std::endl;
+                // Possible bug here:
+                if (curr_map.size() != scene.map_size[0] || curr_map[0].size() !=  scene.map_size[1]) {
+                    std::cout << "Likely bug curr_map dimentions don't match updated scene dimensions." << std::endl;
+                }
                 action_space->updateActionSpace(scene);
                 planner.updateVertices(updated_indices, curr_map);
             }
