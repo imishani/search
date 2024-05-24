@@ -278,8 +278,7 @@ struct ExperiencesCollective {
 
         // Remove all prefixes in the experiences that come before this state.
         for (const auto& experience_ptr : all_experiences_with_state) {
-            // Find the index of the state in the experience.
-            // TODO(yoraish): a state may appear more than once if the experience has loops. So find the last index.
+            // Find the index of the state in the experience. A state may appear more than once if the experience has loops or waits. So find the last index.
             auto state_rev_index_it = std::find(experience_ptr->getPath().rbegin(), experience_ptr->getPath().rend(), state);
             int state_rev_index = (int)std::distance(experience_ptr->getPath().rbegin(), state_rev_index_it);
             int state_index = experience_ptr->getPath().size() - state_rev_index - 1;
