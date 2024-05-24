@@ -204,7 +204,7 @@ struct ExperiencesCollective {
     void setPathExperiences(const std::vector<std::shared_ptr<PathExperience>>& experiences) {
         path_experiences_ptrs_ = experiences;
 
-        // Populate the map betwee states and experiences: point each of the states in the experience to this experience. 
+        // Populate the map between states and experiences: point each of the states in the experience to this experience.
         for (const auto& experience_ptr : path_experiences_ptrs_) {
             // If a state appears multiple times in this experience, then skip it after the first time.
             std::set<StateType> states_seen_in_experience;
@@ -278,9 +278,10 @@ struct ExperiencesCollective {
 
         // Remove all prefixes in the experiences that come before this state.
         for (const auto& experience_ptr : all_experiences_with_state) {
-            // Find the index of the state in the experience.
-            auto it = std::find(experience_ptr->getPath().begin(), experience_ptr->getPath().end(), state);
-            int state_index = (int)std::distance(experience_ptr->getPath().begin(), it);
+            // Find the index of the state in the experience. A state may appear more than once if the experience has loops or waits. So find the last index.
+            auto state_rev_index_it = std::find(experience_ptr->getPath().rbegin(), experience_ptr->getPath().rend(), state);
+            int state_rev_index = (int)std::distance(experience_ptr->getPath().rbegin(), state_rev_index_it);
+            int state_index = experience_ptr->getPath().size() - state_rev_index - 1;
 
             // Add the subpath to the experiences.
             experience_subpaths.emplace_back(experience_ptr->getPath().begin() + state_index, experience_ptr->getPath().end());

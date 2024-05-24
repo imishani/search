@@ -137,7 +137,7 @@ void ims::FocalEAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<
 
         // Add the state to the open list if it is not already there.
         // NOTE(yoraish): does it makes sense to update states already in open? This may assign currently "good" state-parents to "bad" ones instead. For now, any state in open is not changed.
-        if (!open_.contains(search_state)){
+        if (!search_state->in_closed && !search_state->in_open){
             open_.push(search_state);
             // Set the state to be open.
             search_state->setOpen();
