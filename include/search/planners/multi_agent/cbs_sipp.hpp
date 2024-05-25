@@ -91,6 +91,9 @@ public:
 
     void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
                                  const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
+    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>> &action_space_ptrs,
+                           const std::vector<std::string> &agent_names, const std::vector<StateType> &starts,
+                           const std::vector<StateType> &goals) override;
     void createRootInOpenList() override;
 
 protected:
@@ -102,7 +105,6 @@ protected:
 
     // The low-level planners are SIPP.
     std::vector<std::shared_ptr<SIPP>> agent_planner_ptrs_;
-
 };
 
 }  // namespace ims

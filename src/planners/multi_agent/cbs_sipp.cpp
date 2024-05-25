@@ -39,8 +39,9 @@ ims::CBSSIPP::CBSSIPP(const ims::CBSSIPPParams& params) : params_(params), ims::
 }
 
 void ims::CBSSIPP::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
-                                 const std::vector<StateType>& starts, const std::vector<StateType>& goals) {
-    // Reset the open list. Do this by deleting it and creating it again. TODO(yoraish): add `clear` method to our custom queues.
+                                 const std::vector<StateType>& starts,
+                                 const std::vector<StateType>& goals) {
+    // Reset the open list. Do this by deleting it and creating it again.
     open_->clear();
     
     // Store the action spaces. This must happen before checking for the validity of the start and end states.
@@ -69,7 +70,13 @@ void ims::CBSSIPP::initializePlanner(std::vector<std::shared_ptr<ConstrainedActi
         agent_planner_ptrs_.push_back(std::make_shared<ims::SIPP>(sipp_params));
     }
 }
-
+void ims::CBSSIPP::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
+                                     const std::vector<std::string> & agent_names,
+                                     const std::vector<StateType>& starts,
+                                     const std::vector<StateType>& goals){
+                        agent_names_ = agent_names;
+                        initializePlanner(action_space_ptrs, starts, goals);
+                        }
 void ims::CBSSIPP::createRootInOpenList(){
     // Generate a plan for each of the agents.
     MultiAgentPaths initial_paths;
