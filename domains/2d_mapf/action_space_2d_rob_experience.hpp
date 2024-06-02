@@ -293,13 +293,6 @@ public:
             }
         }
     }
-
-    void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) override{
-        const auto & curr_state = this->getRobotState(state_id);
-        // Ask the constraints collective for the safe intervals of this state configuration.
-        constraints_collective_ptr_->getOrCreateSafeIntervals(curr_state->state, safe_intervals);
-    }
-
 };
 
 /// @brief A constrained action space for the 2D mapf domain, with the subcost and experience acceleration extensions.

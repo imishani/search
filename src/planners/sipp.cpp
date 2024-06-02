@@ -94,11 +94,11 @@ void ims::SIPP::initializePlanner(const std::shared_ptr<ConstrainedActionSpace>&
     StateType goal_wo_time{goal.begin(), goal.end() - 1};
 
     // Check if start is valid.
-    if (!action_space_ptr_->isStateValid(start_wo_time)){
+    if (!action_space_ptr_->isStateValid(start)){
         throw std::runtime_error("Start state is not valid.");
     }
     // check if goal is valid
-    if (!action_space_ptr_->isStateValid(goal_wo_time)){
+    if (!action_space_ptr_->isStateValid(goal)){
         throw std::runtime_error("Goal state is not valid.");
     }
 
@@ -215,7 +215,15 @@ void ims::SIPP::expand(int state_id){
                                                                   && t >= succ_safe_interval.first
                                                                   && t <= succ_safe_interval.second){
                     if (params_.verbose){
-                        std::cout << GREEN << " * Found valid arrival time: " << t << " from " << action_space_ptr_->getRobotState(state->cfg_state_id)->state << " to " << action_space_ptr_->getRobotState(successor_cfg_state_id)->state << RESET << std::endl;
+                        std::cout << GREEN
+                                  << " * Found valid arrival time: "
+                                  << t
+                                  << " from state id " << state->cfg_state_id << " cfg "
+                                  << action_space_ptr_->getRobotState(state->cfg_state_id)->state
+                                  << " to state id " << successor_cfg_state_id << " cfg "
+                                  << action_space_ptr_->getRobotState(successor_cfg_state_id)->state
+                                  << RESET
+                                  << std::endl;
                     }
                     
                     arrival_t = t;
@@ -242,7 +250,25 @@ void ims::SIPP::expand(int state_id){
             // Found a valid arrival time. Create a search state for this successor.
             SearchState* successor = getOrCreateSearchStateFromCfgIdAndSafeInterval(successor_cfg_state_id, succ_safe_interval);
             if (successor->in_closed){
-                continue;
+                // In WSIPP, closed nodes must be avaluated again and re-queued if a better path is found.
+                if (params_.epsilon == 1){
+                    continue;
+                }
+                else{
+                    if (successor->g > arrival_t) {
+                        successor->parent_id = state->state_id;
+                        successor->g = arrival_t;
+                        successor->f = successor->g + params_.epsilon * successor->h;
+                        open_.push(successor);
+                        successor->setOpen();
+                        if (params_.verbose) {
+                            std::cout << "State id " << successor->state_id << " gets parent id " << state->state_id
+                                      << " with g " << successor->g << " and f " << successor->f << " [reopened]"
+                                      << std::endl;
+                        }
+                    }
+                    continue;
+                }
             }
             // Check if the successor is already in the open list.
             if (successor->in_open){
@@ -252,14 +278,24 @@ void ims::SIPP::expand(int state_id){
                     successor->g = arrival_t;
                     successor->f = successor->g + params_.epsilon*successor->h;
                     open_.update(successor);
+                    if (params_.verbose) {
+                        std::cout << "State id " << successor->state_id << " gets parent id " << state->state_id
+                                  << " with g " << successor->g << " and f " << successor->f << " [updated]"
+                                  << std::endl;
+                    }
                 }
             } else {
                 successor->parent_id = state->state_id;
                 successor->g = arrival_t;
                 successor->h = computeHeuristic(successor_cfg_state_id);
                 successor->f = successor->g + params_.epsilon*successor->h;
-                open_.push(successor);
                 successor->setOpen();
+                open_.push(successor);
+                if (params_.verbose) {
+                    std::cout << "State id " << successor->state_id << " gets parent id " << state->state_id
+                              << " with g " << successor->g << " and f " << successor->f << " [pushed new]"
+                              << std::endl;
+                }
             }
         }
     }

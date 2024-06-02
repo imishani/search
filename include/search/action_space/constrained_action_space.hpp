@@ -80,7 +80,12 @@ public:
     /// @brief Get safe intervals for a given configuration.
     /// @param state_id The id of the configuration. The RobotState.
     /// @return A vector of safe intervals.
-    virtual void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) = 0;
+//    virtual void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) = 0;
+    virtual void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals){
+        const auto & curr_state = this->getRobotState(state_id);
+        // Ask the constraints collective for the safe intervals of this state configuration.
+        constraints_collective_ptr_->getOrCreateSafeIntervals(curr_state->state, safe_intervals);
+    }
 
 };
 
