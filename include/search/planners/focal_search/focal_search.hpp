@@ -73,6 +73,7 @@ struct FocalSearchPlannerStats : public PlannerStats {
 class FocalSearch : public Planner {
 private:
     friend class FocalwAStar; friend class FocalEAwAStarUniformCost;
+    friend class FocalwSIPP;
 
     /// @brief The search state.
     struct SearchState : public ims::SearchState, ims::SearchStateLowerBoundMixin {

@@ -37,7 +37,9 @@ ims::FocalwSIPP::FocalwSIPP(const ims::FocalwSIPPParams &params) : params_(param
 }
 
 ims::FocalwSIPP::~FocalwSIPP(){
-    resetPlanningData();
+    for (auto &state : states_){
+        delete state;
+    }
 }
 
 //void ims::FocalwSIPP::initializePlanner(const std::shared_ptr<SubcostActionSpace> &action_space_ptr,
@@ -92,118 +94,236 @@ ims::FocalwSIPP::~FocalwSIPP(){
 //    this->stats_.suboptimality = params_.epsilon;
 //    this->stats_.focal_suboptimality = params_.focal_suboptimality;
 //}
+
+void ims::FocalwSIPP::initializePlanner(const std::shared_ptr<SubcostConstrainedActionSpace>& action_space_ptr,
+                                   const StateType& start, const StateType& goal) {
+    // Space pointer.
+    action_space_ptr_ = action_space_ptr;
+
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
+
+    // Get start and goal without time.
+    auto start_time = (TimeType)start.back();
+    auto goal_time = (TimeType)goal.back();
+    StateType start_wo_time{start.begin(), start.end() - 1};
+    StateType goal_wo_time{goal.begin(), goal.end() - 1};
+
+    // Check if start is valid.
+    if (!action_space_ptr_->isStateValid(start)){
+        throw std::runtime_error("Start state is not valid");
+    }
+    // check if goal is valid
+    if (!action_space_ptr_->isStateValid(goal)){
+        throw std::runtime_error("Goal state is not valid");
+    }
+
+    // Create the objects for the start state.
+    int start_cfg_id = action_space_ptr_->getOrCreateRobotState(start_wo_time);
+    std::vector<SafeIntervalType> start_safe_intervals;
+    action_space_ptr_->getSafeIntervals(start_cfg_id, start_safe_intervals);
+    assert(!start_safe_intervals.empty());
+    // Check that the first safe interval contains the start time.
+    if (start_time < start_safe_intervals[0].first || start_time > start_safe_intervals[0].second){
+        throw std::runtime_error("Start time is not in the first safe interval.");
+    }
+    // Get the search state for the start.
+    ims::FocalwSIPP::SearchState* start_state = getOrCreateSearchStateFromCfgIdAndSafeInterval(start_cfg_id, start_safe_intervals[0]);
+    int start_id = start_state->state_id;
+    start_state->parent_id = PARENT_TYPE(START);
+    // Evaluate the start state
+    start_state->g = start_time;
+    start_state->f = start_state->g + params_.epsilon*start_state->h;
+    start_state->c = 0;
+    start_state->setOpen();
+
+    // Create the objects for the goal state.
+    int goal_cfg_id = action_space_ptr_->getOrCreateRobotState(goal_wo_time);
+    // Get the safe intervals for the goal.
+    std::vector<SafeIntervalType> goal_safe_intervals;
+    action_space_ptr_->getSafeIntervals(goal_cfg_id, goal_safe_intervals);
+    assert(!goal_safe_intervals.empty());
+    // The last safe interval should contain the goal time.
+    if ((goal_time < goal_safe_intervals.back().first || goal_time > goal_safe_intervals.back().second) && goal_time != -1){
+        throw std::runtime_error("Goal time is not in the last safe interval.");
+    }
+    // Get the search state for the goal. We use the last safe interval to ensure that the agent can wait at the goal forever.
+    ims::FocalwSIPP::SearchState* goal_state = getOrCreateSearchStateFromCfgIdAndSafeInterval(goal_cfg_id, goal_safe_intervals.back());
+    int goal_id = goal_state->state_id;
+    goals_.push_back(goal_id);
+
+    heuristic_->setStart(const_cast<StateType &>(start_wo_time));
+    // Evaluate the goal state
+    goal_state->parent_id = PARENT_TYPE(GOAL);
+    heuristic_->setGoal(const_cast<StateType &>(goal_wo_time));
+    goal_state->h = 0;
+
+    // Set the in open.
+    start_state->h = computeHeuristic(start_cfg_id);
+    open_.push(start_state);
+    // Update the sub-optimality bound in the statistics object.
+    stats_.suboptimality = params_.epsilon;
+    this->stats_.focal_suboptimality = params_.focal_suboptimality;
+}
+
+bool ims::FocalwSIPP::plan(std::vector<StateType>& path) {
+    startTimer();
+    int iter {0};
+
+    // Reorder the open list.
+    double open_list_f_lower_bound = open_.getLowerBound();
+    open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
+
+    while (!open_.empty() && !isTimeOut()){
+        // report progress every 1000 iterations
+        if (iter % 100000 == 0 && params_.verbose){
+            std::cout << "Iter: " << iter << " open size: " << open_.size() << std::endl;
+        }
+
+        // Get a state from the OPEN list and remove it.
+        auto state  = open_.min();
+        open_.pop();
+        state->setClosed();
+
+        if (isGoalState(state->state_id)){
+            goal_ = state->state_id;
+            getTimeFromStart(stats_.time);
+            reconstructPath(path, stats_.transition_costs);
+            stats_.cost = state->g;
+            stats_.path_length = (int)path.size();
+            stats_.num_generated = (int)action_space_ptr_->states_.size();
+
+            // TODO(yoraish): Get the non-weighted (g+h) minimal value from the OPEN list.
+            stats_.lower_bound = state->g / params_.epsilon;
+
+            return true;
+        }
+
+        // Expand the state.
+        expand(state->state_id);
+        ++iter;
+
+        // Check if the OPEN list is empty. If so, break.
+        if (open_.empty()){
+            break;
+        }
+
+        // Update the OPEN list. Ensure that the focal bound is at least as large as the minimal f-value in the OPEN list.
+        open_list_f_lower_bound = open_.getLowerBound();
+        open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
+    }
+    getTimeFromStart(stats_.time);
+    return false;
+}
+
+void ims::FocalwSIPP::expand(int state_id){
+
+    SearchState* state = getSearchState(state_id);
+    StateType state_wo_time = action_space_ptr_->getRobotState(state->cfg_state_id)->state;
+    std::vector<int> successors;
+    std::vector<double> costs;
+
+    action_space_ptr_->getSuccessors(state->state_id, successors, costs);
+    for (size_t i {0} ; i < successors.size() ; ++i){
+        int successor_cfg_state_id = successors[i];
+        double cost = costs[i];
+        int transition_time = (int)cost;
+        assert(transition_time != 0);
+        StateType succ_state_wo_time = action_space_ptr_->getRobotState(successor_cfg_state_id)->state;
+        // The earliest time of reaching a successor.
+        TimeType arrival_start_t = (TimeType)state->g + transition_time;
+        // The latest time of reaching a successor.
+        TimeType arrival_end_t = state->safe_interval.second + transition_time;
+        // Iterate over the safe intervals of the successor configuration.
+        std::vector<SafeIntervalType> succ_safe_intervals;
+        action_space_ptr_->getSafeIntervals(successor_cfg_state_id, succ_safe_intervals);
+
+        //# ============
+        for (const SafeIntervalType& succ_safe_interval : succ_safe_intervals){
+            // If the safe interval starts after the latest time of reaching the successor, or ends before the earliest time of reaching the successor, then it is not relevant.
+            if (succ_safe_interval.first > arrival_end_t || succ_safe_interval.second < arrival_start_t){
+                continue;
+            }
+            // Compute the earliest valid arrival time to the successor. This necessitates a validity check w.r.t. constraints. The static obstacles are already checked in the getSuccessors function.
+            TimeType arrival_t = -1;
+            double transition_subcost;
+            for (TimeType t = arrival_start_t ; t <= std::min(arrival_end_t, succ_safe_interval.second) ; ++t){
+                // Construct the configurations of the state and the successor.
+                StateType robot_cfg_state{state_wo_time};
+                StateType succ_robot_cfg_state{succ_state_wo_time};
+                robot_cfg_state.push_back(t - transition_time);
+                succ_robot_cfg_state.push_back(t);
+
+                if (action_space_ptr_->isSatisfyingAllConstraints(robot_cfg_state,succ_robot_cfg_state)
+                                                                  && t >= succ_safe_interval.first
+                                                                  && t <= succ_safe_interval.second){
+
+                    arrival_t = t;
+                    // Compute the subcost of the motion (from current safe interval to new safe interval identified.
+                    action_space_ptr_->getTimedTransitionSubcost(robot_cfg_state, succ_robot_cfg_state, transition_subcost);
+                    break;
+                }
+            }
+            if (arrival_t == -1){
+                continue;
+            }
+
+            // Found a valid arrival time. Create a search state for this successor.
+            SearchState* successor = getOrCreateSearchStateFromCfgIdAndSafeInterval(successor_cfg_state_id, succ_safe_interval);
+            if (successor->in_closed){
+                // In WSIPP and also in focal search, closed nodes must be evaluated again and re-queued if a better path is found.
+                if (successor->g > arrival_t) {
+                    successor->parent_id = state->state_id;
+                    successor->g = arrival_t;
+                    successor->f = successor->g + params_.epsilon * successor->h;
+                    successor->c = state->c + transition_subcost;
+                    open_.push(successor);
+                    successor->setOpen();
+                    if (params_.verbose) {
+                        std::cout << "State id " << successor->state_id << " gets parent id " << state->state_id
+                                  << " with g " << successor->g << " and f " << successor->f << " [reopened]"
+                                  << std::endl;
+                    }
+                }
+                continue;
+            }
+            // Check if the successor is already in the open list.
+            if (successor->in_open){
+                // Check if the new arrival time is better than the old one.
+                if (successor->g > arrival_t){
+                    successor->parent_id = state->state_id;
+                    successor->g = arrival_t;
+                    successor->f = successor->g + params_.epsilon*successor->h;
+                    open_.update(successor);
+                    if (params_.verbose) {
+                        std::cout << "State id " << successor->state_id << " gets parent id " << state->state_id
+                                  << " with g " << successor->g << " and f " << successor->f << " [updated]"
+                                  << std::endl;
+                    }
+                }
+            } else {
+                successor->parent_id = state->state_id;
+                successor->g = arrival_t;
+                successor->h = computeHeuristic(successor_cfg_state_id);
+                successor->f = successor->g + params_.epsilon*successor->h;
+                successor->setOpen();
+                open_.push(successor);
+                if (params_.verbose) {
+                    std::cout << "State id " << successor->state_id << " gets parent id " << state->state_id
+                              << " with g " << successor->g << " and f " << successor->f << " [pushed new]"
+                              << std::endl;
+                }
+            }
+        }
+    }
+    stats_.num_expanded++;
+}
+
 //
-//void ims::FocalwSIPP::initializePlanner(const std::shared_ptr<SubcostActionSpace>& action_space_ptr,
-//                                   const StateType& start, const StateType& goal) {
-//    // Space pointer.
-//    action_space_ptr_ = action_space_ptr;
-//
-//    // Clear both.
-//    action_space_ptr_->resetPlanningData();
-//    resetPlanningData();
-//
-//    // check if start is valid
-//    if (!action_space_ptr_->isStateValid(start)){
-//        throw std::runtime_error("Start state is not valid");
-//    }
-//    // check if goal is valid
-//    if (!action_space_ptr_->isStateValid(goal)){
-//        throw std::runtime_error("Goal state is not valid");
-//    }
-//    int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-//    auto start_ = getOrCreateSearchState(start_ind_);
-//
-//    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
-//    auto goal_ = getOrCreateSearchState(goal_ind_);
-//    goals_.push_back(goal_ind_);
-//
-//    start_->parent_id = PARENT_TYPE(START);
-//    heuristic_->setStart(const_cast<StateType &>(start));
-//    // Evaluate the goal state
-//    goal_->parent_id = PARENT_TYPE(GOAL);
-//    heuristic_->setGoal(const_cast<StateType &>(goal));
-//    goal_->h = 0;
-//    // Evaluate the start state
-//    start_->g = 0;
-//    start_->c = 0;
-//    start_->h = computeHeuristic(start_ind_);
-//    start_->f = start_->g + params_.epsilon*start_->h;
-//    start_->setOpen();
-//
-//    open_.push(start_);
-//
-//    // Update stats suboptimality.
-//    this->stats_.suboptimality = params_.epsilon;
-//    this->stats_.focal_suboptimality = params_.focal_suboptimality;
-//}
-//
-//bool ims::FocalwSIPP::plan(std::vector<StateType>& path) {
-//    startTimer();
-//    int iter {0};
-//
-//    // Reorder the open list.
-//    double open_list_f_lower_bound = open_.getLowerBound();
-//    open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
-//
-//    while (!open_.empty() && !isTimeOut()){
-//        // report progress every 1000 iterations
-//        if (iter % 100000 == 0 && params_.verbose){
-//            std::cout << "Iter: " << iter << " open size: " << open_.size() << std::endl;
-//        }
-//
-//        // Get a state from the OPEN list and remove it.
-//        auto state  = open_.min();
-//        open_.pop();
-//        state->setClosed();
-//
-//        if (isGoalState(state->state_id)){
-//            goal_ = state->state_id;
-//            getTimeFromStart(stats_.time);
-//            reconstructPath(path, stats_.transition_costs);
-//            stats_.cost = state->g;
-//            stats_.path_length = (int)path.size();
-//            stats_.num_generated = (int)action_space_ptr_->states_.size();
-//
-//            // TODO(yoraish): Get the non-weighted (g+h) minimal value from the OPEN list.
-//            stats_.lower_bound = state->g / params_.epsilon;
-//
-//            return true;
-//        }
-//
-//        // Expand the state.
-//        expand(state->state_id);
-//        ++iter;
-//
-//        // Check if the OPEN list is empty. If so, break.
-//        if (open_.empty()){
-//            break;
-//        }
-//
-//        // Update the OPEN list. Ensure that the focal bound is at least as large as the minimal f-value in the OPEN list.
-//        open_list_f_lower_bound = open_.getLowerBound();
-//        open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
-//
-//    }
-//    getTimeFromStart(stats_.time);
-//    return false;
-//}
-//
-//void ims::FocalwSIPP::expand(int state_id){
-//
-//    SearchState* state = getSearchState(state_id);
-//    std::vector<int> successors;
-//    std::vector<double> costs;
-//    std::vector<double> subcosts;
-//
-//    action_space_ptr_->getSuccessors(state->state_id, successors, costs, subcosts);
-//    for (size_t i {0} ; i < successors.size() ; ++i){
-//        int successor_id = successors[i];
-//        double cost = costs[i];
-//        double subcost = subcosts[i];
-//        SearchState* successor = getOrCreateSearchState(successor_id);
+//        SearchState* successor = getOrCreateSearchState(successor_cfg_state_id);
 //
 //        // If this state does not already exists, then we add it to the open list normally.
-//        // if (states_.find(successor_id) == states_.end()){
 //        if (!successor->in_closed && !successor->in_open){
 //            setStateVals(successor->state_id, state->state_id, cost, subcost);
 //            open_.push(successor);
@@ -246,6 +366,8 @@ ims::FocalwSIPP::~FocalwSIPP(){
 //    }
 //    stats_.num_expanded++;
 //}
+
+
 //
 //
 //void ims::FocalwSIPP::setStateVals(int state_id, int parent_id, double cost, double subcost)

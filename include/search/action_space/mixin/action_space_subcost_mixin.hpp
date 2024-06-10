@@ -65,6 +65,8 @@ public:
                                    std::vector<int>& successors,
                                    std::vector<double>& costs, 
                                    std::vector<double> &subcosts) = 0;
+    /// @brief Compute the subcost associated with a particular timed transition. Notice that states have time in their last element.
+    virtual void getTransitionSubcost(const StateType& state_from, const StateType& state_to, double & subcost) = 0;
 };
 
 }  // namespace ims

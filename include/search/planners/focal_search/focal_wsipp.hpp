@@ -71,9 +71,16 @@ namespace ims{
     class FocalwSIPP : virtual public FocalSearch {
 
     private:
+        /// @brief The search state.
+        struct SearchState: public ims::FocalSearch::SearchState{
+            /// @note The arrival time is the g-value of the node. This assumes inegral time steps.
 
-        // friend class FocalAStar; friend class FocalDijkstra;
-        // friend class FocalExperienceWAstar; friend class FocalEAwAStarUniformCost;
+            /// @brief The safe interval. Safe between [t1, t2] inclusive.
+            std::pair<TimeType, TimeType> safe_interval;
+
+            /// @brief The configuration id.
+            int cfg_state_id {UNSET};
+        };
 
     public:
         /// @brief Constructor
@@ -101,7 +108,7 @@ namespace ims{
         /// @brief plan a path
         /// @param path The path
         /// @return if the plan was successful or not
-//        bool plan(std::vector<StateType> &path) override;
+        bool plan(std::vector<StateType> &path) override;
 
         void setStateVals(int state_id, int parent_id, double cost, double subcost) override;
 
@@ -128,6 +135,9 @@ namespace ims{
         void expand(int state_id) override;
 
         FocalwSIPPParams params_;
+
+        // The action space.
+        std::shared_ptr<SubcostConstrainedActionSpace> action_space_ptr_;
     };
 
 }

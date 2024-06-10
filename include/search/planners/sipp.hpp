@@ -40,7 +40,7 @@
 // Standard includes
 #include <utility>
 #include <algorithm>
-// project includes
+// Project includes.
 #include <search/planners/best_first_search.hpp>
 #include <search/action_space/constrained_action_space.hpp>
 
@@ -167,8 +167,8 @@ namespace ims{
         auto getAllSearchStates() -> std::vector<SearchState*>;
 
         /// @brief Get the heuristic value of a state.
-        double computeHeuristic(int state_id) ;
-        double computeHeuristic(int s1_id, int s2_id) ;
+        double computeHeuristic(int state_id) override ;
+        double computeHeuristic(int s1_id, int s2_id) override ;
     
         
     protected:

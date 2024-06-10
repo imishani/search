@@ -138,15 +138,15 @@ protected:
             if (f1 == f2) {
                 if (g1 == g2) {
                     if (c1 == c2) {
-                        return s1.state_id < s2.state_id;
+                        return s1.state_id < s2.state_id; // Fourth.
                     } else {
-                        return c1 < c2;
+                        return c1 < c2; // Third.
                     }
                 } else {
-                    return g1 < g2;
+                    return g1 < g2; // Second.
                 }
             } else {
-                return f1 < f2;
+                return f1 < f2; // First.
             }
         }   
     };
