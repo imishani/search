@@ -261,7 +261,7 @@ void ims::FocalwSIPP::expand(int state_id){
 
                     arrival_t = t;
                     // Compute the subcost of the motion (from current safe interval to new safe interval identified.
-                    action_space_ptr_->getTimedTransitionSubcost(robot_cfg_state, succ_robot_cfg_state, transition_subcost);
+//                    action_space_ptr_->getTransitionSubcost(robot_cfg_state, succ_robot_cfg_state, transition_subcost);
                     break;
                 }
             }
