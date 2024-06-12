@@ -110,11 +110,11 @@ void ims::CBS::createRootInOpenList(){
 
     for (size_t i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
-        agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
-        bool is_plan_success = agent_planner_ptrs_[i]->plan(path);
+        PlannerStats stats_low_level;
+        bool is_plan_success = initializeAndPlanLowLevel(i, path, stats_low_level);
 
         // Add the number of low level nodes to the counter.
-        stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[i]->stats_.num_expanded;
+        stats_.bonus_stats["num_low_level_expanded"] += stats_low_level.num_expanded;
 
         // If there is no path for this agent, then this is not a valid state. Do not add a new state to the open list.
         if (!is_plan_success) {
@@ -131,11 +131,11 @@ void ims::CBS::createRootInOpenList(){
         initial_paths[i] = path;
 
         // Compute the cost of the path.
-        initial_paths_costs[i] = agent_planner_ptrs_[i]->stats_.cost;
-        initial_paths_transition_costs[i] = agent_planner_ptrs_[i]->stats_.transition_costs;
+        initial_paths_costs[i] = stats_low_level.cost;
+        initial_paths_transition_costs[i] = stats_low_level.transition_costs;
 
         // Compute the lower bound of the path.
-        initial_paths_lower_bounds[i] = agent_planner_ptrs_[i]->stats_.cost;
+        initial_paths_lower_bounds[i] = stats_low_level.cost;
         initial_sum_of_path_cost_lower_bounds += initial_paths_lower_bounds[i];
     }
 
@@ -294,24 +294,23 @@ void ims::CBS::expand(int state_id) {
         std::shared_ptr<ConstraintsCollective> constraints_collective_ptr = std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]);
         std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
         // context_ptr->agent_paths = new_state->paths;
+        context_ptr->action_space_ptr = agent_action_space_ptrs_[agent_id];
         context_ptr->agent_names = agent_names_;
         constraints_collective_ptr->setContext(context_ptr);
         agent_action_space_ptrs_[agent_id]->setConstraintsCollective(constraints_collective_ptr);
 
-        // Update the low-level planner for this agent.
-        agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);
-
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
         new_state->paths[agent_id].clear();
-        agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
-        new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.transition_costs;
-        new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->stats_.cost;
+        PlannerStats stats_low_level;
+        initializeAndPlanLowLevel(agent_id, new_state->paths[agent_id], stats_low_level);
+        new_state->paths_transition_costs[agent_id] = stats_low_level.transition_costs;
+        new_state->paths_costs[agent_id] = stats_low_level.cost;
         new_state->f = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
-        new_state->path_cost_lower_bounds[agent_id] = agent_planner_ptrs_[agent_id]->stats_.cost;
+        new_state->path_cost_lower_bounds[agent_id] = stats_low_level.cost;
         new_state->sum_of_path_cost_lower_bounds = std::accumulate(new_state->path_cost_lower_bounds.begin(), new_state->path_cost_lower_bounds.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
 
         // Add the number of low level nodes to the counter.
-        stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[agent_id]->stats_.num_expanded;
+        stats_.bonus_stats["num_low_level_expanded"] += stats_low_level.num_expanded;
 
         // Add a random number between zero and one to f.
         // new_state->f += (double)rand() / RAND_MAX; // Uncomment for nitro boost.
@@ -332,10 +331,10 @@ void ims::CBS::expand(int state_id) {
             static int sum_of_get_path_conflict_time = 0;
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             get_paths_conflicts_counter++;
-            agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(new_state->paths), 
-                                                           new_state->unresolved_conflicts, 
+            agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(new_state->paths),
+                                                           new_state->unresolved_conflicts,
                                                            getConflictTypes()   ,
-                                                           1, 
+                                                           1,
                                                            agent_names_);
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             ++get_paths_conflicts_counter;
@@ -398,4 +397,17 @@ void ims::CBS::createLowLevelPlanners(){
         ims::wAStarParams wastar_params_(params_.low_level_heuristic_ptrs[i], params_.weight_low_level_heuristic);
         agent_planner_ptrs_.push_back(std::make_shared<ims::wAStar>(wastar_params_));
     }
+}
+
+bool ims::CBS::initializeAndPlanLowLevel(int agent_id, std::vector<StateType>& path, PlannerStats& stats){
+    // Initialize the low-level planner.
+    agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);
+
+    // Plan with the low-level planner.
+    bool is_plan_success = agent_planner_ptrs_[agent_id]->plan(path);
+
+    // Update the stats.
+    stats = agent_planner_ptrs_[agent_id]->getStats();
+
+    return is_plan_success;
 }

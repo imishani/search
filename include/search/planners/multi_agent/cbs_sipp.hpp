@@ -29,7 +29,7 @@
 /*!
  * \file   cbs_sipp.hpp
  * \author Yorai Shaoul (yorai@cmu.edu)
- * \date   2024-01-17
+ * \date   2024-06-12
  */
 #pragma once
 
@@ -53,58 +53,25 @@
 
 namespace ims {
 
-/// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
-using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
-
-/// @brief An object for mapping [agent_ids][timestamp] to a state.
-using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
-
-// ==========================
-// Related structs: CBSSIPPParams
-// ==========================
-
-/// @class CBSParams class.
-/// @brief The parameters for the CBS algorithm
-struct CBSSIPPParams : public CBSParams {
-    /// @brief Constructor
-    explicit CBSSIPPParams() : CBSParams() {}
-
-    /// @brief Destructor
-    ~CBSSIPPParams() override = default;
-};
-
-// ==========================
-// CBS Sphere-3D Algorithm.
-// ==========================
 /// @class CBS for private grids class.
 /// @brief The CBS algorithm for private grids. Perhaps obviously.
 class CBSSIPP : public CBS {
-private:
-
 public:
-    /// @brief Constructor
-    /// @param params The parameters
-    explicit CBSSIPP(const CBSSIPPParams& params);
-
-    /// @brief Destructor
-    ~CBSSIPP() override = default;
-
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
-                                 const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>> &action_space_ptrs,
-                           const std::vector<std::string> &agent_names, const std::vector<StateType> &starts,
-                           const std::vector<StateType> &goals) override;
-    void createRootInOpenList() override;
-
+    explicit CBSSIPP(const CBSParams& params) : CBS(params) {}
+private:
 protected:
-    void expand(int state_id) override;
+    /// @brief Create the low level planners. We use focal weighted SIPP in this instance.
+    void createLowLevelPlanners() override;
 
+    /// @brief (Re)Initialize the low level planners and plan. Populate the paths and stats objects.
+    /// @param agent_id the agent integer identifier.
+    /// @param paths The paths to populate.
+    /// @param stats The stats to populate.
+    bool initializeAndPlanLowLevel(int agent_id, std::vector<StateType>& path, PlannerStats& stats) override;
 
-    // Parameters.
-    CBSSIPPParams params_;
-
-    // The low-level planners are SIPP.
+    // The low-level planners. Overrides the CBS planners set to be wAStar.
     std::vector<std::shared_ptr<SIPP>> agent_planner_ptrs_;
+
 };
 
 }  // namespace ims

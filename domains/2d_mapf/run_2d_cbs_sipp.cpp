@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
     std::cout << "Constructing planner..." << std::endl;
 
     // Construct the parameters.
-    ims::CBSSIPPParams params;
+    ims::CBSParams params;
     params.weight_low_level_heuristic = 1.0;
     for (int i {0}; i < num_agents; i++){
         params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanHeuristic);

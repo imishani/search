@@ -126,8 +126,8 @@ int main(int argc, char** argv) {
         }
 
         // Construct the parameters.
-        ims::CBSSIPPParams params;
-        params.weight_low_level_heuristic = vm["high_level_focal_suboptimality"].as<double>();
+        ims::CBSParams params;
+        params.weight_low_level_heuristic = 1.0;
         params.verbose = false;
 
         for (int i {0}; i < num_agents; i++){
@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
         ims::ECBSParams params;
         params.high_level_focal_suboptimality = vm["high_level_focal_suboptimality"].as<double>();
         params.low_level_focal_suboptimality = params.high_level_focal_suboptimality;
-        params.weight_low_level_heuristic = params.high_level_focal_suboptimality;
+        params.weight_low_level_heuristic = 1.0;
         params.verbose = false;
 
         for (int i {0}; i < num_agents; i++){

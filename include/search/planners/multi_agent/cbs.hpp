@@ -79,9 +79,6 @@ struct CBSParams : public BestFirstSearchParams {
 
     /// @brief The weight to use in the low level planner heuristic.
     double weight_low_level_heuristic = 1.0;
-
-    /// @brief The low level planner type.
-    PlannerType low_level_planner_type_ = PlannerType::W_ASTAR;
 };
 
 // ==========================
@@ -247,6 +244,14 @@ protected:
     /// @brief Create the low level planner objects.
     void createLowLevelPlanners() override;
 
+    /// @brief (Re)Initialize the low level planners and plan. Populate the paths and stats objects.
+    /// @param agent_id the agent integer identifier.
+    /// @param paths The paths to populate.
+    /// @param stats The stats to populate.
+    /// @return Whether the initialization and planning was successful.
+    virtual bool initializeAndPlanLowLevel(int agent_id, std::vector<StateType>& path, PlannerStats& stats);
+
+
     /// Member variables.
     // The search parameters.
     CBSParams params_;
@@ -255,7 +260,7 @@ protected:
     std::vector<std::shared_ptr<ConstrainedActionSpace>> agent_action_space_ptrs_;
 
     // The low-level planners.
-    std::vector<std::shared_ptr<wAStar>> agent_planner_ptrs_;
+    std::vector<std::shared_ptr<BestFirstSearch>> agent_planner_ptrs_;
 
     // The low-level planners parameters.
     // EuclideanRemoveTimeHeuristic* low_level_planner_heuristic_ptr_ = new ims::EuclideanRemoveTimeHeuristic();
