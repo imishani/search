@@ -79,6 +79,9 @@ struct CBSParams : public BestFirstSearchParams {
 
     /// @brief The weight to use in the low level planner heuristic.
     double weight_low_level_heuristic = 1.0;
+
+    /// @brief The low level planner type.
+    PlannerType low_level_planner_type_ = PlannerType::W_ASTAR;
 };
 
 // ==========================
@@ -123,6 +126,11 @@ virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> co
 void verifyStartAndGoalInputStates(const std::vector<StateType>& starts,
                                    const std::vector<StateType>& goals,
                                    const std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs);
+
+/// @brief Initialize the low level planners. Store them in the agent_planner_ptrs_ vector.
+virtual void createLowLevelPlanners() = 0;
+
+/// @brief (Re)Initialize and plan low level planners passed to this function.
 
 // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
 /// @brief The search state.
@@ -235,6 +243,9 @@ protected:
     inline std::vector<ConflictType> getConflictTypes() override {
         return conflict_types_;
     }
+
+    /// @brief Create the low level planner objects.
+    void createLowLevelPlanners() override;
 
     /// Member variables.
     // The search parameters.

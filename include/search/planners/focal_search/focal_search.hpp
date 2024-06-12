@@ -181,8 +181,10 @@ public:
     /// @param goal The goal state
     virtual void initializePlanner(const std::shared_ptr<SubcostActionSpace>& action_space_ptr,
                                    const StateType& start, const StateType& goal);
-    inline void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                  const StateType& start, const StateType& goal) override { throw std::runtime_error("FocalSearch::initializePlanner() called with an ActionSpace that is not a SubcostActionSpace."); }
+//    inline void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+//                                  const StateType& start, const StateType& goal) override {
+//        throw std::runtime_error("FocalSearch::initializePlanner() called with an ActionSpace that is not a SubcostActionSpace.");
+//    }
 
     /// @brief plan a path
     /// @param path The path

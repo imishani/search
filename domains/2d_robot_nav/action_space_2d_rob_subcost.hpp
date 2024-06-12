@@ -101,7 +101,7 @@ public:
     bool getSuccessors(int curr_state_ind,
                                    std::vector<int>& successors,
                                    std::vector<double>& costs, 
-                                   std::vector<double> &subcosts){
+                                   std::vector<double> &subcosts) override{
         auto curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
@@ -136,6 +136,11 @@ public:
 
     bool isPathValid(const PathType& path) override{
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
+    }
+
+    void getTransitionSubcost(const StateType& state_val_from, const StateType& state_val_to, double & subcost) override{
+        // A random subcost with value 0 or 1.
+        subcost = ((double)rand() / RAND_MAX) < 0.5 ? 0 : 1;
     }
 };
 

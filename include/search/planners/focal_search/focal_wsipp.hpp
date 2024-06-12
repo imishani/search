@@ -68,12 +68,12 @@ namespace ims{
     /// @brief A weighted A* algorithm implementation. This algorithm is a modification of the A* algorithm that
     /// uses inflation of the heuristic function to find a solution with a cost that is within a factor of epsilon
     /// of the optimal solution (epsilon-suboptimality).
-    class FocalwSIPP : virtual public FocalSearch {
+    class FocalwSIPP : public FocalSearch {
 
     private:
         /// @brief The search state.
         struct SearchState: public ims::FocalSearch::SearchState{
-            /// @note The arrival time is the g-value of the node. This assumes inegral time steps.
+            /// @note The arrival time is the g-value of the node. This assumes integral time steps.
 
             /// @brief The safe interval. Safe between [t1, t2] inclusive.
             std::pair<TimeType, TimeType> safe_interval;
@@ -81,7 +81,11 @@ namespace ims{
             /// @brief The configuration id.
             int cfg_state_id {UNSET};
         };
-
+        /// @brief A mapping between a configuration id all its corresponding search state ids.
+        /// @note All configurations include a time component with a value of 0.
+        std::unordered_map<int, std::vector<int>> cfg_id_to_state_ids_;
+        /// @brief Keeping track of states by their id.
+        std::vector<SearchState*> states_;
     public:
         /// @brief Constructor
         /// @param params The parameters
@@ -94,23 +98,23 @@ namespace ims{
         /// @param action_space_ptr The action space
         /// @param starts Vector of start states
         /// @param goals Vector of goal states
-        void initializePlanner(const std::shared_ptr<SubcostActionSpace>& action_space_ptr,
+        void initializePlanner(const std::shared_ptr<SubcostConstrainedActionSpace>& action_space_ptr,
                                const std::vector<StateType>& starts,
-                               const std::vector<StateType>& goals) override;
+                               const std::vector<StateType>& goals);
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
         /// @param start The start state
         /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<SubcostActionSpace>& action_space_ptr,
-                               const StateType& start, const StateType& goal) override;
+        void initializePlanner(const std::shared_ptr<SubcostConstrainedActionSpace>& action_space_ptr,
+                               const StateType& start, const StateType& goal);
 
         /// @brief plan a path
         /// @param path The path
         /// @return if the plan was successful or not
         bool plan(std::vector<StateType> &path) override;
 
-        void setStateVals(int state_id, int parent_id, double cost, double subcost) override;
+        void setStateVals(SearchState* state_id, SearchState* parent_id, double cost, double subcost);
 
         /// @brief Get a search state given its configuration-id and safe interval.
         /// @param cfg_state_id The configuration id.
@@ -129,8 +133,14 @@ namespace ims{
         /// @return The state
         auto getOrCreateSearchState(int state_id) -> SearchState*;
 
+        double computeHeuristic(int state_id) override;
+        double computeHeuristic(int s1_id, int s2_id) override;
+        void resetPlanningData() override;
 
     protected:
+
+        void reconstructPath(std::vector<StateType>& path) override;
+        void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
 
         void expand(int state_id) override;
 

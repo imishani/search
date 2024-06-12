@@ -73,6 +73,7 @@ namespace ims{
         friend class CBSSphere3d;
         friend class CBSMP;
         friend class CBSSIPP;
+        friend class ECBSSIPP;
         friend class ECBS; friend class ECBSMP;
         friend class EACBS; friend class EACBSMP;
         friend class EAECBS; friend class EAECBSMP;

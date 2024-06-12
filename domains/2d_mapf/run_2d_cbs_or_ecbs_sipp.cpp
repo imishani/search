@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023, Yorai Shaoul
+ * Copyright (C) 2024, Yorai Shaoul
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,9 +27,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   planner.hpp
+ * \file   run_2d_ecbs_sipp.cpp
  * \author Yorai Shaoul (yorai@cmu.edu)
- * \date   09/07/2023
+ * \date   2024-06-12
 */
 
 #include <boost/program_options.hpp> // For argument parsing.
@@ -44,6 +44,7 @@
 // project includes
 #include <search/planners/multi_agent/cbs.hpp>
 #include <search/planners/multi_agent/ecbs.hpp>
+#include <search/planners/multi_agent/cbs_sipp.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
 
 // Note(yoraish): Leaving quotation marks include since it is a local file for the example.
@@ -54,7 +55,7 @@
 
 /// Example runs:
 /// For custom datasets: ./run_2d_mapf_cbs_or_ecbs -m 6 -a ignore -n 4 -h 1.1
-/// For mapf datasets: ./run_2d_mapf_cbs_or_ecbs --map_file_path=domains/2d_mapf/datasets/mapf-map/den312d.map 
+/// For mapf datasets: ./run_2d_mapf_cbs_or_ecbs --map_file_path=domains/2d_mapf/datasets/mapf-map/den312d.map
 ///                         -a domains/2d_mapf/datasets/scen-random/den312d-random-1.scen -n 10
 ///                         --high_level_focal_suboptimality=1.5
 int main(int argc, char** argv) {
@@ -69,7 +70,7 @@ int main(int argc, char** argv) {
 		("map_file_path,m", po::value<string>()->required(), "relative map file path from search directory")
         ("agent_file_path,a", po::value<string>()->required(), "relative agent file path from search directory")
 		("num_agents,n", po::value<int>()->required(), "number of agents")
-        ("high_level_focal_suboptimality,-h", po::value<double>()->default_value(1.0), 
+        ("high_level_focal_suboptimality,-h", po::value<double>()->default_value(1.0),
                     "high level suboptimality, default value of 1 is identical to CBS")
         ;
 
@@ -94,20 +95,10 @@ int main(int argc, char** argv) {
 
     // Load the instance, handles parsing the map and agent files.
     MAPFInstance instance;
-    instance.loadInstanceFromArguments(PATH_TO_WORKSPACE, vm["map_file_path"].as<string>(), 
+    instance.loadInstanceFromArguments(PATH_TO_WORKSPACE, vm["map_file_path"].as<string>(),
                                             vm["agent_file_path"].as<string>(), num_agents);
     std::vector<StateType> start_state_vals = instance.getStartsWithTime();
     std::vector<StateType> goal_state_vals = instance.getGoalsWithTime();
-
-    // Now we have all the start and end configurations of the agents stored in start_state_vals and goal_state_vals.
-    // Let's create an action space for each agent.
-    std::cout << "Creating action spaces..." << std::endl;
-    ActionType2dRobTimed action_type;
-    // Print the available actions.
-    std::cout << "Available actions should be timed: " << std::endl;
-    for (const auto & action : action_type.getPrimActions()){
-        std::cout << action << std::endl;
-    }
 
     // Construct the planner.
     std::cout << "Constructing planner..." << std::endl;
@@ -117,6 +108,16 @@ int main(int argc, char** argv) {
     PlannerStats stats;
 
     if (!useECBS) {
+        // Now we have all the start and end configurations of the agents stored in start_state_vals and goal_state_vals.
+        // Let's create an action space for each agent.
+        std::cout << "Creating action spaces..." << std::endl;
+        // NOTE(yoraish): For SIPP the action type is NOT TIMED.
+        ActionType2dRob action_type;
+        // Print the available actions.
+        std::cout << "Available actions should be untimed:: " << std::endl;
+        for (const Action & a : action_type.getPrimActions()){
+            std::cout << " *   " << a << std::endl;
+        }
 
         std::vector<std::shared_ptr<ims::ConstrainedActionSpace>> action_spaces;
         for (int i {0}; i < num_agents; i++){
@@ -125,19 +126,35 @@ int main(int argc, char** argv) {
         }
 
         // Construct the parameters.
-        ims::CBSParams params;
+        ims::CBSSIPPParams params;
+        params.weight_low_level_heuristic = vm["high_level_focal_suboptimality"].as<double>();
+        params.verbose = false;
+
         for (int i {0}; i < num_agents; i++){
-            params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
+            // Note that the heuristic is not timed.
+            params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanHeuristic);
         }
-        params.weight_low_level_heuristic = 1.0;
-        ims::CBS planner(params);
+        std::cout << "Creating the planner..." << std::endl;
+        ims::CBSSIPP planner(params);
+        std::cout << "Initializing the planner..." << std::endl;
         planner.initializePlanner(action_spaces, start_state_vals, goal_state_vals);
-        
+        std::cout << "Planning..." << std::endl;
         // Plan.
         planner.plan(paths);
         stats = planner.reportStats();
+
     }
     else {
+        // Now we have all the start and end configurations of the agents stored in start_state_vals and goal_state_vals.
+        // Let's create an action space for each agent.
+        std::cout << "Creating action spaces..." << std::endl;
+        // NOTE(yoraish): For SIPP the action type is NOT TIMED.
+        ActionType2dRob action_type;
+        // Print the available actions.
+        std::cout << "Available actions should be untimed:: " << std::endl;
+        for (const Action & a : action_type.getPrimActions()){
+            std::cout << " *   " << a << std::endl;
+        }
 
         std::vector<std::shared_ptr<ims::SubcostConstrainedActionSpace>> action_spaces;
         for (int i {0}; i < num_agents; i++){
@@ -151,19 +168,22 @@ int main(int argc, char** argv) {
         params.low_level_focal_suboptimality = params.high_level_focal_suboptimality;
         params.weight_low_level_heuristic = params.high_level_focal_suboptimality;
         params.verbose = false;
-        
-        for (int i {0}; i < num_agents; i++){
-            params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
-        }
-        ims::ECBS planner(params);
-        planner.initializePlanner(action_spaces, start_state_vals, goal_state_vals);
 
+        for (int i {0}; i < num_agents; i++){
+            // Note that the heuristic is not timed.
+            params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanHeuristic);
+        }
+        std::cout << "Creating the planner..." << std::endl;
+        ims::ECBSSIPP planner(params);
+        std::cout << "Initializing the planner..." << std::endl;
+        planner.initializePlanner(action_spaces, start_state_vals, goal_state_vals);
+        std::cout << "Planning..." << std::endl;
         // Plan.
         planner.plan(paths);
         stats = planner.reportStats();
     }
 
-    
+
     if (paths.empty()){
         std::cout << "No solution found." << std::endl;
         return 0;
@@ -194,7 +214,7 @@ int main(int argc, char** argv) {
     // std::string map_global_path = (boost::filesystem::weakly_canonical(boost::filesystem::current_path() / boost::filesystem::path(instance.map_file_))).string();
     string map_global_path = boost::filesystem::weakly_canonical(instance.map_file_).string();
     // string map_global_path = (boost::filesystem::weakly_canonical(boost::filesystem::current_path() / boost::filesystem::path(instance.map_file_))).string();
-    
+
 
     fout << "map_path: \"" << map_global_path << "\"" << std::endl;
     fout << "paths: [ " << std::endl;

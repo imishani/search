@@ -52,7 +52,7 @@ private:
     vector<vector<double>> cost_map_;
 
 public:
-    Scene2DRob() {}
+    Scene2DRob() = default;
 
     /// @brief Takes in a filepath and parses and loads it into the occupancy map.
     /// @param filename 

@@ -21,6 +21,7 @@ add_library(search SHARED
         src/planners/bfs.cpp
         src/planners/egraph_wastar.cpp
         src/planners/sipp.cpp
+        src/planners/focal_search/focal_wsipp.cpp
         src/planners/focal_search/focal_search.cpp
         src/planners/focal_search/focal_wastar.cpp
         src/planners/focal_search/focal_eawastar.cpp
@@ -107,6 +108,9 @@ target_link_libraries(run_2d_mapf_pp search ${Boost_LIBRARIES})
 
 add_executable(run_2d_rob_nav_sipp domains/2d_robot_nav/run_2d_sipp.cpp)
 target_link_libraries(run_2d_rob_nav_sipp search ${Boost_LIBRARIES})
+
+add_executable(run_2d_mapf_cbs_or_ecbs_sipp domains/2d_mapf/run_2d_cbs_or_ecbs_sipp.cpp)
+target_link_libraries(run_2d_mapf_cbs_or_ecbs_sipp search ${Boost_LIBRARIES})
 
 # Tests.
 add_executable(test_search test/common/test_queue.cpp)

@@ -164,7 +164,6 @@ void ConstraintsCollective::createSafeIntervals(const StateType & state){
     // Create the initial unsafe intervals. This will be populated with the constrained time intervals.
     std::vector<SafeIntervalType> unsafe_intervals = {};
 
-
     // Iterate over constraints and split the safe interval every time a constraint is imposed on this state.
     for (const auto& constraint_ptr : constraints_ptrs_) {
         // Get the time interval of the constraint.
@@ -173,7 +172,6 @@ void ConstraintsCollective::createSafeIntervals(const StateType & state){
         state_from.push_back(constraint_time_interval.first);
         StateType state_to = state;
         state_to.push_back(constraint_time_interval.second);
-
 
         // Ask the action space to determine if the state is valid w.r.t. the constraint.
         if (!context_ptr_->action_space_ptr->isSatisfyingConstraint(state_from, state_to, constraint_ptr)) {
@@ -233,15 +231,7 @@ void ConstraintsCollective::createSafeIntervals(const StateType & state){
 void ConstraintsCollective::getOrCreateSafeIntervals(const StateType& state, std::vector<SafeIntervalType>& safe_intervals) {
     // If the state is not in the map, then create the safe intervals.
     if (state_to_safe_intervals_.find(state) == state_to_safe_intervals_.end()) {
-        std::vector<StateType> states_with_safe_intervals = {};
-        for (const auto& state_to_safe_intervals_pair : state_to_safe_intervals_) {
-            states_with_safe_intervals.push_back(state_to_safe_intervals_pair.first);
-        }
         createSafeIntervals(state);
-        states_with_safe_intervals = {};
-        for (const auto& state_to_safe_intervals_pair : state_to_safe_intervals_) {
-            states_with_safe_intervals.push_back(state_to_safe_intervals_pair.first);
-        }
     }
 
     // Return the safe intervals.
