@@ -336,6 +336,10 @@ void ims::SIPP::reconstructPath(std::vector<StateType>& path, std::vector<double
     goal_state.push_back(goal_time);
     path.push_back(goal_state);
     costs.push_back(0); // The goal state gets a transition cost of 0.
+    // If the goal is at time 0, then return.
+    if (goal_time == 0){
+        return;
+    }
     // Start from the goal and go back to the start.
     search_state = getSearchState(search_state->parent_id);
 

@@ -240,7 +240,7 @@ def main():
 
     # Draw paths on map.
     print("Creating animation with FPS={}".format(args.fps))
-    create_xy_time_animation(map_np, paths, duration=(20 / args.fps), inflate=1)
+    create_xy_time_animation(map_np, paths, duration=(0.01 / args.fps), inflate=1)
 
 
 if __name__ == '__main__':
