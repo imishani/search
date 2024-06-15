@@ -268,12 +268,24 @@ void ConstraintsCollective::updateSafeIntervals(const std::shared_ptr<Constraint
                     // Include the safe interval in the updated vector.
                     updated_safe_intervals.push_back(safe_interval);
                 } else {
-                    // Update the safe interval based on the constraint.
-                    if (safe_interval.first < constraint_time_interval.first) {
-                        updated_safe_intervals.emplace_back(safe_interval.first, constraint_time_interval.first - 1);
-                    }
-                    if (safe_interval.second > constraint_time_interval.second) {
-                        updated_safe_intervals.emplace_back(constraint_time_interval.second + 1, safe_interval.second);
+                    // If the start and end times of the constraint are equal, then this timestep is forbidden.
+                    if (constraint_time_interval.first == constraint_time_interval.second) {
+                        // Update the safe interval based on the constraint.
+                        if (safe_interval.first < constraint_time_interval.first) {
+                            updated_safe_intervals.emplace_back(safe_interval.first, constraint_time_interval.first - 1);
+                        }
+                        if (safe_interval.second > constraint_time_interval.second) {
+                            updated_safe_intervals.emplace_back(constraint_time_interval.second + 1, safe_interval.second);
+                        }
+                    // Otherwise, the first timestep is allowed (and everything after it is not, including the end time).
+                    } else {
+                        // Update the safe interval based on the constraint.
+                        if (safe_interval.first <= constraint_time_interval.first) {
+                            updated_safe_intervals.emplace_back(safe_interval.first, constraint_time_interval.first);
+                        }
+                        if (safe_interval.second > constraint_time_interval.second) {
+                            updated_safe_intervals.emplace_back(constraint_time_interval.second + 1, safe_interval.second);
+                        }
                     }
                 }
             } else {
