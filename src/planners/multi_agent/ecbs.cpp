@@ -79,6 +79,7 @@ void ims::ECBS::createRootInOpenList() {
     std::unordered_map<int, double> initial_paths_lower_bounds;
     for (size_t i{0}; i < num_agents_; ++i) {
         // Add the previous paths as context to the action space.
+        // Root trick.
         std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
         context_ptr->agent_paths = initial_paths;
         context_ptr->agent_names = agent_names_;
@@ -222,6 +223,7 @@ bool ims::ECBS::plan(MultiAgentPaths& paths) {
         open_->updateWithBound(params_.high_level_focal_suboptimality * lower_bound);
     }
     getTimeFromStart(stats_.time);
+    stats_.num_expanded = iter;
     return false;
 }
 

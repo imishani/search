@@ -279,6 +279,8 @@ protected:
     // Public variable. For shadowing.
     /// @brief The conflict types that this algorithm asks for from the action space.
     std::vector<ConflictType> conflict_types_ = {ConflictType::EDGE, ConflictType::VERTEX};
+//    std::vector<ConflictType> conflict_types_ = {ConflictType::POINT3D_EDGE, ConflictType::POINT3D_VERTEX};
+
 };
 
 }  // namespace ims

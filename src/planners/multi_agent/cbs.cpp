@@ -386,6 +386,34 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             }
             ims::conflict_conversions::edgeConflictToEdgeConstraints(edge_conflict_ptr, agent_constraints);
         }
+
+        else if (conflict_ptr->type == ConflictType::POINT3D_VERTEX) {
+            // Get the location of each of the agents. Each one is specified in its own grid.
+            auto* point3d_conflict_ptr = dynamic_cast<Point3dVertexConflict*>(conflict_ptr.get());
+            // Check if the conversion succeeded.
+            if (point3d_conflict_ptr == nullptr) {
+                throw std::runtime_error("Conflict is a point3d vertex conflict, but could not be converted to a Point3dVertexConflict.");
+            }
+//            ims::conflict_conversions::point3dVertexConflictToVertexConstraints(point3d_conflict_ptr, agent_constraints);
+            ims::conflict_conversions::point3dVertexConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, 0.02);
+            break;
+        }
+
+        else if (conflict_ptr->type == ConflictType::POINT3D_EDGE) {
+            // Get the location of each of the agents. Each one is specified in its own grid.
+            auto* point3d_conflict_ptr = dynamic_cast<Point3dEdgeConflict*>(conflict_ptr.get());
+            // Check if the conversion succeeded.
+            if (point3d_conflict_ptr == nullptr) {
+                throw std::runtime_error("Conflict is a point3d edge conflict, but could not be converted to a Point3dEdgeConflict.");
+            }
+//            ims::conflict_conversions::point3dEdgeConflictToEdgeConstraints(point3d_conflict_ptr, agent_constraints);
+            ims::conflict_conversions::point3dEdgeConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, 0.02);
+            break;
+        }
+
+        else {
+            throw std::runtime_error("Conflict type not recognized.");
+        }
     }
 
     return agent_constraints;

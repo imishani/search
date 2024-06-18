@@ -61,10 +61,13 @@ void edgeConflictToEdgeConstraints(const EdgeConflict * private_grids_edge_confl
         int agent_id = private_grids_edge_conflict_ptr->agent_ids[i];
         StateType state_from = private_grids_edge_conflict_ptr->from_states[i];
         StateType state_to = private_grids_edge_conflict_ptr->to_states[i];
+        std::vector<bool> state_constrained_mask = private_grids_edge_conflict_ptr->state_conflict_masks.at(i);
 
-        // It could be that one of the agents is not in transition while the other one is, so ceate a new edge constraint only if the states are different.
+        // It could be that one of the agents is not in transition while the other one is, so create a new edge constraint only if the states are different.
         if (state_from != state_to) {
-            EdgeConstraint constraint = EdgeConstraint(state_from, state_to);
+//            EdgeConstraint constraint = EdgeConstraint(state_from, state_to, {true, true, true, false, false, false, false, true});
+//            EdgeConstraint constraint = EdgeConstraint(state_from, state_to);
+            EdgeConstraint constraint = EdgeConstraint(state_from, state_to, state_constrained_mask);
 
             // Update the constraints collective to also include the new constraint.
             agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint)});
@@ -72,7 +75,9 @@ void edgeConflictToEdgeConstraints(const EdgeConflict * private_grids_edge_confl
 
         // Otherwise, create a new vertex constraint.
         else {
-            VertexConstraint constraint = VertexConstraint(state_from);
+//            VertexConstraint constraint = VertexConstraint(state_from, {true, true, true, false, false, false, false, true});
+//            VertexConstraint constraint = VertexConstraint(state_from);
+            VertexConstraint constraint = VertexConstraint(state_from, state_constrained_mask);
 
             // Update the constraints collective to also include the new constraint.
             agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexConstraint>(constraint)});
@@ -215,8 +220,8 @@ void point3dEdgeConflictToEdgePriorityConstraints(const Point3dEdgeConflict * po
         int agent_id = point3d_conflict_ptr->agent_ids[i];
 
         // Create a new edge constraint. The agent states are the other states that the agent should avoid. Their corresponding agent ids are also passed.
-        TimeType time_from = (TimeType)std::round(point3d_conflict_ptr->from_states[i].back());
-        TimeType time_to = (TimeType)std::round(point3d_conflict_ptr->to_states[i].back());
+        auto time_from = (TimeType)std::round(point3d_conflict_ptr->from_states[i].back());
+        auto time_to = (TimeType)std::round(point3d_conflict_ptr->to_states[i].back());
 
         // The agent names to avoid are the agent names corresponding to the agent ids to avoid.
         std::vector<int> agent_ids_to_avoid;
@@ -349,9 +354,11 @@ void point3dVertexConflictToVertexConstraints(const Point3dVertexConflict * poin
     // Create a new vertex constraint for each of the agents. Point3dVertexConflict assumes private grids, so each agent has its own state.
     for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
         int agent_id = point3d_conflict_ptr->agent_ids[i];
-
+        // TEST TEST TEST.
         // Create a new vertex constraint.
+//        VertexConstraint constraint = VertexConstraint(point3d_conflict_ptr->states.at(i), {true, true, true, true, true, true, true, true});
         VertexConstraint constraint = VertexConstraint(point3d_conflict_ptr->states.at(i));
+        // END TEST TEST TEST.
 
         // Update the constraints vector to also include the new constraint.
         agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexConstraint>(constraint)});
@@ -365,7 +372,10 @@ void point3dEdgeConflictToEdgeConstraints(const Point3dEdgeConflict * point3d_co
         int agent_id = point3d_conflict_ptr->agent_ids[i];
 
         // Create a new edge constraint.
+        // TEST TEST TEST.
+//        EdgeConstraint constraint = EdgeConstraint(point3d_conflict_ptr->from_states[i], point3d_conflict_ptr->to_states[i], {true, true, true, true, true, true, true, true});
         EdgeConstraint constraint = EdgeConstraint(point3d_conflict_ptr->from_states[i], point3d_conflict_ptr->to_states[i]);
+        // END TEST TEST TEST.
 
         // Update the constraints vector to also include the new constraint.
         agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeConstraint>(constraint)});

@@ -81,7 +81,7 @@ void ims::FocalwSIPP::initializePlanner(const std::shared_ptr<SubcostConstrained
     assert(!start_safe_intervals.empty());
     // Check that the first safe interval contains the start time.
     if (start_time < start_safe_intervals[0].first || start_time > start_safe_intervals[0].second){
-        throw std::runtime_error("Start time is not in the first safe interval.");
+        throw std::runtime_error("Start time (" + std::to_string(start_time) + ") is not in the first safe interval [" + std::to_string(start_safe_intervals[0].first) + ", " + std::to_string(start_safe_intervals[0].second) + "]");
     }
     // Get the search state for the start.
     ims::FocalwSIPP::SearchState* start_state = getOrCreateSearchStateFromCfgIdAndSafeInterval(start_cfg_id, start_safe_intervals[0]);

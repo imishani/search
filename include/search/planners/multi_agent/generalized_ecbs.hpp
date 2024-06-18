@@ -347,10 +347,10 @@ struct GeneralizedXECBSParams : public EACBSParams {
     std::unordered_set<ConstraintType> constraint_types_to_create = {ConstraintType::EDGE, // "Do not traverse this edge between these times."
                                                          ConstraintType::VERTEX, // "Do not be at this vertex at this time."
                                                          ConstraintType::SPHERE3D, // "Do not be in this sphere at this time."
-                                                        //  ConstraintType::EDGE_PRIORITY, // "Between these times, avoid those agents (whereever they are)."
-                                                        //  ConstraintType::VERTEX_PRIORITY, // "At this time, avoid those agents (whereever they are)."
-                                                        //  ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."
-                                                        //  ConstraintType::VERTEX_STATE_AVOIDANCE, // "At this time, avoid those agents taking the specified configurations."
+                                                          ConstraintType::EDGE_PRIORITY, // "Between these times, avoid those agents (whereever they are)."
+                                                          ConstraintType::VERTEX_PRIORITY, // "At this time, avoid those agents (whereever they are)."
+                                                          ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."
+                                                          ConstraintType::VERTEX_STATE_AVOIDANCE, // "At this time, avoid those agents taking the specified configurations."
                                                         };
 };
 

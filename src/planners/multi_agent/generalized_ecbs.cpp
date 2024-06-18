@@ -117,6 +117,7 @@ void ims::GeneralizedECBS::createRootInOpenList() {
     std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
     for (size_t i{0}; i < num_agents_; ++i) {
         // Add the previous paths as context to the action space.
+        // Root trick.
         std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
         context_ptr->agent_paths = initial_paths;
         context_ptr->agent_names = agent_names_;
@@ -242,7 +243,6 @@ bool ims::GeneralizedECBS::plan(MultiAgentPaths& paths) {
             getTimeFromStart(stats_.time);
             stats_.cost = state->f;
             paths = state->paths;
-            stats_.num_expanded = iter;
             stats_.suboptimality = params_.high_level_focal_suboptimality;
             return true;
         }
@@ -256,7 +256,6 @@ bool ims::GeneralizedECBS::plan(MultiAgentPaths& paths) {
     }
     getTimeFromStart(stats_.time);
     stats_.cost = -1;
-    stats_.num_expanded = iter;
     stats_.suboptimality = params_.high_level_focal_suboptimality;
     return false;
 }
@@ -290,6 +289,11 @@ bool ims::GeneralizedECBS::replanOutdatedAgents(SearchState* state) {
         agent_planner_ptrs_[agent_id]->plan(state->paths[agent_id]);
         state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().transition_costs;
         state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().cost;
+        double new_soc = std::accumulate(state->paths_costs.begin(), state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
+        double new_soc_lb = std::accumulate(state->path_cost_lower_bounds.begin(), state->path_cost_lower_bounds.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
+        state->f = new_soc;
+        state->sum_of_costs = new_soc;
+        state->sum_of_path_cost_lower_bounds = new_soc_lb;
 
         // Add the number of low level nodes to the counter.
         stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[agent_id]->getStats().num_expanded;
@@ -332,6 +336,7 @@ void ims::GeneralizedECBS::expand(int state_id) {
         double f_old = state->f;
         int c_old = state->unresolved_conflicts.size();
         bool replan_success = replanOutdatedAgents(state); // This method will incorporate any unincorporated constraints into the state's constraints collective and update its f and other values accordingly.
+        stats_.num_expanded++;
         if (!replan_success) {
             delete state;
             return;
@@ -348,13 +353,11 @@ void ims::GeneralizedECBS::expand(int state_id) {
         return;
     }
 
-    stats_.num_expanded++;    
     std::vector<int> successors;
     std::vector<double> costs;
 
     // First, convert all conflicts to pairs of (agent_id, constraint). We pass all of the detected conflicts to the function. It will process the set to only create some constraints from the first conflict and/or all of them. Algorithm dependent.
     std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> constraints = conflictsToConstraints(state->unresolved_conflicts);
-
 
     // TEST TEST TEST.
     std::cout << "    Creating new states ";
@@ -407,6 +410,8 @@ void ims::GeneralizedECBS::expand(int state_id) {
                 delete new_state;
                 continue;
             }
+            std::cout << "    New State cost: " << new_state->f << std::endl;
+            stats_.num_expanded++;
         }
        
         // Push the new state to the open list.
@@ -689,6 +694,12 @@ void ims::GeneralizedXECBS::createRootInOpenList() {
     std::unordered_map<int, double> initial_paths_costs;
     std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
     for (size_t i{0}; i < num_agents_; ++i) {
+        // Add the previous paths as context to the action space.
+        std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
+        context_ptr->agent_paths = initial_paths;
+        context_ptr->agent_names = agent_names_;
+        agent_action_space_ptrs_[i]->constraints_collective_ptr_->setContext(context_ptr);
+
         std::vector<StateType> path;
         agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
         bool is_plan_success = agent_planner_ptrs_[i]->plan(path);

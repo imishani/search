@@ -88,6 +88,9 @@ struct VertexConflict : public Conflict {
     // The agent IDs.
     std::vector<int> agent_ids;
 
+    /// @brief A mask on the state dimensions that are in-conflict.
+    std::vector<std::vector<bool>> state_conflict_masks;
+
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param state The state vector.
     explicit VertexConflict(std::vector<StateType> states, std::vector<int> agent_ids) : states(std::move(states)), agent_ids(std::move(agent_ids)) {
@@ -120,6 +123,9 @@ struct EdgeConflict : public Conflict {
 
     // The agent IDs.
     std::vector<int> agent_ids;
+
+    /// @brief A mask on the state dimensions that are in-conflict.
+    std::vector<std::vector<bool>> state_conflict_masks;
 
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param state The state vector.
@@ -160,6 +166,8 @@ struct Point3dEdgeConflict : public Conflict {
     // We specify the states directly since their ID may change in future low-level plan iterations. The collision either happened in a transition between states or in a state itself. If a conflict is specified for a transition, then we specify both the from and to states. If a conflict is specified for a state, then those are going to be the same.
     std::vector<StateType> from_states;
     std::vector<StateType> to_states;
+    // We also specify the portion of the state that is affected by the conflict. This is useful for imposing constraints on kinematic chains where only part of the chain could lead to the conflict.
+     std::vector<bool> state_is_conflict_mask;
 
     // The agent IDs.
     std::vector<int> agent_ids;

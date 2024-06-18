@@ -80,7 +80,7 @@ const std::unordered_map<ConstraintType, bool> constraint_type_admissibility = {
 /// @brief Base class for all search constraints.
 struct Constraint {
     /// @brief Constructor
-    explicit Constraint() = default;
+    Constraint() = default;
 
     /// @brief Virtual destructor.
     virtual ~Constraint() = default;
@@ -92,8 +92,11 @@ struct Constraint {
     /// @note This may be changed to a double for continuous time scenarios.
     virtual std::pair<TimeType, TimeType> getTimeInterval() const = 0;
 
+    /// @brief A mask on the state dimensions that are constrained.
+    std::vector<bool> state_constrained_mask = {};
+
     /// @brief The type of the constraint.
-    ConstraintType type;
+    ConstraintType type = ConstraintType::UNSET;
 };
 
 // ==========================
@@ -108,6 +111,16 @@ struct VertexConstraint : public Constraint {
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param state The state vector.
     explicit VertexConstraint(StateType state) : state(std::move(state)) {
+        /// @brief The type of the constraint.
+        type = ConstraintType::VERTEX;
+    }
+
+    /// @brief Constructor also setting the valid mask.
+    VertexConstraint(StateType state,
+                     std::vector<bool> constrained_mask) :
+                     state(std::move(state)) {
+        /// @brief The state dimensions that are constrained.
+         state_constrained_mask = std::move(constrained_mask);
         /// @brief The type of the constraint.
         type = ConstraintType::VERTEX;
     }
@@ -140,6 +153,16 @@ struct EdgeConstraint : public Constraint {
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param state The state vector.
     explicit EdgeConstraint(StateType state_from, StateType state_to) : state_from(std::move(state_from)), state_to(std::move(state_to)) {
+        /// @brief The type of the constraint.
+        type = ConstraintType::EDGE;
+    }
+
+    /// @brief Constructor also setting the valid mask.
+    EdgeConstraint(StateType state_from, StateType state_to,
+                   std::vector<bool> constrained_mask) :
+                   state_from(std::move(state_from)), state_to(std::move(state_to)) {
+        /// @brief The state dimensions that are constrained.
+        state_constrained_mask = std::move(constrained_mask);
         /// @brief The type of the constraint.
         type = ConstraintType::EDGE;
     }
