@@ -63,7 +63,7 @@ public:
     }
 
     /// @brief Destructor
-    ~SubcostActionSpace() = default;
+    ~SubcostActionSpace() override = default;
 
     // Make both the base and the overloaded versions of getSuccessors available.
     using ActionSpaceSubcostMixin::getSuccessors;

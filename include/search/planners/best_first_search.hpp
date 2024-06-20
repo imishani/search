@@ -198,6 +198,7 @@ namespace ims{
         bool isGoalState(int state_id) override;
 
         BaseHeuristic* heuristic_ = nullptr;
+        GoalConstraint goal_constraint;
 
 
     }; // class BestFirstSearch

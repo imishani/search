@@ -68,7 +68,13 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace> 
 
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
-    heuristic_->setGoal(const_cast<StateType &>(goals[0]));
+
+    goal_constraint.type = SINGLE_SEARCH_STATE_GOAL;
+    goal_constraint.check_goal = &checkGoalSingleSearchState;
+    goal_constraint.check_goal_user = &goal_ind_;
+    goal_constraint.action_space_ptr = action_space_ptr_;
+    heuristic_->setGoalConstraint(goal_constraint);
+//    heuristic_->setGoal(const_cast<StateType &>(goals[0]));
 
     for (auto &start : starts) {
         // Evaluate the start state
@@ -108,7 +114,12 @@ void ims::BestFirstSearch::initializePlanner(const std::shared_ptr<ActionSpace>&
     heuristic_->setStart(const_cast<StateType &>(start));
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
-    heuristic_->setGoal(const_cast<StateType &>(goal));
+
+    goal_constraint.type = SINGLE_SEARCH_STATE_GOAL;
+    goal_constraint.check_goal = &checkGoalSingleSearchState;
+    goal_constraint.check_goal_user = &goal_ind_;
+    goal_constraint.action_space_ptr = action_space_ptr_;
+    heuristic_->setGoalConstraint(goal_constraint);
     // Evaluate the start state
     start_->g = 0;
     start_->f = computeHeuristic(start_ind_);
@@ -253,7 +264,6 @@ bool ims::BestFirstSearch::isGoalState(int s_id) {
     if (std::any_of(goals_.begin(), goals_.end(), [&s_id](int goal_ind) {return s_id == goal_ind;})){
         return true;
     }
-
     // Also ask the action space if this state id is a goal state. Sometimes, states need to be determined as goal in real time.
     // This is EXTREMELY bug prone. Commenting this out for now until we have a proper GoalCondition object.
     // return action_space_ptr_->isGoalState(s_id, goals_);
