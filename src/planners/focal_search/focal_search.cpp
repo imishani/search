@@ -67,7 +67,7 @@ void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpac
 
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
-    heuristic_->setGoal(const_cast<StateType &>(goals[0]));
+
 
     for (auto &start : starts) {
         // Evaluate the start state
@@ -108,7 +108,11 @@ void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpac
     heuristic_->setStart(const_cast<StateType &>(start));
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
-    heuristic_->setGoal(const_cast<StateType &>(goal));
+    GoalConstraint goal_constraint;
+    goal_constraint.type = SINGLE_SEARCH_STATE_GOAL;
+    goal_constraint.check_goal = &checkGoalSingleSearchState;
+    goal_constraint.check_goal_user = &goal_ind_;
+    heuristic_->setGoalConstraint(goal_constraint);
 
     // Evaluate the start state.
     start_->g = 0;

@@ -87,7 +87,12 @@ void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace>
 
     heuristic_->setStart(const_cast<StateType &>(start));
     // Evaluate the goal state
-    heuristic_->setGoal(const_cast<StateType &>(goal));
+    goal_constraint.type = SINGLE_SEARCH_STATE_GOAL;
+    goal_constraint.check_goal = &checkGoalSingleSearchState;
+    goal_constraint.check_goal_user = &goal_ind_;
+    goal_constraint.action_space_ptr = action_space_ptr_;
+    heuristic_->setGoalConstraint(goal_constraint);
+
     goal_->h = 0;
     // Evaluate the start state
     start_->g = 0;

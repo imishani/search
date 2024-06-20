@@ -32,14 +32,16 @@
  * \date   4/13/23
 */
 
-// Project includes.
-#include "search/common/types.hpp"
-
-
 #ifndef SEARCH_BASEHEURISTIC_HPP
 #define SEARCH_BASEHEURISTIC_HPP
 
+// Project includes.
+#include "search/common/types.hpp"
+#include "search/common/goal_constraint.hpp"
+
+
 namespace ims{
+    /// @class BaseHeuristic class.
     /// @brief The base heuristic class
     class BaseHeuristic {
     public:
@@ -48,7 +50,6 @@ namespace ims{
 
         /// @brief Destructor
         virtual ~BaseHeuristic()= default;
-
 
         /// @brief This function should be implemented by the user and is the function that calculates the heuristic
         /// @param s1 The first state
@@ -61,18 +62,12 @@ namespace ims{
         /// @param s The state
         /// @param dist The distance between the two states (output, pass by reference)
         /// @return The heuristic value
-        virtual bool getHeuristic(const StateType& s, double& dist) {
-            if (goal_.empty()) {
-                throw std::runtime_error("Goal state is not set");
-            }
-            return getHeuristic(s, goal_, dist);
-        }
+        virtual bool getHeuristic(const StateType& s, double& dist) = 0;
 
-        /// @brief Set the goal state
-        /// @param goal The goal state
-        /// @note You have to set the goal state if you want to use the getHeuristic(const std::shared_ptr<state> s) function
-        virtual void setGoal(const StateType& goal) {
-            goal_ = goal;
+        /// @brief Set goal constraint
+        /// @param goal_constraint The goal constraint
+        virtual void setGoalConstraint(GoalConstraint& goal_constraint) {
+            goal_constraint_ = goal_constraint;
         }
 
         /// @brief Set the start state
@@ -82,8 +77,53 @@ namespace ims{
             start_ = start;
         }
 
-        StateType goal_;
+        GoalConstraint goal_constraint_;
         StateType start_;
+
+    };
+
+
+    /// @brief The base heuristic class for single goal heuristics
+    class BaseSingleGoalHeuristic : public BaseHeuristic {
+    public:
+
+        /// @brief This function should be implemented by the user and is the function that calculates the heuristic
+        /// @param s1 The first state
+        /// @param s2 The second state
+        /// @param dist The distance between the two states (output, pass by reference)
+        /// @return The heuristic value
+        bool getHeuristic(const StateType& s1, const StateType& s2, double& dist) override = 0;
+
+        /// @brief An option to calculate the heuristic from a single state to the goal state
+        /// @param s The state
+        /// @param dist The distance between the two states (output, pass by reference)
+        /// @return The heuristic value
+        bool getHeuristic(const StateType& s, double& dist) override {
+            if (goal_.empty()) {
+                throw std::runtime_error("Goal state is not set");
+            }
+            return getHeuristic(s, goal_, dist);
+        }
+
+        void setGoalConstraint(GoalConstraint& goal_constraint) override{
+            if (goal_constraint.type != SINGLE_SEARCH_STATE_GOAL && goal_constraint.type != SINGLE_SEARCH_STATE_MAPPED_GOAL) {
+                throw std::runtime_error("Goal type is not single search state goal");
+            }
+            if (goal_constraint.type == SINGLE_SEARCH_STATE_GOAL) {
+                goal_ = goal_constraint.action_space_ptr->getRobotState(*static_cast<int*>(goal_constraint.check_goal_user))->state;
+            } else {
+                goal_ = goal_constraint.action_space_ptr->getRobotState(*static_cast<int*>(goal_constraint.check_goal_user))->state_mapped;
+            }
+            BaseHeuristic::setGoalConstraint(goal_constraint);
+        }
+        /// @brief Set the goal state
+        /// @param goal The goal state
+        /// @note You have to set the goal state if you want to use the getHeuristic(const std::shared_ptr<state> s) function
+        virtual void setGoal(const StateType& goal) {
+            goal_ = goal;
+        }
+
+        StateType goal_;
 
     };
 

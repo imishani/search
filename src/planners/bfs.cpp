@@ -69,7 +69,12 @@ void ims::BFS::initializePlanner(const std::shared_ptr<ActionSpace> &action_spac
 
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
-    heuristic_->setGoal(const_cast<StateType &>(goals[0]));
+
+    goal_constraint.type = SINGLE_SEARCH_STATE_GOAL;
+    goal_constraint.check_goal = &checkGoalSingleSearchState;
+    goal_constraint.check_goal_user = &goal_ind_;
+    goal_constraint.action_space_ptr = action_space_ptr_;
+    heuristic_->setGoalConstraint(goal_constraint);
 
     for (auto &start : starts) {
         // check if start is valid

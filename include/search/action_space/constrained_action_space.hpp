@@ -59,7 +59,7 @@ public:
     }
 
     /// @brief Destructor
-    ~ConstrainedActionSpace() = default;
+    ~ConstrainedActionSpace() override = default;
 
     /// @brief Whether the state is satisfying a specific constraint.
     /// @param state_val The state value to check. Timed.
