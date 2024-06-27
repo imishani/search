@@ -217,33 +217,30 @@ namespace ims {
                                 std::vector<MiniPathAction> &actions_seq,
                                 bool check_validity) = 0;
 
+//        /// @brief Get Successor
+//        /// @param curr_state_ind The current state index
+//        /// @param successors The successor state
+//        /// @return Success bool
+//        /// @note Beware the you should make sure that the state is discretized! (see ActionType::Discretization)
+//        /// If you are using an implicit graph where the state space is not discrete then define the discretization
+//        /// based on the tolerance for comparison between states.
+//        /// @attention You should use getOrCreateRobotState() and getRobotState() when generating the successors!
+//        virtual bool getSuccessors(int curr_state_ind,
+//                                   std::vector<int>& successors,
+//                                   std::vector<double>& costs) = 0;
+
         /// @brief Get Successors with multiple steps leading up to them.
         /// @param curr_state_ind The current state index
-        /// @param successors The successor states
-        /// @param costs The costs of the transitions
-        /// @param successors_minipaths The mini paths leading up to the successors. These are sequences of state ids not including the current state or the successor.
-
+        /// @param minipath_successors The mini-path to the successor.
+        /// @param minipath_costs The step-cost of the mini-path. Same size as minipath_successors, with the last element being zero (no cost to move from last element to after it, as there is nothing there).
         /// @note Beware the you should make sure that the state is discretized! (see ActionType::Discretization)
         /// If you are using an implicit graph where the state space is not discrete then define the discretization
         /// based on the tolerance for comparison between states.
         /// @attention You should use getOrCreateRobotState() and getRobotState() when generating the successors!
         virtual bool getSuccessors(int curr_state_ind,
-                                   std::vector<int>& successors,
-                                   std::vector<double>& costs,
-                                   std::vector<std::vector<int>>& successors_minipaths,
-                                   std::vector<std::vector<double>>& successors_minipaths_transition_costs) = 0;
+                                   std::vector<std::vector<int>>& minipath_successors,
+                                   std::vector<std::vector<double>>& minipath_costs) = 0;
 
-        virtual bool getSuccesors(int curr_state_ind,
-                          std::vector<int>& successors,
-                          std::vector<double>& costs){
-            std::vector<std::vector<int>> successors_minipaths;
-            std::vector<std::vector<double>> successors_minipaths_transition_costs;
-            return getSuccessors(curr_state_ind,
-                                 successors,
-                                 costs,
-                                 successors_minipaths,
-                                 successors_minipaths_transition_costs);
-        }
 
         /// @brief check if the state is valid
         /// @param state_val The values if the state

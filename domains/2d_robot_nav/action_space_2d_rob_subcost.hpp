@@ -75,8 +75,8 @@ public:
     }
 
     bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs) override{
+                       std::vector<std::vector<int>>& minipath_successors,
+                       std::vector<std::vector<double>>& minipath_costs) override{
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<MiniPathAction> actions;
         getActions(curr_state_ind, actions, false);
@@ -99,9 +99,9 @@ public:
     }
 
     bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs,
-                       std::vector<int> & successors_minipath) override{
+                       std::vector<std::vector<int>>& minipath_successors,
+                       std::vector<std::vector<double>>& minipath_costs,
+                       std::vector<std::vector<double>> &minipath_subcosts) override{
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<MiniPathAction> actions;
         getActions(curr_state_ind, actions, false);
