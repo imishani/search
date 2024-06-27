@@ -198,7 +198,6 @@ void ims::wAStar::expand(int state_id){
         if (successor->in_open){
             if (successor->g > state->g + cost){
                 successor->parent_id = state->state_id;
-                successor->state_ids_from_parent = minipath_successors[i]
                 successor->g = state->g + cost;
                 successor->f = successor->g + params_.epsilon*successor->h;
                 open_.update(successor);

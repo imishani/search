@@ -72,7 +72,7 @@ struct ActionType2dRobTimed : public ActionType2dRob {
         this->name = "ActionType2dRob";
         this->num_actions = 5;
         this->action_names = {"N", "E", "S", "W", "Wait"};
-        this->action_costs = {{1, 1}, {1}, {1}, {1}, {1}};
+        this->action_costs = {{1}, {1}, {1}, {1}, {1}};
         this->action_deltas = {{{0, 1, 1}, {0,2,2}}, {{1, 0, 1}}, {{0, -1, 1}}, {{-1, 0, 1}}, {{0, 0, 1}}};
         this->state_discretization_ = {1, 1, 1};
     }
