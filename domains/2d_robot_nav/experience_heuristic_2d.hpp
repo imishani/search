@@ -56,8 +56,10 @@ namespace ims {
 
         void getEquivalentStates(int s_id, std::vector<int>& state_ids) override{
             std::shared_ptr<smpl::ExperienceGraph> eg = eg_action_space_->getExperienceGraph();
+            std::vector<ims::smpl::ExperienceGraph::node_id> node_id;
+            eg_action_space_->getEGraphNodes(s_id, node_id);
             // get s_id node
-            auto s_state = eg->state(s_id);
+            auto s_state = eg->state(node_id[0]);
             auto nodes = eg->nodes();
             const double equiv_thresh = 1; // TODO: 1? why? should I leave it as is (cost of 1)?
             for (auto nit = nodes.first; nit != nodes.second; ++nit) {
@@ -145,7 +147,6 @@ namespace ims {
             }
             /* Compute Heuristic distance for Experience Graph nodes */
 
-            // here for some reason I get buffer overflow. fix it
             h_nodes_.assign(eg->num_nodes(), INF_DOUBLE);
             open_.clear();
             // avoid malloc(): invalid size (unsorted)
@@ -162,8 +163,7 @@ namespace ims {
                     for (auto nit = nodes.first; nit != nodes.second; ++nit) {
                         const smpl::ExperienceGraph::node_id nid = *nit;
                         HeuristicNode* n = &h_nodes_[nid + 1];
-                        const int state_id = eg_action_space_->getStateID(nid);
-                        StateType& state = eg->state(state_id);
+                        StateType& state = eg->state(nid);
                         double h;
                         if (!origin_heuristic_->getHeuristic(state, h))
                             h = INF_DOUBLE;
@@ -191,8 +191,7 @@ namespace ims {
                                 }
                             }
                         } else {
-                            const int nstate_id = eg_action_space_->getStateID(nid);
-                            StateType& state = eg->state(nstate_id);
+                            StateType& state = eg->state(nid);
                             double h;
                             if (!origin_heuristic_->getHeuristic(state, h))
                                 h = INF_DOUBLE;
@@ -229,8 +228,7 @@ namespace ims {
             auto nodes = eg->nodes();
             for (auto nit = nodes.first; nit != nodes.second; ++nit) {
                 const smpl::ExperienceGraph::node_id n = *nit;
-                const int state_id = eg_action_space_->getStateID(n);
-                StateType& state = eg->state(state_id);
+                StateType& state = eg->state(n);
                 double h;
                 if (!origin_heuristic_->getHeuristic(s, state, h))
                     h = INF_DOUBLE;

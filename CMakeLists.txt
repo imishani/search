@@ -57,6 +57,9 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include
 install(TARGETS search
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
+add_executable(run_2d_egraph_wastar domains/2d_robot_nav/run_2d_egraph_wastar.cpp)
+target_link_libraries(run_2d_egraph_wastar search ${Boost_LIBRARIES})
+
 add_executable(run_2d_rob_nav_astar domains/2d_robot_nav/run_2d_astar.cpp)
 target_link_libraries(run_2d_rob_nav_astar search ${Boost_LIBRARIES})
 

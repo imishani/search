@@ -7,6 +7,7 @@
 
 // standard includes
 #include <fstream>
+#include <map>
 // library includes
 #include "search/common/types.hpp"
 

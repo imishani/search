@@ -86,13 +86,6 @@ public:
         }
     }
 
-
-
-
-
-
-
-    // TODO: copied from before
     bool getSuccessors(int curr_state_ind,
                        std::vector<int>& successors,
                        std::vector<double>& costs) override{
@@ -182,13 +175,14 @@ public:
                 }
                 auto& prev_state = egraph_states.front();
                 auto pid = egraph_.insert_node(prev_state);
-                state_to_nodes_map_[prev_state].push_back(pid);
-
                 int entry_s_id = getOrCreateRobotState(prev_state);
 
                 // map the state id to the node id in the experience graph
-                egraph_state_ids_.resize(pid + 1, -1);
-                egraph_state_ids_[pid] = entry_s_id;
+                if (pid == egraph_.num_nodes() - 1){
+                    state_to_nodes_map_[prev_state].push_back(pid);
+                    egraph_state_ids_.resize(pid + 1, -1);
+                    egraph_state_ids_[pid] = entry_s_id;
+                }
                 states_to_nodes_[entry_s_id] = pid;
 
                 std::vector<StateType> edge_data;
@@ -197,13 +191,14 @@ public:
                     StateType cs = curr_state;
                     if (curr_state != prev_state) { // TODO: check if its fine
                         auto cid = egraph_.insert_node(curr_state);
-                        state_to_nodes_map_[curr_state].push_back(cid);
-
                         int curr_s_id = getOrCreateRobotState(curr_state);
 
                         // map the state id to the node id in the experience graph
-                        egraph_state_ids_.resize(cid + 1, -1);
-                        egraph_state_ids_[cid] = curr_s_id;
+                        if (cid == egraph_.num_nodes() - 1){
+                            state_to_nodes_map_[curr_state].push_back(cid);
+                            egraph_state_ids_.resize(cid + 1, -1);
+                            egraph_state_ids_[cid] = curr_s_id;
+                        }
                         states_to_nodes_[curr_s_id] = cid;
 
                         // add edge
@@ -420,10 +415,9 @@ private:
             min->closed = true;
 
             if (min == &search_nodes[goal_node]) {
-                std::cout << RED << "[ERROR]: Found shortest experience graph path" << RESET << std::endl;
+                std::cout << GREEN << "[INFO]: Found shortest experience graph path" << RESET << std::endl;
                 ExperienceGraphSearchNode* ps = nullptr;
-                for (ExperienceGraphSearchNode* s = &search_nodes[goal_node];
-                     s; s = s->bp)
+                for (ExperienceGraphSearchNode* s = &search_nodes[goal_node]; s; s = s->bp)
                 {
                     if (s != ps) {
                         path.push_back(std::distance(search_nodes.data(), s));
@@ -433,6 +427,7 @@ private:
                     }
                 }
                 std::reverse(path.begin(), path.end());
+                std::cout << GREEN << "Expanded " << exp_count << " nodes looking for shortcut and FOUND" << RESET << std::endl;
                 return true;
             }
 
@@ -456,7 +451,7 @@ private:
             }
         }
 
-        std::cout << "Expanded " << exp_count << " nodes looking for shortcut" << std::endl;
+        std::cout << RED << "Expanded " << exp_count << " nodes looking for shortcut and NOT FOUND" << RESET << std::endl;
         return false;
     }
 

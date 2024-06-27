@@ -272,6 +272,11 @@ bool ExperienceGraph::edge(node_id uid, node_id vid) const {
 
 /// Insert a node.
 auto ExperienceGraph::insert_node(const StateType &state) -> node_id {
+    for(int i{0}; i < m_nodes.size(); i++){
+        if (m_nodes[i].state == state){
+            return i;
+        }
+    }
     m_nodes.emplace_back(state);
     return m_nodes.size() - 1;
 }
@@ -381,8 +386,18 @@ auto ExperienceGraph::insert_edge(
         throw std::out_of_range("ExperienceGraph::insert_edge called with invalid node ids");
     }
 
-    m_edges.emplace_back(path, uid, vid);
-    ExperienceGraph::edge_id eid = m_edges.size() - 1;
+    ExperienceGraph::edge_id eid = -1;
+    for (int i{0}; i < m_edges.size(); i++){
+        if (m_edges[i].waypoints == path && m_edges[i].snode == uid && m_edges[i].tnode == vid){
+            eid = i;
+            break;
+        }
+    }
+    if (eid == -1){
+        m_edges.emplace_back(path, uid, vid);
+        eid = m_edges.size() - 1;
+    }
+
     insert_incident_edge(this, eid, uid, vid);
     return eid;
 }

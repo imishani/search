@@ -161,32 +161,33 @@ void ims::ExperienceWAstar::expand(int state_id) {
         }
     }
     // TODO: Add condition to check if to use experience
-    std::vector<int> snap_successors;
-    params_.egraph_heuristic->getEquivalentStates(state_id, snap_successors);
-    for (size_t sidx {0}; sidx < snap_successors.size(); ++sidx){
-        int snap_successor_id = snap_successors[sidx];
-        int cost;
-        if (!egraph_action_space_ptr_->snap(state_id, snap_successor_id, cost)){
-            continue;
-        }
-        auto snap_successor = getOrCreateSearchState(snap_successor_id);
-        if (snap_successor->in_closed){
-            continue;
-        }
-
-        if (snap_successor->in_open){
-            if (snap_successor->g > state_->g + cost){
-                snap_successor->parent_id = state_->state_id;
-                snap_successor->g = state_->g + cost;
-                snap_successor->f = snap_successor->g + params_.epsilon*snap_successor->h;
-                open_.update(snap_successor);
-            }
-        } else {
-            setStateVals(snap_successor->state_id, state_->state_id, cost);
-            open_.push(snap_successor);
-            snap_successor->setOpen();
-        }
-    }
+    // TODO: disable snap in 2d nav problems unless a better definition of equivalent states
+//    std::vector<int> snap_successors;
+//    params_.egraph_heuristic->getEquivalentStates(state_id, snap_successors);
+//    for (size_t sidx {0}; sidx < snap_successors.size(); ++sidx){
+//        int snap_successor_id = snap_successors[sidx];
+//        int cost;
+//        if (!egraph_action_space_ptr_->snap(state_id, snap_successor_id, cost)){
+//            continue;
+//        }
+//        auto snap_successor = getOrCreateSearchState(snap_successor_id);
+//        if (snap_successor->in_closed){
+//            continue;
+//        }
+//
+//        if (snap_successor->in_open){
+//            if (snap_successor->g > state_->g + cost){
+//                snap_successor->parent_id = state_->state_id;
+//                snap_successor->g = state_->g + cost;
+//                snap_successor->f = snap_successor->g + params_.epsilon*snap_successor->h;
+//                open_.update(snap_successor);
+//            }
+//        } else {
+//            setStateVals(snap_successor->state_id, state_->state_id, cost);
+//            open_.push(snap_successor);
+//            snap_successor->setOpen();
+//        }
+//    }
 
     // shortcut succ
     std::vector<int> shortcut_successors;
@@ -266,18 +267,25 @@ void ims::ExperienceWAstar::extractPath(const std::vector<int> &search_path, Pat
         std::vector<ActionSequence> action_sequences;
         action_space_ptr_->getActions(prev_s_id, action_sequences, true);
         for (auto& action_sequence : action_sequences){
+            // compute new state value by transforming previous state values
+            auto new_state_val = prev_s->state;
+            // loop through actions and transform state
+            for (const auto& action : action_sequence){
+                std::transform(new_state_val.begin(), new_state_val.end(), action.begin(), new_state_val.begin(), std::plus<>());
+            }
             if (curr_id == goal_){
                 // check if the last point is the goal
-                if (action_sequence.back() == curr_state->state){
+                if (new_state_val == curr_state->state){
                     temp_path.push_back(curr_state->state);
                     path = temp_path;
                     return;
                 }
             } else {
                 // check if the last point is the goal
-                if (action_sequence.back() == curr_state->state){
+                if (new_state_val == curr_state->state){
                     temp_path.push_back(curr_state->state);
                     prev_s_id = curr_id;
+                    prev_s = action_space_ptr_->getRobotHashEntry(prev_s_id);
                     break;
                 }
             }
@@ -293,6 +301,7 @@ void ims::ExperienceWAstar::extractPath(const std::vector<int> &search_path, Pat
                 temp_path.push_back(state);
             }
             prev_s_id = curr_id;
+            prev_s = action_space_ptr_->getRobotHashEntry(prev_s_id);
             continue;
         }
 
@@ -303,6 +312,7 @@ void ims::ExperienceWAstar::extractPath(const std::vector<int> &search_path, Pat
                 temp_path.push_back(state);
             }
             prev_s_id = curr_id;
+            prev_s = action_space_ptr_->getRobotHashEntry(prev_s_id);
             continue;
         }
         std::cout << RED << "[ERROR]: Could not find transition from " << prev_s_id << " to " << curr_id << std::endl;
