@@ -56,37 +56,37 @@ class ActionSpace2dRotationRob : public ims::ActionSpace {
             name = "ActionTypeRotation2dRob";
             num_actions = 3;
             action_names = {"F", "L", "R"};
-            action_costs = {1, 1, 1};
+            action_costs = {{1}, {1}, {1}};
         }
 
-        std::vector<Action> getPrimActionsFromTheta(int curr_theta) {
-            Action forward_prim;
+        std::vector<MiniPathAction> getPrimActionsFromTheta(int curr_theta) {
+            MiniPathAction forward_prim;
             switch (curr_theta) {
                 case 0: // increase column
-                    forward_prim = {1, 0, 0};
+                    forward_prim = {{1, 0, 0}};
                     break;
                 case 1: // decrease row
-                    forward_prim = {0, -1, 0};
+                    forward_prim = {{0, -1, 0}};
                     break;
                 case 2: // decrease column
-                    forward_prim = {-1, 0, 0};
+                    forward_prim = {{-1, 0, 0}};
                     break;
                 case 3: // increase row
-                    forward_prim = {0, 1, 0};
+                    forward_prim = {{0, 1, 0}};
                     break;
                 default:
                     std::cout << "Theta is not valid!" << std::endl;
             }
-            Action rotate_left_prim = {0, 0, 1};
-            Action rotate_right_prim = {0, 0, -1};
-            std::vector<Action> action_prims = {forward_prim, rotate_left_prim, rotate_right_prim};
+            MiniPathAction rotate_left_prim = {{0, 0, 1}};
+            MiniPathAction rotate_right_prim = {{0, 0, -1}};
+            std::vector<MiniPathAction> action_prims = {forward_prim, rotate_left_prim, rotate_right_prim};
             return action_prims;
         }
 
         std::string name;
         int num_actions;
         std::vector<std::string> action_names;
-        std::vector<double> action_costs;
+        std::vector<std::vector<double>> action_costs;
     };
 
 protected:
@@ -101,41 +101,44 @@ public:
     }
 
     void getActions(int state_id,
-                    std::vector<ActionSequence> &action_seqs,
+                    std::vector<MiniPathAction> &action_seqs,
                     bool check_validity) override {
         // Validity is checked in the getSuccessors() function, so no need to check validity in this function.
         assert(check_validity == false);
         
         ims::RobotState* curr_state = this->getRobotState(state_id);
         int curr_state_theta = (int)(curr_state->state)[2];
-        std::vector<Action> actions = action_type_->getPrimActionsFromTheta(curr_state_theta);
+        std::vector<MiniPathAction> actions = action_type_->getPrimActionsFromTheta(curr_state_theta);
         for (int i {0} ; i < action_type_->num_actions ; i++){
-            Action action = actions[i];
-            // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
-            // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
-            ActionSequence action_seq = {action};
-            action_seqs.push_back(action_seq);
+            MiniPathAction action = actions[i];
+            action_seqs.push_back(action);
         }
     }
 
 
     bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs) override{
+                       std::vector<std::vector<int>>& minipath_successors,
+                       std::vector<std::vector<double>>& minipath_costs) override{
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
-        std::vector<ActionSequence> actions;
-        getActions(curr_state_ind, actions, false);
 
+        std::vector<MiniPathAction> actions;
+        getActions(curr_state_ind, actions, false);
         for (int i {0} ; i < actions.size() ; i++){
-            StateType action = actions[i][0];
-            StateType next_state_val = StateType(curr_state->state.size());
-            std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-            // Keep theta value between 0 and 3.
-            next_state_val[2] = (int(next_state_val[2])+4) % 4;
-            if (isStateValid(next_state_val)){
-                int next_state_ind = getOrCreateRobotState(next_state_val);
-                successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
+            // Apply the action to the current state.
+            std::vector<double> minipath_cost = action_type_->action_costs[i];
+            PathType minipath_successor;
+            transformStateWithMultiStepAction(curr_state->state, actions[i], minipath_successor);
+
+            // Keep theta value between 0 and 3. NOTE(yorai): why do we do it like this and not in the discretization?
+            for (int j {0} ; j < minipath_successor.size() ; j++){
+                minipath_successor[j][2] = (int(minipath_successor[j][2])+4) % 4;
+            }
+
+            // Check if the successor is valid.
+            if (isPathValid(minipath_successor)){
+                std::vector<int> minipath_successor_state_inds = getOrCreateRobotStates(minipath_successor);
+                minipath_successors.push_back(minipath_successor_state_inds);
+                minipath_costs.push_back(minipath_cost);
             }
         }
         return true;

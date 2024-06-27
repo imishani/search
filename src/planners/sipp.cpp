@@ -178,12 +178,15 @@ bool ims::SIPP::plan(std::vector<StateType>& path) {
 void ims::SIPP::expand(int state_id){
 
     auto state = getSearchState(state_id);
-
     StateType state_wo_time = action_space_ptr_->getRobotState(state->cfg_state_id)->state;
+    // The successors are ids of configurations without time. The configurations are stored in the action space.
+    std::vector<std::vector<int>> minipath_successors;
+    std::vector<std::vector<double>> minipath_costs; // In this case we use the "cost" as the new f value
+    action_space_ptr_->getSuccessors(state->cfg_state_id, minipath_successors, minipath_costs);
+    // Strip down the multistep successors to single step successors.
     std::vector<int> successors;
     std::vector<double> costs;
-    // The successors are ids of configurations without time. The configurations are stored in the action space.
-    action_space_ptr_->getSuccessors(state->cfg_state_id, successors, costs);
+    getSingleStepSuccessorsFromMultiStepSuccessors(minipath_successors, minipath_costs, successors, costs);
     for (size_t i {0} ; i < successors.size() ; ++i){
         int successor_cfg_state_id = successors[i];
         StateType succ_state_wo_time = action_space_ptr_->getRobotState(successor_cfg_state_id)->state;

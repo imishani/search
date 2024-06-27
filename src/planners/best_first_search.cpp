@@ -183,9 +183,13 @@ bool ims::BestFirstSearch::plan(std::vector<StateType>& path) {
 
 void ims::BestFirstSearch::expand(int state_id){
     auto state = getSearchState(state_id);
+    std::vector<std::vector<int>> minipath_successors;
+    std::vector<std::vector<double>> minipath_costs; // In this case we use the "cost" as the new f value
+    action_space_ptr_->getSuccessors(state->state_id, minipath_successors, minipath_costs);
+    // Strip down the multistep successors to single step successors.
     std::vector<int> successors;
-    std::vector<double> costs; // In this case we use the "cost" as the new f value
-    action_space_ptr_->getSuccessors(state->state_id, successors, costs);
+    std::vector<double> costs;
+    getSingleStepSuccessorsFromMultiStepSuccessors(minipath_successors, minipath_costs, successors, costs);
     for (size_t i {0} ; i < successors.size() ; ++i){
         int successor_id = successors[i];
         double cost = costs[i];

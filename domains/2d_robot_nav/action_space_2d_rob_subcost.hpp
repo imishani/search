@@ -55,69 +55,72 @@ public:
     }
 
     void getActions(int state_id,
-                    std::vector<ActionSequence> &action_seqs,
+                    std::vector<MiniPathAction> &minipath_actions,
                     bool check_validity) override {
-        auto actions = action_type_->getPrimActions();
+        ims::RobotState* curr_state = this->getRobotState(state_id);
+        std::vector<MiniPathAction> actions = action_type_->getPrimActions();
         for (int i {0} ; i < action_type_->num_actions ; i++){
-            auto action = actions[i];
+            MiniPathAction minipath_action = actions[i];
             if (check_validity){
-                auto curr_state = this->getRobotState(state_id);
-                auto next_state_val = StateType(curr_state->state.size());
-                std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-                if (!isStateValid(next_state_val)){
+                PathType minipath_successor_state_vals;
+                transformStateWithMultiStepAction(curr_state->state, minipath_action, minipath_successor_state_vals);
+                if (!isPathValid(minipath_successor_state_vals)){
                     continue;
                 }
             }
-            // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
-            // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
-            ActionSequence action_seq;
-            action_seq.push_back(action);
-            action_seqs.push_back(action_seq);
+            // Each minipath_action is a sequence of states, each a delta from the origin. In the most simple case, the sequence is of length 1 - only the next state.
+            // In more complex cases, the sequence is longer - for example, when the minipath_action is an experience, controller or a trajectory.
+            minipath_actions.push_back(minipath_action);
         }
     }
 
     bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs) override{
-        auto curr_state = this->getRobotState(curr_state_ind);
-        std::vector<ActionSequence> actions;
+                       std::vector<std::vector<int>>& minipath_successors,
+                       std::vector<std::vector<double>>& minipath_costs) override{
+        ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
+        std::vector<MiniPathAction> actions;
         getActions(curr_state_ind, actions, false);
-
+        // Multistep actions are a list of deltas from the origin. So in 2D, an example multistep action is {{1, 0}, {2, 0}, {3, 0}}
+        // which means move 1 step in the x direction three times -- moving the robot from (0, 0) to (3, 0).
         for (int i {0} ; i < actions.size() ; i++){
-            auto action = actions[i][0];
-            auto next_state_val = StateType(curr_state->state.size());
-            std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+            // Apply the action to the current state.
+            std::vector<double> minipath_cost = action_type_->action_costs[i];
+            PathType minipath_successor;
+            transformStateWithMultiStepAction(curr_state->state, actions[i], minipath_successor);
 
-            if (isStateValid(next_state_val)){
-                int next_state_ind = getOrCreateRobotState(next_state_val);
-                successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
+            // Check if the successor is valid.
+            if (isPathValid(minipath_successor)){
+                std::vector<int> minipath_successor_state_inds = getOrCreateRobotStates(minipath_successor);
+                minipath_successors.push_back(minipath_successor_state_inds);
+                minipath_costs.push_back(minipath_cost);
             }
         }
         return true;
     }
 
-    // Get successors with subcosts.
     bool getSuccessors(int curr_state_ind,
-                                   std::vector<int>& successors,
-                                   std::vector<double>& costs, 
-                                   std::vector<double> &subcosts) override{
-        auto curr_state = this->getRobotState(curr_state_ind);
-        std::vector<ActionSequence> actions;
+                       std::vector<std::vector<int>>& minipath_successors,
+                       std::vector<std::vector<double>>& minipath_costs,
+                       std::vector<std::vector<double>> &minipath_subcosts) override{
+        ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
+        std::vector<MiniPathAction> actions;
         getActions(curr_state_ind, actions, false);
-
+        // Multistep actions are a list of deltas from the origin. So in 2D, an example multistep action is {{1, 0}, {2, 0}, {3, 0}}
+        // which means move 1 step in the x direction three times -- moving the robot from (0, 0) to (3, 0).
         for (int i {0} ; i < actions.size() ; i++){
-            auto action = actions[i][0];
-            auto next_state_val = StateType(curr_state->state.size());
-            std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+            // Apply the action to the current state.
+            std::vector<double> minipath_cost = action_type_->action_costs[i];
+            std::vector<double> minipath_subcost = std::vector<double>(minipath_cost.size(), 0);
+            PathType minipath_successor;
+            transformStateWithMultiStepAction(curr_state->state, actions[i], minipath_successor);
 
-            if (isStateValid(next_state_val)){
-                int next_state_ind = getOrCreateRobotState(next_state_val);
-                successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
-                // A random subcost with value 0 or 1.
-                double random_subcost = ((double)rand() / RAND_MAX) < 0.5 ? 0 : 1;
-                subcosts.push_back(random_subcost);
+            // Check if the successor is valid.
+            if (isPathValid(minipath_successor)){
+                std::vector<int> minipath_successor_state_inds = getOrCreateRobotStates(minipath_successor);
+                minipath_successors.push_back(minipath_successor_state_inds);
+                minipath_costs.push_back(minipath_cost);
+                // A subcost with value 0.
+                minipath_subcosts.push_back(minipath_subcost);
             }
         }
         return true;

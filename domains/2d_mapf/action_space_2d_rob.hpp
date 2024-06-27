@@ -47,12 +47,12 @@ struct ActionType2dRob : public ims::ActionType {
         this->name = "ActionType2dRob";
         this->num_actions = 4;
         this->action_names = {"N", "E", "S", "W"};
-        this->action_costs = {1, 1, 1, 1};
-        this->action_deltas = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+        this->action_costs = {{1}, {1}, {1}, {1}};
+        this->action_deltas = {{{0, 1}}, {{1, 0}}, {{0, -1}}, {{-1, 0}}};
         this->state_discretization_ = {1, 1};
     }
 
-    std::vector<Action> getPrimActions() override {
+    std::vector<MiniPathAction> getPrimActions() override {
         return this->action_deltas;
     }
 
@@ -63,8 +63,8 @@ struct ActionType2dRob : public ims::ActionType {
     std::string name;
     int num_actions;
     std::vector<std::string> action_names;
-    std::vector<double> action_costs;
-    std::vector<std::vector<double>> action_deltas;
+    std::vector<std::vector<double>> action_costs;
+    std::vector<MiniPathAction> action_deltas;
 };
 
 struct ActionType2dRobTimed : public ActionType2dRob {
@@ -72,8 +72,8 @@ struct ActionType2dRobTimed : public ActionType2dRob {
         this->name = "ActionType2dRob";
         this->num_actions = 5;
         this->action_names = {"N", "E", "S", "W", "Wait"};
-        this->action_costs = {1, 1, 1, 1, 1};
-        this->action_deltas = {{0, 1, 1}, {1, 0, 1}, {0, -1, 1}, {-1, 0, 1}, {0, 0, 1}};
+        this->action_costs = {{1}, {1}, {1}, {1}, {1}};
+        this->action_deltas = {{{0, 1, 1}, {0,2,2}}, {{1, 0, 1}}, {{0, -1, 1}}, {{-1, 0, 1}}, {{0, 0, 1}}};
         this->state_discretization_ = {1, 1, 1};
     }
 };
@@ -91,24 +91,22 @@ public:
     }
 
     void getActions(int state_id,
-                    std::vector<ActionSequence> &action_seqs,
+                    std::vector<MiniPathAction> &minipath_actions,
                     bool check_validity) override {
-        auto actions = action_type_->getPrimActions();
+        ims::RobotState* curr_state = this->getRobotState(state_id);
+        std::vector<MiniPathAction> actions = action_type_->getPrimActions();
         for (int i {0} ; i < action_type_->num_actions ; i++){
-            auto action = actions[i];
+            MiniPathAction minipath_action = actions[i];
             if (check_validity){
-                auto curr_state = this->getRobotState(state_id);
-                auto next_state_val = StateType(curr_state->state.size());
-                std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-                if (!isStateValid(next_state_val)){
+                PathType minipath_successor_state_vals;
+                transformStateWithMultiStepAction(curr_state->state, minipath_action, minipath_successor_state_vals);
+                if (!isPathValid(minipath_successor_state_vals)){
                     continue;
                 }
             }
-            // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
-            // In more complex cases, the sequence is longer - for example, when the action is an experience, a controller, or a trajectory.
-            ActionSequence action_seq;
-            action_seq.push_back(action);
-            action_seqs.push_back(action_seq);
+            // Each minipath_action is a sequence of states, each a delta from the origin. In the most simple case, the sequence is of length 1 - only the next state.
+            // In more complex cases, the sequence is longer - for example, when the minipath_action is an experience, controller or a trajectory.
+            minipath_actions.push_back(minipath_action);
         }
     }
 
@@ -212,26 +210,24 @@ public:
     }
 
     bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs) override {
-        auto curr_state = this->getRobotState(curr_state_ind);
-        std::vector<ActionSequence> actions;
+                       std::vector<std::vector<int>>& minipath_successors,
+                       std::vector<std::vector<double>>& minipath_costs) override{
+        ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
+        std::vector<MiniPathAction> actions;
         getActions(curr_state_ind, actions, false);
+        // Multistep actions are a list of deltas from the origin. So in 2D, an example multistep action is {{1, 0}, {2, 0}, {3, 0}}
+        // which means move 1 step in the x direction three times -- moving the robot from (0, 0) to (3, 0).
         for (int i {0} ; i < actions.size() ; i++){
-            auto action = actions[i][0];
-            auto next_state_val = StateType(curr_state->state.size());
-            std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+            // Apply the action to the current state.
+            std::vector<double> minipath_cost = action_type_->action_costs[i];
+            PathType minipath_successor;
+            transformStateWithMultiStepAction(curr_state->state, actions[i], minipath_successor);
 
-            // Check for constraint satisfaction.
-            if (!isSatisfyingAllConstraints(curr_state->state, next_state_val)) {
-                continue;
-            }
-
-            // EXAMPLE NOTE: it may sometimes make sense to check constraint satisfaction within the isStateValid method, for efficiency. For example, if a constraint requires comparison of a robot state against a world state and simulataneously the state of another robot, then it would be better to set all robots into their specified configurations and check for validity only once.
-            if (isStateValid(next_state_val)) {
-                int next_state_ind = getOrCreateRobotState(next_state_val);
-                successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
+            // Check if the successor is valid.
+            if (isPathValid(minipath_successor)){
+                std::vector<int> minipath_successor_state_inds = getOrCreateRobotStates(minipath_successor);
+                minipath_successors.push_back(minipath_successor_state_inds);
+                minipath_costs.push_back(minipath_cost);
             }
         }
         return true;
@@ -239,37 +235,48 @@ public:
 
     // Get successors with subcosts. The subcosts are the number of conflicts that would be created on a transition to the successor.
     bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs,
-                       std::vector<double>& subcosts) override {
+                       std::vector<std::vector<int>>& minipath_successors,
+                       std::vector<std::vector<double>>& minipath_costs,
+                       std::vector<std::vector<double>>& minipath_subcosts) override {
 
         auto curr_state = this->getRobotState(curr_state_ind);
         
-        std::vector<ActionSequence> actions;
+        std::vector<MiniPathAction> actions;
         getActions(curr_state_ind, actions, false);
         for (int i {0} ; i < actions.size() ; i++){
-            auto action = actions[i][0];
-            auto next_state_val = StateType(curr_state->state.size());
-            std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+            // Flag for whether this action is valid.
+            bool is_action_valid = true;
+            // Apply the action to the current state.
+            std::vector<int> minipath_successor_state_inds;
+            std::vector<double> minipath_cost = action_type_->action_costs[i];
+            std::vector<double> minipath_subcost;
+            PathType minipath_successor_state_vals;
+            transformStateWithMultiStepAction(curr_state->state, actions[i], minipath_successor_state_vals);
 
-            // Check for constraint satisfaction.
-            if (!isSatisfyingAllConstraints(curr_state->state, next_state_val)) {
-                continue;
+            // Check for constraint satisfaction and collisions. This checks all transitions in the successor minipath.
+            for (int step_ix{0} ; step_ix < minipath_successor_state_vals.size(); step_ix++){
+                int step_ix_from = step_ix - 1; // The first step is the current state.
+                int step_ix_to = step_ix;
+                auto state_val_from = step_ix_from < 0 ? curr_state->state : minipath_successor_state_vals[step_ix_from];
+                auto state_val_to = minipath_successor_state_vals[step_ix_to];
+                if (isSatisfyingAllConstraints(state_val_from, state_val_to) &&
+                    isStateValid(state_val_to)){
+                    int state_to_ind = getOrCreateRobotState(state_val_to);
+                    minipath_successor_state_inds.push_back(state_to_ind);
+                    int num_conflicts = 0;
+                    computeTransitionNumberConflicts(state_val_from, state_val_to, num_conflicts);
+                    minipath_subcost.push_back((double)num_conflicts);
+                }
+                else {
+                    // Failed to satisfy constraints -- this action is invalid.
+                    is_action_valid = false;
+                    break;
+                }
             }
-
-            // If the state successor is valid, then compute the number of conflicts that would be created on a transition to the successor and add it to the successors.
-            if (isStateValid(next_state_val)) {
-                int next_state_ind = getOrCreateRobotState(next_state_val);
-                successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
-
-                // Compute the number of conflicts that would be created on a transition to the successor.
-                // Loop through the paths of all the other agents and check if the transition to the successor creates a conflict.
-                int num_conflicts = 0;
-                computeTransitionNumberConflicts(curr_state->state, next_state_val, num_conflicts);
-
-                // Set the subcost.
-                subcosts.push_back(num_conflicts);
+            if (is_action_valid){
+                minipath_successors.push_back(minipath_successor_state_inds);
+                minipath_costs.push_back(minipath_cost);
+                minipath_subcosts.push_back(minipath_subcost);
             }
         }
         return true;
@@ -331,20 +338,6 @@ public:
         int state_id = (int)states_.size() - 1;
         state_to_id_[curr_state] = state_id;
         return state_id;
-    }
-
-    /// @brief Compute the cost of a path. This is domain-specific, and must be implemented in multi-agent settings.
-    /// @param path
-    /// @return The cost of a path.
-    double computePathCost(const PathType& path) {
-        double cost = 0;
-        for (int i{0}; i < path.size() - 1; i++) {
-            auto curr_state = path[i];
-            auto next_state = path[i + 1];
-            auto action = action_type_->getPrimActions()[next_state[2]];
-            cost += action_type_->action_costs[next_state[2]];
-        }
-        return cost;
     }
 
     void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths,

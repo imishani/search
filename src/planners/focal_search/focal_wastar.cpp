@@ -190,11 +190,16 @@ bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
 void ims::FocalwAStar::expand(int state_id){
 
     SearchState* state = getSearchState(state_id);
+    std::vector<std::vector<int>> minipath_successors;
+    std::vector<std::vector<double>> minipath_costs;
+    std::vector<std::vector<double>> minipath_subcosts;
+
+    action_space_ptr_->getSuccessors(state->state_id, minipath_successors, minipath_costs, minipath_subcosts);
     std::vector<int> successors;
     std::vector<double> costs;
     std::vector<double> subcosts;
+    getSingleStepSuccessorsFromMultiStepSuccessors(minipath_successors, minipath_costs, minipath_subcosts, successors, costs, subcosts);
 
-    action_space_ptr_->getSuccessors(state->state_id, successors, costs, subcosts);
     for (size_t i {0} ; i < successors.size() ; ++i){
         int successor_id = successors[i];
         double cost = costs[i];
