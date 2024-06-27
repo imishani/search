@@ -90,7 +90,7 @@ namespace ims {
 
         /// @brief Get the possible actions
         /// @return The possible actions
-        virtual std::vector<Action> getPrimActions() = 0;
+        virtual std::vector<MiniPathAction> getPrimActions() = 0;
 
         /// @brief Get the resolution of the state space (for discretization)
         /// @param state_des The state discretization
@@ -198,25 +198,52 @@ namespace ims {
             }
         }
 
+        /// @brief Get or create multiple states by state values.
+        /// @param state_vals The state values
+        /// @return The state ids
+        virtual std::vector<int> getOrCreateRobotStates(const PathType & state_vals){
+            std::vector<int> state_ids(state_vals.size());
+            for (int i{0}; i < state_vals.size(); i++){
+                state_ids[i] = getOrCreateRobotState(state_vals[i]);
+            }
+            return state_ids;
+        }
+
         /// @brief Get actions
         /// @param state_id The state id
         /// @param actions The action sequences
         /// @param check_validity Check if the actions are valid
         virtual void getActions(int state_id,
-                                std::vector<ActionSequence> &actions_seq,
+                                std::vector<MiniPathAction> &actions_seq,
                                 bool check_validity) = 0;
 
-        /// @brief Get Successor
+        /// @brief Get Successors with multiple steps leading up to them.
         /// @param curr_state_ind The current state index
-        /// @param successors The successor state
-        /// @return Success bool
+        /// @param successors The successor states
+        /// @param costs The costs of the transitions
+        /// @param successors_minipaths The mini paths leading up to the successors. These are sequences of state ids not including the current state or the successor.
+
         /// @note Beware the you should make sure that the state is discretized! (see ActionType::Discretization)
         /// If you are using an implicit graph where the state space is not discrete then define the discretization
         /// based on the tolerance for comparison between states.
         /// @attention You should use getOrCreateRobotState() and getRobotState() when generating the successors!
         virtual bool getSuccessors(int curr_state_ind,
                                    std::vector<int>& successors,
-                                   std::vector<double>& costs) = 0;
+                                   std::vector<double>& costs,
+                                   std::vector<std::vector<int>>& successors_minipaths,
+                                   std::vector<std::vector<double>>& successors_minipaths_transition_costs) = 0;
+
+        virtual bool getSuccesors(int curr_state_ind,
+                          std::vector<int>& successors,
+                          std::vector<double>& costs){
+            std::vector<std::vector<int>> successors_minipaths;
+            std::vector<std::vector<double>> successors_minipaths_transition_costs;
+            return getSuccessors(curr_state_ind,
+                                 successors,
+                                 costs,
+                                 successors_minipaths,
+                                 successors_minipaths_transition_costs);
+        }
 
         /// @brief check if the state is valid
         /// @param state_val The values if the state
@@ -235,6 +262,22 @@ namespace ims {
             }
             states_.clear();
             state_to_id_.clear();
+        }
+
+        /// @brief Tranform a state given a multistep action.
+        /// @example Given the state [10, 10] and the action [[1, 0], [1, 1]], the output would be [[11, 10], [12, 11]].
+        virtual void transformStateWithMultiStepAction(const StateType& state,
+                                                       const MiniPathAction& action,
+                                                       PathType& transformed_state){
+            for (int step_ix{0}; step_ix < action.size(); step_ix++){
+                // Multistep actions are a list of deltas from the origin. So in 2D, an example multistep action is {{1, 0}, {2, 0}, {3, 0}}
+                // which means move 1 step in the x direction three times -- moving the robot from (0, 0) to (3, 0).
+                StateType single_step_action = action[step_ix];
+                // Set the next state to be the sum of the current state and the action. Start by setting it to the current state.
+                StateType next_state_val = StateType(state.size());
+                std::transform(state.begin(), state.end(), single_step_action.begin(), next_state_val.begin(), std::plus<>());
+                transformed_state.push_back(next_state_val);
+            }
         }
     };
 }

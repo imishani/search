@@ -141,11 +141,14 @@ void ims::EAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<int> 
 
 void ims::EAwAStarUniformCost::expand(int state_id){
 
-    auto state_ = getSearchState(state_id);
+    auto state = getSearchState(state_id);
+    std::vector<std::vector<int>> minipath_successors;
+    std::vector<std::vector<double>> minipath_costs; // In this case we use the "cost" as the new f value
+    action_space_ptr_->getSuccessors(state->state_id, minipath_successors, minipath_costs);
+    // Strip down the multistep successors to single step successors.
     std::vector<int> successors;
     std::vector<double> costs;
-    action_space_ptr_->getSuccessorsExperienceAccelerated(state_->state_id, successors, costs);
-    // action_space_ptr_->getSuccessors(state_->state_id, successors, costs);
+    getSingleStepSuccessorsFromMultiStepSuccessors(minipath_successors, minipath_costs, successors, costs);
     for (size_t i {0} ; i < successors.size() ; ++i){
         int successor_id = successors[i];
         double cost = costs[i];
@@ -157,14 +160,14 @@ void ims::EAwAStarUniformCost::expand(int state_id){
             std::cout << "Added Goal to open list" << std::endl;
         }
         if (successor->in_open){
-            if (successor->g > state_->g + cost){
-                successor->parent_id = state_->state_id;
-                successor->g = state_->g + cost;
+            if (successor->g > state->g + cost){
+                successor->parent_id = state->state_id;
+                successor->g = state->g + cost;
                 successor->f = successor->g + params_.epsilon*successor->h;
                 open_.update(successor);
             }
         } else {
-            setStateVals(successor->state_id, state_->state_id, cost);
+            setStateVals(successor->state_id, state->state_id, cost);
             open_.push(successor);
             successor->setOpen();
         }

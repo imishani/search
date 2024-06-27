@@ -561,7 +561,11 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                     int lowest_h_state_id = 0;
                     std::vector<double> costs;
                     std::vector<int> succ_state_ids;
-                    agent_action_space_ptrs_[agent_id]->getSuccessors(agent_state_id, succ_state_ids, costs);
+                    std::vector<std::vector<int>> minipath_succ_state_ids;
+                    std::vector<std::vector<double>> minipath_costs;
+                    agent_action_space_ptrs_[agent_id]->getSuccessors(agent_state_id, minipath_succ_state_ids, minipath_costs);
+                    getSingleStepSuccessorsFromMultiStepSuccessors(minipath_succ_state_ids, minipath_costs, succ_state_ids, costs);
+
                     for (auto successor_state_id : succ_state_ids) {
                         double h = agent_roadmap_heuristic[successor_state_id];
                         if (h < lowest_h) {
@@ -665,7 +669,10 @@ bool ims::dRRT::plan(MultiAgentPaths& paths) {
                 for (int agent_id{0}; agent_id < num_agents_; agent_id++){
                     std::vector<double> costs;
                     std::vector<int> neighbor_state_ids;
-                    agent_action_space_ptrs_[agent_id]->getSuccessors(current_tree_state->agent_state_ids[agent_id], neighbor_state_ids, costs);
+                    std::vector<std::vector<int>> minipath_neighbor_state_ids;
+                    std::vector<std::vector<double>> minipath_costs;
+                    agent_action_space_ptrs_[agent_id]->getSuccessors(current_tree_state->agent_state_ids[agent_id], minipath_neighbor_state_ids, minipath_costs);
+                    getSingleStepSuccessorsFromMultiStepSuccessors(minipath_neighbor_state_ids, minipath_costs, neighbor_state_ids, costs);
 
                     // Add the state ids of the neighbors.
                     agent_id_to_neighbor_state_ids[agent_id] = neighbor_state_ids;

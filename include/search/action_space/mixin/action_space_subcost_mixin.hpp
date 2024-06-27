@@ -62,9 +62,9 @@ public:
     /// @param costs The vector of costs to be filled.
     /// @param subcosts The vector of subcosts to be filled.
     virtual bool getSuccessors(int curr_state_ind,
-                                   std::vector<int>& successors,
-                                   std::vector<double>& costs, 
-                                   std::vector<double> &subcosts) = 0;
+                                   std::vector<std::vector<int>> & successors,
+                                   std::vector<std::vector<double>> & costs,
+                                   std::vector<std::vector<double>> & subcosts) = 0;
     /// @brief Compute the subcost associated with a particular timed transition. Notice that states have time in their last element.
     virtual void getTransitionSubcost(const StateType& state_val_from, const StateType& state_val_to, double & subcost) = 0;
 };

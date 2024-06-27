@@ -61,7 +61,7 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
             name_ = "ActionTypeAckermann2dRob";
             num_actions_ = 5;
             action_names_ = {"Turn-40", "Turn-20", "Turn0", "Turn+20", "Turn+40"};
-            action_costs_ = {1, 1, 1, 1, 1};
+            action_costs_ = {{1}, {1}, {1}, {1}, {1}};
             speed_ = s;
             length_ = l;
             dt_ = t;
@@ -91,7 +91,11 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
 
         /// @brief Iterates through the map to print each key-value pair.
         /// @param map A map with a key type of double (theta) and value type of pair<vector<Action>,vector<Action>> (discretized_action prims, unrounded action prims).
-        void printActionPrimsMap(const std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> &map) {
+        void printActionPrimsMap(const std::map<double, std::pair<std::vector<MiniPathAction>, std::vector<MiniPathAction>>> &map_vis) {
+            std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> map;
+            for (const auto& pair : map_vis) {
+                map[pair.first] = {pair.second.first[0], pair.second.second[0]};
+            }
             for (const auto& pair : map) {
                 std::cout << "Key: " << pair.first << ", Values: ";
                 
@@ -117,20 +121,20 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
         }
 
         /// @brief Uses the state discretization of the action space to create a map from each possible theta value to a pair of unique discretized action prims and unrounded action prims.
-        /// @return A map from each possible theta value to a a pair of unique discretized action prims and unrounded action prims.
-        std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> makeActionPrimsMap() {
-            std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> apm;
+        /// @return A map from each possible theta value to a a pair of unique discretized action prims and ungrounded action prims.
+        std::map<double, std::pair<std::vector<MiniPathAction>, std::vector<MiniPathAction>>> makeActionPrimsMap() {
+            std::map<double, std::pair<std::vector<MiniPathAction>, std::vector<MiniPathAction>>> apm;
 
             for(double theta = 0.0; theta < 360.0; theta += state_discretization_[2]){
                 std::vector<Action> action_prims = getPrimActionsFromTheta(theta);
                 std::vector<Action> discretized_action_prims(action_prims.size());
                 for (int i = 0; i < action_prims.size(); i++) {
-                    discretized_action_prims[i] = discretizeState(action_prims[i], state_discretization_);
+                    discretized_action_prims[i] = {discretizeState(action_prims[i], state_discretization_)};
                 }
 
                 discretized_action_prims = removeDuplicateActions(discretized_action_prims);
 
-                apm[theta] = {discretized_action_prims, action_prims};
+                apm[theta] = {{discretized_action_prims}, {action_prims}};
             }
             printActionPrimsMap(apm);
             return apm;
@@ -139,13 +143,13 @@ class ActionSpace2dAckermannRob : public ims::ActionSpace {
         std::string name_;
         int num_actions_;
         std::vector<std::string> action_names_;
-        std::vector<double> action_costs_;
+        std::vector<std::vector<double>> action_costs_;
         double speed_;
         double length_;
         double dt_;
         StateType state_discretization_;
         std::vector<int> steering_angles_;
-        std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> action_prims_map_;
+        std::map<double, std::pair<std::vector<MiniPathAction>, std::vector<MiniPathAction>>> action_prims_map_;
     };
 
 protected:
@@ -164,20 +168,17 @@ public:
     /// @param action_seqs The vector to populated with possible actions for the robot to have from the given state.
     /// @param check_validity Should be false, validity of the action is checked in the getSuccessors function.
     void getActions(int state_id,
-                    std::vector<ActionSequence> &action_seqs,
+                    std::vector<MiniPathAction> &action_seqs,
                     bool check_validity) override{
         // validity is checked in the getSuccessors() function, no need to check validity in this function
         assert(check_validity == false);
         
         ims::RobotState* curr_state = getRobotState(state_id);
         double curr_state_theta = (curr_state->state)[2];
-        std::vector<Action> actions = action_type_->action_prims_map_[curr_state_theta].first;
+        std::vector<MiniPathAction> actions = action_type_->action_prims_map_[curr_state_theta].first;
         for (int i {0} ; i < actions.size(); i++){
-            Action action = actions[i];
-            // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
-            // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
-            ActionSequence action_seq = {action};
-            action_seqs.push_back(action_seq);
+            MiniPathAction action = actions[i];
+            action_seqs.push_back(action);
         }
     }
 
@@ -187,21 +188,25 @@ public:
     /// @param costs The vector to populate with the correspondings costs to move to each successor state.
     /// @return True if the successor states and costs and successfully calculated.
     bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs) override{
+                       std::vector<std::vector<int>>& minipath_successors,
+                       std::vector<std::vector<double>>& minipath_costs) override{
         ims::RobotState* curr_state = getRobotState(curr_state_ind);
         StateType curr_state_val = curr_state->state;
-        std::vector<ActionSequence> actions;
+        std::vector<MiniPathAction> actions;
         getActions(curr_state_ind, actions, false);
         for (int i {0} ; i < actions.size() ; i++){
-            StateType action = actions[i][0];
+            if (actions[i].size() > 1){
+                std::cout << RED << "ActionSpace2dAckermannRob: Action size greater than 1 is not supported. Only using last delta." << RESET << std::endl;
+            }
+            StateType action = actions[i].back();
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+
             next_state_val[2] = double((int)(next_state_val[2] + 360) % 360);
             if (isPathValid(getDiscretePointsOnLine(curr_state_val, next_state_val, action_type_->state_discretization_)) && isStateValid(next_state_val)) {
                 int next_state_ind = getOrCreateRobotState(next_state_val);
-                successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs_[i]);
+                minipath_successors.push_back({next_state_ind});
+                minipath_costs.push_back({action_type_->action_costs_[i]});
             }
         }
         return true;
@@ -236,7 +241,7 @@ public:
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
     }
 
-    std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> getActionPrimsMap() {
+    std::map<double, std::pair<std::vector<MiniPathAction>, std::vector<MiniPathAction>>> getActionPrimsMap() {
         return action_type_->action_prims_map_;
     }
 };

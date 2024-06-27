@@ -175,9 +175,13 @@ void ims::BFS::expand(int state_id){
     state->setClosed();
 
     // Ask for the successors from the action space.
+    std::vector<std::vector<int>> minipath_successors;
+    std::vector<std::vector<double>> minipath_costs; // In this case we use the "cost" as the new f value
+    action_space_ptr_->getSuccessors(state->state_id, minipath_successors, minipath_costs);
+    // Strip down the multistep successors to single step successors.
     std::vector<int> successors;
     std::vector<double> costs;
-    action_space_ptr_->getSuccessors(state->state_id, successors, costs);
+    getSingleStepSuccessorsFromMultiStepSuccessors(minipath_successors, minipath_costs, successors, costs);
     for (size_t i {0} ; i < successors.size() ; ++i){
         int successor_id = successors[i];
         

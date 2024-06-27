@@ -226,26 +226,37 @@ bool ims::ARAStar::improvePath(std::vector<StateType> &path) {
 }
 
 void ims::ARAStar::expand(int state_id) {
-    auto state_ = getSearchState(state_id);
+    auto state = getSearchState(state_id);
+    std::vector<std::vector<int>> minipath_successors;
+    std::vector<std::vector<double>> minipath_costs; // In this case we use the "cost" as the new f value
+    action_space_ptr_->getSuccessors(state->state_id, minipath_successors, minipath_costs);
+    // Strip down the multistep successors to single step successors.
     std::vector<int> successors;
     std::vector<double> costs;
-    action_space_ptr_->getSuccessors(state_->state_id, successors, costs);
+    for (size_t i {0} ; i < minipath_successors.size() ; ++i){
+        // Warn if the successor is not a single step successor and stripped anyway.
+        if (minipath_successors.at(i).size() > 1){
+            std::cout << RED << "Warning: Multistep successor is stripped down to single step successor." << RESET << std::endl;
+        }
+        successors.push_back(minipath_successors.at(i).back());
+        costs.push_back(minipath_costs.at(i).back());
+    }
     for (size_t i {0} ; i < successors.size() ; ++i){
         int successor_id = successors[i];
         double cost = costs[i];
         auto successor = getOrCreateSearchState(successor_id);
         reinitSearchState(successor);
 
-        if (successor->g > state_->g + cost) {
-            successor->g = state_->g + cost;
-            successor->parent_id = state_->state_id;
+        if (successor->g > state->g + cost) {
+            successor->g = state->g + cost;
+            successor->parent_id = state->state_id;
             if (!successor->in_closed){
                 successor->h = computeHeuristic(successor_id);
                 successor->f = successor->g + params_.epsilon*successor->h;
                 if (successor->in_open){
                     open_.update(successor);
                 } else {
-                    setStateVals(successor->state_id, state_->state_id, cost);
+                    setStateVals(successor->state_id, state->state_id, cost);
                     open_.push(successor);
                     successor->setOpen();
                 }

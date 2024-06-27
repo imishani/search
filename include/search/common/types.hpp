@@ -68,7 +68,7 @@ using PathType = std::vector<StateType>;
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 using Action = std::vector<double>;
-using ActionSequence = std::vector<Action>;
+using MiniPathAction = std::vector<Action>;
 using ParamsType = std::unordered_map<std::string, double>;
 using TimeType = int;
 const TimeType INF_TIME_TYPE = std::numeric_limits<TimeType>::max() / 2;

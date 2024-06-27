@@ -133,10 +133,14 @@ bool ims::ExperienceWAstar::plan(std::vector<StateType> &path) {
 }
 
 void ims::ExperienceWAstar::expand(int state_id) {
-    auto state_ = getSearchState(state_id);
+    auto state = getSearchState(state_id);
+    std::vector<std::vector<int>> minipath_successors;
+    std::vector<std::vector<double>> minipath_costs; // In this case we use the "cost" as the new f value
+    action_space_ptr_->getSuccessors(state->state_id, minipath_successors, minipath_costs);
+    // Strip down the multistep successors to single step successors.
     std::vector<int> successors;
     std::vector<double> costs;
-    action_space_ptr_->getSuccessors(state_->state_id, successors, costs);
+    getSingleStepSuccessorsFromMultiStepSuccessors(minipath_successors, minipath_costs, successors, costs);
     for (size_t i {0} ; i < successors.size() ; ++i){
         int successor_id = successors[i];
         double cost = costs[i];
@@ -148,14 +152,14 @@ void ims::ExperienceWAstar::expand(int state_id) {
             std::cout << "Added Goal to open list" << std::endl;
         }
         if (successor->in_open){
-            if (successor->g > state_->g + cost){
-                successor->parent_id = state_->state_id;
-                successor->g = state_->g + cost;
+            if (successor->g > state->g + cost){
+                successor->parent_id = state->state_id;
+                successor->g = state->g + cost;
                 successor->f = successor->g + params_.epsilon*successor->h;
                 open_.update(successor);
             }
         } else {
-            setStateVals(successor->state_id, state_->state_id, cost);
+            setStateVals(successor->state_id, state->state_id, cost);
             open_.push(successor);
             successor->setOpen();
         }
@@ -175,14 +179,14 @@ void ims::ExperienceWAstar::expand(int state_id) {
         }
 
         if (snap_successor->in_open){
-            if (snap_successor->g > state_->g + cost){
-                snap_successor->parent_id = state_->state_id;
-                snap_successor->g = state_->g + cost;
+            if (snap_successor->g > state->g + cost){
+                snap_successor->parent_id = state->state_id;
+                snap_successor->g = state->g + cost;
                 snap_successor->f = snap_successor->g + params_.epsilon*snap_successor->h;
                 open_.update(snap_successor);
             }
         } else {
-            setStateVals(snap_successor->state_id, state_->state_id, cost);
+            setStateVals(snap_successor->state_id, state->state_id, cost);
             open_.push(snap_successor);
             snap_successor->setOpen();
         }
@@ -204,14 +208,14 @@ void ims::ExperienceWAstar::expand(int state_id) {
         }
 
         if (shortcut_successor->in_open){
-            if (shortcut_successor->g > state_->g + cost){
-                shortcut_successor->parent_id = state_->state_id;
-                shortcut_successor->g = state_->g + cost;
+            if (shortcut_successor->g > state->g + cost){
+                shortcut_successor->parent_id = state->state_id;
+                shortcut_successor->g = state->g + cost;
                 shortcut_successor->f = shortcut_successor->g + params_.epsilon*shortcut_successor->h;
                 open_.update(shortcut_successor);
             }
         } else {
-            setStateVals(shortcut_successor->state_id, state_->state_id, cost);
+            setStateVals(shortcut_successor->state_id, state->state_id, cost);
             open_.push(shortcut_successor);
             shortcut_successor->setOpen();
         }
@@ -263,7 +267,7 @@ void ims::ExperienceWAstar::extractPath(const std::vector<int> &search_path, Pat
             std::cout << RED << "[ERROR]: State " << curr_id << " is not in the action space!" << RESET << std::endl;
             return;
         }
-        std::vector<ActionSequence> action_sequences;
+        std::vector<MiniPathAction> action_sequences;
         action_space_ptr_->getActions(prev_s_id, action_sequences, true);
         for (auto& action_sequence : action_sequences){
             if (curr_id == goal_){

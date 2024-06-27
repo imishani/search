@@ -102,6 +102,20 @@ public:
         throw std::runtime_error("verifyStartAndGoalInputStates() is no loinger used.");
     }
 
+    static void getSingleStepSuccessorsFromMultiStepSuccessors(const std::vector<std::vector<int>> & minipath_successors,
+                                               const std::vector<std::vector<double>> & minipath_costs,
+                                               std::vector<int> & singlestep_successors,
+                                                 std::vector<double> & singlestep_costs) {
+        // Raise alarms if stripping down a multistep successor to a single step successor.
+        if (minipath_successors.at(0).size() != 1) {
+            throw std::invalid_argument("Planner::getSingleStepSuccessorsFromMultiStepSuccessors: Requested turning a multistep successor to a single step successor. This is information loss, aborting.");
+        }
+        for (int i = 0; i < minipath_successors.size(); i++) {
+            singlestep_successors.push_back(minipath_successors.at(i).back());
+            singlestep_costs.push_back(minipath_costs.at(i).back());
+        }
+    }
+
 
 protected:
 

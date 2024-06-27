@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
         ActionType2dRob action_type;
         // Print the available actions.
         std::cout << "Available actions should be untimed:: " << std::endl;
-        for (const Action & a : action_type.getPrimActions()){
+        for (const MiniPathAction & a : action_type.getPrimActions()){
             std::cout << " *   " << a << std::endl;
         }
 
@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
         ActionType2dRob action_type;
         // Print the available actions.
         std::cout << "Available actions should be untimed:: " << std::endl;
-        for (const Action & a : action_type.getPrimActions()){
+        for (const MiniPathAction & a : action_type.getPrimActions()){
             std::cout << " *   " << a << std::endl;
         }
 
@@ -237,7 +237,7 @@ int main(int argc, char** argv) {
     fout.close();
 
     // Execute the visualization script.
-    std::string command = "python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 1 && open paths.gif";
+    std::string command = "python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 1 && xdg-open paths.gif";
     std::cout << "Running the plot script..." << std::endl;
     system(command.c_str());
 

@@ -86,6 +86,8 @@ namespace ims{
 
             /// @brief The parent state
             int parent_id = UNSET;
+            /// @brief The configuration state ids that comprise a minipath from the parent to this state.
+            std::vector<int> state_ids_from_parent;
             /// @brief The cost to come
             double g = INF_DOUBLE;
             /// @brief The f value

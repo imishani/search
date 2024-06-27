@@ -321,9 +321,9 @@ public:
 
 
     virtual bool getSuccessorsExperienceAccelerated(int curr_state_ind,
-                                std::vector<int> &successors,
-                                std::vector<double>& costs,
-                                std::vector<double>& subcosts) {
+                                std::vector<std::vector<int>> &successors,
+                                std::vector<std::vector<double>>& costs,
+                                std::vector<std::vector<double>>& subcosts) {
         throw std::runtime_error("getSuccessorsExperienceAccelerated not implemented for abstract SubcostExperienceAcceleratedConstrainedActionSpace");
         }
 };

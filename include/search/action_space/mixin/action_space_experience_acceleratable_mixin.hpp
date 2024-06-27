@@ -92,7 +92,9 @@ public:
     /// @param state_id The state id.
     /// @param successors The successors to be updated.
     /// @param costs The costs to be updated.
-    virtual bool getSuccessorsExperienceAccelerated(int state_id, std::vector<int>& successors, std::vector<double>& costs) = 0;
+    virtual bool getSuccessorsExperienceAccelerated(int state_id,
+                                                    std::vector<std::vector<int>>& successors,
+                                                    std::vector<std::vector<double>>& costs) = 0;
 
     
     // Member variables.

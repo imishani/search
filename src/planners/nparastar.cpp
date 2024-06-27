@@ -255,10 +255,14 @@ bool ims::NPARAStar::improvePath(std::vector<StateType> &path)
 
 void ims::NPARAStar::expand(int state_id)
 {
-    auto state_ = getSearchState(state_id);
+    auto state = getSearchState(state_id);
+    std::vector<std::vector<int>> minipath_successors;
+    std::vector<std::vector<double>> minipath_costs; // In this case we use the "cost" as the new f value
+    action_space_ptr_->getSuccessors(state->state_id, minipath_successors, minipath_costs);
+    // Strip down the multistep successors to single step successors.
     std::vector<int> successors;
     std::vector<double> costs;
-    action_space_ptr_->getSuccessors(state_->state_id, successors, costs);
+    getSingleStepSuccessorsFromMultiStepSuccessors(minipath_successors, minipath_costs, successors, costs);
     for (size_t i{0}; i < successors.size(); ++i)
     {
         int successor_id = successors[i];
@@ -266,10 +270,10 @@ void ims::NPARAStar::expand(int state_id)
         auto successor = getOrCreateSearchState(successor_id);
         reinitSearchState(successor);
 
-        if (successor->g > state_->g + cost)
+        if (successor->g > state->g + cost)
         {
-            successor->g = state_->g + cost;
-            successor->parent_id = state_->state_id;
+            successor->g = state->g + cost;
+            successor->parent_id = state->state_id;
             if (!successor->in_closed)
             {
                 successor->h = computeHeuristic(successor_id);
@@ -280,7 +284,7 @@ void ims::NPARAStar::expand(int state_id)
                 }
                 else
                 {
-                    setStateVals(successor->state_id, state_->state_id, cost);
+                    setStateVals(successor->state_id, state->state_id, cost);
                     open_.push(successor);
                     successor->setOpen();
                 }
