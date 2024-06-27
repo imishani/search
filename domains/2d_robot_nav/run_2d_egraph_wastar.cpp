@@ -7,11 +7,8 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-//#include <utility>
+#include <random>
 #include <cmath>
-//#include <opencv2/core.hpp>
-//#include <opencv2/highgui.hpp>
-//#include <opencv2/imgproc.hpp>
 
 // project includes
 #include "search/planners/egraph_wastar.hpp"
@@ -82,6 +79,7 @@ int main(int argc, char** argv) {
     std::unordered_map<int, PlannerStats> logs;
     std::unordered_map<int, PathType> paths;
     for (int i {0}; i < starts.size(); i++){
+        std::cout << "******************************************" << std::endl;
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
         std::cout << "Goal: " << goals[i][0] << ", " << goals[i][1] << std::endl;
@@ -99,7 +97,6 @@ int main(int argc, char** argv) {
         // construct action type and other inputs for planner
         ActionType2dRob action_type;
         std::shared_ptr<ActionSpaceEGraph2DRob> ActionSpace = std::make_shared<ActionSpaceEGraph2DRob>(scene, action_type);
-        ActionSpace ->loadEGraph(experience_path);
 
         double epsilon = 10.0;
         double egraph_epsilon = 5.0;
@@ -153,21 +150,14 @@ int main(int argc, char** argv) {
         logs[i] = stats;
         paths[i] = path_;
 
-//        // draw the start in red and goal in green
-//        img.at<cv::Vec3b>((int)starts[i][1], (int)starts[i][0]) = cv::Vec3b(0,0,255);
-//        img.at<cv::Vec3b>((int)goals[i][1], (int)goals[i][0]) = cv::Vec3b(0,255,0);
-//
-//        // draw the path in blue but skip the start and goal
-//        for (int j {1}; j < path_.size()-1; j++){
-//            img.at<cv::Vec3b>((int)path_[j][1], (int)path_[j][0]) = cv::Vec3b(255,0,0);
-//        }
-
         delete heuristic;
     }
 
-//    cv::namedWindow("Map", cv::WINDOW_NORMAL);
-//    cv::imshow("Map", img);
-//    cv::waitKey(0);
+    // save the logs to a temporary file
+    logStats(logs, map_index, "egraph_wastar");
+
+    std::string path_file = logPaths(paths, map_index, scale);
+
 
     return 0;
 }
