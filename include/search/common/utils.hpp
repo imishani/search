@@ -66,3 +66,11 @@ inline std::ostream& operator<<(std::ostream& stream, const std::vector<T>& vec)
     stream << vec.back() << "]";
     return stream;
 }
+
+/// @brief Sum of elements in a vector.
+inline double vectorSum(const std::vector<double>& vec) {
+    return std::accumulate(vec.begin(), vec.end(), 0.0);
+}
+inline int vectorSum(const std::vector<int>& vec) {
+    return std::accumulate(vec.begin(), vec.end(), 0);
+}

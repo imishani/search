@@ -79,6 +79,10 @@ private:
     struct SearchState : public ims::SearchState, ims::SearchStateLowerBoundMixin {
         /// @brief The parent state
         int parent_id = UNSET;
+        /// @brief The edge from the parent to the state.
+        std::vector<int> edge_from_parent_state_ids;
+        /// @brief The edge step-costs from the parent to the state.
+        std::vector<double> edge_from_parent_transition_costs;
         /// @brief The cost to come
         double g = INF_DOUBLE;
         /// @brief The heuristic value. Even though not all planners use it, we have it here because many do.

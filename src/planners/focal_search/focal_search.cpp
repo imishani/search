@@ -213,9 +213,8 @@ void ims::FocalSearch::expand(int state_id){
         double subcost = subcosts[i];
         auto successor = getOrCreateSearchState(successor_id);
 
-        // If the successor is already closed, skip it.
+        // If the successor is already closed, check if needs reinsertion to open.
         // Another variant of this algorithm would be to create a new search state for the successor and add it to the open list.
-
         if (successor->in_closed){
             continue;
         }
@@ -243,17 +242,10 @@ void ims::FocalSearch::setStateVals(int state_id, int parent_id, double cost, do
     state_->f = cost;
 }
 
-
 void ims::FocalSearch::reconstructPath(std::vector<StateType>& path) {
-    SearchState* state = getSearchState(goal_);
-    while (state->parent_id != -1){
-        path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
-        state = getSearchState(state->parent_id);
-    }
-    path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
-    std::reverse(path.begin(), path.end());
+    std::vector<double> costs;
+    reconstructPath(path, costs);
 }
-
 
 void ims::FocalSearch::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
     path.clear();
@@ -263,7 +255,7 @@ void ims::FocalSearch::reconstructPath(std::vector<StateType>& path, std::vector
     SearchState* state_ = getSearchState(goal_);
     while (state_->parent_id != -1){
         path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-        
+
         // Get the transition cost. This is the difference between the g values of the current state and its parent.
         double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
         costs.push_back(transition_cost);
