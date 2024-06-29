@@ -78,6 +78,10 @@ namespace ims{
         struct SearchState: public ims::BestFirstSearch::SearchState{
             /// @brief The heuristic value
             double h {-1};
+            /// @brief The edge from the parent to the state.
+            std::vector<int> edge_from_parent_state_ids;
+            /// @brief The edge step-costs from the parent to the state.
+            std::vector<double> edge_from_parent_transition_costs;
         };
 
         /// @brief The open list.
@@ -136,7 +140,11 @@ namespace ims{
     protected:
 
         void setStateVals(int state_id, int parent_id, double cost) override;
-
+        void setStateVals(int state_id,
+                           int parent_id,
+                           double transition_cost,
+                           const std::vector<int> & edge_from_parent_state_ids,
+                           const std::vector<double> & edge_from_parent_transition_costs);
         void expand(int state_id) override;
 
         void reconstructPath(std::vector<StateType>& path) override;

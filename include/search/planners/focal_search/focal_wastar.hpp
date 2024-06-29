@@ -103,6 +103,14 @@ namespace ims{
         bool plan(std::vector<StateType> &path) override;
 
         void setStateVals(int state_id, int parent_id, double cost, double subcost) override;
+        void setStateVals(int state_id,
+                           int parent_id,
+                           double transition_cost,
+                           double transition_subcost,
+                           const std::vector<int> & edge_from_parent_state_ids,
+                           const std::vector<double> & edge_from_parent_transition_costs);
+
+        void reconstructPath(PathType & path, std::vector<double> & costs) override;
 
     protected:
 
