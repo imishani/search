@@ -43,6 +43,7 @@
 // Project includes.
 #include <search/planners/best_first_search.hpp>
 #include <search/action_space/constrained_action_space.hpp>
+#include <search/planners/wastar.hpp>
 
 namespace ims{
 
@@ -73,12 +74,8 @@ namespace ims{
     private:
 
         /// @brief The search state.
-        struct SearchState: public ims::BestFirstSearch::SearchState{
-            /// @brief The heuristic value
-            double h {-1};
-
+        struct SearchState: public ims::wAStar::SearchState{
             /// @note The arrival time is the g-value of the node. This assumes inegral time steps.
-
             /// @brief The safe interval. Safe between [t1, t2] inclusive.
             std::pair<TimeType, TimeType> safe_interval;
 

@@ -68,7 +68,7 @@ struct ActionType2dRob : public ims::ActionType {
                             {{0, 0}, {1, 1}},
                             {{0, 0}, {1, 0}},
                             {{0, 0}, {1, -1}},
-                            {{0, 0}, {1, 0}, {0, -1}},
+                            {{0, 0}, {0, -1}},
                             {{0, 0}, {-1, -1}},
                             {{0, 0}, {-1, 0}},
                             {{0, 0}, {-1, 1}}};
@@ -89,6 +89,7 @@ struct ActionType2dRob : public ims::ActionType {
 
     std::vector<Action> getPrimActions() override{
         std::vector<Action> actions;
+        actions.reserve(action_seq_prims.size());
         for (const ActionSequence & a : action_seq_prims){
             actions.push_back(a.back());
         }
