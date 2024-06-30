@@ -119,7 +119,7 @@ public:
     bool getSuccessorEdges(int curr_state_ind,
                                    std::vector<std::vector<int>>& edges_state_ids,
                                    std::vector<std::vector<double>> & edges_transition_costs,
-                                   std::vector<std::vector<double>> & edge_transition_subcosts) override{
+                                   std::vector<std::vector<double>> & edges_transition_subcosts) override{
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
@@ -154,7 +154,7 @@ public:
             }
             edges_state_ids.push_back(successor_edge_state_ids);
             edges_transition_costs.push_back(successor_edge_transition_costs);
-            edge_transition_subcosts.push_back(successor_edge_transition_subcosts);
+            edges_transition_subcosts.push_back(successor_edge_transition_subcosts);
         }
         return true;
     }

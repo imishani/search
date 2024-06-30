@@ -47,13 +47,22 @@ struct ActionType2dRob : public ims::ActionType {
         this->name = "ActionType2dRob";
         this->num_actions = 4;
         this->action_names = {"N", "E", "S", "W"};
-        this->action_costs = {1, 1, 1, 1};
-        this->action_deltas = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+        this->action_edges_transition_costs = {{1, 0}, {1, 0}, {1, 0}, {1, 0}};
+        this->action_seq_prims = {{{0, 0}, {0, 1}},
+                                  {{0, 0}, {1, 0}},
+                                  {{0, 0}, {0, -1}},
+                                  {{0, 0}, {-1, 0}}};
+
         this->state_discretization_ = {1, 1};
     }
 
-    std::vector<Action> getPrimActions() override {
-        return this->action_deltas;
+    std::vector<Action> getPrimActions() override{
+        std::vector<Action> actions;
+        actions.reserve(action_seq_prims.size());
+        for (const ActionSequence & a : action_seq_prims){
+            actions.push_back(a.back());
+        }
+        return actions;
     }
 
     void Discretization(StateType& state_des) override {
@@ -63,8 +72,8 @@ struct ActionType2dRob : public ims::ActionType {
     std::string name;
     int num_actions;
     std::vector<std::string> action_names;
-    std::vector<double> action_costs;
-    std::vector<std::vector<double>> action_deltas;
+    std::vector<std::vector<double>> action_edges_transition_costs;
+    std::vector<ActionSequence> action_seq_prims;
 };
 
 struct ActionType2dRobTimed : public ActionType2dRob {
@@ -72,8 +81,16 @@ struct ActionType2dRobTimed : public ActionType2dRob {
         this->name = "ActionType2dRob";
         this->num_actions = 5;
         this->action_names = {"N", "E", "S", "W", "Wait"};
-        this->action_costs = {1, 1, 1, 1, 1};
-        this->action_deltas = {{0, 1, 1}, {1, 0, 1}, {0, -1, 1}, {-1, 0, 1}, {0, 0, 1}};
+        this->action_edges_transition_costs = {{1, 0},
+                                               {1, 0},
+                                               {1, 0},
+                                               {1, 0},
+                                               {1, 0}};
+        this->action_seq_prims = {{{0, 0, 0}, {0, 1, 1}},
+                                {{0, 0, 0}, {1, 0, 1}},
+                                {{0, 0, 0}, {0, -1, 1}},
+                                {{0, 0, 0}, {-1, 0, 1}},
+                                {{0, 0, 0}, {0, 0, 1}}};
         this->state_discretization_ = {1, 1, 1};
     }
 };
@@ -91,23 +108,24 @@ public:
     }
 
     void getActions(int state_id,
-                    std::vector<ActionSequence> &action_seqs,
+                    std::vector<ActionSequence> & action_seqs,
                     bool check_validity) override {
-        auto actions = action_type_->getPrimActions();
+        std::vector<ActionSequence> prim_action_seqs = action_type_->action_seq_prims;
         for (int i {0} ; i < action_type_->num_actions ; i++){
-            auto action = actions[i];
+            ActionSequence action_seq = prim_action_seqs[i];
             if (check_validity){
                 auto curr_state = this->getRobotState(state_id);
-                auto next_state_val = StateType(curr_state->state.size());
-                std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-                if (!isStateValid(next_state_val)){
-                    continue;
+                for (const Action & action : action_seq) {
+                    StateType next_state_val = StateType(curr_state->state.size());
+                    std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(),
+                                   next_state_val.begin(), std::plus<>());
+                    if (!isStateValid(next_state_val)) {
+                        continue;
+                    }
                 }
             }
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
-            // In more complex cases, the sequence is longer - for example, when the action is an experience, a controller, or a trajectory.
-            ActionSequence action_seq;
-            action_seq.push_back(action);
+            // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
             action_seqs.push_back(action_seq);
         }
     }
@@ -211,70 +229,99 @@ public:
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val) { return isStateValid(state_val); });
     }
 
-    bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs) override {
-        auto curr_state = this->getRobotState(curr_state_ind);
+    bool getSuccessorEdges(int curr_state_ind,
+                                   std::vector<std::vector<int>>& edges_state_ids,
+                                   std::vector<std::vector<double>> & edges_transition_costs) override{
+        ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
         for (int i {0} ; i < actions.size() ; i++){
-            auto action = actions[i][0];
-            auto next_state_val = StateType(curr_state->state.size());
-            std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+            // Create edges to populate.
+            std::vector<int> successor_edge_state_ids{curr_state_ind};
+            std::vector<double> successor_edge_transition_costs;
+            ActionSequence action_seq = actions[i];
 
-            // Check for constraint satisfaction.
-            if (!isSatisfyingAllConstraints(curr_state->state, next_state_val)) {
+            // Transform the given action to be rooted at the current state.
+            bool is_action_valid = true;
+            StateType from_state_val = curr_state->state;
+            for (size_t j {1} ; j < action_seq.size() ; j++){
+                const Action & action = action_seq[j];
+                StateType next_state_val = StateType(curr_state->state.size());
+                std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(),
+                               next_state_val.begin(), std::plus<>());
+
+                if (!isStateValid(next_state_val) || !isSatisfyingAllConstraints(from_state_val, next_state_val)) {
+                    is_action_valid = false;
+                    break;
+                }
+                from_state_val = next_state_val;
+                int next_state_ind = getOrCreateRobotState(next_state_val);
+                // Add to action edge.
+                successor_edge_state_ids.push_back(next_state_ind);
+                successor_edge_transition_costs.push_back(action_type_->action_edges_transition_costs[i][j - 1]);
+            }
+            if (!is_action_valid) {
                 continue;
             }
-
-            // EXAMPLE NOTE: it may sometimes make sense to check constraint satisfaction within the isStateValid method, for efficiency. For example, if a constraint requires comparison of a robot state against a world state and simulataneously the state of another robot, then it would be better to set all robots into their specified configurations and check for validity only once.
-            if (isStateValid(next_state_val)) {
-                int next_state_ind = getOrCreateRobotState(next_state_val);
-                successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
-            }
+            // Add the last cost. It is zero as the cost of the last state to the next state is unknown as of now.
+            successor_edge_transition_costs.push_back(0.0);
+            edges_state_ids.push_back(successor_edge_state_ids);
+            edges_transition_costs.push_back(successor_edge_transition_costs);
         }
         return true;
     }
 
     // Get successors with subcosts. The subcosts are the number of conflicts that would be created on a transition to the successor.
-    bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs,
-                       std::vector<double>& subcosts) override {
-
-        auto curr_state = this->getRobotState(curr_state_ind);
-        
+    bool getSuccessorEdges(int curr_state_ind,
+                       std::vector<std::vector<int>>& edges_state_ids,
+                       std::vector<std::vector<double>> & edges_transition_costs,
+                       std::vector<std::vector<double>> & edges_transition_subcosts) override {
+        ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
         for (int i {0} ; i < actions.size() ; i++){
-            auto action = actions[i][0];
-            auto next_state_val = StateType(curr_state->state.size());
-            std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+            // Create edges to populate.
+            std::vector<int> successor_edge_state_ids{curr_state_ind};
+            std::vector<double> successor_edge_transition_costs;
+            std::vector<double> successor_edge_transition_subcosts;
+            ActionSequence action_seq = actions[i];
 
-            // Check for constraint satisfaction.
-            if (!isSatisfyingAllConstraints(curr_state->state, next_state_val)) {
-                continue;
-            }
+            // Transform the given action to be rooted at the current state.
+            bool is_action_valid = true;
+            StateType from_state_val = curr_state->state;
+            for (size_t j {1} ; j < action_seq.size() ; j++){
+                const Action & action = action_seq[j];
+                StateType next_state_val = StateType(curr_state->state.size());
+                std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(),
+                               next_state_val.begin(), std::plus<>());
 
-            // If the state successor is valid, then compute the number of conflicts that would be created on a transition to the successor and add it to the successors.
-            if (isStateValid(next_state_val)) {
+                if (!isStateValid(next_state_val) || !isSatisfyingAllConstraints(from_state_val, next_state_val)) {
+                    is_action_valid = false;
+                    break;
+                }
+                from_state_val = next_state_val;
                 int next_state_ind = getOrCreateRobotState(next_state_val);
-                successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
-
-                // Compute the number of conflicts that would be created on a transition to the successor.
-                // Loop through the paths of all the other agents and check if the transition to the successor creates a conflict.
+                // Add to action edge.
+                successor_edge_state_ids.push_back(next_state_ind);
+                // The cost at j - 1 is that of transitioning between j - 1 and j.
+                successor_edge_transition_costs.push_back(action_type_->action_edges_transition_costs[i][j - 1]);
                 int num_conflicts = 0;
                 computeTransitionNumberConflicts(curr_state->state, next_state_val, num_conflicts);
-
-                // Set the subcost.
-                subcosts.push_back(num_conflicts);
+                successor_edge_transition_subcosts.push_back((double)num_conflicts);
             }
+            if (!is_action_valid) {
+                continue;
+            }
+            // Add the last costs of zero.
+            successor_edge_transition_costs.push_back(0.0);
+            successor_edge_transition_subcosts.push_back(0.0);
+            edges_state_ids.push_back(successor_edge_state_ids);
+            edges_transition_costs.push_back(successor_edge_transition_costs);
+            edges_transition_subcosts.push_back(successor_edge_transition_subcosts);
         }
         return true;
     }
-    
+
     void computeTransitionNumberConflicts(const StateType& state, const StateType& next_state_val, int & num_conflicts){
         for (const auto& other_agent_id_and_path : constraints_collective_ptr_->getConstraintsContext()->agent_paths) {
             int other_agent_id = other_agent_id_and_path.first;
@@ -331,20 +378,6 @@ public:
         int state_id = (int)states_.size() - 1;
         state_to_id_[curr_state] = state_id;
         return state_id;
-    }
-
-    /// @brief Compute the cost of a path. This is domain-specific, and must be implemented in multi-agent settings.
-    /// @param path
-    /// @return The cost of a path.
-    double computePathCost(const PathType& path) {
-        double cost = 0;
-        for (int i{0}; i < path.size() - 1; i++) {
-            auto curr_state = path[i];
-            auto next_state = path[i + 1];
-            auto action = action_type_->getPrimActions()[next_state[2]];
-            cost += action_type_->action_costs[next_state[2]];
-        }
-        return cost;
     }
 
     void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths,

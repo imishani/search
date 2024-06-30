@@ -243,33 +243,19 @@ void ims::wAStar::reconstructPath(std::vector<StateType>& path, std::vector<doub
     costs.push_back(0); // The goal state gets a transition cost of 0.
     path.push_back(action_space_ptr_->getRobotState(goal_)->state);
     SearchState* state_ = getSearchState(goal_);
-        while (state_->parent_id != -1){
-            std::cout << "---" << std::endl;
+    while (state_->parent_id != -1){
 
-        // If this is an edge with intermediate states, add the intermediate states and the costs to get to them via the edge.
+        // Go through the edge from the parent to the current state. Do not include the first and last elements.
         int edge_from_parent_num_states = (int)state_->edge_from_parent_state_ids.size();
         if (edge_from_parent_num_states > 2){
             for (int i {edge_from_parent_num_states - 2}; i >= 0; --i){
                 int state_id = state_->edge_from_parent_state_ids[i];
-                double transition_cost = state_->edge_from_parent_transition_costs[i]; // Removing one to get the cost from the "parent-intermediate" to the current intermediate.
+                double transition_cost = state_->edge_from_parent_transition_costs[i];
                 path.push_back(action_space_ptr_->getRobotState(state_id)->state);
-                std::cout << "Add path state: " << action_space_ptr_->getRobotState(state_id)->state << std::endl;
                 costs.push_back(transition_cost);
             }
-            // Assert that this transition cost is the same as the one from the parent to the current state.
-            double edge_from_parent_total_cost = vectorSum(state_->edge_from_parent_transition_costs);
-            double rounded_edge_from_parent_total_cost = std::round(edge_from_parent_total_cost * 1000) / 1000;
-            double rounded_g_difference = std::round((state_->g - getSearchState(state_->parent_id)->g) * 1000) / 1000;
-            if (rounded_edge_from_parent_total_cost != rounded_g_difference){
-                std::cout << RED << "Edge from parent total cost: " << edge_from_parent_total_cost << RESET << std::endl;
-                std::cout << RED << "State g: " << state_->g << RESET << std::endl;
-                std::cout << RED << "Parent g: " << getSearchState(state_->parent_id)->g << RESET << std::endl;
-                std::cout << RED << "Expected: " << state_->g - getSearchState(state_->parent_id)->g << " and got " << edge_from_parent_total_cost << RESET << std::endl;
-            }
-
             state_ = getSearchState(state_->parent_id);
         }
-        // If this is an edge without intermediate states, add the parent and the cost to get to it.
         else{
             path.push_back(action_space_ptr_->getRobotState(state_->parent_id)->state);
             // Get the transition cost. This is the difference between the g values of the current state and its parent.
@@ -278,7 +264,6 @@ void ims::wAStar::reconstructPath(std::vector<StateType>& path, std::vector<doub
             state_ = getSearchState(state_->parent_id);
         }
     }
-
     std::reverse(path.begin(), path.end());
     std::reverse(costs.begin(), costs.end());
 

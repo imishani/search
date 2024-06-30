@@ -261,7 +261,7 @@ void ims::FocalSearch::reconstructPath(std::vector<StateType>& path, std::vector
         if (edge_from_parent_num_states > 2){
             for (int i {edge_from_parent_num_states - 2}; i >= 0; --i){
                 int state_id = state_->edge_from_parent_state_ids[i];
-                double transition_cost = state_->edge_from_parent_transition_costs[i]; // Removing one to get the cost from the "parent-intermediate" to the current intermediate.
+                double transition_cost = state_->edge_from_parent_transition_costs[i];
                 path.push_back(action_space_ptr_->getRobotState(state_id)->state);
                 costs.push_back(transition_cost);
             }
