@@ -110,8 +110,6 @@ namespace ims{
                            const std::vector<int> & edge_from_parent_state_ids,
                            const std::vector<double> & edge_from_parent_transition_costs);
 
-        void reconstructPath(PathType & path, std::vector<double> & costs) override;
-
     protected:
 
         void expand(int state_id) override;

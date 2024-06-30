@@ -252,20 +252,45 @@ void ims::FocalSearch::reconstructPath(std::vector<StateType>& path, std::vector
     costs.clear();
 
     costs.push_back(0); // The goal state gets a transition cost of 0.
+    path.push_back(action_space_ptr_->getRobotState(goal_)->state);
     SearchState* state_ = getSearchState(goal_);
     while (state_->parent_id != -1){
-        path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
 
-        // Get the transition cost. This is the difference between the g values of the current state and its parent.
-        double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
-        costs.push_back(transition_cost);
+        // Go through the edge from the parent to the current state. Do not include the first and last elements.
+        int edge_from_parent_num_states = (int)state_->edge_from_parent_state_ids.size();
+        if (edge_from_parent_num_states > 2){
+            for (int i {edge_from_parent_num_states - 2}; i >= 0; --i){
+                int state_id = state_->edge_from_parent_state_ids[i];
+                double transition_cost = state_->edge_from_parent_transition_costs[i]; // Removing one to get the cost from the "parent-intermediate" to the current intermediate.
+                path.push_back(action_space_ptr_->getRobotState(state_id)->state);
+                costs.push_back(transition_cost);
+            }
+            // Assert that this transition cost is the same as the one from the parent to the current state.
+            double edge_from_parent_total_cost = vectorSum(state_->edge_from_parent_transition_costs);
+            double rounded_edge_from_parent_total_cost = std::round(edge_from_parent_total_cost * 1000) / 1000;
+            double rounded_g_difference = std::round((state_->g - getSearchState(state_->parent_id)->g) * 1000) / 1000;
+            if (rounded_edge_from_parent_total_cost != rounded_g_difference){
+                std::cout << RED << "Edge from parent total cost: " << edge_from_parent_total_cost << RESET << std::endl;
+                std::cout << RED << "State g: " << state_->g << RESET << std::endl;
+                std::cout << RED << "Parent g: " << getSearchState(state_->parent_id)->g << RESET << std::endl;
+                std::cout << RED << "Expected: " << state_->g - getSearchState(state_->parent_id)->g << " and got " << edge_from_parent_total_cost << RESET << std::endl;
+            }
 
-        state_ = getSearchState(state_->parent_id);
+            state_ = getSearchState(state_->parent_id);
+        }
+        else{
+            path.push_back(action_space_ptr_->getRobotState(state_->parent_id)->state);
+            // Get the transition cost. This is the difference between the g values of the current state and its parent.
+            double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
+            costs.push_back(transition_cost);
+            state_ = getSearchState(state_->parent_id);
+        }
     }
-    path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
 
     std::reverse(path.begin(), path.end());
-    std::reverse(costs.begin(), costs.end());   
+    std::reverse(costs.begin(), costs.end());
+
+    assert(path.size() == costs.size());
 }
 
 

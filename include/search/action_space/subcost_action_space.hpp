@@ -67,13 +67,14 @@ public:
 
     // Make both the base and the overloaded versions of getSuccessors available.
     using ActionSpaceSubcostMixin::getSuccessors;
+    using ActionSpaceSubcostMixin::getSuccessorEdges;
     using ActionSpace::getSuccessors;
-
+    using ActionSpace::getSuccessorEdges;
 };
 
 /// @brief Base class for ActionSpaces with constraints.
 /// @details This is an actions space extended to be "Constrainable" using a mixin.
-class SubcostConstrainedActionSpace : public ConstrainedActionSpace, public SubcostActionSpace{ 
+class SubcostConstrainedActionSpace : public ConstrainedActionSpace, public SubcostActionSpace{
 public:
     /// @brief Constructor
     explicit SubcostConstrainedActionSpace(): ConstrainedActionSpace(), SubcostActionSpace() {};
@@ -99,9 +100,9 @@ public:
     bool isSatisfyingConstraint(const StateType &state_val, const StateType &next_state_val, const std::shared_ptr<Constraint> &constraint_ptr) override = 0;
 
     /// @brief Get the cost incurred by conflicts upon a give state  transition.
-    /// @param state_val 
-    /// @param next_state_val 
-    /// @param conflicts_cost 
+    /// @param state_val
+    /// @param next_state_val
+    /// @param conflicts_cost
     virtual void computeTransitionConflictsCost(const StateType& state_val, const StateType& next_state_val, double & conflicts_cost) = 0;
 
     inline int getOrCreateRobotState(const StateType& state_val) override {
@@ -157,7 +158,7 @@ public:
     inline void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs,  std::vector<std::vector<double>>& subpath_transition_subcosts) {
         // Get the state configuration that corresponds to the state id.
         auto query_robot_state = states_[state_id];
-        
+
         // Get the state without time.
         StateType state_val_wo_time = {query_robot_state->state.begin(), query_robot_state->state.end() - 1};
 
@@ -165,7 +166,7 @@ public:
         std::vector<PathType> subexperiences;
         std::vector<std::vector<double>> subexperiences_transition_costs;
 
-        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs); 
+        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs);
 
         // Retime the subexperiences to start at the time of the query state.
         auto query_state_time = (TimeType)query_robot_state->state.back();
@@ -175,7 +176,7 @@ public:
                 state.push_back(query_state_time + i); // NOTE(yoraish): assumes integer time increments.
             }
         }
-        
+
         // Get a valid prefix for each of the subexperiences.
         for (int i = 0; i < subexperiences.size(); i++) {
             // Get the subexperience and costs.
@@ -187,7 +188,7 @@ public:
             std::vector<int> valid_state_ids_for_reuse;
             std::vector<double> valid_states_for_reuse_costs;
             std::vector<double> valid_states_for_reuse_subcosts;
-            
+
             for (int state_ix = 0; state_ix < subexperience.size() - 1; state_ix++) {
                 // Get the state.
                 StateType robot_state = subexperience[state_ix];
@@ -198,13 +199,13 @@ public:
                     valid_states_for_reuse.push_back(robot_state);
 
                     // Create a state_id if one not already exists.
-                    int valid_state_id = getOrCreateRobotStateNonGoal(robot_state); 
+                    int valid_state_id = getOrCreateRobotStateNonGoal(robot_state);
                     valid_state_ids_for_reuse.push_back(valid_state_id);
 
                     // Compute the transition subcosts, as induced by the conflicts that the transition would cause.
                     double transition_conflict_cost = 0;
                     computeTransitionConflictsCost(robot_state, next_robot_state, transition_conflict_cost);
-                    
+
                     if (transition_conflict_cost > 0) {
                         // If the transition conflict cost is non zero, then we should not add any more states to the prefix.
                         break;
@@ -222,8 +223,8 @@ public:
                 }
             }
 
-            // If we got here, then we are done processing the experience. We found a prefix that is valid w.r.t constraints. (Could be empty, partial, or full.)        
-            
+            // If we got here, then we are done processing the experience. We found a prefix that is valid w.r.t constraints. (Could be empty, partial, or full.)
+
             // The last transition cost is zero.
             if (!valid_states_for_reuse_costs.empty()) {
                 valid_states_for_reuse_costs.back() = 0.0;
@@ -249,7 +250,7 @@ public:
     inline void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs) override {
         // Get the state configuration that corresponds to the state id.
         auto query_robot_state = states_[state_id];
-        
+
         // Get the state without time.
         StateType state_val_wo_time = {query_robot_state->state.begin(), query_robot_state->state.end() - 1};
 
@@ -257,7 +258,7 @@ public:
         std::vector<PathType> subexperiences;
         std::vector<std::vector<double>> subexperiences_transition_costs;
 
-        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs); 
+        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs);
 
         // Retime the subexperiences to start at the time of the query state.
         auto query_state_time = (TimeType)query_robot_state->state.back();
@@ -268,7 +269,7 @@ public:
             }
         }
 
-        
+
         // Get a valid prefix for each of the subexperiences.
         for (int i = 0; i < subexperiences.size(); i++) {
             // Get the subexperience.
@@ -279,7 +280,7 @@ public:
             std::vector<StateType> valid_states_for_reuse;
             std::vector<int> valid_state_ids_for_reuse;
             std::vector<double> valid_states_for_reuse_costs;
-            
+
             for (int state_ix = 0; state_ix < subexperience.size() - 1; state_ix++) {
                 // Get the state.
                 StateType robot_state = subexperience[state_ix];
@@ -290,7 +291,7 @@ public:
                     valid_states_for_reuse.push_back(robot_state);
 
                     // Create a state_id if one not already exists.
-                    int valid_state_id = getOrCreateRobotStateNonGoal(robot_state); 
+                    int valid_state_id = getOrCreateRobotStateNonGoal(robot_state);
                     valid_state_ids_for_reuse.push_back(valid_state_id);
 
                     // Keep track of the transition costs.
@@ -302,8 +303,8 @@ public:
                 }
             }
 
-            // If we got here, then we are done processing the experience. We found a prefix that is valid w.r.t constraints. (Could be empty, partial, or full.)        
-            
+            // If we got here, then we are done processing the experience. We found a prefix that is valid w.r.t constraints. (Could be empty, partial, or full.)
+
             // The last transition cost is zero.
             if (!valid_states_for_reuse_costs.empty()) {
                 valid_states_for_reuse_costs.back() = 0.0;
@@ -325,7 +326,14 @@ public:
                                 std::vector<double>& costs,
                                 std::vector<double>& subcosts) {
         throw std::runtime_error("getSuccessorsExperienceAccelerated not implemented for abstract SubcostExperienceAcceleratedConstrainedActionSpace");
-        }
+    }
+
+    virtual bool getSuccessorEdgesExperienceAccelerated(int curr_state_ind,
+                            std::vector<std::vector<int>>& edges_state_ids,
+                            std::vector<std::vector<double>> & edges_transition_costs,
+                            std::vector<std::vector<double>> & edge_transition_subcosts) {
+        throw std::runtime_error("getSuccessorsExperienceAccelerated not implemented for abstract SubcostExperienceAcceleratedConstrainedActionSpace");
+    }
 };
 
 }  // namespace ims
