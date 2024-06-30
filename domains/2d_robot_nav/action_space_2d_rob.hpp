@@ -56,13 +56,47 @@ struct ActionType2dRob : public ims::ActionType {
         name = "ActionType2dRob";
         num_actions = 8;
         action_names = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
-        action_costs = {1, 1.414, 1, 1.414, 1, 1.414, 1, 1.414};
-        action_prims = {{0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}, {-1, 1}};
+        action_edges_transition_costs = {{1.0 ,0.0},
+                                         {1.414, 0.0},
+                                         {1, 0.0},
+                                         {1.414, 0.0},
+                                         {1, 0.0},
+                                         {1.414, 0.0},
+                                         {1, 0.0},
+                                         {1.414, 0.0}};
+        action_seq_prims = {{{0, 0}, {0, 1}},
+                            {{0, 0}, {1, 1}},
+                            {{0, 0}, {1, 0}},
+                            {{0, 0}, {1, -1}},
+                            {{0, 0}, {1, 0}, {0, -1}},
+                            {{0, 0}, {-1, -1}},
+                            {{0, 0}, {-1, 0}},
+                            {{0, 0}, {-1, 1}}};
+// Example for actions with a few states along the edge.
+//        num_actions = 4;
+//        action_names = {"N", "E", "S", "W",};
+//        action_edges_transition_costs = {{1.1, 1.0, 1.0, 1.0, 0.0},
+//                                         {0.33, 0.33, 0.33, 0.0},
+//                                         {1.1, 0.1, 0.1, 0.1, 0.1, 0},
+//                                         {1.1, 1.0, 1.0, 1.0,  0.0}};
+//        action_seq_prims = {{{0, 0}, {1,1},    {2,2}, {1,2}, {0, 1},},
+//                            {{0, 0}, {1, 1}, {2, 0}, {3, 0}},
+//                            {{0,0}, {-1, 0}, {-2, 0}, {-3, 0}, {-4, 0}, {-5, 0}},
+//                            {{0, 0}, {-1, -1}, {-2, -2}, {-2, -1}, {0, -1}}};
+
         state_discretization_ = {1, 1};
     }
 
     std::vector<Action> getPrimActions() override{
-        return action_prims;
+        std::vector<Action> actions;
+        for (const ActionSequence & a : action_seq_prims){
+            actions.push_back(a.back());
+        }
+        return actions;
+    }
+
+    std::vector<ActionSequence> getPrimActionSequences() const{
+        return action_seq_prims;
     }
 
     void Discretization(StateType& state_des) override{
@@ -72,9 +106,8 @@ struct ActionType2dRob : public ims::ActionType {
     std::string name;
     int num_actions;
     std::vector<std::string> action_names;
-    std::vector<double> action_costs;
-    std::vector<Action> action_prims;
-
+    std::vector<std::vector<double>> action_edges_transition_costs;
+    std::vector<ActionSequence> action_seq_prims;
 };
 
 class actionSpace2dRob : public ims::ActionSpace {
@@ -91,45 +124,62 @@ public:
     }
 
     void getActions(int state_id,
-                    std::vector<ActionSequence> &action_seqs,
+                    std::vector<ActionSequence> & action_seqs,
                     bool check_validity) override {
         ims::RobotState* curr_state = this->getRobotState(state_id);
-        std::vector<Action> actions = action_type_->getPrimActions();
+        std::vector<ActionSequence> prim_action_seqs = action_type_->getPrimActionSequences();
         for (int i {0} ; i < action_type_->num_actions ; i++){
-            Action action = actions[i];
+            ActionSequence action_seq = prim_action_seqs[i];
             if (check_validity){
-                StateType next_state_val = StateType(curr_state->state.size());
-                std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-                if (!isStateValid(next_state_val)){
-                    continue;
+                for (const Action & action : action_seq) {
+                    StateType next_state_val = StateType(curr_state->state.size());
+                    std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(),
+                                   next_state_val.begin(), std::plus<>());
+                    if (!isStateValid(next_state_val)) {
+                        continue;
+                    }
                 }
             }
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
             // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
-            ActionSequence action_seq;
-            action_seq.push_back(action);
             action_seqs.push_back(action_seq);
         }
     }
 
-
-    bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs) override{
+    bool getSuccessorEdges(int curr_state_ind,
+                                   std::vector<std::vector<int>>& edges_state_ids,
+                                   std::vector<std::vector<double>> & edges_transition_costs) override{
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
 
         for (int i {0} ; i < actions.size() ; i++){
-            StateType action = actions[i][0];
-            StateType next_state_val = StateType(curr_state->state.size());
-            std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
+            // Create edges to populate.
+            std::vector<int> successor_edge_state_ids;
+            std::vector<double> successor_edge_transition_costs;
+            ActionSequence action_seq = actions[i];
 
-            if (isStateValid(next_state_val)){
+            // Transform the given action to be rooted at the current state.
+            bool is_action_valid = true;
+            for (size_t j {0} ; j < action_seq.size() ; j++){
+                const Action & action = action_seq[j];
+                StateType next_state_val = StateType(curr_state->state.size());
+                std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(),
+                               next_state_val.begin(), std::plus<>());
+                if (!isStateValid(next_state_val)) {
+                    is_action_valid = false;
+                    break;
+                }
                 int next_state_ind = getOrCreateRobotState(next_state_val);
-                successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
+                // Add to action edge.
+                successor_edge_state_ids.push_back(next_state_ind);
+                successor_edge_transition_costs.push_back(action_type_->action_edges_transition_costs[i][j]);
             }
+            if (!is_action_valid) {
+                continue;
+            }
+            edges_state_ids.push_back(successor_edge_state_ids);
+            edges_transition_costs.push_back(successor_edge_transition_costs);
         }
         return true;
     }

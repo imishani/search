@@ -56,18 +56,30 @@ public:
     ~ActionSpaceSubcostMixin() = default;
 
     /// @brief Overrides the getSuccessors method of ActionSpace to return a subcost in addition to a cost for each successor transition.
-    /// @details This method is used to get the successors of a given state.
-    /// @param state The state for which we want to get the successors.
-    /// @param successors The vector of successors to be filled.
-    /// @param costs The vector of costs to be filled.
-    /// @param subcosts The vector of subcosts to be filled.
-    virtual bool getSuccessors(int curr_state_ind,
-                                   std::vector<int>& successors,
-                                   std::vector<double>& costs, 
-                                   std::vector<double> &subcosts) = 0;
+    /// @details See the base getSuccessors for more.
+    virtual bool getSuccessorEdges(int curr_state_ind,
+                            std::vector<std::vector<int>>& edges_state_ids,
+                            std::vector<std::vector<double>> & edges_transition_costs,
+                            std::vector<std::vector<double>> & edge_transition_subcosts) = 0;
+
+    bool getSuccessors(int curr_state_ind,
+                            std::vector<int> & successors,
+                            std::vector<double> & costs,
+                            std::vector<double> & subcosts) {
+        std::vector<std::vector<int>> edges_state_ids;
+        std::vector<std::vector<double>> edges_transition_costs;
+        std::vector<std::vector<double>> edge_transition_subcosts;
+        getSuccessorEdges(curr_state_ind, edges_state_ids, edges_transition_costs, edge_transition_subcosts);
+        for (size_t i = 0; i < edges_state_ids.size(); i++) {
+            successors.push_back(edges_state_ids[i].back());
+            costs.push_back(std::accumulate(edges_transition_costs[i].begin(), edges_transition_costs[i].end(), 0.0));
+            subcosts.push_back(std::accumulate(edge_transition_subcosts[i].begin(), edge_transition_subcosts[i].end(), 0.0));
+        }
+        return true;
+    }
+
     /// @brief Compute the subcost associated with a particular timed transition. Notice that states have time in their last element.
     virtual void getTransitionSubcost(const StateType& state_val_from, const StateType& state_val_to, double & subcost) = 0;
 };
 
 }  // namespace ims
-

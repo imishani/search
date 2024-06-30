@@ -119,9 +119,9 @@ public:
     }
 
 
-    bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs) override{
+    bool getSuccessorEdges(int curr_state_ind,
+                           std::vector<std::vector<int>>& edges_state_ids,
+                           std::vector<std::vector<double>> & edges_transition_costs) override{
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
@@ -134,8 +134,8 @@ public:
             next_state_val[2] = (int(next_state_val[2])+4) % 4;
             if (isStateValid(next_state_val)){
                 int next_state_ind = getOrCreateRobotState(next_state_val);
-                successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
+                edges_state_ids.push_back({curr_state_ind, next_state_ind});
+                edges_transition_costs.push_back({action_type_->action_costs[i], 0});
             }
         }
         return true;
