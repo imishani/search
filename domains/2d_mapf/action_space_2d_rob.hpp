@@ -47,7 +47,10 @@ struct ActionType2dRob : public ims::ActionType {
         this->name = "ActionType2dRob";
         this->num_actions = 4;
         this->action_names = {"N", "E", "S", "W"};
-        this->action_edges_transition_costs = {{1, 0}, {1, 0}, {1, 0}, {1, 0}};
+        this->action_edges_transition_costs = {{1, 0},
+                                               {1, 0},
+                                               {1, 0},
+                                               {1, 0}};
         this->action_seq_prims = {{{0, 0}, {0, 1}},
                                   {{0, 0}, {1, 0}},
                                   {{0, 0}, {0, -1}},

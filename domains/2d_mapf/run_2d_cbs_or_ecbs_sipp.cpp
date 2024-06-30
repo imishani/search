@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
         ActionType2dRob action_type;
         // Print the available actions.
         std::cout << "Available actions should be untimed:: " << std::endl;
-        for (const Action & a : action_type.getPrimActions()){
+        for (const ActionSequence & a : action_type.action_seq_prims){
             std::cout << " *   " << a << std::endl;
         }
 
@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
         ActionType2dRob action_type;
         // Print the available actions.
         std::cout << "Available actions should be untimed:: " << std::endl;
-        for (const Action & a : action_type.getPrimActions()){
+        for (const ActionSequence & a : action_type.action_seq_prims){
             std::cout << " *   " << a << std::endl;
         }
 
