@@ -173,6 +173,10 @@ namespace ims{
         /// @param state_id 
         void expand(int state_id) override;
 
+        /// @brief Check if a sequence of states satisfy constraints.
+        /// @param edge_states The sequence of states. Each is a StateType with the last element being time.
+        bool isTimedCfgPathSatisfyingAllConstraints(const std::vector<StateType>& edge_robot_cfg_states);
+
         /// @brief Reconstruct the path (and optionally also get the transition costs.)
         /// @param path The path to be populated
         /// @param costs The costs to be populated. Cost at index i is the cost of the transition from state i to state i+1. Thus, the cost at the goal state is zero as there is no transition from the goal state.

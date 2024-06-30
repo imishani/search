@@ -243,8 +243,8 @@ void ims::wAStar::reconstructPath(std::vector<StateType>& path, std::vector<doub
     costs.push_back(0); // The goal state gets a transition cost of 0.
     path.push_back(action_space_ptr_->getRobotState(goal_)->state);
     SearchState* state_ = getSearchState(goal_);
-    while (state_->parent_id != -1){
-
+    while (state_->parent_id != START){
+        // Two options here. One if there are no edge-states from the parent to the state, and the other if there are.
         // Go through the edge from the parent to the current state. Do not include the first and last elements.
         int edge_from_parent_num_states = (int)state_->edge_from_parent_state_ids.size();
         if (edge_from_parent_num_states > 2){
@@ -256,6 +256,7 @@ void ims::wAStar::reconstructPath(std::vector<StateType>& path, std::vector<doub
             }
             state_ = getSearchState(state_->parent_id);
         }
+        // If there are no edge-states.
         else{
             path.push_back(action_space_ptr_->getRobotState(state_->parent_id)->state);
             // Get the transition cost. This is the difference between the g values of the current state and its parent.
