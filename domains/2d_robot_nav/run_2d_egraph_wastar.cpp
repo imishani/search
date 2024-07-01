@@ -74,7 +74,6 @@ int main(int argc, char** argv) {
     // construct scene
     Scene2DRob scene (map);
 
-    // TODO: consider constructing planners in the for loop
     // log the results
     std::unordered_map<int, PlannerStats> logs;
     std::unordered_map<int, PathType> paths;

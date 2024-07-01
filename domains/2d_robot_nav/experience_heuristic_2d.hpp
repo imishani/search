@@ -55,23 +55,7 @@ namespace ims {
         /// @{ overrides
 
         void getEquivalentStates(int s_id, std::vector<int>& state_ids) override{
-            std::shared_ptr<smpl::ExperienceGraph> eg = eg_action_space_->getExperienceGraph();
-            std::vector<ims::smpl::ExperienceGraph::node_id> node_id;
-            eg_action_space_->getEGraphNodes(s_id, node_id);
-            // get s_id node
-            auto s_state = eg->state(node_id[0]);
-            auto nodes = eg->nodes();
-            const double equiv_thresh = 1; // TODO: 1? why? should I leave it as is (cost of 1)?
-            for (auto nit = nodes.first; nit != nodes.second; ++nit) {
-                int egraph_state_id = eg_action_space_->getStateID(*nit);
-                auto e_state = eg->state(*nit);
-                double h;
-                if (!origin_heuristic_->getHeuristic(s_state, e_state, h))
-                    h = INF_DOUBLE;
-                if (h <= equiv_thresh) {
-                    state_ids.push_back(egraph_state_id);
-                }
-            }
+            return;
         }
 
         void getShortcutSuccessors(int s_id, std::vector<int>& state_ids) override{
