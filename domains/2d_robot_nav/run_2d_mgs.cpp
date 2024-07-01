@@ -47,6 +47,28 @@
 #include "utils.hpp"
 
 
+inline std::vector<ActionSequence> Controller2d(void* user, const std::shared_ptr<ims::ActionSpace>& action_space_ptr) {
+    StateType init_state = *static_cast<StateType *>(user);
+    std::vector<ActionSequence> actions;
+    // get the robot state and add 1 step up
+    ActionSequence action;
+    action.push_back(init_state);
+    StateType next_state = init_state;
+    for (int j = 0; j < 25 ; j++){
+        next_state[0] -= 1;
+        next_state[1] += 1;
+        action.push_back(next_state);
+    }
+    for (int j = 0; j < 20 ; j++){
+        next_state[0] -= 1;
+//        next_state[1] -= 1;
+        action.push_back(next_state);
+    }
+    actions.push_back(action);
+    return actions;
+}
+
+
 int main(int argc, char** argv) {
 
     if (argc < 2) {
@@ -119,9 +141,18 @@ int main(int argc, char** argv) {
                                                                                                  action_type);
         // construct planner
         ims::MGS planner(params);
+
+        std::shared_ptr<std::vector<ims::Controller>> controllers = std::make_shared<std::vector<ims::Controller>>();
+        ims::Controller controller;
+        controller.type = ims::ControllerType::GENERATOR;
+        controller.solver_fn = Controller2d;
+        StateType user = {starts[i][0] + 3, starts[i][1]};
+        controller.user_data = &user;
+        controller.as_ptr = ActionSpace;
+        controllers->push_back(controller);
         // catch the exception if the start or goal is not valid
         try {
-            planner.initializePlanner(ActionSpace, starts[i], goals[i], params.g_num_);
+            planner.initializePlanner(ActionSpace, controllers, starts[i], goals[i]);
         }
         catch (std::exception& e) {
             std::cout << e.what() << std::endl;
@@ -136,6 +167,7 @@ int main(int argc, char** argv) {
             path_.clear();
             continue;
         }
+
         else
             std::cout << MAGENTA << "Path found!" << RESET << std::endl;
         ims::MGSPlannerStats stats = planner.reportStats();
