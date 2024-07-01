@@ -50,6 +50,7 @@
 #include <search/planners/focal_search/focal_wastar.hpp>
 #include <search/planners/best_first_search.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
+#include <search/planners/focal_search/focal_wsipp.hpp>
 
 #include "search/action_space/subcost_action_space.hpp"
 
@@ -124,7 +125,6 @@ public:
     }
 protected:
 
-
     /// @brief The search state compare struct.
     struct ECBSOpenCompare{
         bool operator()(const SearchState& s1, const SearchState& s2) const{
@@ -138,15 +138,15 @@ protected:
             if (f1 == f2) {
                 if (g1 == g2) {
                     if (c1 == c2) {
-                        return s1.state_id < s2.state_id;
+                        return s1.state_id < s2.state_id; // Fourth.
                     } else {
-                        return c1 < c2;
+                        return c1 < c2; // Third.
                     }
                 } else {
-                    return g1 < g2;
+                    return g1 < g2; // Second.
                 }
             } else {
-                return f1 < f2;
+                return f1 < f2; // First.
             }
         }   
     };
@@ -171,6 +171,16 @@ protected:
     /// @param state_id
     void expand(int state_id) override;
 
+    /// @brief Create the low level planners.
+    void createLowLevelPlanners() override;
+
+    /// @brief (Re)Initialize the low level planners and plan. Populate the paths and stats objects.
+    /// @param agent_id the agent integer identifier.
+    /// @param paths The paths to populate.
+    /// @param stats The stats to populate.
+    /// @return Whether the initialization and planning was successful.
+    virtual bool initializeAndPlanLowLevel(int agent_id, std::vector<StateType>& path, FocalSearchPlannerStats& stats);
+
     // Public variable. For shadowing.
     /// @brief The conflict types that this algorithm asks for from the action space.
     std::vector<ConflictType> conflict_types_ = {ConflictType::EDGE, ConflictType::VERTEX};
@@ -180,13 +190,32 @@ protected:
     ECBSParams params_;
 
     // The low-level planners. Overrides the CBS planners set to be wAStar.
-    std::vector<std::shared_ptr<FocalwAStar>> agent_planner_ptrs_;
+    std::vector<std::shared_ptr<FocalSearch>> agent_planner_ptrs_;
 
     // The action spaces for the individual agents.
     std::vector<std::shared_ptr<SubcostConstrainedActionSpace>> agent_action_space_ptrs_;
 
     // Statistics.
     FocalSearchPlannerStats stats_;
+
+};
+
+class ECBSSIPP : public ECBS {
+public:
+    explicit ECBSSIPP(const ECBSParams& params) : ECBS(params) {}
+private:
+protected:
+    /// @brief Create the low level planners. We use focal weighted SIPP in this instance.
+    void createLowLevelPlanners() override;
+
+    /// @brief (Re)Initialize the low level planners and plan. Populate the paths and stats objects.
+    /// @param agent_id the agent integer identifier.
+    /// @param paths The paths to populate.
+    /// @param stats The stats to populate.
+    bool initializeAndPlanLowLevel(int agent_id, std::vector<StateType>& path, FocalSearchPlannerStats& stats) override;
+
+    // The low-level planners. Overrides the CBS planners set to be wAStar.
+    std::vector<std::shared_ptr<FocalwSIPP>> agent_planner_ptrs_;
 
 };
 

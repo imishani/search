@@ -116,7 +116,18 @@ protected:
 /// @return The constraints. Each conflict is converted to a pair mapping agent id to a vector of constraints.
 virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) = 0;
 
-virtual void verifyStartAndGoalInputStates(const std::vector<StateType>& starts, const std::vector<StateType>& goals, const std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs);
+/// @brief Verify that the sets of starts and goals are valid.
+/// @param starts The start states.
+/// @param goals The goal states.
+/// @param action_space_ptrs The action spaces.
+void verifyStartAndGoalInputStates(const std::vector<StateType>& starts,
+                                   const std::vector<StateType>& goals,
+                                   const std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs);
+
+/// @brief Initialize the low level planners. Store them in the agent_planner_ptrs_ vector.
+virtual void createLowLevelPlanners() = 0;
+
+/// @brief (Re)Initialize and plan low level planners passed to this function.
 
 // The searchState struct. Keeps track of the state id, parent id, and cost. In CBS, we also add the constraints and paths.
 /// @brief The search state.
@@ -230,6 +241,17 @@ protected:
         return conflict_types_;
     }
 
+    /// @brief Create the low level planner objects.
+    void createLowLevelPlanners() override;
+
+    /// @brief (Re)Initialize the low level planners and plan. Populate the paths and stats objects.
+    /// @param agent_id the agent integer identifier.
+    /// @param paths The paths to populate.
+    /// @param stats The stats to populate.
+    /// @return Whether the initialization and planning was successful.
+    virtual bool initializeAndPlanLowLevel(int agent_id, std::vector<StateType>& path, PlannerStats& stats);
+
+
     /// Member variables.
     // The search parameters.
     CBSParams params_;
@@ -238,7 +260,7 @@ protected:
     std::vector<std::shared_ptr<ConstrainedActionSpace>> agent_action_space_ptrs_;
 
     // The low-level planners.
-    std::vector<std::shared_ptr<wAStar>> agent_planner_ptrs_;
+    std::vector<std::shared_ptr<BestFirstSearch>> agent_planner_ptrs_;
 
     // The low-level planners parameters.
     // EuclideanRemoveTimeHeuristic* low_level_planner_heuristic_ptr_ = new ims::EuclideanRemoveTimeHeuristic();

@@ -39,6 +39,7 @@
 #include <search/common/conflicts.hpp>
 #include <search/common/constraints.hpp>
 #include <search/action_space/subcost_action_space.hpp>
+#include <search/action_space/experience_accelerated_constrained_action_space.hpp>
 #include <search/common/scene_interface.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
 #include <search/common/utils.hpp>
@@ -61,7 +62,7 @@ struct ActionType2dRob : public ims::ActionType {
         this->num_actions = 4;
         this->action_names = {"N", "E", "S", "W",};
         this->action_costs = {1, 1, 1, 1};
-        this->action_deltas = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}, {0, 0}};
+        this->action_deltas = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
         this->state_discretization_ = {1, 1};
     }
 
@@ -293,14 +294,6 @@ public:
             }
         }
     }
-
-    // void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) override{
-    //     const auto & curr_state = this->getRobotState(state_id);
-    //     std::cout << "ConstrainedActionSpace2dRob: getSafeIntervals: curr_state: " << curr_state->state << std::endl;
-
-    //     // Get the paths of all the other agents.
-    // }
-
 };
 
 /// @brief A constrained action space for the 2D mapf domain, with the subcost and experience acceleration extensions.
@@ -510,7 +503,12 @@ public:
         return cost;
     }
 
-    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths, std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs, const std::vector<ims::ConflictType>& conflict_types, int max_conflicts, const std::vector<std::string> & names, TimeType time_start = 0, TimeType time_end = -1) {
+    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths,
+                           std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs,
+                           const std::vector<ims::ConflictType>& conflict_types,
+                           int max_conflicts, const std::vector<std::string> & names,
+                           TimeType time_start = 0,
+                           TimeType time_end = -1) {
         // Loop through the paths and check for conflicts.
         // If requested, get all the conflicts available.
         if (max_conflicts == -1) {
@@ -575,9 +573,19 @@ public:
         }
     }
 
-    // void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) override{
-    //     std::cout << "ConstrainedActionSpace2dRob: getSafeIntervals" << std::endl;
-    // }
+    void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) override{
+        std::cout << "ConstrainedActionSpace2dRob: getSafeIntervals" << std::endl;
+    }
+
+    void getTransitionSubcost(const StateType& state_val_from, const StateType& state_val_to, double & subcost) override {
+        // Compute the number of conflicts that would be created on a transition to the successor.
+        // Loop through the paths of all the other agents and check if the transition to the successor creates a conflict.
+        double num_conflicts = 0;
+        computeTransitionConflictsCost(state_val_from, state_val_to, num_conflicts);
+
+        // Set the subcost.
+        subcost = num_conflicts;
+    }
 
 };
 

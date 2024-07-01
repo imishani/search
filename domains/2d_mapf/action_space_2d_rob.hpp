@@ -45,11 +45,11 @@
 struct ActionType2dRob : public ims::ActionType {
     ActionType2dRob() : ims::ActionType() {
         this->name = "ActionType2dRob";
-        this->num_actions = 5;
-        this->action_names = {"N", "E", "S", "W", "Wait"};
-        this->action_costs = {1, 1, 1, 1, 1};
-        this->action_deltas = {{0, 1, 1}, {1, 0, 1}, {0, -1, 1}, {-1, 0, 1}, {0, 0, 1}};
-        this->state_discretization_ = {1, 1, 1};
+        this->num_actions = 4;
+        this->action_names = {"N", "E", "S", "W"};
+        this->action_costs = {1, 1, 1, 1};
+        this->action_deltas = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+        this->state_discretization_ = {1, 1};
     }
 
     std::vector<Action> getPrimActions() override {
@@ -65,6 +65,17 @@ struct ActionType2dRob : public ims::ActionType {
     std::vector<std::string> action_names;
     std::vector<double> action_costs;
     std::vector<std::vector<double>> action_deltas;
+};
+
+struct ActionType2dRobTimed : public ActionType2dRob {
+    ActionType2dRobTimed() : ActionType2dRob() {
+        this->name = "ActionType2dRob";
+        this->num_actions = 5;
+        this->action_names = {"N", "E", "S", "W", "Wait"};
+        this->action_costs = {1, 1, 1, 1, 1};
+        this->action_deltas = {{0, 1, 1}, {1, 0, 1}, {0, -1, 1}, {-1, 0, 1}, {0, 0, 1}};
+        this->state_discretization_ = {1, 1, 1};
+    }
 };
 
 class ConstrainedActionSpace2dRob : public ims::SubcostConstrainedActionSpace {
@@ -405,9 +416,15 @@ public:
         }
     }
 
-    // void getSafeIntervals(int state_id, std::vector<SafeIntervalType>& safe_intervals) override{
-    //     std::cout << "ConstrainedActionSpace2dRob: getSafeIntervals" << std::endl;
-    // }
+    void getTransitionSubcost(const StateType& state_val_from, const StateType& state_val_to, double & subcost) override {
+        // Compute the number of conflicts that would be created on a transition to the successor.
+        // Loop through the paths of all the other agents and check if the transition to the successor creates a conflict.
+        int num_conflicts = 0;
+        computeTransitionNumberConflicts(state_val_from, state_val_to, num_conflicts);
+
+        // Set the subcost.
+        subcost = num_conflicts;
+    }
 
 };
 

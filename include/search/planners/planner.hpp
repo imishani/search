@@ -110,7 +110,12 @@ struct SearchState : public ::smpl::HeapElement {
         /// @param start The start state
         /// @param goal The goal state
         virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                       const StateType& start, const StateType& goal) = 0;
+                                       const StateType& start, const StateType& goal){
+            // Throw an error if this base class is called.
+            // I did not want to make this a pure virtual function because I wanted to have the option to implement it
+            // in the derived class with different action-space types.
+            throw std::invalid_argument("Planner::initializePlanner: This function should be implemented in the derived class");
+        };
 
         /// @brief start the timer
         void startTimer() { t_start_ = std::chrono::steady_clock::now(); }

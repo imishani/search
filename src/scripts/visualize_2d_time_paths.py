@@ -111,7 +111,7 @@ def get_paths_np(paths):
     return paths_np
 
 
-def create_xy_time_animation(map_np, paths_np, duration=(100 * 1 / 20), inflate=0):
+def create_xy_time_animation(map_np, paths_np, duration=(100 * 1 / 20), inflate=1):
     # Create an animation of the paths on the map.
     # Create a color for each robot. This is a color and a diluted color.
     colors = [
@@ -120,7 +120,7 @@ def create_xy_time_animation(map_np, paths_np, duration=(100 * 1 / 20), inflate=
         [255, 0, 0],
         [255, 0, 255],
         [0, 255, 255],
-        [255, 255, 0],
+        [255, 100, 0],
         [255, 255, 255]]
 
     tail_colors = [
@@ -136,6 +136,24 @@ def create_xy_time_animation(map_np, paths_np, duration=(100 * 1 / 20), inflate=
     map_height = map_np.shape[0]
     map_width = map_np.shape[1]
 
+    # Set the image height and width.
+    new_height = map_height * 5
+    new_width = map_width * 5
+    interp_steps = 10
+    map_np = cv2.resize(map_np, (new_width, new_height), interpolation=cv2.INTER_NEAREST)
+    paths_np = paths_np * 5 + np.array([2, 2, 0])
+    # Interpolate between the steps.
+    paths_np_interp = np.zeros((paths_np.shape[0], paths_np.shape[1] * interp_steps, paths_np.shape[2]))
+    for i in range(paths_np.shape[0]):
+        for j in range(paths_np.shape[1] - 1):
+            for k in range(interp_steps):
+                paths_np_interp[i, j * interp_steps + k, 0] = paths_np[i, j, 0] + (paths_np[i, j + 1, 0] - paths_np[i, j, 0]) * k / interp_steps
+                paths_np_interp[i, j * interp_steps + k, 1] = paths_np[i, j, 1] + (paths_np[i, j + 1, 1] - paths_np[i, j, 1]) * k / interp_steps
+                paths_np_interp[i, j * interp_steps + k, 2] = paths_np[i, j, 2] + (paths_np[i, j + 1, 2] - paths_np[i, j, 2]) * k / interp_steps
+
+        # Add the last step.
+        paths_np_interp[i, -interp_steps:, :] = paths_np[i, -1, :]
+
     # Get the number of paths and the number
     num_paths = paths_np.shape[0]
     num_steps = paths_np.shape[1]
@@ -147,19 +165,19 @@ def create_xy_time_animation(map_np, paths_np, duration=(100 * 1 / 20), inflate=
     frame_current = np.stack([map_np, map_np, map_np], axis=2)
 
     # Iterate through the steps.
-    for frame_ix in range(num_steps):
+    for frame_ix in range(num_steps * interp_steps):
         # Add a dot for each path.
         for path_ix in range(num_paths):
             path_color = colors[path_ix % len(colors)]
 
-            x = paths_np[path_ix, frame_ix, 0]
-            y = paths_np[path_ix, frame_ix, 1]
+            x = int(paths_np_interp[path_ix, frame_ix, 0])
+            y = int(paths_np_interp[path_ix, frame_ix, 1])
             frame_current[y, x] = path_color
 
             # Mark around the dot.
             for i in range(-inflate, inflate + 1):
                 for j in range(-inflate, inflate + 1):
-                    if x + i >= 0 and x + i < map_width and y + j >= 0 and y + j < map_height:
+                    if x + i >= 0 and x + i < new_width and y + j >= 0 and y + j < new_height and abs(i) != abs(j):
                         if np.all(frame_current[y + j, x + i] != np.array([0, 0, 0])):
                             frame_current[y + j, x + i] = path_color
 
@@ -169,26 +187,36 @@ def create_xy_time_animation(map_np, paths_np, duration=(100 * 1 / 20), inflate=
         # Modify the frame to have the current step shown in a different color.
         for path_ix in range(num_paths):
             path_tail_color = tail_colors[path_ix % len(tail_colors)]
-            x = paths_np[path_ix, frame_ix, 0]
-            y = paths_np[path_ix, frame_ix, 1]
+            x = int(paths_np_interp[path_ix, frame_ix, 0])
+            y = int(paths_np_interp[path_ix, frame_ix, 1])
             frame_current[y, x] = path_tail_color
 
             # Mark around the dot.
             for i in range(-inflate, inflate + 1):
                 for j in range(-inflate, inflate + 1):
-                    if 0 <= x + i < map_width and 0 <= y + j < map_height:
+                    if 0 <= x + i < new_width and 0 <= y + j < new_height and abs(i) != abs(j):
                         # if frame_current[y + j, x + i] == np.array(path_color):
-                        if np.all(frame_current[y + j, x + i] == np.array(path_color)):
-                            frame_current[y + j, x + i] = [255, 255, 255]
+                        # if np.all(frame_current[y + j, x + i] == np.array(path_color)):
+                        frame_current[y + j, x + i] = [255, 255, 255]
+
+            # Reset the i
 
     # Resize all frames.
+    new_height = 200
+    new_width = int(new_height * map_width / map_height)
     for i in range(len(frames)):
-        new_height = 200
-        new_width = int(new_height * map_width / map_height)
         frames[i] = cv2.resize(frames[i], (new_width, new_height), interpolation=cv2.INTER_NEAREST)
 
     # Save the frames as a video using imageio.
-    imageio.mimsave("paths.gif", frames, duration=duration)
+    # imageio.mimsave("paths.gif", frames, duration=duration)
+    # Again but this time loop forever.
+    imageio.mimsave("paths.gif", frames, duration=duration, loop=0)
+
+
+
+
+
+
 
 
 def main():
@@ -212,7 +240,7 @@ def main():
 
     # Draw paths on map.
     print("Creating animation with FPS={}".format(args.fps))
-    create_xy_time_animation(map_np, paths, duration=(500 / args.fps), inflate=0)
+    create_xy_time_animation(map_np, paths, duration=(0.01 / args.fps), inflate=1)
 
 
 if __name__ == '__main__':

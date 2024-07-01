@@ -52,7 +52,7 @@ private:
     vector<vector<double>> cost_map_;
 
 public:
-    Scene2DRob() {}
+    Scene2DRob() = default;
 
     /// @brief Takes in a filepath and parses and loads it into the occupancy map.
     /// @param filename 
@@ -69,6 +69,8 @@ public:
     /// @param col 
     /// @return 
     double getCellCost(double row, double col);
+
+    std::vector<std::vector<bool>> getOccupancyMap();
 
     // TODO: Add visualization functions later on
 };
@@ -116,4 +118,8 @@ bool Scene2DRob::isCellValid(double row, double col) {
 double Scene2DRob::getCellCost(double row, double col) {
     assert(isCellValid(row, col));
     throw std::runtime_error("Not implemented");
+}
+
+std::vector<std::vector<bool>> Scene2DRob::getOccupancyMap() {
+    return occupancy_map_;
 }
