@@ -60,12 +60,14 @@ ims::MGS::~MGS() {
 }
 
 void ims::MGS::initializePlanner(const std::shared_ptr<ActionSpaceMGS>& action_space_ptr,
-                                 const StateType& start, const StateType& goal, int g_num) {
+                                 std::shared_ptr<std::vector<Controller>>& controllers,
+                                 const StateType& start, const StateType& goal) {
     // Action space pointer.
     action_space_ptr_ = action_space_ptr;
-
     action_space_ptr_->resetPlanningData();
     resetPlanningData();
+    // Set the controllers
+    controllers_ = controllers;
 
     // Check if start is valid and add it to the action space.
     int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
@@ -78,30 +80,61 @@ void ims::MGS::initializePlanner(const std::shared_ptr<ActionSpaceMGS>& action_s
     goals_.push_back(goal_ind_);
 
     // Evaluate the start state
-    start_->data_[GRAPH_START].parent_id = PARENT_TYPE(START);
+    start_->data_[GRAPH_START].parent_id = std::make_shared<std::vector<int>>(1, PARENT_TYPE(START));
     heuristic_->setStart(const_cast<StateType &>(start));
     // Evaluate the goal state
-    goal_->data_[GRAPH_GOAL].parent_id = PARENT_TYPE(GOAL);
+    goal_->data_[GRAPH_GOAL].parent_id = std::make_shared<std::vector<int>>(1, PARENT_TYPE(GOAL));
     heuristic_->setGoal(const_cast<StateType &>(goal));
 
-    // generate params_.g_num_ - 2 random states
-    std::vector<SearchState*> random_states;
-    for (int i {2}; i < params_.g_num_; ++i){
-        int rand_ind {-1};
-        do {rand_ind = generateRandomState(start, goal);}
-        while (rand_ind == -1 || std::any_of(random_states.begin(),
-                                             random_states.end(),
-                                             [&rand_ind](SearchState* s){
-                                                 return s->state_id == rand_ind;}) ||
-                                                 rand_ind == start_ind_ || rand_ind == goal_ind_);
-        auto rand_state = getOrCreateSearchState(rand_ind);
-        rand_state->data_[i].parent_id = PARENT_TYPE(UNSET);
-        rand_state->data_[i].g = 0; rand_state->data_[i].h_self = 0;
-        max_h_states_.emplace(i, rand_state);
-        roots_.emplace(i, rand_state);
-        random_states.push_back(rand_state);
-        stats_.root_states.push_back(action_space_ptr_->getRobotState(rand_ind)->state);
+
+    // generate local mosaics (trajectories) using the controllers and initiate graphs using the first and last states
+    int graph_id = 2;
+    std::vector<SearchState*> added_roots;
+    for (auto& controller : *controllers_) {
+        std::vector<ActionSequence> local_mosaic = controller.solve();
+        for (auto& action_seq : local_mosaic) {
+            // add the first state to the action space
+            int first_state_ind = action_space_ptr_->getOrCreateRobotState(action_seq.front());
+            auto first_state = getOrCreateSearchState(first_state_ind);
+            first_state->data_[graph_id].parent_id->resize(1);
+            first_state->data_[graph_id].parent_id->at(0) = PARENT_TYPE(UNSET);
+            first_state->data_[graph_id].g = 0;
+            first_state->data_[graph_id].h_self = 0;
+
+            first_state->data_[graph_id + 1].parent_id->resize(1);
+            first_state->data_[graph_id + 1].parent_id->at(0) = PARENT_TYPE(UNSET);
+            first_state->data_[graph_id + 1].g = 0;
+            first_state->data_[graph_id + 1].h_self = 0;
+
+            max_h_states_.emplace(graph_id + 1, first_state);
+            roots_.emplace(graph_id + 1, first_state);
+            added_roots.push_back(first_state);
+            stats_.root_states.push_back(action_space_ptr_->getRobotState(first_state_ind)->state);
+
+
+            // Instead of make another graph, lets add the last state to the open queue but mak sure we have the entire trajectory
+            int last_state_ind = action_space_ptr_->getOrCreateRobotState(action_seq.back());
+            auto last_state = getOrCreateSearchState(last_state_ind);
+            last_state->data_[graph_id].parent_id->resize(action_seq.size() - 1);
+            for (size_t i {0}; i < action_seq.size() - 1; ++i){
+                int next_state_id = action_space_ptr_->getOrCreateRobotState(action_seq[i]);
+                getOrCreateSearchState(next_state_id);
+                last_state->data_[graph_id].parent_id->at(i) = next_state_id;
+            }
+            last_state->data_[graph_id].g = 0;
+            last_state->data_[graph_id].h_self = 0;
+//            last_state->data_[graph_id].h = computeHeuristic(last_state->state_id, (size_t)graph_id);
+//            last_state->data_[graph_id].f = last_state->data_[graph_id].g + last_state->data_[graph_id].h;
+//            last_state->data_[graph_id].setOpen();
+//            opens_[graph_id].push(&last_state->data_[graph_id]);
+            max_h_states_.emplace(graph_id, last_state);
+            roots_.emplace(graph_id, last_state);
+            added_roots.push_back(last_state);
+            stats_.root_states.push_back(action_space_ptr_->getRobotState(last_state_ind)->state);
+            graph_id++; graph_id++;
+        }
     }
+    params_.g_num_ = graph_id;
 
     roots_.emplace(GRAPH_START, start_);
     roots_.emplace(GRAPH_GOAL, goal_);
@@ -123,11 +156,11 @@ void ims::MGS::initializePlanner(const std::shared_ptr<ActionSpaceMGS>& action_s
     opens_[GRAPH_GOAL].push(&goal_->data_[GRAPH_GOAL]);
 
     // initialize the open lists
-    for (int i {2}; i < params_.g_num_; ++i){
-        random_states[i - 2]->data_[i].h = computeHeuristic(random_states[i - 2]->state_id, (size_t)i);
-        random_states[i - 2]->data_[i].f = random_states[i - 2]->data_[i].g + random_states[i - 2]->data_[i].h;
-        random_states[i - 2]->data_->setOpen();
-        opens_[i].push(&random_states[i - 2]->data_[i]);
+    for (int i {2}; i < graph_id; ++i){
+        added_roots[i - 2]->data_[i].h = computeHeuristic(added_roots[i - 2]->state_id, (size_t)i);
+        added_roots[i - 2]->data_[i].f = added_roots[i - 2]->data_[i].g + added_roots[i - 2]->data_[i].h;
+        added_roots[i - 2]->data_->setOpen();
+        opens_[i].push(&added_roots[i - 2]->data_[i]);
     }
 }
 
@@ -150,6 +183,7 @@ auto ims::MGS::getOrCreateSearchState(int state_id) -> ims::MGS::SearchState * {
             s->data_[i].graph_id = i;
             s->data_[i].me = s;
             s->data_[i].edges = std::make_shared<std::vector<std::pair<int, double>>>();
+            s->data_[i].parent_id = std::make_shared<std::vector<int>>();
         }
         s->state_id = state_id;
         s->h_map = std::make_shared<std::vector<double>>(params_.g_num_, INF_DOUBLE);
@@ -304,7 +338,8 @@ bool ims::MGS::plan(std::vector<StateType>& path) {
                         // check if the last state is in closed
                         auto last_state = getOrCreateSearchState(state_in_path);
                         // update the state's values in the current graph
-                        last_state->data_[curr_graph].parent_id = curr_state->state_id;
+                        last_state->data_[curr_graph].parent_id->resize(1); // TODO: I assume it is a new state with no parents assigned
+                        last_state->data_[curr_graph].parent_id->at(0) = curr_state->state_id;
                         last_state->data_[curr_graph].edges->emplace_back(curr_state->state_id, costs.at(l));
                         last_state->data_[curr_graph].g = curr_state->data_[curr_graph].g + costs.at(l);
                         last_state->data_[curr_graph].h_self = computeHeuristic(last_state->state_id,
@@ -370,7 +405,8 @@ void ims::MGS::expand(int state_id, int g_num){
                 state->data_[g_num].edges->emplace_back(successor_id, cost);
                 successor->data_[g_num].edges->emplace_back(state_id, cost);
                 successor->use_graph_ = g_num;
-                successor->data_[g_num].parent_id = state->state_id;
+                successor->data_[g_num].parent_id->resize(1); // TODO: I assume it is a new state with no parents assigned
+                successor->data_[g_num].parent_id->at(0) = state_id;
                 successor->data_[g_num].g = state->data_[g_num].g + cost;
                 successor->data_[g_num].h = computeHeuristic(successor->state_id, (size_t)g_num);
                 successor->data_[g_num].f = successor->data_[g_num].g + successor->data_[g_num].h;
@@ -487,7 +523,8 @@ int ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
                     continue;
                 }
                 if (succ_connect_state->state->g > curr_state->state->g + succ_id.second) {
-                    succ_connect_state->state->parent_id = curr_state->state_id;
+                    succ_connect_state->state->parent_id->resize(1); // TODO: I assume it is a new state with no parents assigned
+                    succ_connect_state->state->parent_id->at(0) = curr_state->state_id;
                     succ_connect_state->state->g = curr_state->state->g + succ_id.second;
                     succ_connect_state->state->h_self = computeHeuristic(succ_connect_state->state_id,
                                                                          roots_[min_h_graph_id]->state_id);
@@ -508,7 +545,8 @@ int ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
                     continue;
                 }
                 if (state_from_min->g > curr_state->state->g + succ_id.second) {
-                    state_from_min->parent_id = curr_state->state_id;
+                    state_from_min->parent_id->resize(1); // TODO: I assume it is a new state with no parents assigned
+                    state_from_min->parent_id->at(0) = curr_state->state_id;
                     state_from_min->g = curr_state->state->g + succ_id.second;
                     if (!state_from_min->is_open) {
                         state_from_min->setOpen();
@@ -567,7 +605,8 @@ int ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
 void ims::MGS::setStateVals(int state_id, int parent_id, double cost, int g_num) {
     auto state_ = getSearchState(state_id);
     state_->use_graph_ = g_num;
-    state_->data_[g_num].parent_id = parent_id;
+    state_->data_[g_num].parent_id->resize(1); // TODO: I assume it is a new state with no parents assigned
+    state_->data_[g_num].parent_id->at(0) = parent_id;
 //    if (g_num == GRAPH_START || g_num == goal_in_graph_){
 //        state_->data_[g_num].g = getSearchState(parent_id)->data_[g_num].g + cost;
 //    } else {
@@ -586,9 +625,15 @@ void ims::MGS::setStateVals(int state_id, int parent_id, double cost, int g_num)
 void ims::MGS::reconstructPath(std::vector<StateType>& path) { // TODO: implement from scratch
     goal_ = goals_[0]; // TODO: fix this
     SearchState* state = getSearchState(goal_);
-    while (state->data_[GRAPH_START].parent_id != -1){
-        path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
-        state = getSearchState(state->data_[GRAPH_START].parent_id);
+    while (state->data_[GRAPH_START].parent_id->at(0) != -1){
+        if (state->data_[GRAPH_START].parent_id->size() > 1){
+            for (int p_id : *state->data_[GRAPH_START].parent_id){
+                path.push_back(action_space_ptr_->getRobotState(p_id)->state);
+            }
+        } else {
+            path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
+        }
+        state = getSearchState(state->data_[GRAPH_START].parent_id->at(0));
     }
     path.push_back(action_space_ptr_->getRobotState(state->state_id)->state);
     std::reverse(path.begin(), path.end());
@@ -601,22 +646,26 @@ void ims::MGS::reconstructPath(std::vector<StateType>& path, std::vector<double>
     goal_ = goals_[0]; // TODO: fix this
     costs.push_back(0); // The goal state gets a transition cost of 0.
     SearchState* state_ = getSearchState(goal_);
-    if (state_->data_[GRAPH_START].parent_id == -3){
+    if (state_->data_[GRAPH_START].parent_id->at(0) == -3){
         bool bp = true;
     }
-    while (state_->data_[GRAPH_START].parent_id != -1){
-        if ((std::find(path.begin(), path.end(), action_space_ptr_->getRobotState(state_->state_id)->state) != path.end()) &&
-            (state_->data_[GRAPH_START].parent_id != -1)){
-            std::cout << "Loop in the path" << std::endl;
+    while (state_->data_[GRAPH_START].parent_id->at(0) != -1){
+//        if ((std::find(path.begin(), path.end(), action_space_ptr_->getRobotState(state_->state_id)->state) != path.end()) &&
+//            (state_->data_[GRAPH_START].parent_id != -1)){
+//            std::cout << "Loop in the path" << std::endl;
+//        }
+        if (state_->data_[GRAPH_START].parent_id->size() > 1){
+            for (int p_id : *state_->data_[GRAPH_START].parent_id){
+                path.push_back(action_space_ptr_->getRobotState(p_id)->state);
+            }
+        } else {
+            path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
         }
-        path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-
         // Get the transition cost. This is the difference between the g values of the current state and its parent.
         double transition_cost = state_->data_[GRAPH_START].g -
-            getSearchState(state_->data_[GRAPH_START].parent_id)->data_[GRAPH_START].g;
+            getSearchState(state_->data_[GRAPH_START].parent_id->at(0))->data_[GRAPH_START].g;
         costs.push_back(transition_cost);
-
-        state_ = getSearchState(state_->data_[GRAPH_START].parent_id);
+        state_ = getSearchState(state_->data_[GRAPH_START].parent_id->at(0));
     }
     path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
 
