@@ -219,7 +219,8 @@ namespace ims {
                                    std::vector<std::vector<int>>& edges_state_ids,
                                    std::vector<std::vector<double>> & edges_transition_costs) = 0;
 
-        virtual bool getSuccessors(int curr_state_ind,
+        [[deprecated("Use getSuccessorEdges instead.")]]
+        bool getSuccessors(int curr_state_ind,
                                    std::vector<int>& successors,
                                    std::vector<double>& costs){
             std::vector<std::vector<int>> edges_state_ids;
@@ -227,8 +228,17 @@ namespace ims {
             bool success = getSuccessorEdges(curr_state_ind, edges_state_ids, edges_transition_costs);
             if(success){
                 for(size_t i = 0; i < edges_state_ids.size(); i++){
+
+                    // Check that the edges have only two elements (the parent and child states). Otherwise, abort with a message.
+                    if (edges_state_ids[i].size() != 2){
+                        std::cout << RED << "getSuccessors: The edges_state_ids[i] should have only two elements (the parent and child states). Instead, it has " << edges_state_ids[i].size() << " elements." << RESET << std::endl;
+                        std::cout << RED << "Edge state ids: " << edges_state_ids[i] << RESET << std::endl;
+                        std::cout << RED << "GetSuccessors would have returned the edge state ids: [" << edges_state_ids[i].front() << ", " << edges_state_ids[i].back() << "], which would lose information." << RESET << std::endl;
+                        throw std::runtime_error("getSuccessors: The edges_state_ids should have only two elements (the parent and child states).");
+                    }
+
                     successors.push_back(edges_state_ids[i].back());
-                    costs.push_back(std::accumulate(edges_transition_costs.at(i).begin(), edges_transition_costs.at(i).end(), 0.0));
+                    costs.push_back(vectorSum(edges_transition_costs[i]));
                 }
             }
             return success;
