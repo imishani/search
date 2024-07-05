@@ -189,16 +189,16 @@ bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
 void ims::FocalwAStar::expand(int state_id){
 
     SearchState* state = getSearchState(state_id);
-    std::vector<std::vector<int>> successor_edges_state_ids;
-    std::vector<std::vector<double>> successor_edges_transition_costs;
-    std::vector<std::vector<double>> successor_edges_transition_subcosts;
+    std::vector<std::vector<int>> successor_seqs_state_ids;
+    std::vector<std::vector<double>> successor_seqs_transition_costs;
+    std::vector<std::vector<double>> successor_seqs_transition_subcosts;
 
-    action_space_ptr_->getSuccessorEdges(state->state_id, successor_edges_state_ids, successor_edges_transition_costs, successor_edges_transition_subcosts);
-    for (size_t i {0} ; i < successor_edges_state_ids.size() ; ++i){
-        const std::vector<int> & successor_edge_state_ids = successor_edges_state_ids[i];
+    action_space_ptr_->getSuccessorSequences(state->state_id, successor_seqs_state_ids, successor_seqs_transition_costs, successor_seqs_transition_subcosts);
+    for (size_t i {0} ; i < successor_seqs_state_ids.size() ; ++i){
+        const std::vector<int> & successor_edge_state_ids = successor_seqs_state_ids[i];
         int successor_id = successor_edge_state_ids.back();
-        double successor_edge_total_cost = vectorSum(successor_edges_transition_costs[i]);
-        double successor_edge_total_subcost = vectorSum(successor_edges_transition_subcosts[i]);
+        double successor_edge_total_cost = vectorSum(successor_seqs_transition_costs[i]);
+        double successor_edge_total_subcost = vectorSum(successor_seqs_transition_subcosts[i]);
         SearchState* successor = getOrCreateSearchState(successor_id);
 
         // If this state does not already exists, then we add it to the open list normally.
@@ -208,7 +208,7 @@ void ims::FocalwAStar::expand(int state_id){
                          successor_edge_total_cost,
                          successor_edge_total_subcost,
                          successor_edge_state_ids,
-                         successor_edges_transition_costs[i]);
+                         successor_seqs_transition_costs[i]);
             open_.push(successor);
             successor->setOpen();
         }
@@ -228,7 +228,7 @@ void ims::FocalwAStar::expand(int state_id){
                              successor_edge_total_cost,
                              successor_edge_total_subcost,
                              successor_edge_state_ids,
-                             successor_edges_transition_costs[i]);
+                             successor_seqs_transition_costs[i]);
 
                 // If the state is in the closed list, then we remove it from the closed list and insert it to the open list.
                 if (successor->in_closed){

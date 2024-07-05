@@ -92,19 +92,25 @@ public:
     /// @param state_id The state id.
     /// @param successors The successors to be updated.
     /// @param costs The costs to be updated.
-    virtual bool getSuccessorEdgesExperienceAccelerated(int curr_state_ind,
-                            std::vector<std::vector<int>>& edges_state_ids,
-                            std::vector<std::vector<double>> & edges_transition_costs) = 0;
+    virtual bool getSuccessorSequencesExperienceAccelerated(int curr_state_ind,
+                            std::vector<std::vector<int>>& seqs_state_ids,
+                            std::vector<std::vector<double>> & seqs_transition_costs) = 0;
 
     virtual bool getSuccessorsExperienceAccelerated(int curr_state_ind,
                             std::vector<int> & successors,
                             std::vector<double> & costs) {
-        std::vector<std::vector<int>> edges_state_ids;
-        std::vector<std::vector<double>> edges_transition_costs;
-        getSuccessorEdgesExperienceAccelerated(curr_state_ind, edges_state_ids, edges_transition_costs);
-        for (size_t i = 0; i < edges_state_ids.size(); i++) {
-            successors.push_back(edges_state_ids[i].back());
-            costs.push_back(std::accumulate(edges_transition_costs[i].begin(), edges_transition_costs[i].end(), 0.0));
+        std::vector<std::vector<int>> seqs_state_ids;
+        std::vector<std::vector<double>> seqs_transition_costs;
+        getSuccessorSequencesExperienceAccelerated(curr_state_ind, seqs_state_ids, seqs_transition_costs);
+        for (size_t i = 0; i < seqs_state_ids.size(); i++) {
+            if (seqs_state_ids[i].size() != 2){
+                std::cout << RED << "getSuccessors: The seqs_state_ids[i] should have only two elements (the parent and child states). Instead, it has " << seqs_state_ids[i].size() << " elements." << RESET << std::endl;
+                std::cout << RED << "Edge state ids: " << seqs_state_ids[i] << RESET << std::endl;
+                std::cout << RED << "GetSuccessors would have returned the edge state ids: [" << seqs_state_ids[i].front() << ", " << seqs_state_ids[i].back() << "], which would lose information." << RESET << std::endl;
+                throw std::runtime_error("getSuccessors: The seqs_state_ids should have only two elements (the parent and child states).");
+            }
+            successors.push_back(seqs_state_ids[i].back());
+            costs.push_back(std::accumulate(seqs_transition_costs[i].begin(), seqs_transition_costs[i].end(), 0.0));
         }
         return true;
     }

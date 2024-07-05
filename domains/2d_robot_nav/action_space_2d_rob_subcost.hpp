@@ -58,7 +58,9 @@ public:
                     std::vector<ActionSequence> & action_seqs,
                     bool check_validity) override {
         ims::RobotState* curr_state = this->getRobotState(state_id);
-        std::vector<ActionSequence> prim_action_seqs = action_type_->getPrimActionSequences();
+        std::vector<ActionSequence> prim_action_seqs;
+        std::vector<std::vector<double>> prim_action_transition_costs;
+        action_type_->getPrimActionSequences(prim_action_seqs, prim_action_transition_costs);
         for (int i {0} ; i < action_type_->num_actions ; i++){
             ActionSequence action_seq = prim_action_seqs[i];
             if (check_validity){
@@ -77,9 +79,9 @@ public:
         }
     }
 
-    bool getSuccessorEdges(int curr_state_ind,
-                                   std::vector<std::vector<int>>& edges_state_ids,
-                                   std::vector<std::vector<double>> & edges_transition_costs) override{
+    bool getSuccessorSequences(int curr_state_ind,
+                                   std::vector<std::vector<int>>& seqs_state_ids,
+                                   std::vector<std::vector<double>> & seqs_transition_costs) override{
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
@@ -104,22 +106,22 @@ public:
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 // Add to action edge.
                 successor_edge_state_ids.push_back(next_state_ind);
-                successor_edge_transition_costs.push_back(action_type_->action_edges_transition_costs[i][j]);
+                successor_edge_transition_costs.push_back(action_type_->action_seqs_transition_costs[i][j]);
             }
             if (!is_action_valid) {
                 continue;
             }
-            edges_state_ids.push_back(successor_edge_state_ids);
-            edges_transition_costs.push_back(successor_edge_transition_costs);
+            seqs_state_ids.push_back(successor_edge_state_ids);
+            seqs_transition_costs.push_back(successor_edge_transition_costs);
         }
         return true;
     }
 
     // Get successors with subcosts.
-    bool getSuccessorEdges(int curr_state_ind,
-                                   std::vector<std::vector<int>>& edges_state_ids,
-                                   std::vector<std::vector<double>> & edges_transition_costs,
-                                   std::vector<std::vector<double>> & edges_transition_subcosts) override{
+    bool getSuccessorSequences(int curr_state_ind,
+                                   std::vector<std::vector<int>>& seqs_state_ids,
+                                   std::vector<std::vector<double>> & seqs_transition_costs,
+                                   std::vector<std::vector<double>> & seqs_transition_subcosts) override{
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
@@ -145,16 +147,16 @@ public:
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 // Add to action edge.
                 successor_edge_state_ids.push_back(next_state_ind);
-                successor_edge_transition_costs.push_back(action_type_->action_edges_transition_costs[i][j]);
+                successor_edge_transition_costs.push_back(action_type_->action_seqs_transition_costs[i][j]);
                 double random_number = ((double)rand() / RAND_MAX);
                 successor_edge_transition_subcosts.push_back((double)(random_number * 10));
             }
             if (!is_action_valid) {
                 continue;
             }
-            edges_state_ids.push_back(successor_edge_state_ids);
-            edges_transition_costs.push_back(successor_edge_transition_costs);
-            edges_transition_subcosts.push_back(successor_edge_transition_subcosts);
+            seqs_state_ids.push_back(successor_edge_state_ids);
+            seqs_transition_costs.push_back(successor_edge_transition_costs);
+            seqs_transition_subcosts.push_back(successor_edge_transition_subcosts);
         }
         return true;
     }

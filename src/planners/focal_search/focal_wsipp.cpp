@@ -176,14 +176,14 @@ void ims::FocalwSIPP::expand(int state_id){
 
     SearchState* state = getSearchState(state_id);
     StateType state_wo_time = action_space_ptr_->getRobotState(state->cfg_state_id)->state;
-    std::vector<std::vector<int>> successor_edges_state_ids;
-    std::vector<std::vector<double>> successor_edges_transition_costs;
+    std::vector<std::vector<int>> successor_seqs_state_ids;
+    std::vector<std::vector<double>> successor_seqs_transition_costs;
     // The successors are ids of configurations without time. The configurations are stored in the action space.
-    action_space_ptr_->getSuccessorEdges(state->cfg_state_id, successor_edges_state_ids, successor_edges_transition_costs);
-    for (size_t i {0} ; i < successor_edges_state_ids.size() ; ++i){
-        const std::vector<int> & successor_edge_state_ids = successor_edges_state_ids[i];
+    action_space_ptr_->getSuccessorSequences(state->cfg_state_id, successor_seqs_state_ids, successor_seqs_transition_costs);
+    for (size_t i {0} ; i < successor_seqs_state_ids.size() ; ++i){
+        const std::vector<int> & successor_edge_state_ids = successor_seqs_state_ids[i];
         int successor_cfg_state_id = successor_edge_state_ids.back();
-        double successor_edge_total_cost = vectorSum(successor_edges_transition_costs[i]);
+        double successor_edge_total_cost = vectorSum(successor_seqs_transition_costs[i]);
         int transition_time = (TimeType)successor_edge_total_cost;
         assert(transition_time != 0);
         StateType succ_state_wo_time = action_space_ptr_->getRobotState(successor_cfg_state_id)->state;
@@ -210,7 +210,7 @@ void ims::FocalwSIPP::expand(int state_id){
                     StateType edge_cfg_state = action_space_ptr_->getRobotState(edge_cfg_state_id)->state;
                     edge_cfg_state.push_back(t - transition_time + j);
                     robot_cfg_edge_states.push_back(edge_cfg_state);
-                    assert(transition_time == vectorSum(successor_edges_transition_costs[i]));
+                    assert(transition_time == vectorSum(successor_seqs_transition_costs[i]));
                 }
 
                 if (isTimedCfgPathSatisfyingAllConstraints(robot_cfg_edge_states)
@@ -277,7 +277,7 @@ void ims::FocalwSIPP::expand(int state_id){
                              arrival_t,
                              state->c + transition_subcost,
                              successor_edge_state_ids,
-                             successor_edges_transition_costs[i]);
+                             successor_seqs_transition_costs[i]);
                 successor->setOpen();
                 open_.push(successor);
                 StateType succ_state = action_space_ptr_->getRobotState(successor->cfg_state_id)->state;
@@ -297,7 +297,7 @@ void ims::FocalwSIPP::expand(int state_id){
                                  g_new,
                                  c_new,
                                  successor_edge_state_ids,
-                                 successor_edges_transition_costs[i]);
+                                 successor_seqs_transition_costs[i]);
                     // If the state is in the closed list, then we remove it from the closed list and insert it to the open list.
                     if (successor->in_closed) {
                         successor->setOpen();

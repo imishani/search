@@ -56,7 +56,7 @@ struct ActionType2dRob : public ims::ActionType {
         name = "ActionType2dRob";
         num_actions = 8;
         action_names = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
-        action_edges_transition_costs = {{1.0 ,0.0},
+        action_seqs_transition_costs = {{1.0 ,0.0},
                                          {1.414, 0.0},
                                          {1, 0.0},
                                          {1.414, 0.0},
@@ -75,7 +75,7 @@ struct ActionType2dRob : public ims::ActionType {
 // Example for actions with a few states along the edge.
 //        num_actions = 4;
 //        action_names = {"N", "E", "S", "W",};
-//        action_edges_transition_costs = {{1.1, 1.0, 1.0, 1.0, 0.0},
+//        action_seqs_transition_costs = {{1.1, 1.0, 1.0, 1.0, 0.0},
 //                                         {0.33, 0.33, 0.33, 0.0},
 //                                         {1.1, 0.1, 0.1, 0.1, 0.1, 0},
 //                                         {1.1, 1.0, 1.0, 1.0,  0.0}};
@@ -96,8 +96,10 @@ struct ActionType2dRob : public ims::ActionType {
         return actions;
     }
 
-    std::vector<ActionSequence> getPrimActionSequences() const{
-        return action_seq_prims;
+    void getPrimActionSequences(std::vector<ActionSequence>& action_seqs,
+                            std::vector<std::vector<double>> & action_transition_costs ) override{
+        action_seqs = action_seq_prims;
+        action_transition_costs = action_seqs_transition_costs;
     }
 
     void Discretization(StateType& state_des) override{
@@ -107,7 +109,7 @@ struct ActionType2dRob : public ims::ActionType {
     std::string name;
     int num_actions;
     std::vector<std::string> action_names;
-    std::vector<std::vector<double>> action_edges_transition_costs;
+    std::vector<std::vector<double>> action_seqs_transition_costs;
     std::vector<ActionSequence> action_seq_prims;
 };
 
@@ -128,7 +130,9 @@ public:
                     std::vector<ActionSequence> & action_seqs,
                     bool check_validity) override {
         ims::RobotState* curr_state = this->getRobotState(state_id);
-        std::vector<ActionSequence> prim_action_seqs = action_type_->getPrimActionSequences();
+        std::vector<ActionSequence> prim_action_seqs;
+        std::vector<std::vector<double>> prim_action_transition_costs;
+        action_type_->getPrimActionSequences(prim_action_seqs, prim_action_transition_costs);
         for (int i {0} ; i < action_type_->num_actions ; i++){
             ActionSequence action_seq = prim_action_seqs[i];
             if (check_validity){
@@ -147,9 +151,9 @@ public:
         }
     }
 
-    bool getSuccessorEdges(int curr_state_ind,
-                                   std::vector<std::vector<int>>& edges_state_ids,
-                                   std::vector<std::vector<double>> & edges_transition_costs) override{
+    bool getSuccessorSequences(int curr_state_ind,
+                                   std::vector<std::vector<int>>& seqs_state_ids,
+                                   std::vector<std::vector<double>> & seqs_transition_costs) override{
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
@@ -174,13 +178,13 @@ public:
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 // Add to action edge.
                 successor_edge_state_ids.push_back(next_state_ind);
-                successor_edge_transition_costs.push_back(action_type_->action_edges_transition_costs[i][j]);
+                successor_edge_transition_costs.push_back(action_type_->action_seqs_transition_costs[i][j]);
             }
             if (!is_action_valid) {
                 continue;
             }
-            edges_state_ids.push_back(successor_edge_state_ids);
-            edges_transition_costs.push_back(successor_edge_transition_costs);
+            seqs_state_ids.push_back(successor_edge_state_ids);
+            seqs_transition_costs.push_back(successor_edge_transition_costs);
         }
         return true;
     }

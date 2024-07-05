@@ -180,15 +180,15 @@ void ims::SIPP::expand(int state_id){
     auto state = getSearchState(state_id);
 
     StateType state_wo_time = action_space_ptr_->getRobotState(state->cfg_state_id)->state;
-    std::vector<std::vector<int>> successor_edges_state_ids;
-    std::vector<std::vector<double>> successor_edges_transition_costs;
+    std::vector<std::vector<int>> successor_seqs_state_ids;
+    std::vector<std::vector<double>> successor_seqs_transition_costs;
     // The successors are ids of configurations without time. The configurations are stored in the action space.
-    action_space_ptr_->getSuccessorEdges(state->cfg_state_id, successor_edges_state_ids, successor_edges_transition_costs);
-    for (size_t i {0} ; i < successor_edges_state_ids.size() ; ++i){
-        const std::vector<int> & successor_edge_state_ids = successor_edges_state_ids[i];
+    action_space_ptr_->getSuccessorSequences(state->cfg_state_id, successor_seqs_state_ids, successor_seqs_transition_costs);
+    for (size_t i {0} ; i < successor_seqs_state_ids.size() ; ++i){
+        const std::vector<int> & successor_edge_state_ids = successor_seqs_state_ids[i];
         int successor_cfg_state_id = successor_edge_state_ids.back();
         StateType succ_state_wo_time = action_space_ptr_->getRobotState(successor_cfg_state_id)->state;
-        double successor_edge_total_cost = vectorSum(successor_edges_transition_costs[i]);
+        double successor_edge_total_cost = vectorSum(successor_seqs_transition_costs[i]);
         int transition_time = (TimeType)successor_edge_total_cost;
         assert(transition_time != 0);
         // The earliest time of reaching a successor.
@@ -213,7 +213,7 @@ void ims::SIPP::expand(int state_id){
                     StateType edge_cfg_state = action_space_ptr_->getRobotState(edge_cfg_state_id)->state;
                     edge_cfg_state.push_back(t - transition_time + j);
                     robot_cfg_edge_states.push_back(edge_cfg_state);
-                    assert(transition_time == vectorSum(successor_edges_transition_costs[i]));
+                    assert(transition_time == vectorSum(successor_seqs_transition_costs[i]));
                 }
 
                 if (isTimedCfgPathSatisfyingAllConstraints(robot_cfg_edge_states)
@@ -265,7 +265,7 @@ void ims::SIPP::expand(int state_id){
                         successor->g = arrival_t;
                         successor->f = successor->g + params_.epsilon * successor->h;
                         successor->edge_from_parent_state_ids = successor_edge_state_ids;
-                        successor->edge_from_parent_transition_costs = successor_edges_transition_costs[i];
+                        successor->edge_from_parent_transition_costs = successor_seqs_transition_costs[i];
                         open_.push(successor);
                         successor->setOpen();
                         if (params_.verbose) {
@@ -285,7 +285,7 @@ void ims::SIPP::expand(int state_id){
                     successor->g = arrival_t;
                     successor->f = successor->g + params_.epsilon*successor->h;
                     successor->edge_from_parent_state_ids = successor_edge_state_ids;
-                    successor->edge_from_parent_transition_costs = successor_edges_transition_costs[i];
+                    successor->edge_from_parent_transition_costs = successor_seqs_transition_costs[i];
                     open_.update(successor);
                     if (params_.verbose) {
                         std::cout << "State id " << successor->state_id << " gets parent id " << state->state_id
@@ -299,7 +299,7 @@ void ims::SIPP::expand(int state_id){
                 successor->h = computeHeuristic(successor_cfg_state_id);
                 successor->f = successor->g + params_.epsilon*successor->h;
                 successor->edge_from_parent_state_ids = successor_edge_state_ids;
-                successor->edge_from_parent_transition_costs = successor_edges_transition_costs[i];
+                successor->edge_from_parent_transition_costs = successor_seqs_transition_costs[i];
                 successor->setOpen();
                 open_.push(successor);
                 if (params_.verbose) {

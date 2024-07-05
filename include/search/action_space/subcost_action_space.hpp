@@ -67,9 +67,9 @@ public:
 
     // Make both the base and the overloaded versions of getSuccessors available.
     using ActionSpaceSubcostMixin::getSuccessors;
-    using ActionSpaceSubcostMixin::getSuccessorEdges;
+    using ActionSpaceSubcostMixin::getSuccessorSequences;
     using ActionSpace::getSuccessors;
-    using ActionSpace::getSuccessorEdges;
+    using ActionSpace::getSuccessorSequences;
 };
 
 /// @brief Base class for ActionSpaces with constraints.
@@ -320,18 +320,33 @@ public:
         }
     }
 
-
+    [[deprecated("Use getSuccessorSequencesExperienceAccelerated instead.")]]
     virtual bool getSuccessorsExperienceAccelerated(int curr_state_ind,
                                 std::vector<int> &successors,
                                 std::vector<double>& costs,
                                 std::vector<double>& subcosts) {
-        throw std::runtime_error("getSuccessorsExperienceAccelerated not implemented for abstract SubcostExperienceAcceleratedConstrainedActionSpace");
+        std::vector<std::vector<int>> seqs_state_ids;
+        std::vector<std::vector<double>> seqs_transition_costs;
+        std::vector<std::vector<double>> seqs_transition_subcosts;
+        bool success = getSuccessorSequencesExperienceAccelerated(curr_state_ind, seqs_state_ids, seqs_transition_costs, seqs_transition_subcosts);
+        if (success) {
+            for (int i = 0; i < seqs_state_ids.size(); i++) {
+                if (seqs_state_ids[i].size() != 2) {
+                    std::cout << RED << "SubcostExperienceAcceleratedConstrainedActionSpace: getSuccessorsExperienceAccelerated: Expected 2 states for each edge, but got " << seqs_state_ids[i].size() << RESET << std::endl;
+                    throw std::runtime_error("SubcostExperienceAcceleratedConstrainedActionSpace: getSuccessorsExperienceAccelerated: Expected 2 states for each edge.");
+                }
+                successors.push_back(seqs_state_ids[i].back());
+                costs.push_back(vectorSum(seqs_transition_costs[i]));
+                subcosts.push_back(vectorSum(seqs_transition_subcosts[i]));
+            }
+        }
+        return success;
     }
 
-    virtual bool getSuccessorEdgesExperienceAccelerated(int curr_state_ind,
-                            std::vector<std::vector<int>>& edges_state_ids,
-                            std::vector<std::vector<double>> & edges_transition_costs,
-                            std::vector<std::vector<double>> & edge_transition_subcosts) {
+    virtual bool getSuccessorSequencesExperienceAccelerated(int curr_state_ind,
+                            std::vector<std::vector<int>>& seqs_state_ids,
+                            std::vector<std::vector<double>> & seqs_transition_costs,
+                            std::vector<std::vector<double>> & seqs_transition_subcosts) {
         throw std::runtime_error("getSuccessorsExperienceAccelerated not implemented for abstract SubcostExperienceAcceleratedConstrainedActionSpace");
     }
 };

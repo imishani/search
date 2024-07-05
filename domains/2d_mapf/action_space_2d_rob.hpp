@@ -47,7 +47,7 @@ struct ActionType2dRob : public ims::ActionType {
         this->name = "ActionType2dRob";
         this->num_actions = 4;
         this->action_names = {"N", "E", "S", "W"};
-        this->action_edges_transition_costs = {{1, 0},
+        this->action_seqs_transition_costs = {{1, 0},
                                                {1, 0},
                                                {1, 0},
                                                {1, 0}};
@@ -68,6 +68,12 @@ struct ActionType2dRob : public ims::ActionType {
         return actions;
     }
 
+    void getPrimActionSequences(std::vector<ActionSequence>& action_seqs,
+                            std::vector<std::vector<double>> & action_transition_costs ) override{
+        action_seqs = action_seq_prims;
+        action_transition_costs = action_seqs_transition_costs;
+    }
+
     void Discretization(StateType& state_des) override {
         state_discretization_ = state_des;
     }
@@ -75,7 +81,7 @@ struct ActionType2dRob : public ims::ActionType {
     std::string name;
     int num_actions;
     std::vector<std::string> action_names;
-    std::vector<std::vector<double>> action_edges_transition_costs;
+    std::vector<std::vector<double>> action_seqs_transition_costs;
     std::vector<ActionSequence> action_seq_prims;
 };
 
@@ -84,7 +90,7 @@ struct ActionType2dRobTimed : public ActionType2dRob {
         this->name = "ActionType2dRob";
         this->num_actions = 5;
         this->action_names = {"N", "E", "S", "W", "Wait"};
-        this->action_edges_transition_costs = {{1, 0},
+        this->action_seqs_transition_costs = {{1, 0},
                                                {1, 0},
                                                {1, 0},
                                                {1, 0},
@@ -232,9 +238,9 @@ public:
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val) { return isStateValid(state_val); });
     }
 
-    bool getSuccessorEdges(int curr_state_ind,
-                                   std::vector<std::vector<int>>& edges_state_ids,
-                                   std::vector<std::vector<double>> & edges_transition_costs) override{
+    bool getSuccessorSequences(int curr_state_ind,
+                                   std::vector<std::vector<int>>& seqs_state_ids,
+                                   std::vector<std::vector<double>> & seqs_transition_costs) override{
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
@@ -261,24 +267,24 @@ public:
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 // Add to action edge.
                 successor_edge_state_ids.push_back(next_state_ind);
-                successor_edge_transition_costs.push_back(action_type_->action_edges_transition_costs[i][j - 1]);
+                successor_edge_transition_costs.push_back(action_type_->action_seqs_transition_costs[i][j - 1]);
             }
             if (!is_action_valid) {
                 continue;
             }
             // Add the last cost. It is zero as the cost of the last state to the next state is unknown as of now.
             successor_edge_transition_costs.push_back(0.0);
-            edges_state_ids.push_back(successor_edge_state_ids);
-            edges_transition_costs.push_back(successor_edge_transition_costs);
+            seqs_state_ids.push_back(successor_edge_state_ids);
+            seqs_transition_costs.push_back(successor_edge_transition_costs);
         }
         return true;
     }
 
     // Get successors with subcosts. The subcosts are the number of conflicts that would be created on a transition to the successor.
-    bool getSuccessorEdges(int curr_state_ind,
-                       std::vector<std::vector<int>>& edges_state_ids,
-                       std::vector<std::vector<double>> & edges_transition_costs,
-                       std::vector<std::vector<double>> & edges_transition_subcosts) override {
+    bool getSuccessorSequences(int curr_state_ind,
+                       std::vector<std::vector<int>>& seqs_state_ids,
+                       std::vector<std::vector<double>> & seqs_transition_costs,
+                       std::vector<std::vector<double>> & seqs_transition_subcosts) override {
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
@@ -307,7 +313,7 @@ public:
                 // Add to action edge.
                 successor_edge_state_ids.push_back(next_state_ind);
                 // The cost at j - 1 is that of transitioning between j - 1 and j.
-                successor_edge_transition_costs.push_back(action_type_->action_edges_transition_costs[i][j - 1]);
+                successor_edge_transition_costs.push_back(action_type_->action_seqs_transition_costs[i][j - 1]);
                 int num_conflicts = 0;
                 computeTransitionNumberConflicts(curr_state->state, next_state_val, num_conflicts);
                 successor_edge_transition_subcosts.push_back((double)num_conflicts);
@@ -318,9 +324,9 @@ public:
             // Add the last costs of zero.
             successor_edge_transition_costs.push_back(0.0);
             successor_edge_transition_subcosts.push_back(0.0);
-            edges_state_ids.push_back(successor_edge_state_ids);
-            edges_transition_costs.push_back(successor_edge_transition_costs);
-            edges_transition_subcosts.push_back(successor_edge_transition_subcosts);
+            seqs_state_ids.push_back(successor_edge_state_ids);
+            seqs_transition_costs.push_back(successor_edge_transition_costs);
+            seqs_transition_subcosts.push_back(successor_edge_transition_subcosts);
         }
         return true;
     }

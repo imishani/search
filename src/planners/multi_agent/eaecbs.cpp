@@ -124,6 +124,7 @@ void ims::EAECBS::createRootInOpenList() {
     double initial_sum_of_path_cost_lower_bounds{0.0};
 
     for (size_t i{0}; i < num_agents_; ++i) {
+        // Root trick.
         // Add the previous paths as context to the action space.
         std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
         context_ptr->agent_paths = initial_paths;

@@ -116,6 +116,7 @@ void ims::GeneralizedECBS::createRootInOpenList() {
     std::unordered_map<int, double> initial_paths_costs;
     std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
     for (size_t i{0}; i < num_agents_; ++i) {
+        // Root trick.
         // Add the previous paths as context to the action space.
         std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
         context_ptr->agent_paths = initial_paths;

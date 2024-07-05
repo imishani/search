@@ -178,13 +178,13 @@ bool ims::wAStar::plan(std::vector<StateType>& path) {
 void ims::wAStar::expand(int state_id){
 
     auto state_ = getSearchState(state_id);
-    std::vector<std::vector<int>> successor_edges_state_ids;
-    std::vector<std::vector<double>> successor_edges_transition_costs;
-    action_space_ptr_->getSuccessorEdges(state_->state_id, successor_edges_state_ids, successor_edges_transition_costs);
-    for (size_t i {0} ; i < successor_edges_state_ids.size() ; ++i){
-        const std::vector<int> & successor_edge_state_ids = successor_edges_state_ids[i];
+    std::vector<std::vector<int>> successor_seqs_state_ids;
+    std::vector<std::vector<double>> successor_seqs_transition_costs;
+    action_space_ptr_->getSuccessorSequences(state_->state_id, successor_seqs_state_ids, successor_seqs_transition_costs);
+    for (size_t i {0} ; i < successor_seqs_state_ids.size() ; ++i){
+        const std::vector<int> & successor_edge_state_ids = successor_seqs_state_ids[i];
         int successor_id = successor_edge_state_ids.back();
-        double successor_edge_total_cost = std::accumulate(successor_edges_transition_costs[i].begin(), successor_edges_transition_costs[i].end(), 0.0);
+        double successor_edge_total_cost = std::accumulate(successor_seqs_transition_costs[i].begin(), successor_seqs_transition_costs[i].end(), 0.0);
         auto successor = getOrCreateSearchState(successor_id);
         if (successor->in_closed){
             continue;
@@ -198,7 +198,7 @@ void ims::wAStar::expand(int state_id){
                              state_->state_id,
                              successor_edge_total_cost,
                              successor_edge_state_ids,
-                             successor_edges_transition_costs[i]);
+                             successor_seqs_transition_costs[i]);
                 open_.update(successor);
             }
         } else {
@@ -206,7 +206,7 @@ void ims::wAStar::expand(int state_id){
                          state_->state_id,
                          successor_edge_total_cost,
                          successor_edge_state_ids,
-                         successor_edges_transition_costs[i]);
+                         successor_seqs_transition_costs[i]);
             open_.push(successor);
             successor->setOpen();
         }
