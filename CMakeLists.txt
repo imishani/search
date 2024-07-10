@@ -8,7 +8,11 @@ include_directories(include)
 
 # link boost libraries
 find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
+
+find_package(Eigen3 REQUIRED)
+
 include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${EIGEN3_INCLUDE_DIR})
 
 add_library(search SHARED
         src/planners/best_first_search.cpp
@@ -21,6 +25,7 @@ add_library(search SHARED
         src/planners/bfs.cpp
         src/planners/egraph_wastar.cpp
         src/planners/mgs.cpp
+        src/planners/mosaic.cpp
         src/planners/focal_search/focal_search.cpp
         src/planners/focal_search/focal_wastar.cpp
         src/planners/focal_search/focal_eawastar.cpp
@@ -91,6 +96,9 @@ target_link_libraries(run_2d_ackermann_rob_nav_wastar search ${OpenCV_LIBS} ${Bo
 add_executable(run_2d_rob_nav_mgs domains/2d_robot_nav/run_2d_mgs.cpp)
 target_link_libraries(run_2d_rob_nav_mgs search ${Boost_LIBRARIES})
 
+add_executable(run_2d_rob_nav_mosaic domains/2d_robot_nav/run_2d_mosaic.cpp)
+target_link_libraries(run_2d_rob_nav_mosaic search ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES})
+
 add_executable(run_2d_rob_nav_ackerman_mgs domains/2d_robot_nav/run_2d_ackerman_mgs.cpp)
 target_link_libraries(run_2d_rob_nav_ackerman_mgs search ${Boost_LIBRARIES})
 
@@ -105,6 +113,11 @@ target_link_libraries(run_2d_mapf_eaecbs search ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_pp domains/2d_mapf/run_2d_pp.cpp)
 target_link_libraries(run_2d_mapf_pp search ${Boost_LIBRARIES})
+
+
+add_executable(run_walls domains/2d_robot_nav/tests/follow_wall.cpp)
+target_link_libraries(run_walls search ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES})
+
 
 # Tests.
 add_executable(test_search test/common/test_queue.cpp)

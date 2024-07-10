@@ -59,23 +59,28 @@ def visualize(map_index, states):
     map_file = MAPS[map_index]
     map_data, img, map_type, width, height = load_map(map_file)
 
-    # create the figure
-    fig = plt.figure()
-    # create the axis
-    ax = plt.axes(xlim=(0, width), ylim=(0, height))
-    ax.invert_yaxis()
-    # create the image
-    plt.imshow(map_data, cmap='Greys', vmin=0, vmax=100)
-    # remove the xaixs and yaxis
-    ax.axes.get_xaxis().set_visible(False)
-    ax.axes.get_yaxis().set_visible(False)
+    def update(frame_number):
+        # if frame_number % 100 == 0:
+        #     print(f"Generating frame {frame_number} of {states.shape[0]}")
+        print(f"Generating frame {20*frame_number} of {states.shape[0]}")
+        state = states[20 * frame_number: 20 * frame_number + 20, :]
+        x = state[:, 1]
+        y = state[:, 2]
+        im.set_array(map_data)
+        plt.plot(x, y, 'go', markersize=0.1)
+        return im,
 
-    # plot the states
-    sc = ax.scatter(states[:, 1], states[:, 2], c='r', s=2)
-    # show the plot
-    fig.tight_layout()
-    plt.show()
+    fig = plt.figure(figsize=(width / 100, height / 100))
 
+    im = plt.imshow(map_data, cmap='Greys', vmin=0, vmax=100, animated=True)
+    im.axes.get_xaxis().set_visible(False)
+    im.axes.get_yaxis().set_visible(False)
+
+    ani = animation.FuncAnimation(fig, update, frames=states.shape[0] // 20, interval=5, blit=True, repeat_delay=1000)
+    ani.save("animation_mgs.mp4",
+             writer='ffmpeg', dpi=300)
+    # save as gif
+    # ani.save("animation_mgs.gif", writer='imagemagick', fps=350)
     return
 
 
