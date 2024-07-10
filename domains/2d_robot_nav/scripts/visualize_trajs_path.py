@@ -48,11 +48,11 @@ def load_map(file_path):
     return map_data, img, map_type, width, height
 
 
-def visualize(map_index, states):
+def visualize(map_index, trajectories):
     """
 
     :param map_index:  the index of the map to use
-    :param states: a numpy array of states, where each row is a state containing its index and x,y coordinates
+    :param trajectories
     :return:
     """
     # load the map (octile map)
@@ -70,9 +70,16 @@ def visualize(map_index, states):
     ax.axes.get_xaxis().set_visible(False)
     ax.axes.get_yaxis().set_visible(False)
 
-    # plot the states
-    sc = ax.scatter(states[:, 1], states[:, 2], c='r', s=2)
-    # show the plot
+    # plot the trajectories
+    k = ['r', 'g', 'b', 'c', 'm', 'y', 'k']
+    k_id = 0
+    for traj in trajectories:
+        x, y = traj.reshape(-1, 3)[:, 1], traj.reshape(-1, 3)[:, 2]
+        ax.plot(x, y, k[k_id] + 'o', markersize=1)
+        k_id += 1
+        if k_id == len(k):
+            k_id = 0
+
     fig.tight_layout()
     plt.show()
 
@@ -81,7 +88,13 @@ def visualize(map_index, states):
 
 if __name__ == '__main__':
     # load the states
-    states = np.loadtxt("../../../cmake-build-release/states_mosaic.txt", dtype=float, delimiter=',').astype(np.int64)
-
+    # states = np.loadtxt("../../../cmake-build-release/states_mosaic.txt", dtype=float, delimiter=',').astype(np.int64)
+    # load the trajs_path
+    trajs_path = np.loadtxt("../../../cmake-build-release/trajs_path_mosaic.txt", dtype=int, delimiter=',')
+    trajectories = []
+    for i in trajs_path:
+        # load the trajectory
+        trajectory = np.loadtxt(f"../../../cmake-build-release/trajectories/trajectory_{i}.txt", dtype=float, delimiter=',')
+        trajectories.append(trajectory)
     # visualize the states
-    visualize(1, states)
+    visualize(1, trajectories)

@@ -125,7 +125,7 @@ def visualize(map_ind, scaler, paths_dict, path_ids_to_visualize):
         # get the x and y coordinates
         x = path[:, 0]
         y = path[:, 1]
-        ax.plot(x, y, 'blue', markersize=1)
+        ax.plot(x, y, 'bo', markersize=2)
         # plot a red circle (without fill) at the start
         ax.plot(x[0], y[0], 'ro', fillstyle='none', markersize=5)
         # plot a green circle (without fill) at the goal

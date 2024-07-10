@@ -43,6 +43,7 @@
 #include <utility>
 
 // project includes
+#include "search/controllers/base_controller.hpp"
 #include <search/action_space/action_space_mgs.hpp>
 //#include <search/common/queue_general.hpp>
 #include <search/heuristics/base_heuristic.hpp>
@@ -70,44 +71,6 @@ struct MGSPlannerStats : public PlannerStats {
     std::vector<StateType> root_states;
 };
 
-
-
-using ControllerFn = std::vector<ActionSequence>(*)(void* user, const std::shared_ptr<ActionSpace>& action_space_ptr);
-
-enum class ControllerType {
-    INVALID,
-    GENERATOR,
-    CONNECTOR
-};
-
-/// @class Controller
-/// @brief A general struct for controller. It can be anything, from a simple analytical function to a neural network.
-/// @note 1) It is important to define the controller function and the user data before using the controller.
-/// @note 2) The controller function should return a vector of action sequences.
-/// @example The controller function should be defined as follows:
-/// @code inline std::vector<ActionSequence> invalidController(void* user, const std::shared_ptr<ActionSpace>& action_space_ptr) {
-/// throw std::runtime_error("Invalid controller function.");
-/// }
-struct Controller {
-    ControllerType type {ControllerType::INVALID}; // The type of the controller
-    ControllerFn solver_fn {nullptr}; // The function to solve the state
-    std::vector<double>* user_data {nullptr}; // User data for the function
-//    TODO: Add constraints.
-    std::shared_ptr<ActionSpace> as_ptr {nullptr};
-    std::vector<ActionSequence> solve() const  {
-        if (solver_fn == nullptr){
-            throw std::runtime_error("Solver function is not set.");
-        } else if (as_ptr == nullptr) {
-            throw std::runtime_error("Action space is not set.");
-        }
-        return solver_fn(user_data, as_ptr);
-    }
-
-    /// @brief Destructor
-//    ~Controller() {
-//        delete user_data;
-//    }
-};
 
 /// @class MGS class.
 /// @brief A general search algorithm that uses heuristics and g values to find the optimal path

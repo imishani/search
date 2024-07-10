@@ -137,10 +137,12 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_s
 
     // check if start is valid
     if (!action_space_ptr_->isStateValid(start)){
+        std::cout << "Start state is not valid" << std::endl;
         throw std::runtime_error("Start state is not valid");
     }
     // check if goal is valid
     if (!action_space_ptr_->isStateValid(goal)){
+        std::cout << "Goal state is not valid" << std::endl;
         throw std::runtime_error("Goal state is not valid");
     }
     int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);

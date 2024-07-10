@@ -27,9 +27,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   run_2d_mgs.cpp
+ * \file   run_2d_mosaic.cpp
  * \author Itamar Mishani (imishani@cmu.edu)
- * \date   Jan 01 2024
+ * \date   Jul 07 2024
 */
 
 
@@ -41,33 +41,11 @@
 #include <cmath>
 
 // project includes
-#include "search/planners/mgs.hpp"
-#include "search/heuristics/standard_heuristics.hpp"
-#include "action_space_2d_rob_mgs.hpp"
+#include "search/planners/mosaic.hpp"
+#include "action_space_2d_rob_mosaic.hpp"
 #include "utils.hpp"
 #include "controllers_2d.hpp"
 
-
-//inline std::vector<ActionSequence> Controller2d(void* user, const std::shared_ptr<ims::ActionSpace>& action_space_ptr) {
-//    StateType init_state = *static_cast<StateType *>(user);
-//    std::vector<ActionSequence> actions;
-//    // get the robot state and add 1 step up
-//    ActionSequence action;
-//    action.push_back(init_state);
-//    StateType next_state = init_state;
-//    for (int j = 0; j < 25 ; j++){
-//        next_state[0] -= 1;
-//        next_state[1] += 1;
-//        action.push_back(next_state);
-//    }
-//    for (int j = 0; j < 20 ; j++){
-//        next_state[0] -= 1;
-////        next_state[1] -= 1;
-//        action.push_back(next_state);
-//    }
-//    actions.push_back(action);
-//    return actions;
-//}
 
 
 int main(int argc, char** argv) {
@@ -108,13 +86,9 @@ int main(int argc, char** argv) {
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
 
-    // construct the planner
-    std::cout << "Constructing planner..." << std::endl;
-    // construct planner params
-    auto* heuristic = new ims::EuclideanHeuristic();
-    int graphs_number = 10;
-    ims::MGSParams params (heuristic, graphs_number);
-    params.time_limit_ = 5;
+
+    ims::MosaicParams params;
+    params.time_limit_ = 50;
     params.verbose = true;
     // construct the scene and the action space
     Scene2DRob scene (map);
@@ -138,10 +112,10 @@ int main(int argc, char** argv) {
         std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
 
-        std::shared_ptr<ActionSpace2dRobMGS> ActionSpace = std::make_shared<ActionSpace2dRobMGS>(scene,
-                                                                                                 action_type);
+        std::shared_ptr<ActionSpace2dRobMosaic> ActionSpace = std::make_shared<ActionSpace2dRobMosaic>(scene,
+                                                                                                       action_type);
         // construct planner
-        ims::MGS planner(params);
+        ims::Mosaic planner(params);
 
         std::shared_ptr<std::vector<ims::Controller>> controllers = std::make_shared<std::vector<ims::Controller>>();
         ims::WallFollowerController controller;
@@ -155,13 +129,23 @@ int main(int argc, char** argv) {
 //        controller.as_ptr = ActionSpace;
 
         controllers->push_back(controller);
+
+//        ims::LinearController controller2 (ims::ControllerType::CONNECTOR);
+//        controller2.init(1, ActionSpace, starts[i], goals[i]);
+//        controllers->push_back(controller2);
+
+        ims::wAStarController controller2 (ims::ControllerType::CONNECTOR);
+        controller2.init(starts[i], goals[i], ActionSpace, std::make_shared<Scene2DRob>(scene));
+        controller2.solver_fn = ims::wAStarControllerFn;
+        controllers->push_back(controller2);
+
         // catch the exception if the start or goal is not valid
         try {
             planner.initializePlanner(ActionSpace, controllers, starts[i], goals[i]);
         }
         catch (std::exception& e) {
             std::cout << e.what() << std::endl;
-            std::cout << RED << "Start or goal is not valid!" << RESET << std::endl;
+            std::cout << RED << "Start or goal is not valid! in planning query: " << i << RESET << std::endl;
             continue;
         }
         // plan
@@ -175,7 +159,7 @@ int main(int argc, char** argv) {
 
         else
             std::cout << MAGENTA << "Path found!" << RESET << std::endl;
-        ims::MGSPlannerStats stats = planner.reportStats();
+        PlannerStats stats = planner.reportStats();
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
         std::cout << "cost: " << stats.cost << std::endl;
         std::cout << "Path length: " << path_.size() << std::endl;
@@ -187,8 +171,8 @@ int main(int argc, char** argv) {
     }
 
     // save the logs to a temporary file
-    logStats(logs, map_index, "MGS");
-
+    logStats(logs, map_index, "mosaic");
+//
     std::string path_file = logPaths(paths, map_index, scale);
 
     std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
