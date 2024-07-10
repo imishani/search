@@ -28,6 +28,6 @@ Or to run an mapf benchmark map, first download the maps and random scenarios fr
 
 You can visualize it by then running
 ```
-python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 2
+python3 ../domains/2d_mapf/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 2
 ```
 and viewing `path.gif` in your build directory.
