@@ -96,7 +96,7 @@ struct ActionType2dRob : public ims::ActionType {
         return actions;
     }
 
-    void getPrimActionSequences(std::vector<ActionSequence>& action_seqs,
+    void getPrimActions(std::vector<ActionSequence>& action_seqs,
                             std::vector<std::vector<double>> & action_transition_costs ) override{
         action_seqs = action_seq_prims;
         action_transition_costs = action_seqs_transition_costs;
@@ -132,7 +132,7 @@ public:
         ims::RobotState* curr_state = this->getRobotState(state_id);
         std::vector<ActionSequence> prim_action_seqs;
         std::vector<std::vector<double>> prim_action_transition_costs;
-        action_type_->getPrimActionSequences(prim_action_seqs, prim_action_transition_costs);
+        action_type_->getPrimActions(prim_action_seqs, prim_action_transition_costs);
         for (int i {0} ; i < action_type_->num_actions ; i++){
             ActionSequence action_seq = prim_action_seqs[i];
             if (check_validity){
@@ -151,7 +151,7 @@ public:
         }
     }
 
-    bool getSuccessorSequences(int curr_state_ind,
+    bool getSuccessors(int curr_state_ind,
                                    std::vector<std::vector<int>>& seqs_state_ids,
                                    std::vector<std::vector<double>> & seqs_transition_costs) override{
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);

@@ -186,7 +186,7 @@ public:
     /// @param successors The vector to poputate with the successor states for the current state.
     /// @param costs The vector to populate with the correspondings costs to move to each successor state.
     /// @return True if the successor states and costs and successfully calculated.
-    bool getSuccessorSequences(int curr_state_ind,
+    bool getSuccessors(int curr_state_ind,
                                    std::vector<std::vector<int>>& seqs_state_ids,
                                    std::vector<std::vector<double>> & seqs_transition_costs) override{
         ims::RobotState* curr_state = getRobotState(curr_state_ind);

@@ -193,7 +193,7 @@ void ims::FocalwAStar::expand(int state_id){
     std::vector<std::vector<double>> successor_seqs_transition_costs;
     std::vector<std::vector<double>> successor_seqs_transition_subcosts;
 
-    action_space_ptr_->getSuccessorSequences(state->state_id, successor_seqs_state_ids, successor_seqs_transition_costs, successor_seqs_transition_subcosts);
+    action_space_ptr_->getSuccessors(state->state_id, successor_seqs_state_ids, successor_seqs_transition_costs, successor_seqs_transition_subcosts);
     for (size_t i {0} ; i < successor_seqs_state_ids.size() ; ++i){
         const std::vector<int> & successor_edge_state_ids = successor_seqs_state_ids[i];
         int successor_id = successor_edge_state_ids.back();

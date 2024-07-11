@@ -180,7 +180,7 @@ void ims::wAStar::expand(int state_id){
     auto state_ = getSearchState(state_id);
     std::vector<std::vector<int>> successor_seqs_state_ids;
     std::vector<std::vector<double>> successor_seqs_transition_costs;
-    action_space_ptr_->getSuccessorSequences(state_->state_id, successor_seqs_state_ids, successor_seqs_transition_costs);
+    action_space_ptr_->getSuccessors(state_->state_id, successor_seqs_state_ids, successor_seqs_transition_costs);
     for (size_t i {0} ; i < successor_seqs_state_ids.size() ; ++i){
         const std::vector<int> & successor_edge_state_ids = successor_seqs_state_ids[i];
         int successor_id = successor_edge_state_ids.back();

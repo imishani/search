@@ -92,7 +92,7 @@ public:
     /// @param state_id The state id.
     /// @param successors The successors to be updated.
     /// @param costs The costs to be updated.
-    virtual bool getSuccessorSequencesExperienceAccelerated(int curr_state_ind,
+    virtual bool getSuccessorsExperienceAccelerated(int curr_state_ind,
                             std::vector<std::vector<int>>& seqs_state_ids,
                             std::vector<std::vector<double>> & seqs_transition_costs) = 0;
 
@@ -101,7 +101,7 @@ public:
                             std::vector<double> & costs) {
         std::vector<std::vector<int>> seqs_state_ids;
         std::vector<std::vector<double>> seqs_transition_costs;
-        getSuccessorSequencesExperienceAccelerated(curr_state_ind, seqs_state_ids, seqs_transition_costs);
+        getSuccessorsExperienceAccelerated(curr_state_ind, seqs_state_ids, seqs_transition_costs);
         for (size_t i = 0; i < seqs_state_ids.size(); i++) {
             if (seqs_state_ids[i].size() != 2){
                 std::cout << RED << "getSuccessors: The seqs_state_ids[i] should have only two elements (the parent and child states). Instead, it has " << seqs_state_ids[i].size() << " elements." << RESET << std::endl;

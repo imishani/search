@@ -40,6 +40,7 @@
 #include <search/common/constraints.hpp>
 #include <search/action_space/subcost_action_space.hpp>
 #include <search/action_space/experience_accelerated_constrained_action_space.hpp>
+#include <search/action_space/mixin/action_space_subcost_mixin.hpp>
 #include <search/common/scene_interface.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
 #include <search/common/utils.hpp>
@@ -71,7 +72,7 @@ struct ActionType2dRob : public ims::ActionType {
         return this->action_deltas;
     }
 
-    void getPrimActionSequences(std::vector<ActionSequence>& action_seqs,
+    void getPrimActions(std::vector<ActionSequence>& action_seqs,
                             std::vector<std::vector<double>> & action_transition_costs ) override {
         action_seqs.clear();
         action_transition_costs.clear();
@@ -112,6 +113,9 @@ private:
     std::shared_ptr<ActionType2dRob> action_type_;
 
 public:
+    // Make the getSuccessors method from the ActionSpace base class available.
+    using ActionSpace::getSuccessors;
+
     ExperienceAcceleratedConstrainedActionSpace2dRob(const scene2DRob& env,
                                 const ActionType2dRob& actions_ptr) : ims::ExperienceAcceleratedConstrainedActionSpace() {
         this->env_ = std::make_shared<scene2DRob>(env);
@@ -193,7 +197,7 @@ public:
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val) { return isStateValid(state_val); });
     }
 
-    bool getSuccessorSequences(int curr_state_ind,
+    bool getSuccessors(int curr_state_ind,
                            std::vector<std::vector<int>>& seqs_state_ids,
                            std::vector<std::vector<double>> & seqs_transition_costs) override {
         auto curr_state = this->getRobotState(curr_state_ind);
@@ -241,10 +245,10 @@ public:
     }
 
     // Get successors with subcosts. The subcosts are the number of conflicts that would be created on a transition to the successor.
-    bool getSuccessorSequencesExperienceAccelerated(int curr_state_ind,
+    bool getSuccessorsExperienceAccelerated(int curr_state_ind,
                            std::vector<std::vector<int>>& seqs_state_ids,
                            std::vector<std::vector<double>> & seqs_transition_costs) override {
-        return getSuccessorSequences(curr_state_ind, seqs_state_ids, seqs_transition_costs);
+        return getSuccessors(curr_state_ind, seqs_state_ids, seqs_transition_costs);
     }
 
     void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths,
@@ -324,6 +328,8 @@ private:
     std::shared_ptr<ActionType2dRob> action_type_;
 
 public:
+    using ActionSpace::getSuccessors;
+    using ActionSpaceSubcostMixin::getSuccessors;
     SubcostExperienceAcceleratedConstrainedActionSpace2dRob(const scene2DRob& env,
                                 const ActionType2dRob& actions_ptr) : ims::SubcostExperienceAcceleratedConstrainedActionSpace() {
         this->env_ = std::make_shared<scene2DRob>(env);
@@ -404,7 +410,7 @@ public:
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val) { return isStateValid(state_val); });
     }
 
-    bool getSuccessorSequences(int curr_state_ind,
+    bool getSuccessors(int curr_state_ind,
                            std::vector<std::vector<int>>& seqs_state_ids,
                            std::vector<std::vector<double>> & seqs_transition_costs) override {
         auto curr_state = this->getRobotState(curr_state_ind);
@@ -431,7 +437,7 @@ public:
     }
 
     // Get successors with subcosts. The subcosts are the number of conflicts that would be created on a transition to the successor.
-    bool getSuccessorSequences(int curr_state_ind,
+    bool getSuccessors(int curr_state_ind,
                            std::vector<std::vector<int>>& seqs_state_ids,
                            std::vector<std::vector<double>> & seqs_transition_costs,
                            std::vector<std::vector<double>>& seqs_transition_subcosts) override {
@@ -482,18 +488,18 @@ public:
         return getSuccessors(curr_state_ind, successors, costs);
     }
 
-    bool getSuccessorSequencesExperienceAccelerated(int curr_state_ind,
+    bool getSuccessorsExperienceAccelerated(int curr_state_ind,
                            std::vector<std::vector<int>>& seqs_state_ids,
                            std::vector<std::vector<double>> & seqs_transition_costs) override {
-        return getSuccessorSequences(curr_state_ind, seqs_state_ids, seqs_transition_costs);
+        return getSuccessors(curr_state_ind, seqs_state_ids, seqs_transition_costs);
     }
 
     // Get successors with subcosts. The subcosts are the number of conflicts that would be created on a transition to the successor.
-    bool getSuccessorSequencesExperienceAccelerated(int curr_state_ind,
+    bool getSuccessorsExperienceAccelerated(int curr_state_ind,
                            std::vector<std::vector<int>>& seqs_state_ids,
                            std::vector<std::vector<double>> & seqs_transition_costs,
                            std::vector<std::vector<double>>& seqs_transition_subcosts) override {
-        return getSuccessorSequences(curr_state_ind, seqs_state_ids, seqs_transition_costs, seqs_transition_subcosts);
+        return getSuccessors(curr_state_ind, seqs_state_ids, seqs_transition_costs, seqs_transition_subcosts);
     }
 
 

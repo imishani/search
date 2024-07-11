@@ -68,7 +68,7 @@ struct ActionType2dRob : public ims::ActionType {
         return actions;
     }
 
-    void getPrimActionSequences(std::vector<ActionSequence>& action_seqs,
+    void getPrimActions(std::vector<ActionSequence>& action_seqs,
                             std::vector<std::vector<double>> & action_transition_costs ) override{
         action_seqs = action_seq_prims;
         action_transition_costs = action_seqs_transition_costs;
@@ -238,7 +238,7 @@ public:
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val) { return isStateValid(state_val); });
     }
 
-    bool getSuccessorSequences(int curr_state_ind,
+    bool getSuccessors(int curr_state_ind,
                                    std::vector<std::vector<int>>& seqs_state_ids,
                                    std::vector<std::vector<double>> & seqs_transition_costs) override{
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
@@ -281,7 +281,7 @@ public:
     }
 
     // Get successors with subcosts. The subcosts are the number of conflicts that would be created on a transition to the successor.
-    bool getSuccessorSequences(int curr_state_ind,
+    bool getSuccessors(int curr_state_ind,
                        std::vector<std::vector<int>>& seqs_state_ids,
                        std::vector<std::vector<double>> & seqs_transition_costs,
                        std::vector<std::vector<double>> & seqs_transition_subcosts) override {

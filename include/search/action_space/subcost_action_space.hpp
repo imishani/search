@@ -67,9 +67,7 @@ public:
 
     // Make both the base and the overloaded versions of getSuccessors available.
     using ActionSpaceSubcostMixin::getSuccessors;
-    using ActionSpaceSubcostMixin::getSuccessorSequences;
     using ActionSpace::getSuccessors;
-    using ActionSpace::getSuccessorSequences;
 };
 
 /// @brief Base class for ActionSpaces with constraints.
@@ -320,7 +318,7 @@ public:
         }
     }
 
-    [[deprecated("Use getSuccessorSequencesExperienceAccelerated instead.")]]
+    [[deprecated("Use the new getSuccessorsExperienceAccelerated (for sequences) instead.")]]
     virtual bool getSuccessorsExperienceAccelerated(int curr_state_ind,
                                 std::vector<int> &successors,
                                 std::vector<double>& costs,
@@ -328,7 +326,7 @@ public:
         std::vector<std::vector<int>> seqs_state_ids;
         std::vector<std::vector<double>> seqs_transition_costs;
         std::vector<std::vector<double>> seqs_transition_subcosts;
-        bool success = getSuccessorSequencesExperienceAccelerated(curr_state_ind, seqs_state_ids, seqs_transition_costs, seqs_transition_subcosts);
+        bool success = getSuccessorsExperienceAccelerated(curr_state_ind, seqs_state_ids, seqs_transition_costs, seqs_transition_subcosts);
         if (success) {
             for (int i = 0; i < seqs_state_ids.size(); i++) {
                 if (seqs_state_ids[i].size() != 2) {
@@ -343,7 +341,7 @@ public:
         return success;
     }
 
-    virtual bool getSuccessorSequencesExperienceAccelerated(int curr_state_ind,
+    virtual bool getSuccessorsExperienceAccelerated(int curr_state_ind,
                             std::vector<std::vector<int>>& seqs_state_ids,
                             std::vector<std::vector<double>> & seqs_transition_costs,
                             std::vector<std::vector<double>> & seqs_transition_subcosts) {

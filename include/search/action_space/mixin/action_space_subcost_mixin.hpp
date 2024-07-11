@@ -57,12 +57,12 @@ public:
 
     /// @brief Overrides the getSuccessors method of ActionSpace to return a subcost in addition to a cost for each successor transition.
     /// @details See the base getSuccessors for more.
-    virtual bool getSuccessorSequences(int curr_state_ind,
+    virtual bool getSuccessors(int curr_state_ind,
                             std::vector<std::vector<int>>& seqs_state_ids,
                             std::vector<std::vector<double>> & seqs_transition_costs,
                             std::vector<std::vector<double>> & seqs_transition_subcosts) = 0;
 
-    [[deprecated("Use getSuccessorSequences instead.")]]
+    [[deprecated("Use the new getSuccessors (for sequences) instead.")]]
     bool getSuccessors(int curr_state_ind,
                             std::vector<int> & successors,
                             std::vector<double> & costs,
@@ -70,7 +70,7 @@ public:
         std::vector<std::vector<int>> seqs_state_ids;
         std::vector<std::vector<double>> seqs_transition_costs;
         std::vector<std::vector<double>> seqs_transition_subcosts;
-        getSuccessorSequences(curr_state_ind, seqs_state_ids, seqs_transition_costs, seqs_transition_subcosts);
+        getSuccessors(curr_state_ind, seqs_state_ids, seqs_transition_costs, seqs_transition_subcosts);
         for (size_t i = 0; i < seqs_state_ids.size(); i++) {
             // Check that the edges have only two elements (the parent and child states). Otherwise, abort with a message.
             if (seqs_state_ids[i].size() != 2){

@@ -90,9 +90,9 @@ namespace ims {
 
         /// @brief Get the possible actions
         /// @return The possible actions
-        [[deprecated("Use getPrimActionSequences instead.")]]
+        [[deprecated("Use the new getPrimActions (for sequences) instead.")]]
         virtual std::vector<Action> getPrimActions() = 0;
-        virtual void getPrimActionSequences(std::vector<ActionSequence>& action_seqs, std::vector<std::vector<double>> & action_transition_costs ) = 0;
+        virtual void getPrimActions(std::vector<ActionSequence>& action_seqs, std::vector<std::vector<double>> & action_transition_costs ) = 0;
 
         /// @brief Get the resolution of the state space (for discretization)
         /// @param state_des The state discretization
@@ -115,7 +115,7 @@ namespace ims {
         /// @brief The states
         std::vector<RobotState*> states_;
 
-        /// Methods
+        /// Methods.
         /// @brief Constructor
         explicit ActionSpace() = default;
 
@@ -217,17 +217,17 @@ namespace ims {
         /// If you are using an implicit graph where the state space is not discrete then define the discretization
         /// based on the tolerance for comparison between states.
         /// @attention You should use getOrCreateRobotState() and getRobotState() when generating the successors!
-        virtual bool getSuccessorSequences(int curr_state_ind,
+        virtual bool getSuccessors(int curr_state_ind,
                                    std::vector<std::vector<int>>& seqs_state_ids,
                                    std::vector<std::vector<double>> & seqs_transition_costs) = 0;
 
-        [[deprecated("Use getSuccessorSequences instead.")]]
+        [[deprecated("Use the new getSuccessors (for sequences) instead.")]]
         bool getSuccessors(int curr_state_ind,
                                    std::vector<int>& successors,
                                    std::vector<double>& costs){
             std::vector<std::vector<int>> seqs_state_ids;
             std::vector<std::vector<double>> seqs_transition_costs;
-            bool success = getSuccessorSequences(curr_state_ind, seqs_state_ids, seqs_transition_costs);
+            bool success = getSuccessors(curr_state_ind, seqs_state_ids, seqs_transition_costs);
             if(success){
                 for(size_t i = 0; i < seqs_state_ids.size(); i++){
 

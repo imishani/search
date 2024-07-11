@@ -179,7 +179,7 @@ void ims::FocalwSIPP::expand(int state_id){
     std::vector<std::vector<int>> successor_seqs_state_ids;
     std::vector<std::vector<double>> successor_seqs_transition_costs;
     // The successors are ids of configurations without time. The configurations are stored in the action space. That is why we compute the subcosts separately here.
-    action_space_ptr_->getSuccessorSequences(state->cfg_state_id, successor_seqs_state_ids, successor_seqs_transition_costs);
+    action_space_ptr_->getSuccessors(state->cfg_state_id, successor_seqs_state_ids, successor_seqs_transition_costs);
     for (size_t i {0} ; i < successor_seqs_state_ids.size() ; ++i){
         const std::vector<int> & successor_edge_state_ids = successor_seqs_state_ids[i];
         int successor_cfg_state_id = successor_edge_state_ids.back();
