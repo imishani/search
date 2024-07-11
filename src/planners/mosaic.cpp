@@ -52,62 +52,6 @@ void ims::Mosaic::initializePlanner(const std::shared_ptr<ActionSpaceMosaic> &ac
     goal_traj_ = createTrajectory({goal_ind_});
     goal_->in_trajs->push_back(goal_traj_->id);
 
-    for (auto &controller : *controllers_) {
-        if (controller.type != ControllerType::GENERATOR) {
-            continue;
-        }
-        std::vector<ActionSequence> local_mosaic = controller.solve();
-        int invalid = 0; // debugging purposes
-        for (auto& traj : local_mosaic) {
-            bool goal_connected = false;
-            bool start_connected = false;
-            std::vector<int> trajectory;
-            for (StateType& robot_state : traj) {
-                if (!action_space_ptr_->isStateValid(robot_state)) {
-                    break;
-                }
-                int robot_state_ind = action_space_ptr_->getOrCreateRobotState(robot_state);
-                trajectory.push_back(robot_state_ind);
-                if (robot_state_ind == goal_ind_) {
-                    goal_connected = true;
-                }
-                if (robot_state_ind == start_ind_) {
-                    start_connected = true;
-                }
-            }
-            TrajectoryState* traj_ptr = nullptr;
-            if (!trajectory.empty()) {
-                traj_ptr = createTrajectory(trajectory);
-                traj_ptr->cost = 1.0;
-            } else invalid++;
-            for (int i = 0; i < trajectory.size(); i++) {
-                int curr_state = trajectory[i];
-                GraphState* curr_state_ptr = getOrCreateGraphState(curr_state);
-                assert(curr_state_ptr != nullptr);
-                curr_state_ptr->in_trajs->push_back(traj_ptr->id);
-                if (i > 0) {
-                    int prev_state = trajectory[i - 1];
-                    GraphState* prev_state_ptr = getOrCreateGraphState(prev_state);
-                    // TODO: we assume undirected graph. Fix it.
-                    curr_state_ptr->edges->emplace_back(prev_state, 1.0);
-                    prev_state_ptr->edges->emplace_back(curr_state, 1.0);
-                }
-                if (goal_connected) {
-                    curr_state_ptr->is_connected_to_goal = true;
-                }
-                if (start_connected) {
-                    curr_state_ptr->is_connected_to_start = true;
-                }
-                if (start_connected && goal_connected) {
-                    std::cout << "Start and goal are connected. Reconstruct path." << std::endl;
-                    // raise an error since it is not implemented yet. TODO: implement it.
-                    throw std::runtime_error("Start and goal are connected, "
-                                             "but we haven't implemented reconstruct path from a "
-                                             "single controller yet.");
-                }
-            }
-        }
-    }
 //    saveData();
 }
 
@@ -160,6 +104,7 @@ bool ims::Mosaic::areTrajectoriesConnected(int traj1_id, int traj2_id) {
 
 bool ims::Mosaic::plan(std::vector<StateType> &path) {
     startTimer();
+    generate();
 
     while (!isTimeOut()) {
 
@@ -297,6 +242,65 @@ bool ims::Mosaic::plan(std::vector<StateType> &path) {
     return false;
 }
 
+void ims::Mosaic::generate() {
+    for (auto &controller : *controllers_) {
+        if (controller.type != ControllerType::GENERATOR) {
+            continue;
+        }
+        std::vector<ActionSequence> local_mosaic = controller.solve();
+        int invalid = 0; // debugging purposes
+        for (auto& traj : local_mosaic) {
+            bool goal_connected = false;
+            bool start_connected = false;
+            std::vector<int> trajectory;
+            for (StateType& robot_state : traj) {
+                if (!action_space_ptr_->isStateValid(robot_state)) {
+                    break;
+                }
+                int robot_state_ind = action_space_ptr_->getOrCreateRobotState(robot_state);
+                trajectory.push_back(robot_state_ind);
+                if (robot_state_ind == goal_->state_id) {
+                    goal_connected = true;
+                }
+                if (robot_state_ind == start_->state_id) {
+                    start_connected = true;
+                }
+            }
+            TrajectoryState* traj_ptr = nullptr;
+            if (!trajectory.empty()) {
+                traj_ptr = createTrajectory(trajectory);
+                traj_ptr->cost = 1.0;
+            } else invalid++;
+            for (int i = 0; i < trajectory.size(); i++) {
+                int curr_state = trajectory[i];
+                GraphState* curr_state_ptr = getOrCreateGraphState(curr_state);
+                assert(curr_state_ptr != nullptr);
+                curr_state_ptr->in_trajs->push_back(traj_ptr->id);
+                if (i > 0) {
+                    int prev_state = trajectory[i - 1];
+                    GraphState* prev_state_ptr = getOrCreateGraphState(prev_state);
+                    // TODO: we assume undirected graph. Fix it.
+                    curr_state_ptr->edges->emplace_back(prev_state, 1.0);
+                    prev_state_ptr->edges->emplace_back(curr_state, 1.0);
+                }
+                if (goal_connected) {
+                    curr_state_ptr->is_connected_to_goal = true;
+                }
+                if (start_connected) {
+                    curr_state_ptr->is_connected_to_start = true;
+                }
+                if (start_connected && goal_connected) {
+                    std::cout << "Start and goal are connected. Reconstruct path." << std::endl;
+                    // raise an error since it is not implemented yet. TODO: implement it.
+                    throw std::runtime_error("Start and goal are connected, "
+                                             "but we haven't implemented reconstruct path from a "
+                                             "single controller yet.");
+                }
+            }
+        }
+    }
+}
+
 void ims::Mosaic::resetPlanningData() {
     for (auto state : states_) {
         delete state;
@@ -317,7 +321,7 @@ void ims::Mosaic::reconstructPath(std::vector<StateType> &path) {
     throw std::runtime_error("Not the right function to call. Use the other one.");
 }
 
-void ims::Mosaic::reconstructPath(std::vector<StateType> &path, const std::vector<int>& trajs_path) {
+void ims::Mosaic::reconstructPath(std::vector<StateType> &path, const std::vector<int>& trajs_path) { // TODO: fix. it is NOT correct
     // reconstruct the path from the high-level path of trajectories
     int connecting_state;
     // concatenate the trajectories, but make sure we add only the parts based on the connecting states
@@ -365,7 +369,8 @@ void ims::Mosaic::reconstructPath(std::vector<StateType> &path, const std::vecto
 }
 
 void ims::Mosaic::reconstructPath(std::vector<StateType> &path, std::vector<double> &costs) {
-
+    // raise an error
+    throw std::runtime_error("Not implemented yet. Use the other one.");
 }
 
 bool ims::Mosaic::isGoalState(int state_id) {
@@ -470,4 +475,5 @@ void ims::Mosaic::saveData() {
     path_file.close();
 
 }
+
 

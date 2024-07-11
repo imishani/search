@@ -344,10 +344,10 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
 //    }
 
     auto* heuristic = new ims::EuclideanHeuristic();
-    double epsilon = 10.0;
+    double epsilon = 100.0;
     ims::wAStarParams params (heuristic, epsilon);
 
-    params.time_limit_ = 0.05;
+    params.time_limit_ = 0.1;
     ActionType2dRob action_type;
     std::shared_ptr<actionSpace2dRob> as = std::make_shared<actionSpace2dRob>(*user_data->scene,
                                                                               action_type);
