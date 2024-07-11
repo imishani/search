@@ -9,7 +9,7 @@ MAPS = ["../data/brc202d/brc202d.map",
         "../data/brc203d/brc203d.map"]
 
 
-def load_map(file_path):
+def load_map(file_path, scaler):
     """
     Reads an octile map from a file and returns the map, image, type, width, height.
 
@@ -20,7 +20,6 @@ def load_map(file_path):
     - tuple: A tuple containing map, image, type, width, height.
     """
     map_data = []
-    img = None
     map_type = ""
     width = 0
     height = 0
@@ -41,11 +40,20 @@ def load_map(file_path):
                         c = line[x]
                         map_data[y][x] = 0 if c in ['.', 'G', 'S', 'T'] else 100
 
+        # scale the map
+        map_data = np.array(map_data)
+        scaled_height = int(height * scaler)
+        scaled_width = int(width * scaler)
+        map_data = map_data.repeat(scaler, axis=0).repeat(scaler, axis=1)
+        map_data = map_data[:scaled_height, :scaled_width]
+        height = scaled_height
+        width = scaled_width
+
     except FileNotFoundError:
         print(f"Error: File '{file_path}' not found.")
         return None
 
-    return map_data, img, map_type, width, height
+    return map_data, map_type, width, height
 
 
 def visualize(map_index, states):
@@ -57,7 +65,7 @@ def visualize(map_index, states):
     """
     # load the map (octile map)
     map_file = MAPS[map_index]
-    map_data, img, map_type, width, height = load_map(map_file)
+    map_data, map_type, width, height = load_map(map_file, 1)
 
     # create the figure
     fig = plt.figure()

@@ -123,6 +123,9 @@ public:
 
     void resetPlanningData() override;
 
+    /// @brief Generate function
+    void generate();
+
 protected:
 
     void reconstructPath(std::vector<StateType>& path) override;
