@@ -268,13 +268,18 @@ void ims::FocalSearch::reconstructPath(std::vector<StateType>& path, std::vector
             // Assert that this transition cost is the same as the one from the parent to the current state.
             double edge_from_parent_total_cost = vectorSum(state_->edge_from_parent_transition_costs);
             double rounded_edge_from_parent_total_cost = std::round(edge_from_parent_total_cost * 1000) / 1000;
-            double rounded_g_difference = std::round((state_->g - getSearchState(state_->parent_id)->g) * 1000) / 1000;
-            if (rounded_edge_from_parent_total_cost != rounded_g_difference){
-                std::cout << RED << "Edge from parent total cost: " << edge_from_parent_total_cost << RESET << std::endl;
-                std::cout << RED << "State g: " << state_->g << RESET << std::endl;
-                std::cout << RED << "Parent g: " << getSearchState(state_->parent_id)->g << RESET << std::endl;
-                std::cout << RED << "Expected: " << state_->g - getSearchState(state_->parent_id)->g << " and got " << edge_from_parent_total_cost << RESET << std::endl;
+            double rounded_g_difference =
+                        std::round((state_->g - getSearchState(state_->parent_id)->g) * 1000) / 1000;
+            if (params_.verbose) {
+                if (rounded_edge_from_parent_total_cost != rounded_g_difference) {
+                    std::cout << RED << "Edge from parent total cost: " << edge_from_parent_total_cost << std::endl;
+                    std::cout << "State g: " << state_->g << std::endl;
+                    std::cout << "Parent g: " << getSearchState(state_->parent_id)->g << std::endl;
+                    std::cout << "Expected: " << state_->g - getSearchState(state_->parent_id)->g << " and got "
+                              << edge_from_parent_total_cost << RESET << std::endl;
+                }
             }
+            assert(rounded_edge_from_parent_total_cost == rounded_g_difference);
 
             state_ = getSearchState(state_->parent_id);
         }
