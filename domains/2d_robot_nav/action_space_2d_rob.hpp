@@ -43,10 +43,10 @@ class Scene2DRob : public ims::SceneInterface {
 public:
     explicit Scene2DRob(std::vector<std::vector<int>> &map_) : ims::SceneInterface(){
         map = &map_;
-        map_size = {map->size(), map[0].size()};
+        map_size = {map->size(), map->at(0).size()};
     }
 
-    std::vector<std::vector<int>>* map;
+    std::vector<std::vector<int>>* map {nullptr};
     std::vector<size_t> map_size;
 };
 
