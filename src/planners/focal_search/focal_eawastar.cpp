@@ -134,6 +134,9 @@ void ims::FocalEAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<
         search_state->h = computeHeuristic(state_id);
         // Set the f value.
         search_state->f = search_state->g + params_.epsilon*search_state->h;
+        // Set the edge from the parent. In this first implementation, we assume that the sequence is a single edge.
+        search_state->edge_from_parent_state_ids = {prev_state_id, state_id};
+        search_state->edge_from_parent_transition_costs = {costs[i-1], 0.0};
 
         // Add the state to the open list if it is not already there.
         // NOTE(yoraish): does it makes sense to update states already in open? This may assign currently "good" state-parents to "bad" ones instead. For now, any state in open is not changed.
@@ -150,23 +153,26 @@ void ims::FocalEAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<
 void ims::FocalEAwAStarUniformCost::expand(int state_id){
 
     SearchState* state = getSearchState(state_id);
-    std::vector<int> successors;
-    std::vector<double> costs;
-    std::vector<double> subcosts;
+    std::vector<std::vector<int>> successor_seqs_state_ids;
+    std::vector<std::vector<double>> successor_seqs_transition_costs;
+    std::vector<std::vector<double>> successor_seqs_transition_subcosts;
 
-    action_space_ptr_->getSuccessorsExperienceAccelerated(state->state_id, successors, costs, subcosts);
-    // action_space_ptr_->getSuccessors(state->state_id, successors, costs, subcosts);
-
-    for (size_t i {0} ; i < successors.size() ; ++i){
-        int successor_id = successors[i];
-        double cost = costs[i];
-        double subcost = subcosts[i];
+    action_space_ptr_->getSuccessorsExperienceAccelerated(state->state_id, successor_seqs_state_ids, successor_seqs_transition_costs, successor_seqs_transition_subcosts);
+    for (size_t i {0} ; i < successor_seqs_state_ids.size() ; ++i){
+        const std::vector<int> & successor_edge_state_ids = successor_seqs_state_ids[i];
+        int successor_id = successor_edge_state_ids.back();
+        double successor_edge_total_cost = vectorSum(successor_seqs_transition_costs[i]);
+        double successor_edge_total_subcost = vectorSum(successor_seqs_transition_subcosts[i]);
         SearchState* successor = getOrCreateSearchState(successor_id);
 
         // If this state does not already exists, then we add it to the open list normally.
-        // if (states_.find(successor_id) == states_.end()){
         if (!successor->in_closed && !successor->in_open){
-            setStateVals(successor->state_id, state->state_id, cost, subcost);
+            setStateVals(successor->state_id,
+                         state->state_id,
+                         successor_edge_total_cost,
+                         successor_edge_total_subcost,
+                         successor_edge_state_ids,
+                         successor_seqs_transition_costs[i]);
             open_.push(successor);
             successor->setOpen();
         }
@@ -174,17 +180,19 @@ void ims::FocalEAwAStarUniformCost::expand(int state_id){
         // If the state is not new, then we check if it passes the criterion for updating it either in the CLOSED list (update and insert to OPEN) or in the OPEN list (just update).
         else{
             // Compute the new tentative f, g, and c values.
-            double g_new = state->g + cost;
-            double c_new = state->c + subcost;
+            double g_new = state->g + successor_edge_total_cost;
+            double c_new = state->c + successor_edge_total_subcost;
             double f_new = g_new + params_.epsilon * successor->h;
 
             // Check the update criterion.
             if (f_new < successor->f || (f_new == successor->f && c_new < successor->c)){
                 // Update the state's parent and g value.
-                successor->parent_id = state->state_id;
-                successor->g = g_new;
-                successor->c = c_new;
-                successor->f = f_new;
+                setStateVals(successor->state_id,
+                             state->state_id,
+                             successor_edge_total_cost,
+                             successor_edge_total_subcost,
+                             successor_edge_state_ids,
+                             successor_seqs_transition_costs[i]);
 
                 // If the state is in the closed list, then we remove it from the closed list and insert it to the open list.
                 if (successor->in_closed){

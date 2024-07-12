@@ -156,7 +156,15 @@ struct SearchState : public ::smpl::HeapElement {
         /// @brief Reconstruct the path and also get the transition costs.
         /// @param path The path to be populated
         /// @param costs The costs to be populated. Cost at index i is the cost of the transition from state i to state i+1. Thus, the cost at the goal state is zero as there is no transition from the goal state.
-        virtual void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) = 0;
+        virtual void reconstructPath(std::vector<StateType>& path, std::vector<double>& transition_costs) = 0;
+
+        /// @brief Reconstruct the path while keeping information about the sequence transition from the parent states to the child states (alongside the transition costs).
+        /// \param path
+        /// \param seqs_from_parent_states
+        /// \param seqs_from_parent_transition_costs
+        virtual void reconstructPath(std::vector<StateType>& path,
+                                     std::vector<StateType>& seqs_from_parent_states,
+                                     std::vector<double> & seqs_from_parent_transition_costs) {};
 
         /// @brief Check if the current state is the goal state
         /// @return if the current state is the goal state or not

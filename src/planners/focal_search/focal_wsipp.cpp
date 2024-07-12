@@ -213,9 +213,9 @@ void ims::FocalwSIPP::expand(int state_id){
                     assert(transition_time == vectorSum(successor_seqs_transition_costs[i]));
                 }
 
-                if (isTimedCfgPathSatisfyingAllConstraints(robot_cfg_edge_states)
-                                                                  && t >= succ_safe_interval.first
-                                                                  && t <= succ_safe_interval.second){
+                if (isTimedPathSatisfyingAllConstraints(robot_cfg_edge_states)
+                    && t >= succ_safe_interval.first
+                    && t <= succ_safe_interval.second){
                     if (params_.verbose){
                         std::cout << GREEN
                                   << " * Found valid arrival time: "
@@ -231,7 +231,7 @@ void ims::FocalwSIPP::expand(int state_id){
                     }
                     arrival_t = t;
                     // Compute the subcost of the motion (from current safe interval to new safe interval identified.
-                    double edge_subcost = getTimedCfgPathSubcost(robot_cfg_edge_states);
+                    double edge_subcost = getTimedPathSubcost(robot_cfg_edge_states);
                     transition_subcost += edge_subcost;
                     break;
                 }
@@ -254,7 +254,7 @@ void ims::FocalwSIPP::expand(int state_id){
                         << " si[" << succ_safe_interval.first << ", " << succ_safe_interval.second << "]"
                         << RESET << std::endl;
                         std::cout << RED << " * The reason is: ";
-                        if (!isTimedCfgPathSatisfyingAllConstraints(robot_cfg_edge_states)){
+                        if (!isTimedPathSatisfyingAllConstraints(robot_cfg_edge_states)){
                             std::cout << "Constraints are not satisfied." << std::endl;
                         }
                         if (t < succ_safe_interval.first || t > succ_safe_interval.second){
@@ -517,7 +517,7 @@ void ims::FocalwSIPP::resetPlanningData() {
     cfg_id_to_state_ids_.clear();
 }
 
-bool ims::FocalwSIPP::isTimedCfgPathSatisfyingAllConstraints(const std::vector<StateType>& edge_robot_cfg_states){
+bool ims::FocalwSIPP::isTimedPathSatisfyingAllConstraints(const std::vector<StateType>& edge_robot_cfg_states){
     for (size_t i {0} ; i < edge_robot_cfg_states.size() - 1 ; ++i){
         if (!action_space_ptr_->isSatisfyingAllConstraints(edge_robot_cfg_states[i], edge_robot_cfg_states[i+1])){
             return false;
@@ -526,7 +526,7 @@ bool ims::FocalwSIPP::isTimedCfgPathSatisfyingAllConstraints(const std::vector<S
     return true;
 }
 
-double ims::FocalwSIPP::getTimedCfgPathSubcost(const std::vector<StateType> &edge_robot_cfg_states) {
+double ims::FocalwSIPP::getTimedPathSubcost(const std::vector<StateType> &edge_robot_cfg_states) {
     double subcost = 0;
     for (size_t i {0} ; i < edge_robot_cfg_states.size() - 1 ; ++i){
         double edge_subcost;

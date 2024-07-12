@@ -80,10 +80,10 @@ void ims::ECBS::createRootInOpenList() {
     for (size_t i{0}; i < num_agents_; ++i) {
         // Root Trick.
         // Add the previous paths as context to the action space.
-        std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
-        context_ptr->agent_paths = initial_paths;
-        context_ptr->agent_names = agent_names_;
-        agent_action_space_ptrs_[i]->constraints_collective_ptr_->setContext(context_ptr);
+//        std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
+//        context_ptr->agent_paths = initial_paths;
+//        context_ptr->agent_names = agent_names_;
+//        agent_action_space_ptrs_[i]->constraints_collective_ptr_->setContext(context_ptr);
 
         std::vector<StateType> path;
         FocalSearchPlannerStats low_level_plan_stats;

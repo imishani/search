@@ -94,6 +94,9 @@ struct PathExperience : public ExperienceBase {
     /// @brief The path.
     PathType path_;
 
+    ///
+    std::vector<std::vector<double>> parent_to_state_seqs_;
+
     /// @brief The path transition costs.
     std::vector<double> path_transition_costs_;
 

@@ -64,7 +64,7 @@ public:
     ~ExperienceAcceleratedActionSpace() = default;
 
 
-    // A method that guarantees any state passed does creates a new state_id or reuses one that is not the goal.
+    // A method that guarantees any state passed creates a new state_id or reuses one that is not the goal. No goal checking is done (i.e., setting the time to -1).
     inline int getOrCreateRobotStateNonGoal(const StateType& state_val) {
         // Check if the state exists
         auto *curr_state = new ims::RobotState;

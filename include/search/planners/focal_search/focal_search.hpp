@@ -221,6 +221,9 @@ protected:
 
     void reconstructPath(std::vector<StateType>& path) override;
     void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
+    void reconstructPath(std::vector<StateType>& path,
+                         std::vector<StateType>& seqs_from_parent_states,
+                         std::vector<double> & seqs_from_parent_transition_costs) override;
 
     bool isGoalState(int state_id) override;
 

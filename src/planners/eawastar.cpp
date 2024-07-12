@@ -126,6 +126,9 @@ void ims::EAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<int> 
         // Set the c value: collective conflict-inducing cost.
         // double transition_c_cost = action_space_ptr_->getTransitionConflictCost(prev_state_id, state_id);
         // search_state->c = getSearchState(search_state->parent_id)->c + transition_c_cost;
+        // Set the sequence from the parent to the state. In this first implementation, we assume that the sequence is a single edge.
+        search_state->edge_from_parent_state_ids = {prev_state_id, state_id};
+        search_state->edge_from_parent_transition_costs = {costs[i-1], 0.0};
 
         // Add the state to the open list if it is not already there.
         // TODO(yoraish): does it makes sense to update states already in open? This may assign currently "good" state-parents to "bad" ones instead. For now, any state in open is not changed.
@@ -142,13 +145,13 @@ void ims::EAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<int> 
 void ims::EAwAStarUniformCost::expand(int state_id){
 
     auto state_ = getSearchState(state_id);
-    std::vector<int> successors;
-    std::vector<double> costs;
-    action_space_ptr_->getSuccessorsExperienceAccelerated(state_->state_id, successors, costs);
-    // action_space_ptr_->getSuccessors(state_->state_id, successors, costs);
-    for (size_t i {0} ; i < successors.size() ; ++i){
-        int successor_id = successors[i];
-        double cost = costs[i];
+    std::vector<std::vector<int>> successor_seqs_state_ids;
+    std::vector<std::vector<double>> successor_seqs_transition_costs;
+    action_space_ptr_->getSuccessorsExperienceAccelerated(state_->state_id, successor_seqs_state_ids, successor_seqs_transition_costs);
+    for (size_t i {0} ; i < successor_seqs_state_ids.size() ; ++i){
+        const std::vector<int> & successor_edge_state_ids = successor_seqs_state_ids[i];
+        int successor_id = successor_edge_state_ids.back();
+        double successor_edge_total_cost = std::accumulate(successor_seqs_transition_costs[i].begin(), successor_seqs_transition_costs[i].end(), 0.0);
         auto successor = getOrCreateSearchState(successor_id);
         if (successor->in_closed){
             continue;
@@ -157,14 +160,20 @@ void ims::EAwAStarUniformCost::expand(int state_id){
             std::cout << "Added Goal to open list" << std::endl;
         }
         if (successor->in_open){
-            if (successor->g > state_->g + cost){
-                successor->parent_id = state_->state_id;
-                successor->g = state_->g + cost;
-                successor->f = successor->g + params_.epsilon*successor->h;
+            if (successor->g > state_->g + successor_edge_total_cost){
+                setStateVals(successor->state_id,
+                             state_->state_id,
+                             successor_edge_total_cost,
+                             successor_edge_state_ids,
+                             successor_seqs_transition_costs[i]);
                 open_.update(successor);
             }
         } else {
-            setStateVals(successor->state_id, state_->state_id, cost);
+            setStateVals(successor->state_id,
+                         state_->state_id,
+                         successor_edge_total_cost,
+                         successor_edge_state_ids,
+                         successor_seqs_transition_costs[i]);
             open_.push(successor);
             successor->setOpen();
         }

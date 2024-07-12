@@ -126,10 +126,10 @@ void ims::EAECBS::createRootInOpenList() {
     for (size_t i{0}; i < num_agents_; ++i) {
         // Root trick.
         // Add the previous paths as context to the action space.
-        std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
-        context_ptr->agent_paths = initial_paths;
-        context_ptr->agent_names = agent_names_;
-        agent_action_space_ptrs_[i]->constraints_collective_ptr_->setContext(context_ptr);
+//        std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
+//        context_ptr->agent_paths = initial_paths;
+//        context_ptr->agent_names = agent_names_;
+//        agent_action_space_ptrs_[i]->constraints_collective_ptr_->setContext(context_ptr);
 
         std::vector<StateType> path;
         agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
@@ -332,7 +332,9 @@ void ims::EAECBS::expand(int state_id) {
             case ExperienceReuseType::PREVIOUS_SOLUTION: {
                 // std::cout << "Experience reuse type is PREVIOUS_SOLUTION. Updating the experiences collective with the previous solution." << std::endl;
                 agent_action_space_ptrs_[agent_id]->clearPathExperiences();
-                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(
+                        std::make_shared<PathExperience>(state->paths[agent_id],
+                                                         state->paths_transition_costs[agent_id]));
                 break;
             }
             case ExperienceReuseType::CT_BRANCH: {
