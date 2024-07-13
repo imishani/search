@@ -48,7 +48,7 @@ def load_map(file_path):
     return map_data, img, map_type, width, height
 
 
-def visualize(map_index, trajectories):
+def visualize(map_index, trajectories, debug):
     """
 
     :param map_index:  the index of the map to use
@@ -69,32 +69,40 @@ def visualize(map_index, trajectories):
     # remove the xaixs and yaxis
     ax.axes.get_xaxis().set_visible(False)
     ax.axes.get_yaxis().set_visible(False)
-
+    fig.tight_layout()
+    if debug:
+        plt.show(block=False)
     # plot the trajectories
     k = ['r', 'g', 'b', 'c', 'm', 'y', 'k']
     k_id = 0
     for traj in trajectories:
         x, y = traj.reshape(-1, 3)[:, 1], traj.reshape(-1, 3)[:, 2]
-        ax.plot(x, y, k[k_id] + 'o', markersize=1)
+        ms = 3
+        if len(x) == 1:
+            ms = 10
+        ax.plot(x, y, k[k_id] + 'o', markersize=ms, alpha=0.2)
         k_id += 1
         if k_id == len(k):
             k_id = 0
-
-    fig.tight_layout()
     plt.show()
 
     return
 
 
 if __name__ == '__main__':
-    # load the states
-    # states = np.loadtxt("../../../cmake-build-release/states_mosaic.txt", dtype=float, delimiter=',').astype(np.int64)
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--map_number", help="The index of the map to use", type=int, default=1)
+    parser.add_argument("--debug_mode", help="Debug mode", type=bool, default=True)
+    args = parser.parse_args()
+
     # load the trajs_path
-    trajs_path = np.loadtxt("../../../cmake-build-release/trajs_path_mosaic.txt", dtype=int, delimiter=',')
+    trajs_path = np.loadtxt("../../../cmake-build-debug/trajs_path_mosaic.txt", dtype=int, delimiter=',')
     trajectories = []
     for i in trajs_path:
         # load the trajectory
-        trajectory = np.loadtxt(f"../../../cmake-build-release/trajectories/trajectory_{i}.txt", dtype=float, delimiter=',')
+        trajectory = np.loadtxt(f"../../../cmake-build-debug/trajectories/trajectory_{i}.txt", dtype=float, delimiter=',')
         trajectories.append(trajectory)
     # visualize the states
-    visualize(1, trajectories)
+    visualize(args.map_number, trajectories, args.debug_mode)

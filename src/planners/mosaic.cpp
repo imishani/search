@@ -106,8 +106,9 @@ bool ims::Mosaic::plan(std::vector<StateType> &path) {
     startTimer();
     generate();
 
+    int iterations {0};
     while (!isTimeOut()) {
-
+        iterations++;
         if (isGoalConditionSatisfied(trajs_path_)){
             getTimeFromStart(stats_.time);
             std::cout << "Goal found!" << std::endl;
@@ -120,6 +121,9 @@ bool ims::Mosaic::plan(std::vector<StateType> &path) {
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();
             saveData();
+            if (params_.verbose) {
+                std::cout << "Iteration: " << iterations << std::endl;
+            }
             return true;
         }
 
@@ -140,9 +144,15 @@ bool ims::Mosaic::plan(std::vector<StateType> &path) {
                     int robot_state_ind = action_space_ptr_->getOrCreateRobotState(robot_state);
                     trajectory.push_back(robot_state_ind);
                     if (robot_state_ind == goal_->state_id) {
+                        if (params_.verbose) {
+                            std::cout << "Goal connected" << std::endl;
+                        }
                         goal_connected = true;
                     }
                     if (robot_state_ind == start_->state_id) {
+                        if (params_.verbose) {
+                            std::cout << "Start connected" << std::endl;
+                        }
                         start_connected = true;
                     }
                 }
@@ -176,13 +186,7 @@ bool ims::Mosaic::plan(std::vector<StateType> &path) {
                     GraphState* curr_state_ptr = getOrCreateGraphState(curr_state);
                     assert(curr_state_ptr != nullptr);
                     curr_state_ptr->in_trajs->push_back(traj_ptr->id);
-                    if (i > 0) {
-                        int prev_state = trajectory[i - 1];
-                        GraphState* prev_state_ptr = getOrCreateGraphState(prev_state);
-                        // TODO: we assume undirected graph. Fix it.
-                        curr_state_ptr->edges->emplace_back(prev_state, 1.0);
-                        prev_state_ptr->edges->emplace_back(curr_state, 1.0);
-                    } else if (i == 0) {
+                   if (i == 0) {
                         // add the traj_ids that the start state on the trajectory is connected to, to the new traj
                         for (auto& traj_id : *curr_state_ptr->in_trajs) {
                             if (traj_id != traj_ptr->id) {
@@ -202,7 +206,7 @@ bool ims::Mosaic::plan(std::vector<StateType> &path) {
                         // add the traj_ids that the goal is connected to, to the new traj
                         for (auto& traj_id : *curr_state_ptr->in_trajs) {
                             if (traj_id != traj_ptr->id) {
-                                traj_ptr->edges.emplace_back(traj_id, goal_->state_id);
+                                traj_ptr->edges.emplace_back(traj_id, curr_state);
                                 auto traj_connected = getTrajectory(traj_id);
                                 traj_connected->edges.emplace_back(traj_ptr->id, curr_state);
                                 // do the same thing in action space TODO: NOT GOOD PRACTICE!
@@ -213,8 +217,20 @@ bool ims::Mosaic::plan(std::vector<StateType> &path) {
 
                                 action_space_ptr_->connected_trajectories_.emplace_back(traj_ptr->id, traj_id);
 
+
+                                int prev_state = trajectory[i - 1];
+                                GraphState* prev_state_ptr = getOrCreateGraphState(prev_state);
+                                // TODO: we assume undirected graph. Fix it.
+                                curr_state_ptr->edges->emplace_back(prev_state, 1.0);
+                                prev_state_ptr->edges->emplace_back(curr_state, 1.0);
                             }
                         }
+                    } else {
+                        int prev_state = trajectory[i - 1];
+                        GraphState* prev_state_ptr = getOrCreateGraphState(prev_state);
+                        // TODO: we assume undirected graph. Fix it.
+                        curr_state_ptr->edges->emplace_back(prev_state, 1.0);
+                        prev_state_ptr->edges->emplace_back(curr_state, 1.0);
                     }
                     if (goal_connected) {
                         curr_state_ptr->is_connected_to_goal = true;
@@ -232,6 +248,9 @@ bool ims::Mosaic::plan(std::vector<StateType> &path) {
                         path[j] = action_space_ptr_->getRobotState(trajectory[j])->state;
                     }
                     saveData();
+                    if (params_.verbose) {
+                        std::cout << "Iteration: " << iterations << std::endl;
+                    }
                     return true;
 //                    throw std::runtime_error("Start and goal are connected, but we haven't implemented reconstruct path from a single controller yet.");
                 }
@@ -239,6 +258,9 @@ bool ims::Mosaic::plan(std::vector<StateType> &path) {
         }
     }
     saveData();
+    if (params_.verbose) {
+        std::cout << "Iteration: " << iterations << std::endl;
+    }
     return false;
 }
 
@@ -321,51 +343,115 @@ void ims::Mosaic::reconstructPath(std::vector<StateType> &path) {
     throw std::runtime_error("Not the right function to call. Use the other one.");
 }
 
-void ims::Mosaic::reconstructPath(std::vector<StateType> &path, const std::vector<int>& trajs_path) { // TODO: fix. it is NOT correct
-    // reconstruct the path from the high-level path of trajectories
-    int connecting_state;
-    // concatenate the trajectories, but make sure we add only the parts based on the connecting states
-    for (int i {0}; i < trajs_path.size(); i++) {
-        auto traj = getTrajectory(trajs_path[i]);
-        if (i == 0) {
-            auto traj_p1 = getTrajectory(trajs_path[i + 1]); // TODO: what if there is one traj?
-            connecting_state = traj_p1->edges[trajs_path[i]].second;
-            std::cout << "init connecting state: " << connecting_state << std::endl;
-            for (int j = 0; j < traj->trajectory.size(); j++) {
-                path.push_back(action_space_ptr_->getRobotState(traj->trajectory[j])->state);
-                if (traj->trajectory[j] == connecting_state) {
-                    break;
-                }
+void ims::Mosaic::reconstructPath(std::vector<StateType> &path, const std::vector<int>& trajs_path) {
+    // construct a graph based on the states in the high-level path (trajs_path)
+    // run a search algorithm to find the path between the start and goal states
+
+    // create the open list as a priority queue
+    std::priority_queue<std::pair<double, int>, std::vector<std::pair<double, int>>, std::greater<>> open_list;
+    start_->parent_id = PARENT_TYPE::START;
+    start_->g = 0;
+    open_list.emplace(0, start_->state_id);
+    int counter {0};
+    while (!open_list.empty()) {
+        counter++;
+        auto curr = open_list.top();
+        open_list.pop();
+        int curr_id = curr.second;
+        if (curr_id == goal_->state_id) {
+            std::cout << BLUE << "Number of expansions in reconstruct path: " << counter << RESET << std::endl;
+            // reconstruct the path
+            int curr_parent = curr_id;
+            while (curr_parent != PARENT_TYPE::START) {
+                path.push_back(action_space_ptr_->getRobotState(curr_parent)->state);
+                curr_parent = states_[curr_parent]->parent_id;
             }
-        } else if (i == trajs_path.size() - 1) {
-            bool found = false;
-            for (int j = 0; j < traj->trajectory.size(); j++) {
-                if (found) {
-                    path.push_back(action_space_ptr_->getRobotState(traj->trajectory[j])->state);
-                }
-                if (traj->trajectory[j] == connecting_state) {
-                    found = true;
-                }
-            }
-        } else {
-            auto traj_p1 = getTrajectory(trajs_path[i + 1]);
-            int next_connecting_state = traj_p1->edges[trajs_path[i]].second;
-            bool found = false;
-            for (int j = 0; j < traj->trajectory.size(); j++) {
-                if (found) {
-                    path.push_back(action_space_ptr_->getRobotState(traj->trajectory[j])->state);
-                    if (traj->trajectory[j] == connecting_state) {
-                        break;
-                    }
-                }
-                if (traj->trajectory[j] == connecting_state) {
-                    found = true;
-                    std::cout << "found connecting state: " << connecting_state << std::endl;
-                    std::cout << "next connecting state: " << next_connecting_state << std::endl;
-                }
+            std::reverse(path.begin(), path.end());
+            return;
+        }
+        for (auto& edge : *states_[curr_id]->edges) {
+            int next_id = edge.first;
+            double cost = edge.second;
+            if (states_[next_id]->g > states_[curr_id]->g + cost) {
+                states_[next_id]->g = states_[curr_id]->g + cost;
+                states_[next_id]->parent_id = curr_id;
+                open_list.emplace(states_[next_id]->g, next_id);
             }
         }
     }
+
+
+//    // reconstruct the path from the high-level path of trajectories
+//    int connecting_state;
+//    // concatenate the trajectories, but make sure we add only the parts based on the connecting states
+//    for (int i {0}; i < trajs_path.size(); i++) {
+//        auto traj = getTrajectory(trajs_path[i]);
+//        if (i == 0) {
+//            auto traj_p1 = getTrajectory(trajs_path[i + 1]); // TODO: what if there is one traj?
+//            connecting_state = traj_p1->edges[trajs_path[i]].second;
+//            std::cout << "init connecting state: " << connecting_state << std::endl;
+//            for (int j : traj->trajectory) {
+//                ///////// DEBUG /////////////
+//                auto rob = action_space_ptr_->getRobotState(j)->state;
+//                if (!path.empty()) {
+//                    auto prev_rob = path.back();
+//                    if (abs(rob[0] - prev_rob[0]) > 1 || abs(rob[1] - prev_rob[1]) > 1) {
+//                        int debug = 1;
+//                    }
+//                }
+//                ///////// DEBUG /////////////
+//                path.push_back(action_space_ptr_->getRobotState(j)->state);
+//                if (j == connecting_state) {
+//                    break;
+//                }
+//            }
+//        } else if (i == trajs_path.size() - 1) {
+//            bool found = false;
+//            for (int j : traj->trajectory) {
+//                if (found) {
+//                    ///////// DEBUG /////////////
+//                    auto rob = action_space_ptr_->getRobotState(j)->state;
+//                    if (!path.empty()) {
+//                        auto prev_rob = path.back();
+//                        if (abs(rob[0] - prev_rob[0]) > 1 || abs(rob[1] - prev_rob[1]) > 1) {
+//                            int debug = 1;
+//                        }
+//                    }
+//                    ///////// DEBUG /////////////
+//                    path.push_back(action_space_ptr_->getRobotState(j)->state);
+//                }
+//                if (j == connecting_state) {
+//                    found = true;
+//                }
+//            }
+//        } else {
+//            auto traj_p1 = getTrajectory(trajs_path[i + 1]);
+//            int next_connecting_state = traj_p1->edges[trajs_path[i]].second;
+//            bool found = false;
+//            for (int j : traj->trajectory) {
+//                if (found) {
+//                    ///////// DEBUG /////////////
+//                    auto rob = action_space_ptr_->getRobotState(j)->state;
+//                    if (!path.empty()) {
+//                        auto prev_rob = path.back();
+//                        if (abs(rob[0] - prev_rob[0]) > 1 || abs(rob[1] - prev_rob[1]) > 1) {
+//                            int debug = 1;
+//                        }
+//                    }
+//                    ///////// DEBUG /////////////
+//                    path.push_back(action_space_ptr_->getRobotState(j)->state);
+//                    if (j == connecting_state) {
+//                        break;
+//                    }
+//                }
+//                if (j == connecting_state) {
+//                    found = true;
+//                    std::cout << "found connecting state: " << connecting_state << std::endl;
+//                    std::cout << "next connecting state: " << next_connecting_state << std::endl;
+//                }
+//            }
+//        }
+//    }
 }
 
 void ims::Mosaic::reconstructPath(std::vector<StateType> &path, std::vector<double> &costs) {

@@ -48,27 +48,6 @@
 #include "controllers_2d.hpp"
 
 
-//inline std::vector<ActionSequence> Controller2d(void* user, const std::shared_ptr<ims::ActionSpace>& action_space_ptr) {
-//    StateType init_state = *static_cast<StateType *>(user);
-//    std::vector<ActionSequence> actions;
-//    // get the robot state and add 1 step up
-//    ActionSequence action;
-//    action.push_back(init_state);
-//    StateType next_state = init_state;
-//    for (int j = 0; j < 25 ; j++){
-//        next_state[0] -= 1;
-//        next_state[1] += 1;
-//        action.push_back(next_state);
-//    }
-//    for (int j = 0; j < 20 ; j++){
-//        next_state[0] -= 1;
-////        next_state[1] -= 1;
-//        action.push_back(next_state);
-//    }
-//    actions.push_back(action);
-//    return actions;
-//}
-
 
 int main(int argc, char** argv) {
 
