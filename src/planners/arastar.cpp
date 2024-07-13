@@ -44,6 +44,39 @@ ims::ARAStar::~ARAStar() {
     }
 }
 
+void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
+                                    const std::vector<StateType> &starts,
+                                    const ims::GoalConstraint &goal_constraint) {
+    // space pointer
+    action_space_ptr_ = action_space_ptr;
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
+
+    if (starts.empty()) {
+        throw std::runtime_error("Starts or goals are empty");
+    }
+    this->goal_constraint_ = goal_constraint;
+    heuristic_->setGoalConstraint(this->goal_constraint_);
+
+    for (auto &start : starts) {
+        // check if start is valid
+        if (!action_space_ptr_->isStateValid(start)){
+            throw std::runtime_error("Start state is not valid");
+        }
+        // Evaluate the start state
+        int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
+        auto start_ = getOrCreateSearchState(start_ind_);
+        start_->parent_id = PARENT_TYPE(START);
+        heuristic_->setStart(const_cast<StateType &>(start));
+        start_->g = 0;
+        start_->h = computeHeuristic(start_ind_);
+        start_->f = start_->g + params_.epsilon*start_->h;
+        open_.push(start_);
+        start_->setOpen();
+    }
+    stats_.suboptimality = params_.epsilon;
+}
 
 void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
                                     const std::vector<StateType> &starts,
@@ -58,28 +91,23 @@ void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_
         throw std::runtime_error("Starts or goals are empty");
     }
 
-    if (goals.size() > 1) {
-        throw std::runtime_error("Currently, only one goal is supported");
+    for (auto &goal : goals) {
+        if (!action_space_ptr_->isStateValid(goal)){
+            throw std::runtime_error("Goal state is not valid");
+        }
+        int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
+        auto goal_ = getOrCreateSearchState(goal_ind_);
+        goal_->parent_id = PARENT_TYPE(GOAL);
+        goals_.push_back(goal_ind_);
     }
-    // check if goal is valid
-    if (!action_space_ptr_->isStateValid(goals[0])){
-        throw std::runtime_error("Goal state is not valid");
-    }
-    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
-    auto goal_ = getOrCreateSearchState(goal_ind_);
-    goals_.push_back(goal_ind_);
 
     // Evaluate the goal state
-    goal_->parent_id = PARENT_TYPE(GOAL);
+    goal_constraint_.type = MULTI_SEARCH_STATE_GOAL;
+    goal_constraint_.check_goal = &multiGoalConstraint;
+    goal_constraint_.check_goal_user = &goals_;
+    goal_constraint_.action_space_ptr = action_space_ptr_;
 
-    GoalConstraint goal_constraint;
-    goal_constraint.type = SINGLE_SEARCH_STATE_GOAL;
-    goal_constraint.check_goal = &checkGoalSingleSearchState;
-    goal_constraint.check_goal_user = &goal_ind_;
-    goal_constraint.action_space_ptr = action_space_ptr_;
-    heuristic_->setGoalConstraint(goal_constraint);
-//    heuristic_->setGoal(const_cast<StateType &>(goals[0]));
-    goal_->h = 0;
+    heuristic_->setGoalConstraint(goal_constraint_);
 
     for (auto &start : starts) {
         // check if start is valid
@@ -102,8 +130,9 @@ void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_
 
 void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                     const StateType& start, const StateType& goal) {
-    // space pointer
+    // Space pointer.
     action_space_ptr_ = action_space_ptr;
+
     // Clear both.
     action_space_ptr_->resetPlanningData();
     resetPlanningData();
@@ -117,23 +146,21 @@ void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_
         throw std::runtime_error("Goal state is not valid");
     }
     int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-    printf("start ind: %d \n", start_ind_);
     auto start_ = getOrCreateSearchState(start_ind_);
 
     int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
     auto goal_ = getOrCreateSearchState(goal_ind_);
-    goals_.push_back(goal_ind_);
 
     start_->parent_id = PARENT_TYPE(START);
+    // cast the heuristic
     heuristic_->setStart(const_cast<StateType &>(start));
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
-
-    goal_constraint.type = SINGLE_SEARCH_STATE_GOAL;
-    goal_constraint.check_goal = &checkGoalSingleSearchState;
-    goal_constraint.check_goal_user = &goal_ind_;
-    goal_constraint.action_space_ptr = action_space_ptr_;
-    heuristic_->setGoalConstraint(goal_constraint);
+    goal_constraint_.type = SINGLE_SEARCH_STATE_GOAL;
+    goal_constraint_.check_goal = &singleGoalConstraint;
+    goal_constraint_.check_goal_user = &goal_->state_id;
+    goal_constraint_.action_space_ptr = action_space_ptr_;
+    heuristic_->setGoalConstraint(goal_constraint_);
     goal_->h = 0;
     // Evaluate the start state
     start_->g = 0;
@@ -144,7 +171,6 @@ void ims::ARAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_
     open_.push(start_);
     // update stats suboptimality
     stats_.suboptimality = params_.epsilon;
-
 }
 
 auto ims::ARAStar::getSearchState(int state_id) -> ims::ARAStar::SearchState * {

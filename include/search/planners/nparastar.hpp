@@ -48,36 +48,14 @@ namespace ims
 
     /// @class NPARAStarParams class.
     /// @brief The parameters for the NPARAStar algorithm
-    struct NPARAStarParams : public ARAStarParams
-    {
-        double init_epsilon;
+    struct NPARAStarParams : public ARAStarParams {
         /// @brief Constructor
         /// @param heuristic The heuristic function. Passing the default heuristic function will result in a uniform cost search
-        explicit NPARAStarParams(BaseHeuristic *heuristic, double init_epsilon = 1000) : init_epsilon(1000),
-                                                                                         ARAStarParams(heuristic, INF_DOUBLE, 0)
-        {
-            call_number = 0;
-            npara_time_limit = INF_DOUBLE; // default: no time limit
-            expansions_limit = INF_INT;    // default: no expansion limit
-            curr_cost = INF_DOUBLE;
-            init_epsilon = 1000;
-        }
+        explicit NPARAStarParams(BaseHeuristic *heuristic, double init_epsilon = 10e3) : ARAStarParams(heuristic, init_epsilon, 0) {}
 
         /// @brief Destructor
         ~NPARAStarParams() override = default;
 
-        int call_number;
-        double curr_cost;
-
-        enum timing_types
-        {
-            TIME,
-            EXPANSIONS,
-            USER
-        } type = TIME;
-        double npara_time_limit;             // TIME: time limit for the search
-        int expansions_limit;                // EXPANSIONS: limit on the number of expansions
-        std::function<bool()> timed_out_fun; // USER: function to check if the search timed out
     };
 
     /// @class NPARAStar class (ARA*: Anytime Repairing A*).
@@ -86,92 +64,17 @@ namespace ims
     /// decreasing it (decreasing bounds on the suboptimality) to return the best solution found
     /// within a given time bound. This algorithm reuses the search tree from the previous search to
     /// improve the efficiency rather the vanilla case which starts from scratch in each iteration.
-    class NPARAStar : public ARAStar
-    {
-
-    private:
-        struct SearchState : public BestFirstSearch::SearchState
-        {
-            double h{-1};
-            double v{INF_DOUBLE};
-            unsigned short call_number{};
-            bool in_incons{false};
-        };
-
-        /// @brief The open list.
-        using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
-        OpenList open_;
-        std::vector<SearchState *> incons_;
-        std::vector<SearchState *> states_;
-
-        /// @brief Get the state by id
-        /// @param state_id The id of the state
-        /// @return The state
-        /// @note Use this function only if you are sure that the state exists
-        auto getSearchState(int state_id) -> SearchState *;
-
-        /// @brief Get the state by id or create a new one if it does not exist
-        /// @param state_id The id of the state
-        /// @return The state
-        auto getOrCreateSearchState(int state_id) -> SearchState *;
+    class NPARAStar : public ARAStar {
 
     public:
         /// @brief Constructor
         /// @param params The parameters for the NPARAStar algorithm
         explicit NPARAStar(const NPARAStarParams &params);
 
-        /// @brief Destructor
-        ~NPARAStar() override;
-
-        /// @brief Initialize the planner
-        /// @param action_space_ptr The action space
-        /// @param starts Vector of start states
-        /// @param goals Vector of goal states
-        void initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
-                               const std::vector<StateType> &starts,
-                               const std::vector<StateType> &goals) override;
-
-        /// @brief Initialize the planner
-        /// @param action_space_ptr The action space
-        /// @param start The start state
-        /// @param goal The goal state
-        void initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
-                               const StateType &start, const StateType &goal) override;
-
-        /// @brief Plan a path
-        /// @param path The path to be filled
-        /// @return True if a path was found, false otherwise
-        bool plan(std::vector<StateType> &path) override;
-
-    protected:
-        /// @brief Improve path function (inner loop of the algorithm)
-        /// @param path The path to be filled
-        /// @return True if a path was found, false otherwise
-        bool improvePath(std::vector<StateType> &path);
-
-        void expand(int state_id) override;
-
-        void setStateVals(int state_id, int parent_id, double cost) override;
-
-        void reconstructPath(std::vector<StateType> &path) override;
-        void reconstructPath(std::vector<StateType> &path, std::vector<double> &costs) override;
-
-        /// @brief Reorder the open list
-        void reorderOpen();
 
         /// @brief Update all bounds for the next iteration (time and suboptimality)
-        virtual void updateBounds() override;
+        void updateBounds() override;
 
-        /// @brief Reinit search state when in new iteration
-        /// @param state The state to be reinitialized
-        void reinitSearchState(SearchState *state) const;
-
-        /// @brief Check if the search timed out based on time type
-        bool timedOut();
-
-        void resetPlanningData() override;
-
-        NPARAStarParams params_;
     };
 }
 

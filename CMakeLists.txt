@@ -73,6 +73,9 @@ target_link_libraries(run_2d_rob_nav_bfs search ${Boost_LIBRARIES})
 add_executable(run_2d_rob_nav_wastar domains/2d_robot_nav/run_2d_wastar.cpp)
 target_link_libraries(run_2d_rob_nav_wastar search ${Boost_LIBRARIES})
 
+add_executable(run_2d_rob_nav_wastar_multi_goal domains/2d_robot_nav/run_2d_wastar_multi_goal.cpp)
+target_link_libraries(run_2d_rob_nav_wastar_multi_goal search ${Boost_LIBRARIES})
+
 add_executable(run_2d_rotation_rob_nav_wastar domains/2d_robot_nav/run_2d_rotation_wastar.cpp)
 target_link_libraries(run_2d_rotation_rob_nav_wastar search ${Boost_LIBRARIES})
 

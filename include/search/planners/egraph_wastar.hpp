@@ -72,7 +72,7 @@ struct ExperienceWAStarParams : public wAStarParams{
 /// @brief A weighted A* algorithm implementation. This algorithm is a modification of the A* algorithm that
 /// uses inflation of the heuristic function to find a solution with a cost that is within a factor of epsilon
 /// of the optimal solution (epsilon-suboptimality).
-class ExperienceWAstar : public wAStar{
+class ExperienceWAstar : public wAStar {
 
 public:
     /// @brief Constructor

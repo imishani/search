@@ -85,6 +85,14 @@ namespace ims{
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
         /// @param starts Vector of start states
+        /// @param goal_constraint The goal constraint
+        void initializePlanner(const std::shared_ptr<SubcostActionSpace>& action_space_ptr,
+                               const std::vector<StateType>& starts,
+                               const GoalConstraint& goal_constraint);
+
+        /// @brief Initialize the planner
+        /// @param action_space_ptr The action space
+        /// @param starts Vector of start states
         /// @param goals Vector of goal states
         void initializePlanner(const std::shared_ptr<SubcostActionSpace>& action_space_ptr,
                                const std::vector<StateType>& starts,
