@@ -297,9 +297,6 @@ void ims::BestFirstSearch::reconstructPath(std::vector<StateType>& path, std::ve
 
 bool ims::BestFirstSearch::isGoalState(int s_id) {
     return goal_constraint_.checkGoal(s_id);
-//    if (std::any_of(goals_.begin(), goals_.end(), [&s_id](int goal_ind) {return s_id == goal_ind;})){
-//        return true;
-//        }
 }
 
 
