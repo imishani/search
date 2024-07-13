@@ -154,8 +154,20 @@ double ims::FocalSearch::computeHeuristic(int s1_id, int s2_id) {
         return dist;
 }
 
-
 bool ims::FocalSearch::plan(std::vector<StateType>& path) {
+    std::vector<PathType> seqs_path;
+    std::vector<std::vector<double>> seqs_transition_costs;
+    bool succ = plan(seqs_path, seqs_transition_costs);
+    std::vector<double> transition_costs;
+    if (succ){
+        flattenSequencePathToPathType(seqs_path, seqs_transition_costs, path, transition_costs);
+        stats_.path_length = (int)path.size();
+        stats_.transition_costs = transition_costs;
+    }
+    return succ;
+}
+
+bool ims::FocalSearch::plan(std::vector<PathType>& seqs_path, std::vector<std::vector<double>>& seqs_transition_costs) {
     startTimer();
     int iter {0};
     while (!open_.empty() && !isTimeOut()){
@@ -175,7 +187,9 @@ bool ims::FocalSearch::plan(std::vector<StateType>& path) {
         if (isGoalState(state->state_id)){
             goal_ = state->state_id;
             getTimeFromStart(stats_.time);
-            reconstructPath(path, stats_.transition_costs);
+            reconstructPath(seqs_path, seqs_transition_costs);
+            PathType path;
+            flattenSequencePathToPathType(seqs_path, path);
             stats_.cost = state->g;
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();
@@ -247,24 +261,37 @@ void ims::FocalSearch::reconstructPath(std::vector<StateType>& path) {
     reconstructPath(path, costs);
 }
 
-void ims::FocalSearch::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
-    path.clear();
-    costs.clear();
+void ims::FocalSearch::reconstructPath(std::vector<StateType>& path, std::vector<double>& transition_costs) {
+    // Start with getting the path with any intermediate states.
+    std::vector<PathType> seq_states_to_child; // These include the parent state, any intermediate states, and the child state.
+    std::vector<std::vector<double>> seq_transition_costs_to_child;
+    reconstructPath(seq_states_to_child, seq_transition_costs_to_child);
 
-    costs.push_back(0); // The goal state gets a transition cost of 0.
-    path.push_back(action_space_ptr_->getRobotState(goal_)->state);
+    // Now, incorporate the intermediate states into the path and compute transition_costs.
+    flattenSequencePathToPathType(seq_states_to_child, seq_transition_costs_to_child, path, transition_costs);
+}
+
+void ims::FocalSearch::reconstructPath(std::vector<PathType>& seq_states_to_child,
+                         std::vector<std::vector<double>> & seq_transition_costs_to_child){
+    seq_states_to_child.clear();
+    seq_transition_costs_to_child.clear();
+
     SearchState* state_ = getSearchState(goal_);
     while (state_->parent_id != -1){
 
         // Go through the edge from the parent to the current state. Do not include the first and last elements.
         int edge_from_parent_num_states = (int)state_->edge_from_parent_state_ids.size();
         if (edge_from_parent_num_states > 2){
-            for (int i {edge_from_parent_num_states - 2}; i >= 0; --i){
-                int state_id = state_->edge_from_parent_state_ids[i];
-                double transition_cost = state_->edge_from_parent_transition_costs[i];
-                path.push_back(action_space_ptr_->getRobotState(state_id)->state);
-                costs.push_back(transition_cost);
+            // Add the sequence from the parent to this state to the path.
+            PathType seq_states;
+            std::vector<double> seq_transition_costs;
+            for (int i {0}; i < edge_from_parent_num_states; ++i){
+                seq_states.push_back(action_space_ptr_->getRobotState(state_->edge_from_parent_state_ids[i])->state);
+                seq_transition_costs.push_back(state_->edge_from_parent_transition_costs[i]);
             }
+            seq_states_to_child.push_back(seq_states);
+            seq_transition_costs_to_child.push_back(seq_transition_costs);
+
             // Assert that this transition cost is the same as the one from the parent to the current state.
             double edge_from_parent_total_cost = vectorSum(state_->edge_from_parent_transition_costs);
             double rounded_edge_from_parent_total_cost = std::round(edge_from_parent_total_cost * 1000) / 1000;
@@ -284,18 +311,19 @@ void ims::FocalSearch::reconstructPath(std::vector<StateType>& path, std::vector
             state_ = getSearchState(state_->parent_id);
         }
         else{
-            path.push_back(action_space_ptr_->getRobotState(state_->parent_id)->state);
-            // Get the transition cost. This is the difference between the g values of the current state and its parent.
-            double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
-            costs.push_back(transition_cost);
+            // If there are less than (or equal to) two states, create the sequences directly.
+            PathType seq_states = {action_space_ptr_->getRobotState(state_->parent_id)->state, action_space_ptr_->getRobotState(state_->state_id)->state};
+            std::vector<double> seq_transition_costs = {state_->g - getSearchState(state_->parent_id)->g, 0.0};
+            seq_states_to_child.push_back(seq_states);
+            seq_transition_costs_to_child.push_back(seq_transition_costs);
             state_ = getSearchState(state_->parent_id);
         }
     }
 
-    std::reverse(path.begin(), path.end());
-    std::reverse(costs.begin(), costs.end());
+    std::reverse(seq_states_to_child.begin(), seq_states_to_child.end());
+    std::reverse(seq_transition_costs_to_child.begin(), seq_transition_costs_to_child.end());
 
-    assert(path.size() == costs.size());
+    assert(seq_states_to_child.size() == seq_transition_costs_to_child.size());
 }
 
 

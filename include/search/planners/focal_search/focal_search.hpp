@@ -194,6 +194,11 @@ public:
     /// @param path The path
     /// @return if the plan was successful or not
     bool plan(std::vector<StateType>& path) override;
+    /// @brief plan a path and return it with the original transition sequences.
+    /// \param seqs_path
+    /// \param seqs_transition_costs
+    /// \return
+    virtual bool plan(std::vector<PathType>& seqs_path, std::vector<std::vector<double>>& seqs_transition_costs);
 
     void resetPlanningData() override;
 
@@ -220,10 +225,13 @@ protected:
     virtual void expand(int state_id);
 
     void reconstructPath(std::vector<StateType>& path) override;
-    void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
-    void reconstructPath(std::vector<StateType>& path,
-                         std::vector<StateType>& seqs_from_parent_states,
-                         std::vector<double> & seqs_from_parent_transition_costs) override;
+    void reconstructPath(std::vector<StateType>& path, std::vector<double>& transition_costs) override;
+
+    /// @brief Reconstruct the path while keeping information about the sequence transition from the parent states to the child states (alongside the transition costs).
+    /// \param seq_states_to_child Each element is a sequence of states from the parent state [i] to the child state [i+1]. Last one is empty.
+    /// \param seq_transition_costs_to_child The sequence of transition costs from the parent state to the child state. The cost of transitioning from [i] to [i+1] is the sum of the costs in seq_transition_costs_to_child[i].
+    void reconstructPath(std::vector<PathType>& seq_states_to_child,
+                         std::vector<std::vector<double>> & seq_transition_costs_to_child);
 
     bool isGoalState(int state_id) override;
 

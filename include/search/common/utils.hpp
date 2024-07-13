@@ -74,3 +74,66 @@ inline double vectorSum(const std::vector<double>& vec) {
 inline int vectorSum(const std::vector<int>& vec) {
     return std::accumulate(vec.begin(), vec.end(), 0);
 }
+
+/// @brief Given a path made up of sequences, each connecting a parent to a child with some intermediate states, convert it to a single path.
+/// \param seq_states_to_child The path dividied to sequences. The structure of each sequence in the path is [state, intermediate states, child]. Note that the child sequence of this one will begin with 'child.'
+/// \param seq_transition_costs_to_child The transition costs within each sequence. For example, [1.0, 1.0, 0.0]
+/// means that the transition from the state to the first intermediate state costs 1.0, the transition from the state
+/// to the first intermediate state costs 1.0, the transition from the last intermediate state to the child state costs
+/// 1.0, and the cost to leave the child is unknown and is therefore zero.
+/// \param path Concatenation of all the states without trivial duplicates.
+/// \param transition_costs Concatenation of all the corresponding transition costs.
+inline void flattenSequencePathToPathType(const std::vector<PathType>& seq_states_to_child,
+                                          const std::vector<std::vector<double>>& seq_transition_costs_to_child,
+                                          PathType& path,
+                                          std::vector<double>& transition_costs) {
+    path.clear();
+    transition_costs.clear();
+    for (size_t i {0}; i < seq_states_to_child.size(); ++i){
+        path.insert(path.end(),
+                    seq_states_to_child[i].begin(),
+                    seq_states_to_child[i].end() - 1);
+        transition_costs.insert(transition_costs.end(),
+                                seq_transition_costs_to_child[i].begin(),
+                                seq_transition_costs_to_child[i].end() - 1);
+    }
+    // Add the last element of the last sequence.
+    path.push_back(seq_states_to_child.back().back());
+    transition_costs.push_back(seq_transition_costs_to_child.back().back());
+    assert(path.size() == transition_costs.size());
+    // Print the sequences and the resulting path.
+     std::cout << "seq_states_to_child: " << seq_states_to_child << std::endl;
+        std::cout << "seq_transition_costs_to_child: " << seq_transition_costs_to_child << std::endl;
+        std::cout << "path: " << path << std::endl;
+        std::cout << "transition_costs: " << transition_costs << std::endl;
+        std::cout << "====================" << std::endl;
+}
+inline void flattenSequencePathToPathType(const std::vector<PathType>& seq_states_to_child,
+                                          PathType& path) {
+    path.clear();
+    path.push_back(seq_states_to_child[0].front());
+    for (size_t i {0}; i < seq_states_to_child.size(); ++i){
+        path.insert(path.end(),
+                    seq_states_to_child[i].begin(),
+                    seq_states_to_child[i].end() - 1);
+    }
+    // Add the last element of the last sequence.
+    path.push_back(seq_states_to_child.back().back());
+}
+inline void flattenSequencePathsToMultiAgentPaths(const std::unordered_map<int, std::vector<PathType>>& seq_states_to_child,
+                                          MultiAgentPaths& paths) {
+    for (const std::pair<int, std::vector<PathType>>& agent_seq : seq_states_to_child){
+        flattenSequencePathToPathType(agent_seq.second, paths[agent_seq.first]);
+    }
+}
+inline void flattenSequencePathsToMultiAgentPaths(const std::unordered_map<int, std::vector<PathType>>& seq_states_to_child,
+                                          const std::unordered_map<int, std::vector<std::vector<double>>>& seq_transition_costs_to_child,
+                                          MultiAgentPaths& paths,
+                                          std::unordered_map<int, std::vector<double>> & paths_transition_costs) {
+    for (const std::pair<int, std::vector<PathType>>& agent_seq : seq_states_to_child){
+        flattenSequencePathToPathType(agent_seq.second,
+                                      seq_transition_costs_to_child.at(agent_seq.first),
+                                      paths[agent_seq.first],
+                                      paths_transition_costs[agent_seq.first]);
+    }
+}

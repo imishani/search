@@ -135,7 +135,7 @@ void ims::FocalwAStar::initializePlanner(const std::shared_ptr<SubcostActionSpac
     this->stats_.focal_suboptimality = params_.focal_suboptimality;
 }
 
-bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
+bool ims::FocalwAStar::plan(std::vector<PathType>& seqs_path, std::vector<std::vector<double>>& seqs_transition_costs) {
     startTimer();
     int iter {0};
 
@@ -148,7 +148,7 @@ bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
         if (iter % 100000 == 0 && params_.verbose){
             std::cout << "Iter: " << iter << " open size: " << open_.size() << std::endl;
         }
-        
+
         // Get a state from the OPEN list and remove it.
         auto state  = open_.min();
         open_.pop();
@@ -157,31 +157,28 @@ bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
         if (isGoalState(state->state_id)){
             goal_ = state->state_id;
             getTimeFromStart(stats_.time);
-            reconstructPath(path, stats_.transition_costs);
+            reconstructPath(seqs_path, seqs_transition_costs);
             stats_.cost = state->g;
-            stats_.path_length = (int)path.size();
-            stats_.num_generated = (int)action_space_ptr_->states_.size();    
-
-            // TODO(yoraish): Get the non-weighted (g+h) minimal value from the OPEN list.
+            stats_.num_generated = (int)action_space_ptr_->states_.size();
+            stats_.focal_suboptimality = params_.focal_suboptimality;
             stats_.lower_bound = state->g / params_.epsilon;
-
             return true;
         }
 
-        // Expand the state.
+        // If it is not a goal state, then expand it.
         expand(state->state_id);
         ++iter;
-        
+
         // Check if the OPEN list is empty. If so, break.
         if (open_.empty()){
             break;
         }
 
-        // Update the OPEN list. Ensure that the focal bound is at least as large as the minimal f-value in the OPEN list.
+        // Reorder the open list.
         open_list_f_lower_bound = open_.getLowerBound();
         open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
-
     }
+
     getTimeFromStart(stats_.time);
     return false;
 }
