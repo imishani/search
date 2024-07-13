@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
 
     ims::MosaicParams params;
     params.time_limit_ = 50;
-    params.verbose = true;
+    params.verbose = false;
     // construct the scene and the action space
     Scene2DRob scene (map);
     ActionType2dRob action_type;

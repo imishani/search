@@ -30,6 +30,8 @@ private:
         std::shared_ptr<std::vector<std::pair<int, double>>> edges {nullptr};
         bool is_connected_to_goal {false};
         bool is_connected_to_start {false};
+        int parent_id {UNSET};
+        double g {INFINITY};
     };
 
     /// @brief Keep track of the states

@@ -89,4 +89,4 @@ if __name__ == '__main__':
     states = np.loadtxt("../../../cmake-build-release/states_mosaic.txt", dtype=float, delimiter=',').astype(np.int64)
 
     # visualize the states
-    visualize(1, states)
+    visualize(3, states)

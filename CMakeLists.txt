@@ -106,8 +106,8 @@ target_link_libraries(run_2d_rob_nav_mgs search ${Boost_LIBRARIES})
 add_executable(run_2d_rob_nav_mosaic domains/2d_robot_nav/run_2d_mosaic.cpp)
 target_link_libraries(run_2d_rob_nav_mosaic search ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES})
 
-add_executable(run_2d_rob_nav_ackerman_mgs domains/2d_robot_nav/run_2d_ackerman_mgs.cpp)
-target_link_libraries(run_2d_rob_nav_ackerman_mgs search ${Boost_LIBRARIES})
+#add_executable(run_2d_rob_nav_ackerman_mgs domains/2d_robot_nav/run_2d_ackerman_mgs.cpp)
+#target_link_libraries(run_2d_rob_nav_ackerman_mgs search ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_cbs_or_ecbs domains/2d_mapf/run_2d_cbs_or_ecbs.cpp)
 target_link_libraries(run_2d_mapf_cbs_or_ecbs search ${Boost_LIBRARIES})

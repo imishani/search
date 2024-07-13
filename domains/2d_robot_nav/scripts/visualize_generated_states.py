@@ -79,7 +79,7 @@ def visualize(map_index, states):
     ax.axes.get_yaxis().set_visible(False)
 
     # plot the states
-    sc = ax.scatter(states[:, 1], states[:, 2], c='r', s=2)
+    ax.scatter(states[:, 1], states[:, 2], c='r', s=2)
     # show the plot
     fig.tight_layout()
     plt.show()
@@ -88,8 +88,13 @@ def visualize(map_index, states):
 
 
 if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Visualize the generated states.')
+    parser.add_argument('--map_index', type=int, help='The index of the map to use.', default=1)
+    args = parser.parse_args()
     # load the states
     states = np.loadtxt("../../../cmake-build-release/states_mosaic.txt", dtype=float, delimiter=',').astype(np.int64)
 
     # visualize the states
-    visualize(1, states)
+    visualize(args.map_index, states)

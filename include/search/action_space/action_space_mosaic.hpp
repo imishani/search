@@ -106,6 +106,14 @@ public:
 //            std::cout << "traj1_id: " << traj1_id << ", traj2_id: " << traj2_id << std::endl;
 //        }
 
+        // check if this pair is in disconnected_trajectories_
+        for (auto disconnected_traj : disconnected_trajectories_) {
+            if ((disconnected_traj.first == traj1_id && disconnected_traj.second == traj2_id) ||
+                (disconnected_traj.first == traj2_id && disconnected_traj.second == traj1_id)) {
+                return true; // TODO: fix this. create a new function for checking connectivity
+            }
+        }
+
         std::queue<int> q;
         std::vector<bool> visited(mosaic_trajectories_.size(), false);
         q.push(traj1_id);
@@ -145,6 +153,10 @@ public:
     std::vector<Trajectory*> mosaic_trajectories_; // The trajectories
 
     std::vector<std::pair<int, int>> connected_trajectories_; // The connected trajectories
+
+    std::vector<std::pair<int, int>> disconnected_trajectories_; // The disconnected trajectories. TODO: This can be optimize in many cool ways!
+    // TODO: It is important to also make sure that if we cannot guarantee that two trajectories are disconnected, then we allow later on to try to connect them again.
+
 };
 
 }  // namespace ims

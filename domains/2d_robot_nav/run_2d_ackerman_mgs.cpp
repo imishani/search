@@ -45,6 +45,7 @@
 #include "search/heuristics/standard_heuristics.hpp"
 #include "action_space_2d_ackerman_rob_msg.hpp"
 #include "utils.hpp"
+#include "controllers_2d.hpp"
 
 
 int main(int argc, char** argv) {
@@ -122,9 +123,15 @@ int main(int argc, char** argv) {
         // Add starting theta to start vetcor
         starts[i].push_back(0);
         goals[i].push_back(0);
+
+
+        std::shared_ptr<std::vector<ims::Controller>> controllers = std::make_shared<std::vector<ims::Controller>>();
+        ims::WallFollowerController controller;
+        controller.init(map, action_space);
+        controller.solver_fn = ims::ControllerWallsFollower;
         // catch the exception if the start or goal is not valid
         try {
-            planner.initializePlanner(action_space, starts[i], goals[i], params.g_num_);
+            planner.initializePlanner(action_space, controllers, starts[i], goals[i]);
         }
         catch (std::exception& e) {
             std::cout << e.what() << std::endl;

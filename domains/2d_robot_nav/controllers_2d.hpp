@@ -254,7 +254,7 @@ struct wAStarController : public Controller {
         std::shared_ptr<Scene2DRob> scene;
     };
 
-    wAStarController(ControllerType controller_type) {
+    explicit wAStarController(ControllerType controller_type) {
         type = controller_type;
     }
 
@@ -287,15 +287,21 @@ struct wAStarController : public Controller {
 /// @brief Weighted A* controller function
 inline std::vector<ActionSequence> wAStarControllerFn(void* user,
                                                       const std::shared_ptr<ims::ActionSpace>& action_space_ptr) {
+
+    // time the controller using chrono
+    auto start_time = std::chrono::high_resolution_clock::now();
     // Try to cast the user data. If it doesn't work, throw error
     auto* user_data = static_cast<wAStarController::wAStarUserData*>(user);
     auto* action_space_ptr_mosaic = dynamic_cast<ims::ActionSpaceMosaic*>(action_space_ptr.get());
     // get the closest trajectories from action_space_ptr
     std::pair<int, int> traj_pair;
     std::pair<Eigen::VectorXd , Eigen::VectorXd> closest_states;
+
+    ///////////////////// Find the closest pair of trajectories /////////////////////
+    // Surprisingly, this takes the most time. TODO: We need to optimize this.
     for (int i{0}; i < action_space_ptr_mosaic->mosaic_trajectories_.size(); i++) {
         Eigen::MatrixXd traj = action_space_ptr_mosaic->mosaic_trajectories_[i]->trajectory;
-        for (int j {0}; j < action_space_ptr_mosaic->mosaic_trajectories_.size(); j++){
+        for (int j {i}; j < action_space_ptr_mosaic->mosaic_trajectories_.size(); j++){
             if (action_space_ptr_mosaic->areTrajectoriesConnected(i, j) || i == j) {
                 continue;
             }
@@ -320,14 +326,16 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
         return {};
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////
+
 //    // Lets randomly sample trajs
 //    do {
 //        traj_pair = {rand() % action_space_ptr_mosaic->mosaic_trajectories_.size(),
 //                     rand() % action_space_ptr_mosaic->mosaic_trajectories_.size()};
 //    } while (action_space_ptr_mosaic->areTrajectoriesConnected(traj_pair.first, traj_pair.second) ||
 //             traj_pair.first == traj_pair.second);
-
-    // TODO: multi-start multi-goal
+//
+//    // TODO: multi-start multi-goal
 //    Eigen::MatrixXd traj = action_space_ptr_mosaic->mosaic_trajectories_[traj_pair.first]->trajectory;
 //    Eigen::MatrixXd traj2 = action_space_ptr_mosaic->mosaic_trajectories_[traj_pair.second]->trajectory;
 //    // find the minimum distance between the two trajectories.
@@ -348,6 +356,7 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
     ims::wAStarParams params (heuristic, epsilon);
 
     params.time_limit_ = 0.1;
+    params.verbose = false;
     ActionType2dRob action_type;
     std::shared_ptr<actionSpace2dRob> as = std::make_shared<actionSpace2dRob>(*user_data->scene,
                                                                               action_type);
@@ -373,6 +382,7 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
     std::vector<StateType> path;
     if (!planner.plan(path)) {
         std::cout << RED << "Could not plan" << RESET << std::endl;
+        action_space_ptr_mosaic->disconnected_trajectories_.emplace_back(traj_pair);
         delete heuristic;
         return generated;
     }
@@ -380,6 +390,13 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
     action_space_ptr_mosaic->connected_trajectories_.emplace_back(traj_pair);
     // delete the heuristic
     delete heuristic;
+
+    // time the controller using chrono
+    auto end_time = std::chrono::high_resolution_clock::now();
+    // milliseconds
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+//    std::cout << "Planning time: " << duration.count() << " ms" << std::endl;
+
     return generated;
 }
 
