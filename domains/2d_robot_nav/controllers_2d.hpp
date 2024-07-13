@@ -335,7 +335,7 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
 //    } while (action_space_ptr_mosaic->areTrajectoriesConnected(traj_pair.first, traj_pair.second) ||
 //             traj_pair.first == traj_pair.second);
 //
-//    // TODO: multi-start multi-goal
+//    // TODO: multi-start multi-goal. It is already implemented just need to decide how to do it here.
 //    Eigen::MatrixXd traj = action_space_ptr_mosaic->mosaic_trajectories_[traj_pair.first]->trajectory;
 //    Eigen::MatrixXd traj2 = action_space_ptr_mosaic->mosaic_trajectories_[traj_pair.second]->trajectory;
 //    // find the minimum distance between the two trajectories.
@@ -376,7 +376,7 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
         planner.initializePlanner(as, start, goal);
     }
     catch (std::exception& e) {
-        std::cout << RED << "Start or goal is not valid!" <<RESET << std::endl;
+        std::cout << RED << e.what() << RESET << std::endl;
         return generated;
     }
     std::vector<StateType> path;

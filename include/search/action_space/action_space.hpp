@@ -118,7 +118,7 @@ namespace ims {
         explicit ActionSpace() = default;
 
         /// @brief Destructor
-        ~ActionSpace() {
+        virtual ~ActionSpace() {
             for (auto& state : states_) {
                 delete state;
             }

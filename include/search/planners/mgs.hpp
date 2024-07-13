@@ -33,14 +33,15 @@
  */
 
 
-#ifndef SEARCH_MGS_HPP_
-#define SEARCH_MGS_HPP_
+#pragma once
 
 // standard includes
 #include <functional>
 // Standard includes
 #include <algorithm>
 #include <utility>
+#include <queue>
+#include <fstream>
 
 // project includes
 #include "search/controllers/base_controller.hpp"
@@ -305,5 +306,3 @@ protected:
 
 }  // namespace ims
 
-
-#endif //SEARCH_MGS_HPP_

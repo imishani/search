@@ -33,8 +33,7 @@
  */
 
 #include "search/planners/mgs.hpp"
-#include <queue>
-#include <fstream>
+
 
 ims::MGS::MGS(const MGSParams &params) : Planner(params), params_(params) {
     heuristic_ = params.heuristic_;
@@ -79,12 +78,21 @@ void ims::MGS::initializePlanner(const std::shared_ptr<ActionSpaceMGS>& action_s
     goal_->use_graph_ = GRAPH_GOAL;
     goals_.push_back(goal_ind_);
 
+    // Evaluate the goal state
+    goal_constraint_.type = MULTI_SEARCH_STATE_GOAL;
+    goal_constraint_.check_goal = &multiGoalConstraint;
+    goal_constraint_.check_goal_user = &goals_;
+    goal_constraint_.action_space_ptr = action_space_ptr_;
+
+
     // Evaluate the start state
     start_->data_[GRAPH_START].parent_id = std::make_shared<std::vector<int>>(1, PARENT_TYPE(START));
     heuristic_->setStart(const_cast<StateType &>(start));
     // Evaluate the goal state
     goal_->data_[GRAPH_GOAL].parent_id = std::make_shared<std::vector<int>>(1, PARENT_TYPE(GOAL));
-    heuristic_->setGoal(const_cast<StateType &>(goal));
+
+
+    heuristic_->setGoalConstraint(goal_constraint_);
 
 
     // generate local mosaics (trajectories) using the controllers and initiate graphs using the first and last states

@@ -112,6 +112,13 @@ public:
                            std::shared_ptr<std::vector<Controller>>& controllers,
                            const StateType& start, const StateType& goal);
 
+
+    inline void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                                  const std::vector<StateType>& starts,
+                                  const GoalConstraint& goal_constraint) override {
+        throw std::runtime_error("Mosaic::initializePlanner() called without controllers.");
+    }
+
     inline void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                   const StateType& starts,
                                   const StateType& goals) override {
