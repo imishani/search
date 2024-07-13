@@ -32,8 +32,7 @@
  * \date   4/13/23
 */
 
-#ifndef SEARCH_BASEHEURISTIC_HPP
-#define SEARCH_BASEHEURISTIC_HPP
+#pragma once
 
 // Project includes.
 #include "search/common/types.hpp"
@@ -116,17 +115,65 @@ namespace ims{
             }
             BaseHeuristic::setGoalConstraint(goal_constraint);
         }
-        /// @brief Set the goal state
-        /// @param goal The goal state
-        /// @note You have to set the goal state if you want to use the getHeuristic(const std::shared_ptr<state> s) function
-        virtual void setGoal(const StateType& goal) {
-            goal_ = goal;
-        }
 
         StateType goal_;
 
     };
 
+    /// @brief The base heuristic class for multi goal heuristics
+    /// @class BaseMultiGoalHeuristic
+    class BaseMultiGoalHeuristic : public BaseHeuristic {
+
+        /// @brief This function should be implemented by the user and is the function that calculates the heuristic
+        /// @param s1 The first state
+        /// @param s2 The second state
+        /// @param dist The distance between the two states (output, pass by reference)
+        /// @return The heuristic value
+        bool getHeuristic(const StateType& s1, const StateType& s2, double& dist) override = 0;
+
+        /// @brief An option to calculate the heuristic from a single state to the goal state
+        /// @param s The state
+        /// @param dist The distance between the two states (output, pass by reference)
+        /// @return The heuristic value
+        bool getHeuristic(const StateType& s, double& dist) override {
+            if (goals_.empty()) {
+                throw std::runtime_error("Goal states are not set");
+            }
+            dist = INF_DOUBLE;
+            for (const auto& goal : goals_) {
+                if (goal.empty()) {
+                    dist = INF_DOUBLE;
+                    throw std::runtime_error("Goal state is not set");
+                }
+                double h;
+                if (getHeuristic(s, goal, h)) {
+                    dist = std::min(dist, h);
+                }
+            }
+            return true;
+        }
+
+        void setGoalConstraint(GoalConstraint& goal_constraint) override {
+            if (goal_constraint.type != MULTI_SEARCH_STATE_GOAL && goal_constraint.type != MULTI_SEARCH_STATE_MAPPED_GOAL) {
+                throw std::runtime_error("Goal type is not multi search state goal");
+            }
+            if (goal_constraint.type == MULTI_SEARCH_STATE_GOAL) {
+                goals_.clear();
+                for (const auto& goal_id : *static_cast<std::vector<int>*>(goal_constraint.check_goal_user)) {
+                    goals_.push_back(goal_constraint.action_space_ptr->getRobotState(goal_id)->state);
+                }
+            } else {
+                goals_.clear();
+                for (const auto& goal_id : *static_cast<std::vector<int>*>(goal_constraint.check_goal_user)) {
+                    goals_.push_back(goal_constraint.action_space_ptr->getRobotState(goal_id)->state_mapped);
+                }
+            }
+            BaseHeuristic::setGoalConstraint(goal_constraint);
+        }
+
+        std::vector<StateType> goals_;
+
+    };
     /// @class ExperienceHeuristicBase
     /// @brief The base class for the experience heuristic
     class EGraphHeuristicBase : public BaseHeuristic {
@@ -146,5 +193,3 @@ namespace ims{
 
 }
 
-
-#endif //SEARCH_BASEHEURISTIC_HPP

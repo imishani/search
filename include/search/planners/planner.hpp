@@ -44,6 +44,8 @@
 #include <search/common/intrusive_heap.h>
 #include <search/common/types.hpp>
 #include <search/common/utils.hpp>
+#include "search/common/goal_constraint.hpp"
+
 
 namespace ims{
     /// @brief A super class for representing a state in a search algorithm. These states are abstracted away from the robot world, and do not include any information about the robot's configuration. The only interaction between the search states and the robot states happens via the action space, and specifically the action space's successor function. This function may take in a search state index, and return a vector of successor state indices, along with the cost of the action that takes the robot from the search state to the successor state. The action space and the planner are responsible for maintaining the mapping between the search states and the robot states. This is nominally done via two vectors of pointers to robot/search states, which are maintained by the planner and the action space. The indices should by synchronized between the two vectors.
@@ -89,6 +91,14 @@ struct SearchState : public ::smpl::HeapElement {
 
         ///@brief Destructor
         virtual ~Planner() = default;
+
+        /// @brief Initialize the planner
+        /// @param action_space_ptr The action space
+        /// @param starts Vector of start states
+        /// @param goal_constraint The goal constraint
+        virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                                       const std::vector<StateType>& starts,
+                                       const GoalConstraint& goal_constraint) = 0;
 
         /// @brief Initialize the planner
         /// @param action_space_ptr The action space
@@ -159,6 +169,8 @@ struct SearchState : public ::smpl::HeapElement {
 
         int goal_{};
         std::vector<int> goals_;
+        GoalConstraint goal_constraint_;
+
         PlannerParams params_;
         std::chrono::time_point<std::chrono::steady_clock> t_start_;
         PlannerStats stats_;

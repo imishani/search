@@ -45,6 +45,39 @@ ims::FocalSearch::~FocalSearch() {
 }
 
 void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpace> &action_space_ptr,
+                                         const std::vector<StateType> &starts,
+                                         const ims::GoalConstraint &goal_constraint) {
+    // space pointer
+    action_space_ptr_ = action_space_ptr;
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
+
+    if (starts.empty()) {
+        throw std::runtime_error("Starts or goals are empty");
+    }
+    this->goal_constraint_ = goal_constraint;
+    heuristic_->setGoalConstraint(this->goal_constraint_);
+
+    for (auto &start : starts) {
+        // check if start is valid
+        if (!action_space_ptr_->isStateValid(start)) {
+            throw std::runtime_error("Start state is not valid");
+        }
+        // Evaluate the start state
+        int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
+        auto start_ = getOrCreateSearchState(start_ind_);
+        start_->parent_id = PARENT_TYPE(START);
+        heuristic_->setStart(const_cast<StateType &>(start));
+        start_->g = 0;
+        start_->c = 0;
+        start_->f = computeHeuristic(start_ind_);
+        open_.push(start_);
+        start_->setOpen();
+    }
+}
+
+void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpace> &action_space_ptr,
                                              const std::vector<StateType> &starts,
                                              const std::vector<StateType> &goals) {
     // Action space pointer.
@@ -57,19 +90,29 @@ void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpac
         throw std::runtime_error("Starts or goals are empty");
     }
 
-    if (goals.size() > 1) {
-        throw std::runtime_error("Currently, only one goal is supported");
+    for (auto &goal : goals) {
+        if (!action_space_ptr_->isStateValid(goal)){
+            throw std::runtime_error("Goal state is not valid");
+        }
+        int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
+        auto goal_ = getOrCreateSearchState(goal_ind_);
+        goal_->parent_id = PARENT_TYPE(GOAL);
+        goals_.push_back(goal_ind_);
     }
 
-    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
-    auto goal_ = getOrCreateSearchState(goal_ind_);
-    goals_.push_back(goal_ind_);
-
     // Evaluate the goal state
-    goal_->parent_id = PARENT_TYPE(GOAL);
+    goal_constraint_.type = MULTI_SEARCH_STATE_GOAL;
+    goal_constraint_.check_goal = &multiGoalConstraint;
+    goal_constraint_.check_goal_user = &goals_;
+    goal_constraint_.action_space_ptr = action_space_ptr_;
 
+    heuristic_->setGoalConstraint(goal_constraint_);
 
     for (auto &start : starts) {
+        // check if start is valid
+        if (!action_space_ptr_->isStateValid(start)){
+            throw std::runtime_error("Start state is not valid");
+        }
         // Evaluate the start state
         int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
         auto start_ = getOrCreateSearchState(start_ind_);
@@ -90,10 +133,14 @@ void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpac
     // Clear both.
     action_space_ptr_->resetPlanningData();
     resetPlanningData();
-
-    // Reset the search algorithm and the action space.
-    action_space_ptr_->resetPlanningData();
-    this->resetPlanningData();
+// check if start is valid
+    if (!action_space_ptr_->isStateValid(start)){
+        throw std::runtime_error("Start state is not valid");
+    }
+    // check if goal is valid
+    if (!action_space_ptr_->isStateValid(goal)){
+        throw std::runtime_error("Goal state is not valid");
+    }
 
     // Check if start is valid and add it to the action space.
     int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
@@ -101,18 +148,16 @@ void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpac
 
     int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
     auto goal_ = getOrCreateSearchState(goal_ind_);
-    goals_.push_back(goal_ind_);
 
     // Evaluate the start state
     start_->parent_id = PARENT_TYPE(START);
     heuristic_->setStart(const_cast<StateType &>(start));
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
-    GoalConstraint goal_constraint;
-    goal_constraint.type = SINGLE_SEARCH_STATE_GOAL;
-    goal_constraint.check_goal = &checkGoalSingleSearchState;
-    goal_constraint.check_goal_user = &goal_ind_;
-    heuristic_->setGoalConstraint(goal_constraint);
+    goal_constraint_.type = SINGLE_SEARCH_STATE_GOAL;
+    goal_constraint_.check_goal = &singleGoalConstraint;
+    goal_constraint_.check_goal_user = &goal_->state_id;
+    heuristic_->setGoalConstraint(goal_constraint_);
 
     // Evaluate the start state.
     start_->g = 0;

@@ -32,8 +32,7 @@
  * \date   4/13/23
  */
 
-#ifndef SEARCH_STANDARDHEU_HPP
-#define SEARCH_STANDARDHEU_HPP
+#pragma once
 
 #include <eigen3/Eigen/Dense>
 #include "base_heuristic.hpp"
@@ -63,6 +62,26 @@ struct EuclideanHeuristic : public BaseSingleGoalHeuristic {
     }
 };
 
+/// @brief The Euclidean distance heuristic for Multi-Goal
+struct MultiGoalEuclideanHeuristic : public BaseMultiGoalHeuristic {
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        // check id the states are the same size
+        if (s1.size() != s2.size()) {
+            std::cout << "Error: The states are not the same size!" << std::endl;
+            return false;
+        }
+        else {
+            for (int i{0}; i < s1.size(); i++) {
+                dist += pow(s1[i] - s2[i], 2);
+            }
+            dist = sqrt(dist);
+            return true;
+        }
+    }
+};
+
+
 /// @brief The Euclidean distance heuristic with time removed from state
 struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
@@ -76,6 +95,19 @@ struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
     }
 };
 
+/// @brief The Euclidean distance heuristic with time removed from state
+struct MultiGoalEuclideanRemoveTimeHeuristic : public MultiGoalEuclideanHeuristic {
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        StateType s1_no_time = s1;
+        StateType s2_no_time = s2;
+        s1_no_time.pop_back();
+        s2_no_time.pop_back();
+
+        return MultiGoalEuclideanHeuristic::getHeuristic(s1_no_time, s2_no_time, dist);
+    }
+};
+
 /// @brief The Euclidean distance heuristic with theta removed from state
 struct EuclideanRemoveThetaHeuristic : public EuclideanHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
@@ -86,6 +118,19 @@ struct EuclideanRemoveThetaHeuristic : public EuclideanHeuristic {
         s2_no_theta.pop_back();
 
         return EuclideanHeuristic::getHeuristic(s1_no_theta, s2_no_theta, dist);
+    }
+};
+
+/// @brief The Euclidean distance heuristic with theta removed from state for Multi-Goal
+struct MultiGoalEuclideanRemoveThetaHeuristic : public MultiGoalEuclideanHeuristic {
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        StateType s1_no_theta = s1;
+        StateType s2_no_theta = s2;
+        s1_no_theta.pop_back();
+        s2_no_theta.pop_back();
+
+        return MultiGoalEuclideanHeuristic::getHeuristic(s1_no_theta, s2_no_theta, dist);
     }
 };
 
@@ -107,8 +152,46 @@ struct ManhattanHeuristic : public BaseSingleGoalHeuristic {
     }
 };
 
+/// @brief The Manhattan distance heuristic for Multi-Goal
+struct MultiGoalManhattanHeuristic : public BaseMultiGoalHeuristic {
+
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        // check id the states are the same size
+        if (s1.size() != s2.size()) {
+            std::cout << "Error: The states are not the same size!" << std::endl;
+            return false;
+        }
+        else {
+            for (int i{0}; i < s1.size(); i++) {
+                dist += std::abs(s1[i] - s2[i]);
+            }
+            return true;
+        }
+    }
+};
+
 /// @brief The Chebyshev distance heuristic
 struct ChebyshevHeuristic : public BaseSingleGoalHeuristic {
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        // check id the states are the same size
+        if (s1.size() != s2.size()) {
+            std::cout << "Error: The states are not the same size!" << std::endl;
+            return false;
+        }
+        else {
+            dist = 0;
+            for (int i{0}; i < s1.size(); i++) {
+                dist = std::max(dist, std::abs(s1[i] - s2[i]));
+            }
+            return true;
+        }
+    }
+};
+
+/// @brief The Chebyshev distance heuristic for Multi-Goal
+struct MultiGoalChebyshevHeuristic : public BaseMultiGoalHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
         // check id the states are the same size
@@ -145,6 +228,25 @@ struct MinkowskiHeuristic : public BaseSingleGoalHeuristic {
     }
 };
 
+/// @brief The Minkowski distance heuristic for Multi-Goal
+struct MultiGoalMinkowskiHeuristic : public BaseMultiGoalHeuristic {
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        // check id the states are the same size
+        if (s1.size() != s2.size()) {
+            std::cout << "Error: The states are not the same size!" << std::endl;
+            return false;
+        }
+        else {
+            for (int i{0}; i < s1.size(); i++) {
+                dist += pow(std::abs(s1[i] - s2[i]), 3);
+            }
+            dist = pow(dist, 1.0 / 3.0);
+            return true;
+        }
+    }
+};
+
 /// @brief The Octile distance heuristic
 struct OctileHeuristic : public BaseSingleGoalHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
@@ -164,8 +266,49 @@ struct OctileHeuristic : public BaseSingleGoalHeuristic {
     }
 };
 
+/// @brief The Octile distance heuristic for Multi-Goal
+struct MultiGoalOctileHeuristic : public BaseMultiGoalHeuristic {
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        // check id the states are the same size
+        if (s1.size() != s2.size()) {
+            std::cout << "Error: The states are not the same size!" << std::endl;
+            return false;
+        }
+        else {
+            for (int i{0}; i < s1.size(); i++) {
+                dist += std::abs(s1[i] - s2[i]);
+            }
+            dist = sqrt(2) * dist;
+            return true;
+        }
+    }
+};
+
 /// @brief The Zero distance heuristic
 struct ZeroHeuristic : public BaseSingleGoalHeuristic {
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        // check id the states are the same size
+        if (s1.size() != s2.size()) {
+            std::cout << "Error: The states are not the same size!" << std::endl;
+            return false;
+        }
+        else {
+            dist = 0;
+            return true;
+        }
+    }
+
+    bool getHeuristic(const StateType&, double& dist) override {
+        // check id the states are the same size
+        dist = 0;
+        return true;
+    }
+};
+
+/// @brief The Zero distance heuristic for Multi-Goal
+struct MultiGoalZeroHeuristic : public BaseMultiGoalHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
         // check id the states are the same size
@@ -221,6 +364,43 @@ private:
     std::vector<bool> valid_mask_;
 };
 
+
+/// @brief Robot joint angles distance heuristic for Multi-Goal
+struct MultiGoalJointAnglesHeuristic : public BaseMultiGoalHeuristic {
+
+    explicit MultiGoalJointAnglesHeuristic(const std::vector<bool>& valid_mask = std::vector<bool>()): valid_mask_(valid_mask) {}
+
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        // check id the states are the same size
+        if (s1.size() != s2.size()) {
+            std::cout << "Error: The states are not the same size!" << std::endl;
+            return false;
+        }
+        else {
+            dist = 0;
+            for (int i{0}; i < s1.size(); i++) {
+                //                    dist += std::min(std::abs(s1[i] - s2[i]),
+                //                                     2*M_PI - std::abs(s1[i] - s2[i]));
+                if (!valid_mask_.empty()) {
+                    if (!valid_mask_[i]){
+                        continue;
+                    }
+                }
+
+                double dj = (s1[i] - s2[i]);
+                dist += dj * dj;
+            }
+            dist = sqrt(dist);
+            return true;
+        }
+    }
+
+private:
+    /// @brief The mask of valid joints, any indices marked false will not be used in the computation.
+    std::vector<bool> valid_mask_;
+};
+
 /// @brief SE(3) distance heuristic
 struct SE3HeuristicRPY : public BaseSingleGoalHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
@@ -247,8 +427,60 @@ struct SE3HeuristicRPY : public BaseSingleGoalHeuristic {
     }
 };
 
+/// @brief SE(3) distance heuristic for Multi-Goal
+struct MultiGoalSE3HeuristicRPY : public BaseMultiGoalHeuristic {
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        // check id the states are the same size
+        if (s1.size() != s2.size()) {
+            std::cout << "Error: The states are not the same size!" << std::endl;
+            return false;
+        }
+        else {
+            // get the position of the states
+            Eigen::Vector3d pos1{s1[0], s1[1], s1[2]};
+            Eigen::Vector3d pos2{s2[0], s2[1], s2[2]};
+            // get the orientation of the states
+            // Transform from RPY to quaternion
+            Eigen::Quaterniond quat1 = Eigen::AngleAxisd(s1[5], Eigen::Vector3d::UnitZ()) * Eigen::AngleAxisd(s1[4], Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(s1[3], Eigen::Vector3d::UnitX());
+            Eigen::Quaterniond quat2 = Eigen::AngleAxisd(s2[5], Eigen::Vector3d::UnitZ()) * Eigen::AngleAxisd(s2[4], Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(s2[3], Eigen::Vector3d::UnitX());
+            // get the distance between the positions
+            dist = (pos1 - pos2).norm();
+            // get the distance between the orientations
+            dist += 2 * std::acos(std::min(1.0, std::abs(quat1.dot(quat2))));
+            return true;
+        }
+    }
+};
+
 /// @brief SE(3) distance heuristic
 struct SE3HeuristicQuat : public BaseSingleGoalHeuristic {
+    bool getHeuristic(const StateType& s1, const StateType& s2,
+                      double& dist) override {
+        // check id the states are the same size
+        if (s1.size() != s2.size()) {
+            std::cout << "Error: The states are not the same size!" << std::endl;
+            return false;
+        }
+        else {
+            // get the position of the states
+            Eigen::Vector3d pos1{s1[0], s1[1], s1[2]};
+            Eigen::Vector3d pos2{s2[0], s2[1], s2[2]};
+            // get the orientation of the states
+            // Transform from RPY to quaternion
+            Eigen::Quaterniond quat1{s1[6], s1[3], s1[4], s1[5]};
+            Eigen::Quaterniond quat2{s2[6], s2[3], s2[4], s2[5]};
+            // get the distance between the positions
+            dist = (pos1 - pos2).norm();
+            // get the distance between the orientations
+            dist += 2 * std::acos(std::min(1.0, std::abs(quat1.dot(quat2))));
+            return true;
+        }
+    }
+};
+
+/// @brief SE(3) distance heuristic for Multi-Goal
+struct MultiGoalSE3HeuristicQuat : public BaseMultiGoalHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
         // check id the states are the same size
@@ -352,5 +584,3 @@ struct LocalHeuristic : public BaseSingleGoalHeuristic {
 };
 
 }  // namespace ims
-
-#endif  // SEARCH_STANDARDHEU_HPP

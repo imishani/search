@@ -166,10 +166,24 @@ public:
     /// @brief Initialize the planner
     /// @param action_space_ptr The action space
     /// @param starts Vector of start states
+    /// @param goal_constraint The goal constraint
+    void initializePlanner(const std::shared_ptr<SubcostActionSpace>& action_space_ptr,
+                           const std::vector<StateType>& starts,
+                           const GoalConstraint& goal_constraint);
+
+    inline void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                                  const std::vector<StateType>& starts,
+                                  const GoalConstraint& goal_constraint) override { throw std::runtime_error("FocalSearch::initializePlanner() called with an ActionSpace that is not a SubcostActionSpace."); }
+
+
+    /// @brief Initialize the planner
+    /// @param action_space_ptr The action space
+    /// @param starts Vector of start states
     /// @param goals Vector of goal states
     virtual void initializePlanner(const std::shared_ptr<SubcostActionSpace>& action_space_ptr,
                                    const std::vector<StateType>& starts,
                                    const std::vector<StateType>& goals);
+
     inline void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                   const std::vector<StateType>& starts,
                                   const std::vector<StateType>& goals) override { throw std::runtime_error("FocalSearch::initializePlanner() called with an ActionSpace that is not a SubcostActionSpace."); }

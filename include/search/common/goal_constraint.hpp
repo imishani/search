@@ -1,9 +1,38 @@
-//
-// Created by itamar on 6/19/24.
-//
+/*
+ * Copyright (C) 2023, Itamar Mishani
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of the Carnegie Mellon University nor the names of its
+ *       contributors may be used to endorse or promote products derived from
+ *       this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+/*!
+ * \file   goal_constraint.hpp
+ * \author Itamar Mishani (imishani@cmu.edu)
+ * \date   6/19/24
+ */
 
-#ifndef SEARCH_SEARCH_INCLUDE_SEARCH_COMMON_GOAL_CONSTRAINT_HPP_
-#define SEARCH_SEARCH_INCLUDE_SEARCH_COMMON_GOAL_CONSTRAINT_HPP_
+#pragma once
 
 #include "search/common/types.hpp"
 #include "search/action_space/action_space.hpp"
@@ -16,6 +45,7 @@ enum GoalType
     SINGLE_SEARCH_STATE_GOAL,
     SINGLE_SEARCH_STATE_MAPPED_GOAL,
     MULTI_SEARCH_STATE_GOAL,
+    MULTI_SEARCH_STATE_MAPPED_GOAL,
     USER_GOAL_CONSTRAINT_FN,
     NUMBER_OF_GOAL_TYPES
 };
@@ -25,11 +55,19 @@ using GoalConstraintFn = bool (*)(void* user,
                                   int state_id);
 
 inline
-bool checkGoalSingleSearchState(void* user,
-                                const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                int state_id) {
+bool singleGoalConstraint(void* user,
+                          const std::shared_ptr<ActionSpace>& action_space_ptr,
+                          int state_id) {
     int goal_state_id = *static_cast<int*>(user);
     return state_id == goal_state_id;
+}
+
+inline
+bool multiGoalConstraint(void* user,
+                          const std::shared_ptr<ActionSpace>& action_space_ptr,
+                          int state_id) {
+    std::vector<int> goal_state_id = *static_cast<std::vector<int>*>(user);
+    return std::find(goal_state_id.begin(), goal_state_id.end(), state_id) != goal_state_id.end();
 }
 
 inline
@@ -58,4 +96,3 @@ struct GoalConstraint {
 
 }
 
-#endif //SEARCH_SEARCH_INCLUDE_SEARCH_COMMON_GOAL_CONSTRAINT_HPP_
