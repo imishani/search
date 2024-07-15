@@ -33,6 +33,7 @@
 */
 #pragma once
 
+#include <mutex>
 #include <vector>
 #include <limits>
 #include <unordered_map>
@@ -73,6 +74,7 @@ using ParamsType = std::unordered_map<std::string, double>;
 using TimeType = int;
 const TimeType INF_TIME_TYPE = std::numeric_limits<TimeType>::max() / 2;
 using SafeIntervalType = std::pair<TimeType, TimeType>;
+using LockType = std::mutex;
 
 enum PARENT_TYPE {
     START = -1,
