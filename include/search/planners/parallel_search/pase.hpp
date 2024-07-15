@@ -42,7 +42,7 @@
 #include <utility>
 
 // project includes
-#include <search/parallel_search/parallel_search.hpp>
+#include <search/planners/parallel_search/parallel_search.hpp>
 
 namespace ims {
 
@@ -57,7 +57,7 @@ class Pase : public ParallelSearch {
  public:
   /// @brief Constructor
   /// @param params The parameters
-  explicit Pase(const ParallelSearchParams& params) = 0;
+  explicit Pase(const ParallelSearchParams& params);
 
   /// @brief Destructor
   ~Pase() = default;
@@ -68,19 +68,19 @@ class Pase : public ParallelSearch {
   /// @param goals Vector of goal states
   void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                          const std::vector<StateType>& starts,
-                         const std::vector<StateType>& goals) = 0;
+                         const std::vector<StateType>& goals);
 
   /// @brief Initialize the planner
   /// @param action_space_ptr The action space
   /// @param start The start state
   /// @param goal The goal state
   void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                         const StateType& start, const StateType& goal) = 0;
+                         const StateType& start, const StateType& goal);
 
   /// @brief plan a path
   /// @param path The path
   /// @return if the plan was successful or not
-  bool plan(std::vector<StateType>& path) = 0;
+  bool plan(std::vector<StateType>& path);
 
   /// @brief Reset the planning data
   void resetPlanningData() override;
