@@ -153,91 +153,108 @@ public:
     /// @brief To comply with the ExperienceAcceleratedActionSpace interface.
     /// @param state_id The state to get the valid experience subpaths for.
     /// @param subpaths The vector of subpaths -- to be updated with the subpaths.
-    inline void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs,  std::vector<std::vector<double>>& subpath_transition_subcosts) {
+    inline void getValidExperienceSubpathsFromState(int state_id,
+                                                    std::vector<std::vector<std::vector<int>>>&    experience_seq_subpaths,
+                                                    std::vector<std::vector<std::vector<double>>>& experience_seq_subpaths_transition_costs,
+                                                    std::vector<std::vector<std::vector<double>>>& experience_seq_paths_transition_subcosts) {
         // Get the state configuration that corresponds to the state id.
         auto query_robot_state = states_[state_id];
 
         // Get the state without time.
         StateType state_val_wo_time = {query_robot_state->state.begin(), query_robot_state->state.end() - 1};
 
-        // Get all the experiences that this state is part of. The subexperiences are suffixes of stored experiences, all stored with the query state at the start.
-        std::vector<PathType> subexperiences;
-        std::vector<std::vector<double>> subexperiences_transition_costs;
+        // Get all the experiences that this state is part of. The sub-experiences are suffixes of stored experiences, all stored with the query state at the start.
+        std::vector<SeqPathType> subexperiences;
+        std::vector<SeqPathTransitionCostsType> subexperiences_transition_costs;
 
         experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs);
 
         // Retime the subexperiences to start at the time of the query state.
         auto query_state_time = (TimeType)query_robot_state->state.back();
-        for (auto& subexperience : subexperiences) {
-            for (int i = 0; i < subexperience.size(); i++) {
-                StateType& state = subexperience[i];
-                state.push_back(query_state_time + i); // NOTE(yoraish): assumes integer time increments.
+        for (int subexperience_ix {0}; subexperience_ix < subexperiences.size(); subexperience_ix++){
+            SeqPathType& subexperience = subexperiences[subexperience_ix];
+            SeqPathTransitionCostsType& subexperience_transition_costs = subexperiences_transition_costs[subexperience_ix];
+            // The time of the first state in the first sequence is the time of the query state.
+            TimeType t_current = query_state_time;
+            // Got through the sequences and propagate the time.
+            for (int seq_ix{0}; seq_ix < subexperience.size(); seq_ix++){
+                PathType& seq = subexperience[seq_ix];
+                std::vector<double>& seq_transition_costs = subexperience_transition_costs[seq_ix];
+                for (int state_ix{0}; state_ix < seq.size(); state_ix++){
+                    // The first state gets the current time.
+                    if (state_ix == 0){
+                        seq[state_ix].push_back(t_current);
+                    }
+                    else{
+                        // The rest get the current time plus the increment.
+                        seq[state_ix].push_back(t_current + subexperience_transition_costs[seq_ix][state_ix - 1]);
+                        // Update the current time.
+                        t_current = seq[state_ix].back();
+                    }
+                }
             }
         }
 
         // Get a valid prefix for each of the subexperiences.
         for (int i = 0; i < subexperiences.size(); i++) {
             // Get the subexperience and costs.
-            PathType& subexperience = subexperiences[i];
-            std::vector<double>& subexperience_transition_costs = subexperiences_transition_costs[i];
+            SeqPathType& subexperience = subexperiences[i];
+            SeqPathTransitionCostsType & subexperience_transition_costs = subexperiences_transition_costs[i];
 
-            // Get the prefix.
-            std::vector<StateType> valid_states_for_reuse;
-            std::vector<int> valid_state_ids_for_reuse;
-            std::vector<double> valid_states_for_reuse_costs;
-            std::vector<double> valid_states_for_reuse_subcosts;
-
-            for (int state_ix = 0; state_ix < subexperience.size() - 1; state_ix++) {
-                // Get the state.
-                StateType robot_state = subexperience[state_ix];
-                StateType next_robot_state = subexperience[state_ix + 1];
-
-                // Check if the state is valid w.r.t constraints.
-                if (isSatisfyingAllConstraints(robot_state, next_robot_state)) {
-                    valid_states_for_reuse.push_back(robot_state);
-
-                    // Create a state_id if one not already exists.
-                    int valid_state_id = getOrCreateRobotStateNonGoal(robot_state);
-                    valid_state_ids_for_reuse.push_back(valid_state_id);
-
-                    // Compute the transition subcosts, as induced by the conflicts that the transition would cause.
-                    double transition_conflict_cost = 0;
-                    computeTransitionConflictsCost(robot_state, next_robot_state, transition_conflict_cost);
-
-                    if (transition_conflict_cost > 0) {
-                        // If the transition conflict cost is non zero, then we should not add any more states to the prefix.
-                        break;
+            // Get the prefix. We do this by walking through the sequence paths and adding all sequences that are valid w.r.t constraints.
+            SeqPathType seq_path_valid_for_reuse;
+            SeqPathTransitionCostsType seq_path_valid_for_reuse_transition_costs;
+            SeqPathTransitionCostsType seq_path_valid_for_reuse_transition_subcosts;
+            std::vector<std::vector<int>> seq_path_state_ids_valid_for_reuse;
+            for (int seq_ix = 0; seq_ix < subexperience.size(); seq_ix++){
+                PathType& seq = subexperience[seq_ix];
+                std::vector<double>& seq_transition_costs = subexperience_transition_costs[seq_ix];
+                std::vector<int> seq_state_ids;
+                std::vector<double> seq_transition_subcosts;
+                bool is_seq_valid = true;
+                for (int state_ix = 0; state_ix < seq.size() - 1; state_ix++){
+                    const StateType & robot_state = seq[state_ix];
+                    const StateType & next_robot_state = seq[state_ix + 1];
+                    if (isSatisfyingAllConstraints(robot_state, next_robot_state)){
+                        seq_state_ids.push_back(getOrCreateRobotStateNonGoal(robot_state));
+                        double transition_conflict_cost = 0;
+                        computeTransitionConflictsCost(robot_state, next_robot_state, transition_conflict_cost);
+                        if (transition_conflict_cost > 0){
+                            is_seq_valid = false;
+                            break;
+                        }
+                        else{
+                            seq_transition_subcosts.push_back(transition_conflict_cost);
+                        }
                     }
                     else{
-                        // Keep track of the transition costs.
-                        valid_states_for_reuse_costs.push_back(subexperience_transition_costs[state_ix]);
-                        valid_states_for_reuse_subcosts.push_back(transition_conflict_cost);
+                        is_seq_valid = false;
+                        break;
                     }
+                }
+                if (is_seq_valid && !seq_state_ids.empty()){
+                    // Add the last state id to the sequence and a zero subcost cost.
+                    seq_state_ids.push_back(getOrCreateRobotStateNonGoal(seq.back()));
+                    seq_transition_subcosts.push_back(0.0);
 
-
-                } else {
-                    // If not, break and add the data to our returned objects.
+                    seq_path_state_ids_valid_for_reuse.push_back(seq_state_ids);
+                    seq_path_valid_for_reuse_transition_costs.push_back(seq_transition_costs);
+                    seq_path_valid_for_reuse_transition_subcosts.push_back(seq_transition_subcosts);
+                }
+                else{
                     break;
                 }
             }
 
             // If we got here, then we are done processing the experience. We found a prefix that is valid w.r.t constraints. (Could be empty, partial, or full.)
-
-            // The last transition cost is zero.
-            if (!valid_states_for_reuse_costs.empty()) {
-                valid_states_for_reuse_costs.back() = 0.0;
-                valid_states_for_reuse_subcosts.back() = 0.0;
-            }
-
-            if (valid_state_ids_for_reuse.empty()) {
+            if (seq_path_state_ids_valid_for_reuse.empty()) {
                 // If the prefix is empty, then we should not add it to the open list.
                 continue;
             }
 
-            subpaths.push_back(valid_state_ids_for_reuse);
-            subpath_transition_costs.push_back(valid_states_for_reuse_costs);
-            subpath_transition_subcosts.push_back(valid_states_for_reuse_subcosts);
-
+            experience_seq_subpaths.push_back(seq_path_state_ids_valid_for_reuse);
+            experience_seq_subpaths_transition_costs.push_back(seq_path_valid_for_reuse_transition_costs);
+            experience_seq_paths_transition_subcosts.push_back(seq_path_valid_for_reuse_transition_subcosts);
         }
     }
 
@@ -245,77 +262,80 @@ public:
     /// @brief To comply with the ExperienceAcceleratedActionSpace interface.
     /// @param state_id The state to get the valid experience subpaths for.
     /// @param subpaths The vector of subpaths -- to be updated with the subpaths.
-    inline void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs) override {
-        // Get the state configuration that corresponds to the state id.
-        auto query_robot_state = states_[state_id];
-
-        // Get the state without time.
-        StateType state_val_wo_time = {query_robot_state->state.begin(), query_robot_state->state.end() - 1};
-
-        // Get all the experiences that this state is part of. The subexperiences are suffixes of stored experiences, all stored with the query state at the start.
-        std::vector<PathType> subexperiences;
-        std::vector<std::vector<double>> subexperiences_transition_costs;
-
-        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs);
-
-        // Retime the subexperiences to start at the time of the query state.
-        auto query_state_time = (TimeType)query_robot_state->state.back();
-        for (auto& subexperience : subexperiences) {
-            for (int i = 0; i < subexperience.size(); i++) {
-                StateType& state = subexperience[i];
-                state.push_back(query_state_time + i); // NOTE(yoraish): assumes integer time increments.
-            }
-        }
-
-
-        // Get a valid prefix for each of the subexperiences.
-        for (int i = 0; i < subexperiences.size(); i++) {
-            // Get the subexperience.
-            PathType& subexperience = subexperiences[i];
-            std::vector<double>& subexperience_transition_costs = subexperiences_transition_costs[i];
-
-            // Get the prefix.
-            std::vector<StateType> valid_states_for_reuse;
-            std::vector<int> valid_state_ids_for_reuse;
-            std::vector<double> valid_states_for_reuse_costs;
-
-            for (int state_ix = 0; state_ix < subexperience.size() - 1; state_ix++) {
-                // Get the state.
-                StateType robot_state = subexperience[state_ix];
-                StateType next_robot_state = subexperience[state_ix + 1];
-
-                // Check if the state is valid w.r.t constraints.
-                if (isSatisfyingAllConstraints(robot_state, next_robot_state)) {
-                    valid_states_for_reuse.push_back(robot_state);
-
-                    // Create a state_id if one not already exists.
-                    int valid_state_id = getOrCreateRobotStateNonGoal(robot_state);
-                    valid_state_ids_for_reuse.push_back(valid_state_id);
-
-                    // Keep track of the transition costs.
-                    valid_states_for_reuse_costs.push_back(subexperience_transition_costs[state_ix]);
-
-                } else {
-                    // If not, break and add the data to our returned objects.
-                    break;
-                }
-            }
-
-            // If we got here, then we are done processing the experience. We found a prefix that is valid w.r.t constraints. (Could be empty, partial, or full.)
-
-            // The last transition cost is zero.
-            if (!valid_states_for_reuse_costs.empty()) {
-                valid_states_for_reuse_costs.back() = 0.0;
-            }
-
-            if (valid_state_ids_for_reuse.empty()) {
-                // If the prefix is empty, then we should not add it to the open list.
-                continue;
-            }
-
-            subpaths.push_back(valid_state_ids_for_reuse);
-            subpath_transition_costs.push_back(valid_states_for_reuse_costs);
-        }
+    inline void getValidExperienceSubpathsFromState(int state_id,
+                                             std::vector<std::vector<std::vector<int>>>& experience_seq_subpaths,
+                                             std::vector<std::vector<std::vector<double>>>& experience_seq_subpaths_transition_costs) override {
+        throw std::runtime_error("getValidExperienceSubpathsFromState not implemented for SubcostExperienceAcceleratedConstrainedActionSpace");
+//        // Get the state configuration that corresponds to the state id.
+//        auto query_robot_state = states_[state_id];
+//
+//        // Get the state without time.
+//        StateType state_val_wo_time = {query_robot_state->state.begin(), query_robot_state->state.end() - 1};
+//
+//        // Get all the experiences that this state is part of. The subexperiences are suffixes of stored experiences, all stored with the query state at the start.
+//        std::vector<PathType> subexperiences;
+//        std::vector<std::vector<double>> subexperiences_transition_costs;
+//
+//        experiences_collective_ptr_->getSubExperiencesFromState(state_val_wo_time, subexperiences, subexperiences_transition_costs);
+//
+//        // Retime the subexperiences to start at the time of the query state.
+//        auto query_state_time = (TimeType)query_robot_state->state.back();
+//        for (auto& subexperience : subexperiences) {
+//            for (int i = 0; i < subexperience.size(); i++) {
+//                StateType& state = subexperience[i];
+//                state.push_back(query_state_time + i); // NOTE(yoraish): assumes integer time increments.
+//            }
+//        }
+//
+//
+//        // Get a valid prefix for each of the subexperiences.
+//        for (int i = 0; i < subexperiences.size(); i++) {
+//            // Get the subexperience.
+//            PathType& subexperience = subexperiences[i];
+//            std::vector<double>& subexperience_transition_costs = subexperiences_transition_costs[i];
+//
+//            // Get the prefix.
+//            std::vector<StateType> valid_states_for_reuse;
+//            std::vector<int> valid_state_ids_for_reuse;
+//            std::vector<double> valid_states_for_reuse_costs;
+//
+//            for (int state_ix = 0; state_ix < subexperience.size() - 1; state_ix++) {
+//                // Get the state.
+//                StateType robot_state = subexperience[state_ix];
+//                StateType next_robot_state = subexperience[state_ix + 1];
+//
+//                // Check if the state is valid w.r.t constraints.
+//                if (isSatisfyingAllConstraints(robot_state, next_robot_state)) {
+//                    valid_states_for_reuse.push_back(robot_state);
+//
+//                    // Create a state_id if one not already exists.
+//                    int valid_state_id = getOrCreateRobotStateNonGoal(robot_state);
+//                    valid_state_ids_for_reuse.push_back(valid_state_id);
+//
+//                    // Keep track of the transition costs.
+//                    valid_states_for_reuse_costs.push_back(subexperience_transition_costs[state_ix]);
+//
+//                } else {
+//                    // If not, break and add the data to our returned objects.
+//                    break;
+//                }
+//            }
+//
+//            // If we got here, then we are done processing the experience. We found a prefix that is valid w.r.t constraints. (Could be empty, partial, or full.)
+//
+//            // The last transition cost is zero.
+//            if (!valid_states_for_reuse_costs.empty()) {
+//                valid_states_for_reuse_costs.back() = 0.0;
+//            }
+//
+//            if (valid_state_ids_for_reuse.empty()) {
+//                // If the prefix is empty, then we should not add it to the open list.
+//                continue;
+//            }
+//
+//            subpaths.push_back(valid_state_ids_for_reuse);
+//            subpath_transition_costs.push_back(valid_states_for_reuse_costs);
+//        }
     }
 
     [[deprecated("Use the new getSuccessorsExperienceAccelerated (for sequences) instead.")]]

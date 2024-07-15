@@ -101,7 +101,8 @@ namespace ims{
         /// @brief Add a connected subpath to the open list.
         /// @param states The states of the subpath
         /// @note This function assumes that each state in the subpath can have its parent set to the previous state.
-        void addValidSubpathToOpenList(const std::vector<int> & state_ids, const std::vector<double> & transition_costs);
+        void addValidSubpathToOpenList(const std::vector<std::vector<int>> & seq_paths_state_ids,
+                                                              const std::vector<std::vector<double>> & seq_paths_transition_costs);
 
     protected:
 

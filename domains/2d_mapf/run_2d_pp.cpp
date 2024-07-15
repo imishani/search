@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
     planner.initializePlanner(action_spaces, start_state_vals, goal_state_vals);
 
     // Plan.
-    ims::MultiAgentPaths paths;
+    MultiAgentPaths paths;
     planner.plan(paths);
     
     if (paths.empty()){

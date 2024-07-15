@@ -101,7 +101,7 @@ namespace ims{
         /// @param path The path
         /// @return if the plan was successful or not
         using FocalSearch::plan;
-        bool plan(std::vector<PathType>& seqs_path, std::vector<std::vector<double>>& seqs_transition_costs) override;
+        bool plan(std::vector<PathType>& seqs_path, SeqPathTransitionCostsType & seqs_transition_costs) override;
 
         void setStateVals(int state_id, int parent_id, double cost, double subcost) override;
         void setStateVals(int state_id,

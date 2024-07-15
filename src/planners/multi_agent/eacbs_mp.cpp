@@ -36,40 +36,40 @@
 #include <search/planners/multi_agent/eacbs_mp.hpp>
 #include <search/planners/multi_agent/eacbs.hpp>
 
-ims::EACBSMP::EACBSMP(const ims::EACBSMPParams& params) : params_(params), EACBS(params) {}
-
-std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::EACBSMP::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
-    std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> agent_constraints;
-
-    // Iterate through the conflicts and convert them to constraints.
-    for (auto& conflict_ptr : conflicts) {
-        // Create a new constraint given the conflict.
-        if (conflict_ptr->type == ConflictType::VERTEX) {
-            auto* vertex_conflict_ptr = dynamic_cast<VertexConflict*>(conflict_ptr.get());
-            // Check if the conversion succeeded.
-            if (vertex_conflict_ptr == nullptr) {
-                throw std::runtime_error("Conflict is a vertex conflict, but could not be converted to a VertexConflict.");
-            }
-
-            // For each affected agent (2, in EACBSMP), create a new constraint, and a search state for each as well.
-            ims::conflict_conversions::vertexConflictToVertexStateAvoidanceConstraints(vertex_conflict_ptr, agent_constraints);
-        }
-
-        // Otherwise, if the conflict is an edge conflict, add an edge constraint to each of the two affected agents.
-        else if (conflict_ptr->type == ConflictType::EDGE) {
-            auto* edge_conflict_ptr = dynamic_cast<EdgeConflict*>(conflict_ptr.get());
-
-            // Check if the conversion succeeded.
-            if (edge_conflict_ptr == nullptr) {
-                throw std::runtime_error("Conflict is an edge conflict, but could not be converted to an EdgeConflict.");
-            }
-            ims::conflict_conversions::edgeConflictToEdgeStateAvoidanceConstraints(edge_conflict_ptr, agent_constraints);
-        }
-
-        else {
-            throw std::runtime_error("Conflict type " + std::to_string(static_cast<int>(conflict_ptr->type)) + " is not supported by EACBSMP.");
-        }
-    }
-
-    return agent_constraints;
-}
+//ims::EACBSMP::EACBSMP(const ims::EACBSMPParams& params) : params_(params), EACBS(params) {}
+//
+//std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::EACBSMP::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
+//    std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> agent_constraints;
+//
+//    // Iterate through the conflicts and convert them to constraints.
+//    for (auto& conflict_ptr : conflicts) {
+//        // Create a new constraint given the conflict.
+//        if (conflict_ptr->type == ConflictType::VERTEX) {
+//            auto* vertex_conflict_ptr = dynamic_cast<VertexConflict*>(conflict_ptr.get());
+//            // Check if the conversion succeeded.
+//            if (vertex_conflict_ptr == nullptr) {
+//                throw std::runtime_error("Conflict is a vertex conflict, but could not be converted to a VertexConflict.");
+//            }
+//
+//            // For each affected agent (2, in EACBSMP), create a new constraint, and a search state for each as well.
+//            ims::conflict_conversions::vertexConflictToVertexStateAvoidanceConstraints(vertex_conflict_ptr, agent_constraints);
+//        }
+//
+//        // Otherwise, if the conflict is an edge conflict, add an edge constraint to each of the two affected agents.
+//        else if (conflict_ptr->type == ConflictType::EDGE) {
+//            auto* edge_conflict_ptr = dynamic_cast<EdgeConflict*>(conflict_ptr.get());
+//
+//            // Check if the conversion succeeded.
+//            if (edge_conflict_ptr == nullptr) {
+//                throw std::runtime_error("Conflict is an edge conflict, but could not be converted to an EdgeConflict.");
+//            }
+//            ims::conflict_conversions::edgeConflictToEdgeStateAvoidanceConstraints(edge_conflict_ptr, agent_constraints);
+//        }
+//
+//        else {
+//            throw std::runtime_error("Conflict type " + std::to_string(static_cast<int>(conflict_ptr->type)) + " is not supported by EACBSMP.");
+//        }
+//    }
+//
+//    return agent_constraints;
+//}

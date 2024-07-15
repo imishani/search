@@ -251,7 +251,7 @@ public:
         return getSuccessors(curr_state_ind, seqs_state_ids, seqs_transition_costs);
     }
 
-    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths,
+    void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths,
                            std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs,
                            const std::vector<ims::ConflictType>& conflict_types, int max_conflicts,
                            const std::vector<std::string> & names, TimeType time_start, TimeType time_end) override {
@@ -541,7 +541,7 @@ public:
         return cost;
     }
 
-    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths,
+    void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths,
                            std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs,
                            const std::vector<ims::ConflictType>& conflict_types,
                            int max_conflicts, const std::vector<std::string> & names,

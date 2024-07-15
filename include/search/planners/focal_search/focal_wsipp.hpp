@@ -151,7 +151,7 @@ namespace ims{
 
         /// @brief Check if a sequence of states satisfy constraints.
         /// @param edge_robot_cfg_states The sequence of states. Each is a StateType with the last element being time.
-        bool isTimedPathSatisfyingAllConstraints(const std::vector<StateType>& edge_robot_cfg_states);
+        bool isTimedPathSatisfyingAllConstraints(const PathType& edge_robot_cfg_states);
 
         /// @brief Get the subcost incurred by a timed sequence of states.
         /// @param edge_robot_cfg_states The sequence of states.

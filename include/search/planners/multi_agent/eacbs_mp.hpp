@@ -81,26 +81,26 @@ using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 /// @class EACBSMP class.
 /// @brief The EACBSMP algorithm.
 class EACBSMP : public EACBS {
-private:    
-    friend class EAECBS;
-public:
-    /// @brief Constructor
-    /// @param params The parameters
-    explicit EACBSMP(const EACBSMPParams& params);
-
-    /// @brief Destructor
-    ~EACBSMP() override = default;
-
-protected:
-
-    /// @brief Get constraints from conflicts. This is where this algorithm differs from CBS. It creates state-avoidance constraints (avoid another agent at their specified state and time), as opposed to a negative costraint on the ego robot.
-    /// @param conflicts 
-    /// @return 
-    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
-
-    /// Member variables.
-    // The search parameters.
-    EACBSMPParams params_;
+//private:
+//    friend class EAECBS;
+//public:
+//    /// @brief Constructor
+//    /// @param params The parameters
+//    explicit EACBSMP(const EACBSMPParams& params);
+//
+//    /// @brief Destructor
+//    ~EACBSMP() override = default;
+//
+//protected:
+//
+//    /// @brief Get constraints from conflicts. This is where this algorithm differs from CBS. It creates state-avoidance constraints (avoid another agent at their specified state and time), as opposed to a negative costraint on the ego robot.
+//    /// @param conflicts
+//    /// @return
+//    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
+//
+//    /// Member variables.
+//    // The search parameters.
+//    EACBSMPParams params_;
 };
 
 }  // namespace ims

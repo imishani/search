@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
     std::cout << "Constructing planner..." << std::endl;
     bool useECBS = (vm["high_level_focal_suboptimality"].as<double>() > 1.0);
 
-    ims::MultiAgentPaths paths;
+    MultiAgentPaths paths;
     PlannerStats stats;
 
     if (!useECBS) {

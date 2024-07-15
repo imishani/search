@@ -101,6 +101,7 @@ int main(int argc, char** argv) {
     // Construct the parameters.
     ims::EAECBSParams params;
     params.weight_low_level_heuristic = 20.0;
+    params.verbose = true;
     params.low_level_heuristic_ptrs;
     for (int i {0}; i < num_agents; i++){
         params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
@@ -153,7 +154,7 @@ int main(int argc, char** argv) {
     planner.initializePlanner(action_spaces, start_state_vals, goal_state_vals);
 
     // Plan.
-    ims::MultiAgentPaths paths;
+    MultiAgentPaths paths;
     planner.plan(paths);
     
     if (paths.empty()){

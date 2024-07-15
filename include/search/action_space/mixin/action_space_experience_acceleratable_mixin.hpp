@@ -66,13 +66,17 @@ public:
     void addPathExperienceToExperiencesCollective(const std::shared_ptr<PathExperience>& experience) {
         experiences_collective_ptr_->addPathExperience(experience);
     }
-
+    /// @brief Add a timed path experience to the experiences collective. This strips the states from their time dimension in all sequences of the path.
+    /// \param experience
     void addTimedPathExperienceToExperiencesCollective(const std::shared_ptr<PathExperience>& experience) {
-        PathType path_wo_time = experience->getPath(); // A copy of the path that will be modified to remove the time component.
-        for (auto& state : path_wo_time) {
-            state.pop_back();
+        SeqPathType seq_path_wo_time = experience->getSeqPath(); // A copy of the path that will be modified to remove the time component.
+        for (auto& seq : seq_path_wo_time) {
+            for (auto& state : seq) {
+                state.pop_back();
+            }
         }
-        std::shared_ptr<PathExperience> experience_wo_time = std::make_shared<PathExperience>(path_wo_time, experience->getPathTransitionCosts());
+
+        std::shared_ptr<PathExperience> experience_wo_time = std::make_shared<PathExperience>(seq_path_wo_time, experience->getSeqPathTransitionCosts());
         experiences_collective_ptr_->addPathExperience(experience_wo_time);
     }
 
@@ -86,7 +90,9 @@ public:
     }
 
     /// @brief Get subpaths that are valid for the given state. These are all the suffixes of the path experiences that include the given state, starting from this state. 
-    virtual void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs) = 0;
+    virtual void getValidExperienceSubpathsFromState(int state_id,
+                                             std::vector<std::vector<std::vector<int>>>& experience_seq_subpaths,
+                                             std::vector<std::vector<std::vector<double>>>& experience_seq_subpaths_transition_costs) = 0;
 
     /// @brief Get successors with experience acceleration.
     /// @param state_id The state id.

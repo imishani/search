@@ -65,7 +65,10 @@ const double PI = 3.14159265358979323846;
 using StateType = std::vector<double>;
 using MultiAgentStateType = std::unordered_map<int, StateType>;
 using PathType = std::vector<StateType>;
-using SequencePathType = std::vector<std::vector<StateType>>;
+using SeqPathType = std::vector<std::vector<StateType>>;
+using SeqPathTransitionCostsType = std::vector<std::vector<double>>;
+using MultiAgentSeqPaths = std::map<int, SeqPathType>;
+using MultiAgentSeqPathsTransitionCosts = std::map<int, SeqPathTransitionCostsType>;
 /// @brief An object for mapping [agent_ids][timestamp] to a state.
 using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
 using Action = std::vector<double>;

@@ -189,7 +189,7 @@ bool ims::FocalSearch::plan(std::vector<PathType>& seqs_path, std::vector<std::v
             getTimeFromStart(stats_.time);
             reconstructPath(seqs_path, seqs_transition_costs);
             PathType path;
-            flattenSequencePathToPathType(seqs_path, path);
+            flattenSeqPathToPathType(seqs_path, path);
             stats_.cost = state->g;
             stats_.path_length = (int)path.size();
             stats_.num_generated = (int)action_space_ptr_->states_.size();
@@ -297,17 +297,17 @@ void ims::FocalSearch::reconstructPath(std::vector<PathType>& seq_states_to_chil
             double rounded_edge_from_parent_total_cost = std::round(edge_from_parent_total_cost * 1000) / 1000;
             double rounded_g_difference =
                         std::round((state_->g - getSearchState(state_->parent_id)->g) * 1000) / 1000;
-            if (params_.verbose) {
-                if (rounded_edge_from_parent_total_cost != rounded_g_difference) {
-                    std::cout << RED << "Edge from parent total cost: " << edge_from_parent_total_cost << std::endl;
-                    std::cout << "State g: " << state_->g << std::endl;
-                    std::cout << "Parent g: " << getSearchState(state_->parent_id)->g << std::endl;
-                    std::cout << "Expected: " << state_->g - getSearchState(state_->parent_id)->g << " and got "
-                              << edge_from_parent_total_cost << RESET << std::endl;
-                }
+            if (rounded_edge_from_parent_total_cost != rounded_g_difference){
+                printf("Edge from parent total cost: %f and rounded g difference: %f\n", edge_from_parent_total_cost, rounded_g_difference);
+                std::cout << RED << "Parent state: " << action_space_ptr_->getRobotState(state_->parent_id)->state << std::endl;
+                std::cout << "Current state: " << action_space_ptr_->getRobotState(state_->state_id)->state << std::endl;
+                std::cout << "Edge from parent total cost: " << edge_from_parent_total_cost << std::endl;
+                std::cout << "State g: " << state_->g << std::endl;
+                std::cout << "Parent g: " << getSearchState(state_->parent_id)->g << std::endl;
+                std::cout << "Expected: " << state_->g - getSearchState(state_->parent_id)->g << " and got "
+                          << edge_from_parent_total_cost << RESET << std::endl;
+                throw std::runtime_error("The edge from parent total cost is not equal to the difference between the g values of the parent and the current state.");
             }
-            assert(rounded_edge_from_parent_total_cost == rounded_g_difference);
-
             state_ = getSearchState(state_->parent_id);
         }
         else{

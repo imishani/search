@@ -108,10 +108,9 @@ inline void flattenSequencePathToPathType(const std::vector<PathType>& seq_state
         std::cout << "transition_costs: " << transition_costs << std::endl;
         std::cout << "====================" << std::endl;
 }
-inline void flattenSequencePathToPathType(const std::vector<PathType>& seq_states_to_child,
-                                          PathType& path) {
+inline void flattenSeqPathToPathType(const std::vector<PathType>& seq_states_to_child,
+                                     PathType& path) {
     path.clear();
-    path.push_back(seq_states_to_child[0].front());
     for (size_t i {0}; i < seq_states_to_child.size(); ++i){
         path.insert(path.end(),
                     seq_states_to_child[i].begin(),
@@ -120,10 +119,10 @@ inline void flattenSequencePathToPathType(const std::vector<PathType>& seq_state
     // Add the last element of the last sequence.
     path.push_back(seq_states_to_child.back().back());
 }
-inline void flattenSequencePathsToMultiAgentPaths(const std::unordered_map<int, std::vector<PathType>>& seq_states_to_child,
+inline void flattenMultiAgentSeqPathsToMultiAgentPaths(const MultiAgentSeqPaths & seq_states_to_child,
                                           MultiAgentPaths& paths) {
     for (const std::pair<int, std::vector<PathType>>& agent_seq : seq_states_to_child){
-        flattenSequencePathToPathType(agent_seq.second, paths[agent_seq.first]);
+        flattenSeqPathToPathType(agent_seq.second, paths[agent_seq.first]);
     }
 }
 inline void flattenSequencePathsToMultiAgentPaths(const std::unordered_map<int, std::vector<PathType>>& seq_states_to_child,
@@ -135,5 +134,48 @@ inline void flattenSequencePathsToMultiAgentPaths(const std::unordered_map<int, 
                                       seq_transition_costs_to_child.at(agent_seq.first),
                                       paths[agent_seq.first],
                                       paths_transition_costs[agent_seq.first]);
+    }
+}
+
+/// @brief Given a path made up of sequences, each connecting a parent to a child with some intermediate states (all with the last element being their time),
+/// assign the time component of the last element in the last sequence to be the cost of the entire path.
+/// \param seq_path
+/// \param seq_path_transition_costs
+inline void setLastStateTimeInTimedSequencePath(SeqPathType & seq_path, const SeqPathTransitionCostsType & seq_path_transition_costs){
+    double total_cost = 0;
+    for (size_t i {0}; i < seq_path_transition_costs.size(); ++i){
+        total_cost += vectorSum(seq_path_transition_costs[i]);
+    }
+    seq_path.back().back().back() = total_cost;
+}
+
+inline double computeTotalCostFromSeqPathsTransitionCosts(const SeqPathTransitionCostsType & seq_path_transition_costs){
+    double total_costs = 0;
+    for (const std::vector<double>& transition_costs : seq_path_transition_costs){
+        total_costs += vectorSum(transition_costs);
+    }
+    return total_costs;
+}
+
+inline double computeTotalCostFromMultiAgentSeqPathsTransitionCosts(const MultiAgentSeqPathsTransitionCosts & seq_path_transition_costs){
+    double total_costs = 0;
+    for (const std::pair<int, SeqPathTransitionCostsType>& agent_seq_path_transition_costs : seq_path_transition_costs){
+        total_costs += computeTotalCostFromSeqPathsTransitionCosts(agent_seq_path_transition_costs.second);
+    }
+    return total_costs;
+}
+
+inline bool isPathStatesAllEqual(const PathType & path){
+    for (size_t i {1}; i < path.size(); ++i){
+        if (path[i] != path[i-1]){
+            return false;
+        }
+    }
+    return true;
+}
+
+inline void removeTimeFromPath(PathType & path){
+    for (StateType& state : path){
+        state.pop_back();
     }
 }

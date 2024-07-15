@@ -87,11 +87,6 @@ struct CBSParams : public BestFirstSearchParams {
 /// @brief An object for mapping [agent_ids][timestamp] to a set of constraints.
 using MultiAgentConstraintsCollective = std::unordered_map<int, ConstraintsCollective>;
 
-/// @brief An object for mapping [agent_ids][timestamp] to a state.
-using MultiAgentPaths = std::unordered_map<int, std::vector<StateType>>;
-/// @brief An object for mapping [agent_ids] to a vector of transition sequences.
-using MultiAgentSequencePaths = std::unordered_map<int, std::vector<PathType>>;
-
 // ==========================
 // Related classes: CBSBase
 // ==========================

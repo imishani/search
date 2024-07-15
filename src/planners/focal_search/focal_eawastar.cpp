@@ -89,64 +89,75 @@ void ims::FocalEAwAStarUniformCost::experienceAccelerateOpenList(int state_id){
     // Ask the action space to extend OPEN with any valid experience-(sub)path that includes this state.
     // The experience paths and their costs are returned in the vectors experience_paths and experience_costs.
     // The returned states in the subexperiences do not have a time component.
-    std::vector<std::vector<int>> experience_paths;
-    std::vector<std::vector<double>> experience_paths_transition_costs;
-    std::vector<std::vector<double>> experience_paths_tranmsition_subcosts;
-    action_space_ptr_->getValidExperienceSubpathsFromState(state_id, experience_paths, experience_paths_transition_costs, experience_paths_tranmsition_subcosts);
+    std::vector<std::vector<std::vector<int>>> experience_seq_paths_state_ids;
+    std::vector<std::vector<std::vector<double>>> experience_seq_paths_transition_costs;
+    std::vector<std::vector<std::vector<double>>> experience_seq_paths_transition_subcosts;
+    action_space_ptr_->getValidExperienceSubpathsFromState(state_id, experience_seq_paths_state_ids, experience_seq_paths_transition_costs, experience_seq_paths_transition_subcosts);
 
     // Add the experience paths to the open list. These paths are valid by construction.
-    for (size_t i = 0; i < experience_paths.size(); ++i){
-        if (experience_paths[i].empty()){
+    for (size_t i = 0; i < experience_seq_paths_state_ids.size(); ++i){
+        if (experience_seq_paths_state_ids[i].empty()){
             continue;
         }
 
-        addValidSubpathToOpenList(experience_paths[i], experience_paths_transition_costs[i], experience_paths_tranmsition_subcosts[i]);
+        addValidSubpathToOpenList(experience_seq_paths_state_ids[i], experience_seq_paths_transition_costs[i], experience_seq_paths_transition_subcosts[i]);
     }
 }
 
-void ims::FocalEAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<int> & state_ids, const std::vector<double> & costs, const std::vector<double> & subcosts){
+void ims::FocalEAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<std::vector<int>> & seq_paths_state_ids,
+                                                              const std::vector<std::vector<double>> & seq_paths_transition_costs,
+                                                              const std::vector<std::vector<double>> & seq_paths_transition_subcosts){
+    // If there is only one sequence in the subpath, then we do not need to do anything.
+    if (seq_paths_state_ids.size() <= 1){
+        return;
+    }
     // First get the search state associated with the first state in the subpath.
     // We require that the first state in the subpath already exists in the action space and has a valid id and parent state. This is necessary for determining the g values and parent ids of the rest of the states in the subpath.
-    // Notice that because we are planning in time (in this variant) and all the costs are uniform, then there is only a single g-value associated with each state. Therefore, we do not need to worry about updating g-values of states that are already in the open list.
-    int first_state_id = state_ids[0];
+    // Notice that because we are planning in time (in this variant) and all the costs are uniform, then there is only a single g-value associated with each state.
+    // Therefore, we do not need to worry about updating g-values of states that are already in the open list.
+    int first_state_id = seq_paths_state_ids.front().front(); // First seq, first id.
 
     // Assert that the first state in the subpath exists in the action space and the search.
     SearchState* first_search_state = getSearchState(first_state_id);
-
-    int prev_state_id = first_state_id;
-
-    // Now, add the rest of the states to the open list.
-    for (size_t i = 1; i < state_ids.size(); ++i){
-        // Get the state id.
-        int state_id = state_ids[i];
-        // Get the search state.
-        SearchState* search_state = getOrCreateSearchState(state_id);
+    // Make sure that all states in the first sequence have search states. Create them if not.
+    for (int state_id : seq_paths_state_ids.front()){
+        getOrCreateSearchState(state_id);
+    }
+    // Add each last-state in each sequence to the open list (and make sure that all the states in the sequence have corresponding search states -- those are the paths from its parent (the first state in the seq)).
+    for (size_t seq_ix = 0; seq_ix < seq_paths_state_ids.size(); ++seq_ix){
+        const std::vector<int> & seq_state_ids = seq_paths_state_ids[seq_ix];
+        const std::vector<double> & seq_transition_costs = seq_paths_transition_costs[seq_ix];
+        const std::vector<double> & seq_transition_subcosts = seq_paths_transition_subcosts[seq_ix];
+        // Start by creating (or getting) a search state for each state in the sequence.
+        for (int state_id : seq_state_ids){
+            getOrCreateSearchState(state_id);
+        }
+        // Now, get the search state for the first entry in the sequence. This will be the search state that is added to open.
+        int state_id_to_insert = seq_state_ids.back();
+        SearchState* search_state_to_insert = getSearchState(state_id_to_insert);
+        // Set the sequence from the parent. This is the previous sequence in the sequence path.
+        search_state_to_insert->edge_from_parent_state_ids = seq_paths_state_ids[seq_ix];
+        search_state_to_insert->edge_from_parent_transition_costs = seq_paths_transition_costs[seq_ix];
         // Set the parent id.
-        search_state->parent_id = prev_state_id;
+        search_state_to_insert->parent_id = seq_paths_state_ids[seq_ix].front();
         // Get its parent. If the parent exists.
-        SearchState* parent_search_state = getSearchState(search_state->parent_id);
-
+        SearchState* parent_search_state = getSearchState(search_state_to_insert->parent_id);
         // Set the g value.
-        search_state->g = parent_search_state->g + costs[i-1];
+        search_state_to_insert->g = parent_search_state->g + vectorSum(seq_transition_costs);
         // Set the c value.
-        search_state->c = parent_search_state->c + subcosts[i-1];
+        search_state_to_insert->c = parent_search_state->c + vectorSum(seq_transition_subcosts);
         // Set the h value.
-        search_state->h = computeHeuristic(state_id);
+        search_state_to_insert->h = computeHeuristic(state_id_to_insert);
         // Set the f value.
-        search_state->f = search_state->g + params_.epsilon*search_state->h;
-        // Set the edge from the parent. In this first implementation, we assume that the sequence is a single edge.
-        search_state->edge_from_parent_state_ids = {prev_state_id, state_id};
-        search_state->edge_from_parent_transition_costs = {costs[i-1], 0.0};
+        search_state_to_insert->f = search_state_to_insert->g + params_.epsilon*search_state_to_insert->h;
 
         // Add the state to the open list if it is not already there.
         // NOTE(yoraish): does it makes sense to update states already in open? This may assign currently "good" state-parents to "bad" ones instead. For now, any state in open is not changed.
-        if (!search_state->in_closed && !search_state->in_open){
-            open_.push(search_state);
+        if (!search_state_to_insert->in_closed && !search_state_to_insert->in_open){
+            open_.push(search_state_to_insert);
             // Set the state to be open.
-            search_state->setOpen();
+            search_state_to_insert->setOpen();
         }
-        // Update the previous state id.
-        prev_state_id = state_id;
     }
 }
 

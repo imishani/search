@@ -101,42 +101,41 @@ public:
 
     /// @brief Destructor
     ~EACBS() override = default;
-
-    /// @brief Initialize the planner.
-    /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
-    /// @param starts The start states for all agents.
-    /// @param goals The goal states for all agents.
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
-                           const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
-    void initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs,
-                           const std::vector<StateType>& starts, const std::vector<StateType>& goals);
-
-    /// @brief Initialize the planner and set the agent names.
-    /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
-    /// @param agent_names The names of the agents.
-    /// @param starts The start states for all agents.
-    /// @param goals The goal states for all agents.
-    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
-    void initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
-
-    /// @brief Initialize the open list with a node including single-agent paths.
-    void createRootInOpenList() override;
-
-    /// @brief plan a path
-    /// @param path The path
-    /// @return whether the plan was successful or not
-    bool plan(MultiAgentPaths& paths) override;
-
+//
+//    /// @brief Initialize the planner.
+//    /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
+//    /// @param starts The start states for all agents.
+//    /// @param goals The goal states for all agents.
+//    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
+//                           const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
+//    void initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs,
+//                           const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+//
+//    /// @brief Initialize the planner and set the agent names.
+//    /// @param action_spaces_ptr The action space. The action spaces of all agents must be pointing to the same scene interface.
+//    /// @param agent_names The names of the agents.
+//    /// @param starts The start states for all agents.
+//    /// @param goals The goal states for all agents.
+//    void initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals) override;
+//    void initializePlanner(std::vector<std::shared_ptr<ExperienceAcceleratedConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string>& agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals);
+//
+//    /// @brief Initialize the open list with a node including single-agent paths.
+//    void createRootInOpenList() override;
+//
+//    /// @brief plan a path
+//    /// @param path The path
+//    /// @return whether the plan was successful or not
+//    bool plan(MultiAgentPaths& paths) override;
+//
 protected:
     // The searchState struct. Keeps track of the state id, parent id, and cost. In EACBS, we also add the constraints and paths.
     /// @brief The search state.
     struct SearchState : public ims::BestFirstSearch::SearchState, public SearchStateLowerBoundMixin {
         // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
-        MultiAgentPaths paths;
+        MultiAgentSeqPaths seq_paths;
+        MultiAgentSeqPathsTransitionCosts seq_paths_transition_costs;
 
-        // The path costs.
-        std::unordered_map<int, double> paths_costs;
-        std::unordered_map<int, std::vector<double>> paths_transition_costs;
+        // Sum of costs of all the paths. Storing the individual costs is redundant when keeping the transition costs.
         double sum_of_costs = 0.0;
 
         // The lower bound on the cost of the solution. This is the sum of the lower bounds of the individual agents.
@@ -154,19 +153,19 @@ protected:
 
         // The counts of the constraints in each constraint type.
         std::unordered_map<ConstraintType, int> constraint_type_count;
-        
+
         /// @brief Get the cost of the state.
-        /// @return 
+        /// @return
         double getLowerBound() const override {
             assert(sum_of_path_cost_lower_bounds > 0.0);
             return sum_of_path_cost_lower_bounds;
         }
     };
-
+//
     /// @brief The open list. We set it to a deque for fast pop_front().
     using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
     OpenList open_;
-
+//
     // The states that have been created.
     std::vector<SearchState*> states_;
 
@@ -181,25 +180,25 @@ protected:
     /// @return The search state
     auto getOrCreateSearchState(int state_id) -> SearchState*;
 
-    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
-
-    /// @brief Set the search state struct values.
-    /// @param state_id
-    /// @param parent_id
-    /// @param cost
-    void setStateVals(int state_id, int parent_id, double cost) override;
-
-    /// @brief Generate descendents of a state, a key method in most search algorithms.
-    /// @param state_id
-    void expand(int state_id) override;
-
-    /// @brief Get the conflict types requested by the algorithm.
-    /// @return The conflict types.
-    /// @note Derived class, aka EACBS variants that request different conflict types (e.g., point3d, etc.) should override this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
-    inline std::vector<ConflictType> getConflictTypes() override {
-        return conflict_types_;
-    }
-
+//    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> conflictsToConstraints(const std::vector<std::shared_ptr<Conflict>>& conflicts) override;
+//
+//    /// @brief Set the search state struct values.
+//    /// @param state_id
+//    /// @param parent_id
+//    /// @param cost
+//    void setStateVals(int state_id, int parent_id, double cost) override;
+//
+//    /// @brief Generate descendents of a state, a key method in most search algorithms.
+//    /// @param state_id
+//    void expand(int state_id) override;
+//
+//    /// @brief Get the conflict types requested by the algorithm.
+//    /// @return The conflict types.
+//    /// @note Derived class, aka EACBS variants that request different conflict types (e.g., point3d, etc.) should override this method and return the conflict types that they need from the action space. The action space will then be queried for these conflict types.
+//    inline std::vector<ConflictType> getConflictTypes() override {
+//        return conflict_types_;
+//    }
+//
     /// Member variables.
     // The search parameters.
     EACBSParams params_;
