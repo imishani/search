@@ -54,6 +54,9 @@ class Pase : public ParallelSearch {
     /// @brief The open list for states.
     SimpleQueue<SearchState, SearchStateCompare> open_;
 
+    /// @brief States that are currently being expanded.
+    std::vector<SearchState*> being_expanded_;
+
    public:
     /// @brief Constructor
     /// @param params The parameters

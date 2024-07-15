@@ -72,7 +72,7 @@ struct ParallelSearchPlannerStats : public PlannerStats {
 /// @brief A Abstract class for parallel search algorithm that utilize multi-threads to find the optimal path
 class ParallelSearch : public Planner {
    protected:
-    /*DATA STRUCTURE*/
+    /*ABSTRACT LEVEL/STRUCT DEFINITION*/
 
     /// @brief The search state.
     struct SearchState : public ims::SearchState, ims::SearchStateLowerBoundMixin {
@@ -123,7 +123,7 @@ class ParallelSearch : public Planner {
         }
     };
 
-    /*VARIABLES*/
+    /*DATA STRUCTURE/VARIABLES*/
 
     /// @brief The parameters.
     ParallelSearchParams params_;
@@ -131,6 +131,9 @@ class ParallelSearch : public Planner {
     /// @brief The open list for states/edges.
     /// @note how to make it work with both states and edges?
     // SimpleQueue<SearchState, SearchStateCompare> open_;
+    
+    /// @brief A vector holding all the state/edge that is WIP
+    // std::vector<SearchState*> wip_;
 
     /// @brief Keeping track of states by their id.
     std::vector<SearchState*> states_;
