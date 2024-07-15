@@ -37,6 +37,7 @@ add_library(search SHARED
         src/planners/multi_agent/generalized_cbs.cpp
         src/planners/multi_agent/generalized_ecbs.cpp
         src/planners/parallel_search/parallel_search.cpp
+        src/planners/parallel_search/pase.cpp
         src/planners/sampling_based/drrt.cpp
         src/common/experience_graph.cpp
         src/common/conflict_conversions.cpp
