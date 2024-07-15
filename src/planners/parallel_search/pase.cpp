@@ -52,7 +52,7 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
     action_space_ptr_ = action_space_ptr;
     // Clear both.
     action_space_ptr_->resetPlanningData();
-    resetPlanningData();
+    this->resetPlanningData();
 
     if (goals.empty() || starts.empty()) {
         throw std::runtime_error("Starts or goals are empty");
@@ -68,14 +68,14 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
 
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
-    heuristic_->setGoal(const_cast<StateType &>(goals[0]));
+    heuristic_->setGoal(const_cast<StateType&>(goals[0]));
 
-    for (auto &start : starts) {
+    for (auto& start : starts) {
         // Evaluate the start state
         int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
         auto start_ = getOrCreateSearchState(start_ind_);
         start_->parent_id = PARENT_TYPE(START);
-        heuristic_->setStart(const_cast<StateType &>(start));
+        heuristic_->setStart(const_cast<StateType&>(start));
         start_->g = 0;
         start_->f = computeHeuristic(start_ind_);
         open_.push(start_);
@@ -85,9 +85,41 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
 
 void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                              const StateType& start, const StateType& goal) {
+    // Action space pointer.
+    action_space_ptr_ = action_space_ptr;
+    // Clear both.
+    action_space_ptr_->resetPlanningData();
+    resetPlanningData();
+
+    // Reset the search algorithm and the action space.
+    action_space_ptr_->resetPlanningData();
+    this->resetPlanningData();
+
+    // Check if start is valid and add it to the action space.
+    int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
+    auto start_ = getOrCreateSearchState(start_ind_);
+
+    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
+    auto goal_ = getOrCreateSearchState(goal_ind_);
+    goals_.push_back(goal_ind_);
+
+    // Evaluate the start state
+    start_->parent_id = PARENT_TYPE(START);
+    heuristic_->setStart(const_cast<StateType&>(start));
+    // Evaluate the goal state
+    goal_->parent_id = PARENT_TYPE(GOAL);
+    heuristic_->setGoal(const_cast<StateType&>(goal));
+
+    // Evaluate the start state.
+    start_->g = 0;
+    start_->f = computeHeuristic(start_ind_);
+    open_.push(start_);
+    start_->setOpen();
 }
 
 void Pase::resetPlanningData() {
+    open_.clear();
+    being_expanded_.resize(params_.num_threads_ - 1, NULL);
     ParallelSearch::resetPlanningData();
 }
 

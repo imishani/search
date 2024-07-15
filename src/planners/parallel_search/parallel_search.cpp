@@ -136,4 +136,11 @@ void ims::ParallelSearch::resetPlanningData() {
     goals_.clear();
     goal_ = -1;
     stats_ = ParallelSearchPlannerStats();
+    stats_.num_jobs_per_thread.resize(params_.num_threads_, 0);
+    
+    std::vector<LockType> lock_vec(params_.num_threads_ - 1);
+    locks_.swap(lock_vec);
+    work_futures_.clear();
+    terminate_ = false;
+    plan_found_ = false;
 }
