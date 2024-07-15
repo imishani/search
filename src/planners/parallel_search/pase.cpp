@@ -36,13 +36,12 @@
 
 namespace ims {
 
-explicit Pase::Pase(const ParallelSearchParams& params) : ParallelSearch(params) {
+Pase::Pase(const ParallelSearchParams& params) : ParallelSearch(params) {
 }
 
-bool plan(std::vector<StateType>& path) {
+bool Pase::plan(std::vector<StateType>& path) {
   return false;
 }
-
 
 void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                              const std::vector<StateType>& starts,
@@ -51,6 +50,9 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
 
 void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                              const StateType& start, const StateType& goal) {
+}
+
+void Pase::resetPlanningData() {
 }
 
 }  // namespace ims
