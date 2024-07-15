@@ -51,181 +51,179 @@ namespace ims {
 
 /// @class ParallelSearch Parameters
 struct ParallelSearchParams : public PlannerParams {
-    /// @brief Constructor
-    explicit ParallelSearchParams(BaseHeuristic* heuristic):
-        PlannerParams(), heuristic_(heuristic) {}
-    explicit ParallelSearchParams(BaseHeuristic* heuristic, int num_threads, double epsilon):
-        PlannerParams(), heuristic_(heuristic), num_threads_(num_threads), epsilon_(epsilon) {}
+  /// @brief Constructor
+  explicit ParallelSearchParams(BaseHeuristic* heuristic) : PlannerParams(), heuristic_(heuristic) {}
+  explicit ParallelSearchParams(BaseHeuristic* heuristic, int num_threads, double epsilon) : PlannerParams(), heuristic_(heuristic), num_threads_(num_threads), epsilon_(epsilon) {}
 
-    /// @brief Destructor
-    ~ParallelSearchParams() override = default;
+  /// @brief Destructor
+  ~ParallelSearchParams() override = default;
 
-    BaseHeuristic* heuristic_ = nullptr;
-    int num_threads_ = 1;
-    double epsilon_ = 1.0;
+  BaseHeuristic* heuristic_ = nullptr;
+  int num_threads_ = 1;
+  double epsilon_ = 1.0;
 };
 
 struct ParallelSearchPlannerStats : public PlannerStats {
-    int num_evaluated{0}; // The number of evaluated edges.
+  int num_evaluated{0};                  // The number of evaluated edges.
+  std::vector<int> num_jobs_per_thread;  // The number of jobs per thread
 };
 
 /// @class ParallelSearch Abstract class.
 /// @brief A Abstract class for parallel search algorithm that utilize multi-threads to find the optimal path
 class ParallelSearch : public Planner {
-protected:
+ protected:
+  /*DATA STRUCTURE*/
 
-    /*DATA STRUCTURE*/
+  /// @brief The search state.
+  struct SearchState : public ims::SearchState, ims::SearchStateLowerBoundMixin {
+    /// @brief The parent state
+    int parent_id = UNSET;
+    /// @brief The cost to come
+    double g = INF_DOUBLE;
+    /// @brief The heuristic value. Even though not all planners use it, we have it here because many do.
+    double h = INF_DOUBLE;
+    /// @brief The f value
+    double f = INF_DOUBLE;
+    /// @brief open list boolean
+    bool in_open = false;
+    /// @brief closed list boolean
+    bool in_closed = false;
 
-    /// @brief The search state.
-    struct SearchState : public ims::SearchState, ims::SearchStateLowerBoundMixin {
-        /// @brief The parent state
-        int parent_id = UNSET;
-        /// @brief The cost to come
-        double g = INF_DOUBLE;
-        /// @brief The heuristic value. Even though not all planners use it, we have it here because many do.
-        double h = INF_DOUBLE;
-        /// @brief The f value
-        double f = INF_DOUBLE;
-        /// @brief open list boolean
-        bool in_open = false;
-        /// @brief closed list boolean
-        bool in_closed = false;
+    /// @brief set the state to open list (make sure it is not in closed list and if it is, update it)
+    void setOpen() {
+      in_open = true;
+      in_closed = false;
+    }
 
-        /// @brief set the state to open list (make sure it is not in closed list and if it is, update it)
-        void setOpen() {
-            in_open = true;
-            in_closed = false;
-        }
+    /// @brief set the state to closed list (make sure it is not in open list and if it is, update it)
+    void setClosed() {
+      in_closed = true;
+      in_open = false;
+    }
 
-        /// @brief set the state to closed list (make sure it is not in open list and if it is, update it)
-        void setClosed() {
-            in_closed = true;
-            in_open = false;
-        }
+    void print() override {
+      std::cout << "State: " << state_id << " Parent: " << parent_id << " g: " << g << " f: " << f << std::endl;
+    }
 
-        void print() override {
-            std::cout << "State: " << state_id << " Parent: " << parent_id << " g: " << g << " f: " << f << std::endl;
-        }
+    double getLowerBound() const override {
+      return f;
+    }
+  };
 
-        double getLowerBound() const override {
-            return f;
-        }
-    };
+  /// @brief The search state compare struct.
+  struct SearchStateCompare {
+    bool operator()(const SearchState& s1, const SearchState& s2) const {
+      if ((s1.f == s2.f) && (s1.g == s2.g))
+        return (s1.state_id < s2.state_id);
+      else if (s1.f == s2.f)
+        // For tie breaking, we prefer the state with the larger g value as it is closer to the goal (lower h in the case of an informed search).
+        return s1.g > s2.g;
+      else
+        return s1.f < s2.f;
+    }
+  };
 
-    /// @brief The search state compare struct.
-    struct SearchStateCompare {
-        bool operator()(const SearchState& s1, const SearchState& s2) const {
-            if ((s1.f == s2.f) && (s1.g == s2.g))
-                return (s1.state_id < s2.state_id);
-            else if (s1.f == s2.f)
-                // For tie breaking, we prefer the state with the larger g value as it is closer to the goal (lower h in the case of an informed search).
-                return s1.g > s2.g;
-            else
-                return s1.f < s2.f;
-        }
-    };
+  /*VARIABLES*/
 
-    /*VARIABLES*/
+  /// @brief The parameters.
+  ParallelSearchParams params_;
 
-    /// @brief The parameters.
-    ParallelSearchParams params_;
+  /// @brief The open list for states/edges.
+  /// @note how to make it work with both states and edges?
+  // SimpleQueue<SearchState, SearchStateCompare> open_;
 
-    /// @brief The open list for states/edges.
-    /// @note how to make it work with both states and edges?
-    // SimpleQueue<SearchState, SearchStateCompare> open_;
+  /// @brief Keeping track of states by their id.
+  std::vector<SearchState*> states_;
 
-    /// @brief Keeping track of states by their id.
-    std::vector<SearchState*> states_;
+  /// @brief Pointer to the heuristic function
+  BaseHeuristic* heuristic_ = nullptr;
 
-    /// @brief Pointer to the heuristic function
-    BaseHeuristic* heuristic_ = nullptr;
+  /// @brief The action space.
+  std::shared_ptr<ActionSpace> action_space_ptr_;
 
-    /// @brief The action space.
-    std::shared_ptr<ActionSpace> action_space_ptr_;
+  /// @brief The stats.
+  ParallelSearchPlannerStats stats_;
 
-    /// @brief The stats.
-    ParallelSearchPlannerStats stats_;
-    
-    /// Multi-threading
-    /// @brief lock
-    mutable LockType lock_;
-    
-    /// @brief lock vector
-    mutable std::vector<LockType> locks_;
-    
-    /// @brief Multi-threading futures
-    std::vector<std::future<void>> work_futures_;
-    
-    /// Control variables
-    /// @brief atomic variable to keep track of terminate_ flag
-    std::atomic<bool> terminate_{false};
+  /// Multi-threading
+  /// @brief lock
+  mutable LockType lock_;
 
-    /*FUNCTIONS*/
-    /// @brief Get the state by id
-    /// @param state_id The id of the state
-    /// @return The state
-    /// @note Use this function only if you are sure that the state exists.
-    auto getSearchState(int state_id) -> SearchState*;
+  /// @brief lock vector
+  mutable std::vector<LockType> locks_;
 
-    /// @brief Get the state by id or create a new one if it does not exist. If a search state does not exist yet and a new one is created, it's ID will be set, and all other member fields will initialize to default values.
-    /// @param state_id The id of the state
-    /// @return The state
-    auto getOrCreateSearchState(int state_id) -> SearchState*;
+  /// @brief Multi-threading futures
+  std::vector<std::future<void>> work_futures_;
 
-    /// @brief Compute the heuristic value of from state s to the goal state
-    /// @param s The state
-    double computeHeuristic(int state_id);
+  /// Control variables
+  /// @brief atomic variable to keep track of terminate_ flag
+  std::atomic<bool> terminate_{false};
+  /// @brief atomic variable to keep track of plan_found_ flag
+  std::atomic<bool> plan_found_{false};
 
-    /// @brief Compute the heuristic value from state s1 to state s2
-    /// @param s1 The state
-    /// @param s2 The state
-    double computeHeuristic(int s1_id, int s2_id);
+  /*FUNCTIONS*/
+  /// @brief Get the state by id
+  /// @param state_id The id of the state
+  /// @return The state
+  /// @note Use this function only if you are sure that the state exists.
+  auto getSearchState(int state_id) -> SearchState*;
 
-    /// @brief Reconstruct the path by backtracking
-    /// @param path The reference of vector of states to be populated
-    void reconstructPath(std::vector<StateType>& path) override;
+  /// @brief Get the state by id or create a new one if it does not exist. If a search state does not exist yet and a new one is created, it's ID will be set, and all other member fields will initialize to default values.
+  /// @param state_id The id of the state
+  /// @return The state
+  auto getOrCreateSearchState(int state_id) -> SearchState*;
 
-    /// @brief Reconstruct the path by backtracking
-    /// @param path The reference of vector of states to be populated
-    /// @param costs The reference of vector of costs to be populated (edge costs)
-    void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
+  /// @brief Compute the heuristic value of from state s to the goal state
+  /// @param s The state
+  double computeHeuristic(int state_id);
 
-    bool isGoalState(int state_id) override;
+  /// @brief Compute the heuristic value from state s1 to state s2
+  /// @param s1 The state
+  /// @param s2 The state
+  double computeHeuristic(int s1_id, int s2_id);
 
+  /// @brief Reconstruct the path by backtracking
+  /// @param path The reference of vector of states to be populated
+  void reconstructPath(std::vector<StateType>& path) override;
 
-public:
-    /// @brief Constructor
-    /// @param params The parameters
-    explicit ParallelSearch(const ParallelSearchParams& params);
+  /// @brief Reconstruct the path by backtracking
+  /// @param path The reference of vector of states to be populated
+  /// @param costs The reference of vector of costs to be populated (edge costs)
+  void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
 
-    /// @brief Destructor
-    ~ParallelSearch() override;
-    
+  bool isGoalState(int state_id) override;
 
-    /// @brief Initialize the planner
-    /// @param action_space_ptr The action space
-    /// @param starts Vector of start states
-    /// @param goals Vector of goal states
-    virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                   const std::vector<StateType>& starts,
-                                   const std::vector<StateType>& goals)=0;
+ public:
+  /// @brief Constructor
+  /// @param params The parameters
+  explicit ParallelSearch(const ParallelSearchParams& params);
 
-    /// @brief Initialize the planner
-    /// @param action_space_ptr The action space
-    /// @param start The start state
-    /// @param goal The goal state
-    virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                   const StateType& start, const StateType& goal)=0;
+  /// @brief Destructor
+  ~ParallelSearch() override;
 
-    /// @brief plan a path
-    /// @param path The path
-    /// @return if the plan was successful or not
-    virtual bool plan(std::vector<StateType>& path)=0;
+  /// @brief Initialize the planner
+  /// @param action_space_ptr The action space
+  /// @param starts Vector of start states
+  /// @param goals Vector of goal states
+  virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                                 const std::vector<StateType>& starts,
+                                 const std::vector<StateType>& goals) = 0;
 
-    void resetPlanningData() override;
+  /// @brief Initialize the planner
+  /// @param action_space_ptr The action space
+  /// @param start The start state
+  /// @param goal The goal state
+  virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                                 const StateType& start, const StateType& goal) = 0;
 
-    inline ParallelSearchPlannerStats reportStats(){ return stats_;}
-    inline ParallelSearchPlannerStats getStats(){ return stats_;}
+  /// @brief plan a path
+  /// @param path The path
+  /// @return if the plan was successful or not
+  virtual bool plan(std::vector<StateType>& path) = 0;
+
+  virtual void resetPlanningData() override;
+
+  inline ParallelSearchPlannerStats reportStats() { return stats_; }
+  inline ParallelSearchPlannerStats getStats() { return stats_; }
 
 };  // class Parallel Search
 
