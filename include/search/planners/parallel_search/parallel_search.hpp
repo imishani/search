@@ -64,6 +64,7 @@ struct ParallelSearchParams : public PlannerParams {
 };
 
 struct ParallelSearchPlannerStats : public PlannerStats {
+    int num_threads_spawned{0};            // The number of threads spawned
     int num_evaluated{0};                  // The number of evaluated edges.
     std::vector<int> num_jobs_per_thread;  // The number of jobs per thread
 };
@@ -171,6 +172,8 @@ class ParallelSearch : public Planner {
     std::atomic<bool> terminate_{false};
     /// @brief atomic variable to keep track of plan_found_ flag
     std::atomic<bool> plan_found_{false};
+    /// @brief atomic bool to allow the main thread to wait for the worker threads
+    std::atomic<bool> recheck_flag_{true};
 
     /*FUNCTIONS*/
     /// @brief Get the state by id
@@ -203,6 +206,16 @@ class ParallelSearch : public Planner {
     void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
 
     bool isGoalState(int state_id) override;
+
+    /// @brief check if a thread is terminated using std::future
+    template <typename T>
+    inline bool isFutureReady(T& future) { return future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready; };
+
+    /// @brief function for the worker thread to notify main thread
+    inline void notifyMainThread() {
+        recheck_flag_ = false;
+        cv_.notify_one();
+    }
 
    public:
     /// @brief Constructor
