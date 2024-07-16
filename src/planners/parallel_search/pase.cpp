@@ -42,7 +42,41 @@ Pase::Pase(const ParallelSearchParams& params) : ParallelSearch(params) {
 Pase::~Pase() = default;
 
 bool Pase::plan(std::vector<StateType>& path) {
+    initializeCheck();
+
+    std::vector<SearchState*> popped_states;
+    lock_.lock();
+
+    startTimer();
+    while (!terminate_ && !isTimeOut()) {
+        if (open_.empty() && noWorkInProgress()) {
+            // Meaning that thee search can't continue.
+            terminate_ = true;
+            getTimeFromStart(stats_.time);
+            if (params_.verbose) {
+                std::cout << "No solution found" << std::endl;
+            }
+            lock_.unlock();
+            cleanUp();
+            return false;
+        }
+    }
     return false;
+}
+
+void Pase::initializeCheck() const {
+    if (action_space_ptr_ == nullptr) {
+        throw std::runtime_error("Action space is not initialized");
+    }
+    if (heuristic_ == nullptr) {
+        throw std::runtime_error("Heuristic is not initialized");
+    }
+    if (goals_.empty() || goal_ == -1) {
+        throw std::runtime_error("Goals are not initialized");
+    }
+    if (open_.empty()) {
+        throw std::runtime_error("Open list is empty, make sure to initialize the planner before run");
+    }
 }
 
 void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
@@ -117,9 +151,15 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
     start_->setOpen();
 }
 
+void Pase::cleanUp() {
+    for (int thread_id {0}; thread_id < params_.num_threads_; ++thread_id) {
+        std::unique_lock<LockType> locker(lock_vec_[thread_id]);
+    }
+}
+
 void Pase::resetPlanningData() {
     open_.clear();
-    being_expanded_.resize(params_.num_threads_ - 1, NULL);
+    work_in_progress_.resize(params_.num_threads_ - 1, NULL);
     ParallelSearch::resetPlanningData();
 }
 

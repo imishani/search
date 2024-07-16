@@ -55,7 +55,22 @@ class Pase : public ParallelSearch {
     SimpleQueue<SearchState, SearchStateCompare> open_;
 
     /// @brief States that are currently being expanded.
-    std::vector<SearchState*> being_expanded_;
+    std::vector<SearchState*> work_in_progress_;
+
+    /// @brief Throw exception if the planner is not initialized correctly
+    /// @note I am adding this function since I am not entirely comfortable exposing the
+    /// initializePlanner() to user. Adding to prevent double plan() calls.
+    void initializeCheck() const;
+
+    /// @brief helper function to check if there's any state is being work in progress
+    inline bool noWorkInProgress() const {
+        return std::all_of(work_in_progress_.begin(),
+                           work_in_progress_.end(),
+                           [](SearchState* state) { return state == nullptr; });
+    }
+    
+    /// @brief helper function to join all the spawned threads
+    void cleanUp();
 
    public:
     /// @brief Constructor
