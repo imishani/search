@@ -152,9 +152,27 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
 }
 
 void Pase::cleanUp() {
-    for (int thread_id {0}; thread_id < params_.num_threads_; ++thread_id) {
+    // Notify all worker threads to stop.
+    for (int thread_id{0}; thread_id < params_.num_threads_; ++thread_id) {
         std::unique_lock<LockType> locker(lock_vec_[thread_id]);
+        work_status_[thread_id] = true;
+        locker.unlock();
+        cv_vec_[thread_id].notify_one();
     }
+
+    stats_.num_threads_spawned = work_futures_.size() + 1;
+
+    bool all_threads_exit = false;
+    while (!all_threads_exit) {
+        all_threads_exit = true;
+        for (auto& fut : work_futures_) {
+            if (!isFutureReady(fut)) {
+                all_threads_exit = false;
+                break;
+            }
+        }
+    }
+    work_futures_.clear();
 }
 
 void Pase::resetPlanningData() {
