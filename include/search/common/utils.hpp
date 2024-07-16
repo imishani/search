@@ -56,6 +56,10 @@
 /// @endcode
 template <typename T>
 inline std::ostream& operator<<(std::ostream& stream, const std::vector<T>& vec) {
+    if (vec.empty()) {
+        stream << "[]";
+        return stream;
+    }
     stream << "[";
     for (size_t i = 0; i < vec.size() - 1; ++i) {
         stream << vec[i];

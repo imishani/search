@@ -121,7 +121,7 @@ public:
                     bool check_validity) override {
         std::vector<ActionSequence> prim_action_seqs = action_type_->action_seq_prims;
         for (int i {0} ; i < action_type_->num_actions ; i++){
-            ActionSequence action_seq = prim_action_seqs[i];
+            ActionSequence action_seq = prim_action_seqs.at(i);
             if (check_validity){
                 auto curr_state = this->getRobotState(state_id);
                 for (const Action & action : action_seq) {
@@ -135,8 +135,10 @@ public:
             }
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
             // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
+            std::cout << "ATTEMPT " << action_seqs << " <- " << action_seq << std::endl;
             action_seqs.push_back(action_seq);
         }
+        std::cout << "action_seqs: " << action_seqs << std::endl;
     }
 
     bool isStateValid(const StateType& state_val) override {

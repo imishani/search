@@ -111,7 +111,7 @@ void ims::CBS::createRootInOpenList(){
     for (size_t i{0}; i < num_agents_; ++i) {
         std::vector<StateType> path;
         PlannerStats stats_low_level;
-        bool is_plan_success = initializeAndPlanLowLevel(i, path, stats_low_level);
+        bool is_plan_success = initializeAndPlanLowLevel((int)i, path, stats_low_level);
 
         // Add the number of low level nodes to the counter.
         stats_.bonus_stats["num_low_level_expanded"] += stats_low_level.num_expanded;
@@ -174,6 +174,20 @@ void ims::CBS::createRootInOpenList(){
 
     // Push the initial CBS state to the open list.
     open_->push(start_);
+
+    // Show the initial paths.
+    std::cout << "Initial paths:" << std::endl;
+    for (auto& path : start_->paths) {
+        std::cout << "Agent " << path.first << ": \n";
+        for (auto state : path.second) {
+            std::cout << "    [";
+            for (auto val : state) {
+                std::cout << val << ", ";
+            }
+            std::cout << "], \n";
+        }
+        std::cout << std::endl;
+    }
 }
 
 void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs, const std::vector<std::string> & agent_names, const std::vector<StateType>& starts, const std::vector<StateType>& goals){
@@ -286,6 +300,9 @@ void ims::CBS::expand(int state_id) {
         new_state->path_cost_lower_bounds = state->path_cost_lower_bounds;
         new_state->constraints_collectives = state->constraints_collectives;
         // NOTE(yoraish): we do not copy over the conflicts, since they will be recomputed in the new state. We could consider keeping a history of conflicts in the search state, with new conflicts being marked as such.
+        new_state->paths[agent_id].clear();
+        new_state->paths_costs[agent_id] = 0.0;
+        new_state->paths_transition_costs[agent_id].clear();
 
         // Update the constraints collective to also include the new constraint.
         new_state->constraints_collectives[agent_id].addConstraints(constraint_ptr);
@@ -300,7 +317,6 @@ void ims::CBS::expand(int state_id) {
         agent_action_space_ptrs_[agent_id]->setConstraintsCollective(constraints_collective_ptr);
 
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
-        new_state->paths[agent_id].clear();
         PlannerStats stats_low_level;
         initializeAndPlanLowLevel(agent_id, new_state->paths[agent_id], stats_low_level);
         new_state->paths_transition_costs[agent_id] = stats_low_level.transition_costs;
@@ -401,7 +417,9 @@ void ims::CBS::createLowLevelPlanners(){
 
 bool ims::CBS::initializeAndPlanLowLevel(int agent_id, std::vector<StateType>& path, PlannerStats& stats){
     // Initialize the low-level planner.
-    agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);
+    agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id],
+                                                     starts_[agent_id],
+                                                     goals_[agent_id]);
 
     // Plan with the low-level planner.
     bool is_plan_success = agent_planner_ptrs_[agent_id]->plan(path);

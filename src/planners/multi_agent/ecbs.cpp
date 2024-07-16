@@ -287,7 +287,7 @@ void ims::ECBS::expand(int state_id) {
 
         // Replan for this agent.
         FocalSearchPlannerStats low_level_plan_stats;
-        bool is_plan_success = initializeAndPlanLowLevel(agent_id, new_state->paths[agent_id], low_level_plan_stats);
+        initializeAndPlanLowLevel(agent_id, new_state->paths[agent_id], low_level_plan_stats);
         // Update the stats.
         new_state->paths_transition_costs[agent_id] = low_level_plan_stats.transition_costs;
         new_state->paths_costs[agent_id] = low_level_plan_stats.cost;
@@ -366,7 +366,6 @@ void ims::ECBS::createLowLevelPlanners() {
                                                     params_.weight_low_level_heuristic);
         focal_wastar_params_.time_limit_ = params_.time_limit_;
         agent_planner_ptrs_.push_back(std::make_shared<ims::FocalwAStar>(focal_wastar_params_));
-
     }
 }
 
