@@ -143,4 +143,5 @@ void ims::ParallelSearch::resetPlanningData() {
     work_status_.resize(params_.num_threads_ - 1, false);
     terminate_ = false;
     plan_found_ = false;
+    recheck_flag_ = true;
 }
