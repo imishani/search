@@ -36,8 +36,6 @@
 
 ims::ParallelSearch::ParallelSearch(const ParallelSearchParams& params) : Planner(params), params_(params) {
     heuristic_ = params.heuristic_;
-    std::vector<LockType> lock_vec(params.num_threads_ - 1);
-    locks_.swap(lock_vec);
 }
 
 ims::ParallelSearch::~ParallelSearch() {
@@ -137,10 +135,13 @@ void ims::ParallelSearch::resetPlanningData() {
     goal_ = -1;
     stats_ = ParallelSearchPlannerStats();
     stats_.num_jobs_per_thread.resize(params_.num_threads_, 0);
-    
+
+    std::vector<std::condition_variable> cv_vec(params_.num_threads_ - 1);
+    cv_vec_.swap(cv_vec);
     std::vector<LockType> lock_vec(params_.num_threads_ - 1);
-    locks_.swap(lock_vec);
+    lock_vec_.swap(lock_vec);
     work_futures_.clear();
+    work_status_.resize(params_.num_threads_ - 1, false);
     terminate_ = false;
     plan_found_ = false;
 }
