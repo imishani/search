@@ -131,7 +131,7 @@ class ParallelSearch : public Planner {
     /// @brief The open list for states/edges.
     /// @note how to make it work with both states and edges?
     // SimpleQueue<SearchState, SearchStateCompare> open_;
-    
+
     /// @brief A vector holding all the state/edge that is WIP
     // std::vector<SearchState*> wip_;
 
@@ -152,10 +152,19 @@ class ParallelSearch : public Planner {
     mutable LockType lock_;
 
     /// @brief lock vector
-    mutable std::vector<LockType> locks_;
+    mutable std::vector<LockType> lock_vec_;
 
     /// @brief Multi-threading futures
     std::vector<std::future<void>> work_futures_;
+
+    /// @brief Use a bool vector to keep track of the work status
+    std::vector<bool> work_status_;
+
+    /// @brief condition variable
+    std::condition_variable cv_;
+
+    /// @brief condition variable vectors
+    std::vector<std::condition_variable> cv_vec_;
 
     /// Control variables
     /// @brief atomic variable to keep track of terminate_ flag
