@@ -129,7 +129,6 @@ void ims::ParallelSearch::resetPlanningData() {
         delete state;
     }
     states_ = std::vector<SearchState*>();
-    // open_.clear();
 
     goals_.clear();
     goal_ = -1;
