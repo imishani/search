@@ -135,10 +135,8 @@ public:
             }
             // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
             // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
-            std::cout << "ATTEMPT " << action_seqs << " <- " << action_seq << std::endl;
             action_seqs.push_back(action_seq);
         }
-        std::cout << "action_seqs: " << action_seqs << std::endl;
     }
 
     bool isStateValid(const StateType& state_val) override {

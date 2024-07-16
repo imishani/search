@@ -54,7 +54,7 @@ enum class ConstraintType {
     UNSET = -1,
     VERTEX = 0, // Do not be at v at time t.
     EDGE = 1, // Do not cross edge (u, v) at time t to t+1.
-    SPHERE3D = 2, // Do not be in sphere at time t.
+    VERTEX_SPHERE3D = 2, // Do not be in sphere at time t.
     VERTEX_PRIORITY = 3, // Do not conflict with agent at time t, setting other agent as specified in its path in the context.
     EDGE_PRIORITY = 4, // Do not conflict with agent at time t_from to t_to, setting other agent as specified in its path in the context.
     VERTEX_STATE_AVOIDANCE = 5, // Do not conflict with agent at a specified configuration at time t.
@@ -67,14 +67,14 @@ enum class ConstraintType {
 
 // A map from constraint type to whether it is admissible or not.
 const std::unordered_map<ConstraintType, bool> constraint_type_admissibility = {
-    {ConstraintType::UNSET, false},
-    {ConstraintType::VERTEX, true},
-    {ConstraintType::EDGE, true},
-    {ConstraintType::SPHERE3D, false},
-    {ConstraintType::VERTEX_PRIORITY, false},
-    {ConstraintType::EDGE_PRIORITY, false},
+    {ConstraintType::UNSET,                  false},
+    {ConstraintType::VERTEX,                 true},
+    {ConstraintType::EDGE,                   true},
+    {ConstraintType::VERTEX_SPHERE3D,        false},
+    {ConstraintType::VERTEX_PRIORITY,        false},
+    {ConstraintType::EDGE_PRIORITY,          false},
     {ConstraintType::VERTEX_STATE_AVOIDANCE, false},
-    {ConstraintType::EDGE_STATE_AVOIDANCE, false},
+    {ConstraintType::EDGE_STATE_AVOIDANCE,   false},
 };
 
 /// @brief Base class for all search constraints.
@@ -167,7 +167,7 @@ struct EdgeConstraint : public Constraint {
 // ==========================
 // Constraints used by CBS-MRAMP.
 // ==========================
-struct Sphere3dConstraint : public Constraint {
+struct VertexSphere3dConstraint : public Constraint {
     /// @brief The center of the constrained sphere.
     Eigen::Vector3d center;
 
@@ -179,14 +179,14 @@ struct Sphere3dConstraint : public Constraint {
 
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param state The state vector.
-    explicit Sphere3dConstraint(Eigen::Vector3d center, double radius, TimeType time) : center(std::move(center)), radius(radius), time(time) {
+    explicit VertexSphere3dConstraint(Eigen::Vector3d center, double radius, TimeType time) : center(std::move(center)), radius(radius), time(time) {
         /// @brief The type of the constraint.
-        type = ConstraintType::SPHERE3D;
+        type = ConstraintType::VERTEX_SPHERE3D;
     }
     
     std::string toString() const override {
         std::stringstream ss;
-        ss << "Sphere3dConstraint. Center: (" << center.x() << ", " << center.y() << ", " << center.z() << ") Radius: " << radius << " Time: " << time;
+        ss << "VertexSphere3dConstraint. Center: (" << center.x() << ", " << center.y() << ", " << center.z() << ") Radius: " << radius << " Time: " << time;
         return ss.str();
     }
 
@@ -196,27 +196,27 @@ struct Sphere3dConstraint : public Constraint {
     }
 };
 
-struct Sphere3dLargeConstraint : public Sphere3dConstraint {
+struct Sphere3dLargeConstraint : public VertexSphere3dConstraint {
 
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param center The center of the constrained sphere.
     /// @param radius The radius of the sphere.
     /// @param time The time of the constraint.
-    explicit Sphere3dLargeConstraint(Eigen::Vector3d center, double radius, TimeType time) : 
-        Sphere3dConstraint(std::move(center), radius, time) {
+    explicit Sphere3dLargeConstraint(Eigen::Vector3d center, double radius, TimeType time) :
+            VertexSphere3dConstraint(std::move(center), radius, time) {
         /// @brief The type of the constraint.
         type = ConstraintType::SPHERE3DLARGE;
     }
 };
 
-struct Sphere3dXLargeConstraint : public Sphere3dConstraint {
+struct Sphere3dXLargeConstraint : public VertexSphere3dConstraint {
 
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param center The center of the constrained sphere.
     /// @param radius The radius of the sphere.
     /// @param time The time of the constraint.
     explicit Sphere3dXLargeConstraint(Eigen::Vector3d center, double radius, TimeType time) :
-            Sphere3dConstraint(std::move(center), radius, time) {
+            VertexSphere3dConstraint(std::move(center), radius, time) {
         /// @brief The type of the constraint.
         type = ConstraintType::SPHERE3DXLARGE;
     }

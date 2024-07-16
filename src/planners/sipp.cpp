@@ -264,8 +264,8 @@ void ims::SIPP::expand(int state_id){
                         successor->parent_id = state->state_id;
                         successor->g = arrival_t;
                         successor->f = successor->g + params_.epsilon * successor->h;
-                        successor->edge_from_parent_state_ids = successor_edge_state_ids;
-                        successor->edge_from_parent_transition_costs = successor_seqs_transition_costs[i];
+                        successor->edge_from_parent_state_ids = std::make_shared<std::vector<int>>(successor_edge_state_ids);
+                        successor->edge_from_parent_transition_costs = std::make_shared<std::vector<double>>(successor_seqs_transition_costs[i]);
                         open_.push(successor);
                         successor->setOpen();
                         if (params_.verbose) {
@@ -284,8 +284,8 @@ void ims::SIPP::expand(int state_id){
                     successor->parent_id = state->state_id;
                     successor->g = arrival_t;
                     successor->f = successor->g + params_.epsilon*successor->h;
-                    successor->edge_from_parent_state_ids = successor_edge_state_ids;
-                    successor->edge_from_parent_transition_costs = successor_seqs_transition_costs[i];
+                    successor->edge_from_parent_state_ids = std::make_shared<std::vector<int>>(successor_edge_state_ids);
+                    successor->edge_from_parent_transition_costs = std::make_shared<std::vector<double>>(successor_seqs_transition_costs[i]);
                     open_.update(successor);
                     if (params_.verbose) {
                         std::cout << "State id " << successor->state_id << " gets parent id " << state->state_id
@@ -298,8 +298,8 @@ void ims::SIPP::expand(int state_id){
                 successor->g = arrival_t;
                 successor->h = computeHeuristic(successor_cfg_state_id);
                 successor->f = successor->g + params_.epsilon*successor->h;
-                successor->edge_from_parent_state_ids = successor_edge_state_ids;
-                successor->edge_from_parent_transition_costs = successor_seqs_transition_costs[i];
+                successor->edge_from_parent_state_ids = std::make_shared<std::vector<int>>(successor_edge_state_ids);
+                successor->edge_from_parent_transition_costs = std::make_shared<std::vector<double>>(successor_seqs_transition_costs[i]);
                 successor->setOpen();
                 open_.push(successor);
                 if (params_.verbose) {
@@ -355,17 +355,17 @@ void ims::SIPP::reconstructPath(std::vector<StateType>& path, std::vector<double
         auto parent_search_state = getSearchState(search_state->parent_id);
         // Two options to deal with adding a state to the reverse path.
         // First, if there are intermediate edge states from the added state to the existing state.
-        int edge_from_parent_num_states = (int)search_state->edge_from_parent_state_ids.size();
+        int edge_from_parent_num_states = (int)search_state->edge_from_parent_state_ids->size();
         // Assertion for convention: cost between any two states should be exactly 1.
-        assert(edge_from_parent_num_states == (int)vectorSum(search_state->edge_from_parent_transition_costs) + 1);
+        assert(edge_from_parent_num_states == (int)vectorSum(*search_state->edge_from_parent_transition_costs) + 1);
         // The edge from the parent includes the parent and the child state. If there are additional ones, insert them.
         if (edge_from_parent_num_states > 2){
             // The child state is already in the path. Start adding states from the edge.
             for (int i{edge_from_parent_num_states - 2}; i >= 0; --i) {
                 // Get the state id.
-                int edge_cfg_state_id = search_state->edge_from_parent_state_ids[i];
+                int edge_cfg_state_id = search_state->edge_from_parent_state_ids->at(i);
                 // Get the transition cost from this state to its child.
-                double transition_cost = search_state->edge_from_parent_transition_costs[i];
+                double transition_cost = search_state->edge_from_parent_transition_costs->at(i);
                 // Add the timed configuration of this state and the cost to the path.
                 StateType state_to_add = action_space_ptr_->getRobotState(edge_cfg_state_id)->state;
                 state_to_add.push_back(path.back().back() - transition_cost);

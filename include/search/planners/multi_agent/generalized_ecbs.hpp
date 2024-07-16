@@ -81,7 +81,7 @@ struct GeneralizedECBSParams : public GeneralizedCBSParams {
 
     /// @brief The constraints to create from the conflicts.
     std::unordered_set<ConstraintType> constraint_types_to_create = {
-                                                        ConstraintType::SPHERE3D, // "Do not be in this sphere at this time."
+                                                        ConstraintType::VERTEX_SPHERE3D, // "Do not be in this sphere at this time."
                                                         ConstraintType::SPHERE3DLARGE,
                                                         ConstraintType::SPHERE3DXLARGE ,
                                                         ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."
@@ -223,7 +223,7 @@ protected:
     /// @brief The search state compare structs for the HL focal lists.
     struct GeneralizedECBSSphere3dConstraintFocalCompare : public GeneralizedECBSConstraintDensityFocalCompare{
         GeneralizedECBSSphere3dConstraintFocalCompare() {
-            constraint_types_ = {ConstraintType::SPHERE3D};
+            constraint_types_ = {ConstraintType::VERTEX_SPHERE3D};
         }
     };
 

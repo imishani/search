@@ -280,20 +280,20 @@ void ims::FocalSearch::reconstructPath(std::vector<PathType>& seq_states_to_chil
     while (state_->parent_id != -1){
 
         // Go through the edge from the parent to the current state. Do not include the first and last elements.
-        int edge_from_parent_num_states = (int)state_->edge_from_parent_state_ids.size();
+        int edge_from_parent_num_states = (int)state_->edge_from_parent_state_ids->size();
         if (edge_from_parent_num_states > 2){
             // Add the sequence from the parent to this state to the path.
             PathType seq_states;
             std::vector<double> seq_transition_costs;
             for (int i {0}; i < edge_from_parent_num_states; ++i){
-                seq_states.push_back(action_space_ptr_->getRobotState(state_->edge_from_parent_state_ids[i])->state);
-                seq_transition_costs.push_back(state_->edge_from_parent_transition_costs[i]);
+                seq_states.push_back(action_space_ptr_->getRobotState(state_->edge_from_parent_state_ids->at(i))->state);
+                seq_transition_costs.push_back(state_->edge_from_parent_transition_costs->at(i));
             }
             seq_states_to_child.push_back(seq_states);
             seq_transition_costs_to_child.push_back(seq_transition_costs);
 
             // Assert that this transition cost is the same as the one from the parent to the current state.
-            double edge_from_parent_total_cost = vectorSum(state_->edge_from_parent_transition_costs);
+            double edge_from_parent_total_cost = vectorSum(*state_->edge_from_parent_transition_costs);
             double rounded_edge_from_parent_total_cost = std::round(edge_from_parent_total_cost * 1000) / 1000;
             double rounded_g_difference =
                         std::round((state_->g - getSearchState(state_->parent_id)->g) * 1000) / 1000;

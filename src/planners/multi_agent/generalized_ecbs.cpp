@@ -471,7 +471,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             ims::conflict_conversions::point3dVertexConflictToSphere3dLargeConstraints(point3d_conflict_ptr, agent_constraints, params_.sphere3d_constraint_radius * 3);
         }
         // Get the sphere3d constraints.
-        if (params_.constraint_types_to_create.find(ConstraintType::SPHERE3D) != params_.constraint_types_to_create.end()) {
+        if (params_.constraint_types_to_create.find(ConstraintType::VERTEX_SPHERE3D) != params_.constraint_types_to_create.end()) {
             std::cout << CYAN << "Creating sphere3d constraints." << RESET << std::endl;
             ims::conflict_conversions::point3dVertexConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, params_.sphere3d_constraint_radius);
         }
@@ -519,7 +519,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             ims::conflict_conversions::point3dEdgeConflictToSphere3dLargeConstraints(point3d_conflict_ptr, agent_constraints, params_.sphere3d_constraint_radius * 6);
         }
         // Get the sphere3d constraints.
-        if (params_.constraint_types_to_create.find(ConstraintType::SPHERE3D) != params_.constraint_types_to_create.end()) {
+        if (params_.constraint_types_to_create.find(ConstraintType::VERTEX_SPHERE3D) != params_.constraint_types_to_create.end()) {
             std::cout << CYAN << "Creating sphere3d constraints." << RESET << std::endl;
             ims::conflict_conversions::point3dEdgeConflictToSphere3dConstraints(point3d_conflict_ptr, agent_constraints, params_.sphere3d_constraint_radius);
         }

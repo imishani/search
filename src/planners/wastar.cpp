@@ -232,8 +232,8 @@ void ims::wAStar::setStateVals(int state_id,
 {
     setStateVals(state_id, parent_id, transition_cost);
     auto state_ = getSearchState(state_id);
-    state_->edge_from_parent_state_ids = edge_from_parent_state_ids;
-    state_->edge_from_parent_transition_costs = edge_from_parent_transition_costs;
+    state_->edge_from_parent_state_ids = std::make_shared<std::vector<int>>(edge_from_parent_state_ids);
+    state_->edge_from_parent_transition_costs = std::make_shared<std::vector<double>>(edge_from_parent_transition_costs);
 }
 
 void ims::wAStar::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
@@ -246,11 +246,11 @@ void ims::wAStar::reconstructPath(std::vector<StateType>& path, std::vector<doub
     while (state_->parent_id != START){
         // Two options here. One if there are no edge-states from the parent to the state, and the other if there are.
         // Go through the edge from the parent to the current state. Do not include the first and last elements.
-        int edge_from_parent_num_states = (int)state_->edge_from_parent_state_ids.size();
+        int edge_from_parent_num_states = (int)state_->edge_from_parent_state_ids->size();
         if (edge_from_parent_num_states > 2){
             for (int i {edge_from_parent_num_states - 2}; i >= 0; --i){
-                int state_id = state_->edge_from_parent_state_ids[i];
-                double transition_cost = state_->edge_from_parent_transition_costs[i];
+                int state_id = state_->edge_from_parent_state_ids->at(i);
+                double transition_cost = state_->edge_from_parent_transition_costs->at(i);
                 path.push_back(action_space_ptr_->getRobotState(state_id)->state);
                 costs.push_back(transition_cost);
             }

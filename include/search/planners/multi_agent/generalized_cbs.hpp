@@ -190,7 +190,7 @@ protected:
     /// @brief The search state compare structs for the HL focal lists.
     struct GeneralizedCBSSphere3dConstraintFocalCompare : public GeneralizedCBSConstraintDensityFocalCompare{
         GeneralizedCBSSphere3dConstraintFocalCompare() {
-            constraint_types_ = {ConstraintType::SPHERE3D};
+            constraint_types_ = {ConstraintType::VERTEX_SPHERE3D};
         }
     };
 
@@ -295,7 +295,7 @@ struct GeneralizedCBSPoint3dParams : public GeneralizedCBSParams {
 
     /// @brief The constraints to create from the conflicts.
     std::unordered_set<ConstraintType> constraint_types_to_create = {
-            ConstraintType::SPHERE3D, // "Do not be in this sphere at this time."
+            ConstraintType::VERTEX_SPHERE3D, // "Do not be in this sphere at this time."
             ConstraintType::SPHERE3DLARGE,
             ConstraintType::SPHERE3DXLARGE ,
             ConstraintType::EDGE_STATE_AVOIDANCE, // "Between these times, avoid those agents taking the specified config. transitions."

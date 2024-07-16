@@ -136,8 +136,8 @@ void ims::FocalEAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<
         int state_id_to_insert = seq_state_ids.back();
         SearchState* search_state_to_insert = getSearchState(state_id_to_insert);
         // Set the sequence from the parent. This is the previous sequence in the sequence path.
-        search_state_to_insert->edge_from_parent_state_ids = seq_paths_state_ids[seq_ix];
-        search_state_to_insert->edge_from_parent_transition_costs = seq_paths_transition_costs[seq_ix];
+        search_state_to_insert->edge_from_parent_state_ids = std::make_shared<std::vector<int>>(seq_paths_state_ids[seq_ix]);
+        search_state_to_insert->edge_from_parent_transition_costs = std::make_shared<std::vector<double>>(seq_paths_transition_costs[seq_ix]);
         // Set the parent id.
         search_state_to_insert->parent_id = seq_paths_state_ids[seq_ix].front();
         // Get its parent. If the parent exists.

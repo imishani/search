@@ -244,10 +244,10 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
         auto time = (TimeType)point3d_conflict_ptr->states.front().back();
 
         // Create a new sphere3d constraint for this timestep.
-        Sphere3dConstraint constraint = Sphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time);
+        VertexSphere3dConstraint constraint = VertexSphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time);
 
         // Update the constraints collective to also include the new constraint.
-        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<Sphere3dConstraint>(constraint)});
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexSphere3dConstraint>(constraint)});
     }
 }
 
@@ -293,12 +293,12 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
         TimeType time_to = time_from + 1;
 
         // Create a new sphere3d constraint for each of the two timesteps.
-        Sphere3dConstraint constraint_from = Sphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_from);
-        Sphere3dConstraint constraint_to = Sphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_to);
+        VertexSphere3dConstraint constraint_from = VertexSphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_from);
+        VertexSphere3dConstraint constraint_to = VertexSphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_to);
 
         // Update the constraints collective to also include the new constraint.
         // Notice that the two constraints are added together to one agent. 
-        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<Sphere3dConstraint>(constraint_from), std::make_shared<Sphere3dConstraint>(constraint_to)});
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexSphere3dConstraint>(constraint_from), std::make_shared<VertexSphere3dConstraint>(constraint_to)});
     }
 }
 
