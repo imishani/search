@@ -38,25 +38,10 @@ namespace ims {
 
 /***Protected***/
 
-void Pase::initializeCheck() const {
-    if (action_space_ptr_ == nullptr) {
-        throw std::runtime_error("Action space is not initialized");
-    }
-    if (heuristic_ == nullptr) {
-        throw std::runtime_error("Heuristic is not initialized");
-    }
-    if (goals_.empty() || goal_ == -1) {
-        throw std::runtime_error("Goals are not initialized");
-    }
-    if (open_.empty()) {
-        throw std::runtime_error("Open list is empty, make sure to initialize the planner before run");
-    }
-}
-
 bool Pase::independentCheck(int state_id, const boost::any& popped_vec) {
     auto state = getSearchState(state_id);
     // Check against all the states being expanded.
-    for (auto wip : work_in_progress_) {
+    for (auto wip : *(work_in_progress_)) {
         if (!wip) {
             continue;
         }
@@ -80,6 +65,9 @@ bool Pase::independentCheck(int state_id, const boost::any& popped_vec) {
 /***Public***/
 
 Pase::Pase(const ParallelSearchParams& params) : ParallelSearch(params) {
+    // Instantiation
+    open_ = std::make_unique<SimpleQueue<SearchState, SearchStateCompare>>();
+    work_in_progress_ = std::make_unique<std::vector<std::shared_ptr<SearchState>>>(params.num_threads_ - 1, nullptr);
 }
 
 Pase::~Pase() = default;
@@ -87,15 +75,15 @@ Pase::~Pase() = default;
 bool Pase::plan(std::vector<StateType>& path) {
     initializeCheck();
 
-    std::vector<SearchState*> popped_states;
+    std::vector<std::shared_ptr<SearchState>> popped_states;
     lock_.lock();
 
     startTimer();
     while (!terminate_ && !isTimeOut()) {
-        SearchState* curr_state_ptr = NULL;
+        std::shared_ptr<SearchState> curr_state_ptr = NULL;
 
         // Check if there is no more state to work on.
-        if (open_.empty() && noWorkInProgress()) {
+        if (open_->empty() && noWorkInProgress()) {
             // Meaning that the search can't continue.
             terminate_ = true;
             getTimeFromStart(stats_.time);
@@ -108,16 +96,16 @@ bool Pase::plan(std::vector<StateType>& path) {
         }
 
         // While loop to select a state to expand.
-        while (!curr_state_ptr && !open_.empty()) {
-            curr_state_ptr = open_.min();
-            open_.pop();
+        while (!curr_state_ptr && !open_->empty()) {
+            curr_state_ptr = std::shared_ptr<SearchState>(open_->min());
+            open_->pop();
             popped_states.push_back(curr_state_ptr);
 
             // Independence check
             if (independentCheck(curr_state_ptr->state_id, popped_states)) {
                 for (auto& s : popped_states) {
                     if (curr_state_ptr->state_id != s->state_id) {
-                        open_.push(s);
+                        open_->push(s.get());
                     }
                 }
                 popped_states.clear();
@@ -163,7 +151,8 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
         heuristic_->setStart(const_cast<StateType&>(start));
         start_->g = 0;
         start_->f = computeHeuristic(start_ind_);
-        open_.push(start_);
+        // TODO: Temperarily using .get() to get the raw pointer.
+        open_->push(start_.get());
         start_->setOpen();
     }
 }
@@ -198,14 +187,9 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
     // Evaluate the start state.
     start_->g = 0;
     start_->f = computeHeuristic(start_ind_);
-    open_.push(start_);
+    // TODO: Temperarily using .get() to get the raw pointer.
+    open_->push(start_.get());
     start_->setOpen();
-}
-
-void Pase::resetPlanningData() {
-    open_.clear();
-    work_in_progress_.resize(params_.num_threads_ - 1, NULL);
-    ParallelSearch::resetPlanningData();
 }
 
 }  // namespace ims

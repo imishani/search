@@ -50,27 +50,17 @@ namespace ims {
 /// @brief This is an algorithm that utilizes multi-threading to speed up the search process. The key idea is to expand independent states
 class Pase : public ParallelSearch {
    protected:
-    /*VARIABLES*/
-    /// @brief The open list for states.
-    SimpleQueue<SearchState, SearchStateCompare> open_;
-
-    /// @brief States that are currently being expanded.
-    std::vector<SearchState*> work_in_progress_;
-
-    /// @brief Throw exception if the planner is not initialized correctly
-    /// @note I am adding this function since I am not entirely comfortable exposing the
-    /// initializePlanner() to user. Adding to prevent double plan() calls.
-    void initializeCheck() const;
-
-    /// @brief helper function to check if there's any state is being work in progress
-    inline bool noWorkInProgress() const {
-        return std::all_of(work_in_progress_.begin(),
-                           work_in_progress_.end(),
-                           [](SearchState* state) { return state == nullptr; });
-    }
+    /*FUNCTIONS*/
 
     /// @brief independency check
     bool independentCheck(int state_id, const boost::any& popped_vec) override;
+
+    /// @brief helper function to check if there's any state is being work in progress
+    inline bool noWorkInProgress() const {
+        return std::all_of(work_in_progress_->begin(),
+                           work_in_progress_->end(),
+                           [](std::shared_ptr<SearchState> state) { return state == nullptr; });
+    }
 
    public:
     /// @brief Constructor
@@ -99,9 +89,6 @@ class Pase : public ParallelSearch {
     /// @param path The path
     /// @return if the plan was successful or not
     bool plan(std::vector<StateType>& path);
-
-    /// @brief Reset the planning data
-    void resetPlanningData() override;
 
 };  // class Parallel A* with Slow Expansion (PASE) Search
 

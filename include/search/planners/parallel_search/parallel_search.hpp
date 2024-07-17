@@ -53,13 +53,13 @@ namespace ims {
 /// @class ParallelSearch Parameters
 struct ParallelSearchParams : public PlannerParams {
     /// @brief Constructor
-    explicit ParallelSearchParams(BaseHeuristic* heuristic) : PlannerParams(), heuristic_(heuristic) {}
-    explicit ParallelSearchParams(BaseHeuristic* heuristic, int num_threads, double epsilon) : PlannerParams(), heuristic_(heuristic), num_threads_(num_threads), epsilon_(epsilon) {}
+    explicit ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic) : PlannerParams(), heuristic_(heuristic) {}
+    explicit ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic, int num_threads, double epsilon) : PlannerParams(), heuristic_(heuristic), num_threads_(num_threads), epsilon_(epsilon) {}
 
     /// @brief Destructor
     ~ParallelSearchParams() override = default;
 
-    BaseHeuristic* heuristic_ = nullptr;
+    std::shared_ptr<BaseHeuristic> heuristic_ = nullptr;
     int num_threads_ = 1;
     double epsilon_ = 1.0;
 };
@@ -130,21 +130,20 @@ class ParallelSearch : public Planner {
     /// @brief The parameters.
     ParallelSearchParams params_;
 
-    /// @brief The open list for states/edges.
-    /// @note how to make it work with both states and edges?
-    // SimpleQueue<SearchState, SearchStateCompare> open_;
-
-    /// @brief A vector holding all the state/edge that is WIP
-    // std::vector<SearchState*> wip_;
-
     /// @brief Keeping track of states by their id.
-    std::vector<SearchState*> states_;
+    std::vector<std::shared_ptr<SearchState>> states_;
 
     /// @brief Pointer to the heuristic function
-    BaseHeuristic* heuristic_ = nullptr;
+    std::shared_ptr<BaseHeuristic> heuristic_ = nullptr;
 
     /// @brief The action space.
     std::shared_ptr<ActionSpace> action_space_ptr_;
+
+    /// @brief The (abstract) open list for search.
+    std::unique_ptr<AbstractQueue<SearchState>> open_;
+
+    /// @brief A vector holding all the state/edge that is WIP
+    std::unique_ptr<std::vector<std::shared_ptr<SearchState>>> work_in_progress_;
 
     /// @brief The stats.
     ParallelSearchPlannerStats stats_;
@@ -181,12 +180,12 @@ class ParallelSearch : public Planner {
     /// @param state_id The id of the state
     /// @return The state
     /// @note Use this function only if you are sure that the state exists.
-    auto getSearchState(int state_id) -> SearchState*;
+    auto getSearchState(int state_id) -> std::shared_ptr<SearchState>;
 
     /// @brief Get the state by id or create a new one if it does not exist. If a search state does not exist yet and a new one is created, it's ID will be set, and all other member fields will initialize to default values.
     /// @param state_id The id of the state
     /// @return The state
-    auto getOrCreateSearchState(int state_id) -> SearchState*;
+    auto getOrCreateSearchState(int state_id) -> std::shared_ptr<SearchState>;
 
     /// @brief Compute the heuristic value of from state s to the goal state
     /// @param s The state
@@ -208,6 +207,14 @@ class ParallelSearch : public Planner {
 
     bool isGoalState(int state_id) override;
 
+    /// @brief Throw exception if the planner is not initialized correctly
+    /// @note I am adding this function since I am not entirely comfortable exposing the
+    /// initializePlanner() to user. Adding to prevent double plan() calls.
+    virtual void initializeCheck() const;
+
+    /// @brief independency check to prevent re-expansion/re-evaluation
+    virtual bool independentCheck(int id, const boost::any& popped_vec) = 0;
+
     /// @brief check if a thread is terminated using std::future
     template <typename T>
     inline bool isFutureReady(T& future) {
@@ -219,9 +226,6 @@ class ParallelSearch : public Planner {
         recheck_flag_ = false;
         cv_.notify_one();
     }
-    
-    /// @brief independency check to prevent re-expansion/re-evaluation
-    virtual bool independentCheck(int id, const boost::any& popped_vec) = 0;
 
     /// @brief helper function to join all the spawned threads
     void cleanUp();
