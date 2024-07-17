@@ -38,6 +38,7 @@
 #include <functional>
 // Standard includes
 #include <algorithm>
+#include <boost/any.hpp>
 #include <future>
 #include <utility>
 
@@ -218,6 +219,9 @@ class ParallelSearch : public Planner {
         recheck_flag_ = false;
         cv_.notify_one();
     }
+    
+    /// @brief independency check to prevent re-expansion/re-evaluation
+    virtual bool independentCheck(int id, const boost::any& popped_vec) = 0;
 
     /// @brief helper function to join all the spawned threads
     void cleanUp();

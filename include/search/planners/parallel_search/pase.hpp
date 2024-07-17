@@ -69,6 +69,9 @@ class Pase : public ParallelSearch {
                            [](SearchState* state) { return state == nullptr; });
     }
 
+    /// @brief independency check
+    bool independentCheck(int state_id, const boost::any& popped_vec) override;
+
    public:
     /// @brief Constructor
     /// @param params The parameters
