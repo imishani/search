@@ -51,7 +51,7 @@ bool Pase::independentCheck(int state_id, const boost::any& popped_vec) {
         }
     }
     // Check against all the states ahead in the open list.
-    for (auto& pop : boost::any_cast<std::vector<SearchState*>>(popped_vec)) {
+    for (auto& pop : boost::any_cast<const std::vector<std::shared_ptr<SearchState>>&>(popped_vec)) {
         if (pop->state_id != state_id) {
             auto h_diff = computeHeuristic(state_id, pop->state_id);
             if (state->g > pop->g + params_.epsilon_ * h_diff) {
@@ -60,6 +60,12 @@ bool Pase::independentCheck(int state_id, const boost::any& popped_vec) {
         }
     }
     return true;
+}
+
+void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
+}
+
+void Pase::workerLoop(int thread_id) {
 }
 
 /***Public***/
@@ -79,42 +85,134 @@ bool Pase::plan(std::vector<StateType>& path) {
     lock_.lock();
 
     startTimer();
+    // Time out control loop
     while (!terminate_ && !isTimeOut()) {
         std::shared_ptr<SearchState> curr_state_ptr = NULL;
 
-        // Check if there is no more state to work on.
-        if (open_->empty() && noWorkInProgress()) {
-            // Meaning that the search can't continue.
-            terminate_ = true;
-            getTimeFromStart(stats_.time);
-            if (params_.verbose) {
-                std::cout << "No solution found" << std::endl;
-            }
-            lock_.unlock();
-            cleanUp();
-            return false;
-        }
-
-        // While loop to select a state to expand.
-        while (!curr_state_ptr && !open_->empty()) {
-            curr_state_ptr = std::shared_ptr<SearchState>(open_->min());
-            open_->pop();
-            popped_states.push_back(curr_state_ptr);
-
-            // Independence check
-            if (independentCheck(curr_state_ptr->state_id, popped_states)) {
-                for (auto& s : popped_states) {
-                    if (curr_state_ptr->state_id != s->state_id) {
-                        open_->push(s.get());
-                    }
+        // Select work loop
+        while (!terminate_ && !curr_state_ptr) {
+            // Check if there is no more state to work on.
+            if (open_->empty() && noWorkInProgress()) {
+                // Meaning that the search can't continue.
+                terminate_ = true;
+                getTimeFromStart(stats_.time);
+                stats_.cost = curr_state_ptr->g;
+                stats_.num_generated = (int)action_space_ptr_->states_.size();
+                stats_.suboptimality = params_.epsilon_;
+                if (params_.verbose) {
+                    std::cout << "No solution found - exhausted open list" << std::endl;
                 }
-                popped_states.clear();
-                break;
-            } else {
-                curr_state_ptr = NULL;
+                lock_.unlock();
+                joinThread();
+                return false;
+            }
+
+            // While loop to select a state to expand.
+            while (!curr_state_ptr && !open_->empty()) {
+                curr_state_ptr = std::shared_ptr<SearchState>(open_->min());
+                open_->pop();
+                popped_states.push_back(curr_state_ptr);
+
+                // Independence check
+                if (independentCheck(curr_state_ptr->state_id, popped_states)) {
+                    break;
+                } else {
+                    curr_state_ptr = NULL;
+                }
+            }
+
+            // Re-add the popped states to the open list.
+            for (auto& s : popped_states) {
+                if (curr_state_ptr->state_id != s->state_id) {
+                    open_->push(s.get());
+                }
+            }
+            popped_states.clear();
+
+            // If curr_state_ptr is NULL, meaning that none of the states in the open list can be expanded.
+            // Wait for the other threads to finish.
+            if (!curr_state_ptr) {
+                lock_.unlock();
+                // Wait for recheck_flag_ to be set true
+                std::unique_lock<std::mutex> locker(lock_);
+                cv_.wait(locker, [this]() { return (recheck_flag_ == 1); });
+                recheck_flag_ = false;
+                locker.unlock();
+                lock_.lock();
+                continue;
+            }
+
+            // If the current state is the goal state, then reconstruct the path.
+            if (isGoalState(curr_state_ptr->state_id)) {
+                terminate_ = true;
+                goal_ = curr_state_ptr->state_id;
+                getTimeFromStart(stats_.time);
+                reconstructPath(path, stats_.transition_costs);
+                stats_.cost = curr_state_ptr->g;
+                stats_.path_length = (int)path.size();
+                stats_.num_generated = (int)action_space_ptr_->states_.size();
+                stats_.suboptimality = params_.epsilon_;
+                if (params_.verbose) {
+                    std::cout << "Solution found" << std::endl;
+                }
+                lock_.unlock();
+                joinThread();
+                return true;
             }
         }
+
+        // Expand the current state.
+        /// Status change
+        curr_state_ptr->setClosed();
+        stats_.num_expanded++;
+        lock_.unlock();
+
+        int thread_id = 0;
+        bool work_assinged = false;
+
+        if (params_.num_threads_ == 1) {
+            expand(curr_state_ptr, 0);
+        } else {
+            while (!work_assinged) {
+                // Check if thread with [id] is available.
+                std::unique_lock<LockType> locker(lock_vec_[thread_id]);
+                bool working = work_status_[thread_id];
+                locker.unlock();
+
+                // If available
+                if (!working) {
+                    int num_threads_current = work_futures_.size();
+                    if (thread_id >= num_threads_current) {
+                        if (params_.verbose) std::cout << "Spawning worker thread " << thread_id << std::endl;
+                        work_futures_.emplace_back(
+                            std::async(std::launch::async, &Pase::workerLoop, this, thread_id));
+                    }
+                    locker.lock();
+                    work_in_progress_->at(thread_id) = curr_state_ptr;
+                    work_status_[thread_id] = true;
+                    work_assinged = true;
+                    locker.unlock();
+                    cv_vec_[thread_id].notify_one();
+                } else {
+                    // Note that the main thread will have the id thread_num - 1.
+                    thread_id = thread_id == params_.num_threads_ - 2 ? 0 : thread_id + 1;
+                }
+            }
+        }
+
+        lock_.lock();
     }
+
+    // If the search is terminated due to time out.
+    terminate_ = true;
+    getTimeFromStart(stats_.time);
+    stats_.num_generated = (int)action_space_ptr_->states_.size();
+    stats_.suboptimality = params_.epsilon_;
+    if (params_.verbose) {
+        std::cout << "No solution found - timeout" << std::endl;
+    }
+    lock_.unlock();
+    joinThread();
     return false;
 }
 

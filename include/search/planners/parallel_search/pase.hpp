@@ -61,6 +61,12 @@ class Pase : public ParallelSearch {
                            work_in_progress_->end(),
                            [](std::shared_ptr<SearchState> state) { return state == nullptr; });
     }
+    
+    /// @brief main function to expand a state
+    void expand(std::shared_ptr<SearchState> state, int thread_id);
+    
+    /// @brief loop function for worker threads
+    void workerLoop(int thread_id) override;
 
    public:
     /// @brief Constructor

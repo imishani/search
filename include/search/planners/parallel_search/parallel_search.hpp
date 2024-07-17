@@ -182,6 +182,9 @@ class ParallelSearch : public Planner {
 
     /// @brief independency check to prevent re-expansion/re-evaluation
     virtual bool independentCheck(int id, const boost::any& popped_vec) = 0;
+    
+    /// @brief worker loop for multi-threading
+    virtual void workerLoop(int thread_id) = 0;
 
     /**Implemented**/
 
