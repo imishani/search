@@ -209,13 +209,18 @@ class ParallelSearch : public Planner {
 
     /// @brief check if a thread is terminated using std::future
     template <typename T>
-    inline bool isFutureReady(T& future) { return future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready; };
+    inline bool isFutureReady(T& future) {
+        return future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready;
+    };
 
     /// @brief function for the worker thread to notify main thread
     inline void notifyMainThread() {
         recheck_flag_ = false;
         cv_.notify_one();
     }
+
+    /// @brief helper function to join all the spawned threads
+    void cleanUp();
 
    public:
     /// @brief Constructor
