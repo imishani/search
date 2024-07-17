@@ -34,15 +34,7 @@
 
 #include <search/planners/parallel_search/parallel_search.hpp>
 
-ims::ParallelSearch::ParallelSearch(const ParallelSearchParams& params) : Planner(params), params_(params) {
-    heuristic_ = params.heuristic_;
-}
-
-ims::ParallelSearch::~ParallelSearch() {
-    for (auto& state : states_) {
-        delete state;
-    }
-}
+/***Protected***/
 
 auto ims::ParallelSearch::getSearchState(int state_id) -> ims::ParallelSearch::SearchState* {
     assert(state_id < states_.size() && state_id >= 0);
@@ -124,6 +116,42 @@ bool ims::ParallelSearch::isGoalState(int s_id) {
     return false;
 }
 
+void ims::ParallelSearch::cleanUp() {
+    // Notify all worker threads to stop.
+    for (int thread_id{0}; thread_id < params_.num_threads_; ++thread_id) {
+        std::unique_lock<LockType> locker(lock_vec_[thread_id]);
+        work_status_[thread_id] = true;
+        locker.unlock();
+        cv_vec_[thread_id].notify_one();
+    }
+
+    stats_.num_threads_spawned = work_futures_.size() + 1;
+
+    bool all_threads_exit = false;
+    while (!all_threads_exit) {
+        all_threads_exit = true;
+        for (auto& fut : work_futures_) {
+            if (!isFutureReady(fut)) {
+                all_threads_exit = false;
+                break;
+            }
+        }
+    }
+    work_futures_.clear();
+}
+
+/***Public***/
+
+ims::ParallelSearch::ParallelSearch(const ParallelSearchParams& params) : Planner(params), params_(params) {
+    heuristic_ = params.heuristic_;
+}
+
+ims::ParallelSearch::~ParallelSearch() {
+    for (auto& state : states_) {
+        delete state;
+    }
+}
+
 void ims::ParallelSearch::resetPlanningData() {
     for (auto state : states_) {
         delete state;
@@ -145,3 +173,4 @@ void ims::ParallelSearch::resetPlanningData() {
     plan_found_ = false;
     recheck_flag_ = true;
 }
+

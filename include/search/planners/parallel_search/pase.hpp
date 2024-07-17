@@ -68,9 +68,6 @@ class Pase : public ParallelSearch {
                            work_in_progress_.end(),
                            [](SearchState* state) { return state == nullptr; });
     }
-    
-    /// @brief helper function to join all the spawned threads
-    void cleanUp();
 
    public:
     /// @brief Constructor

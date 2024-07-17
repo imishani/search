@@ -36,33 +36,7 @@
 
 namespace ims {
 
-Pase::Pase(const ParallelSearchParams& params) : ParallelSearch(params) {
-}
-
-Pase::~Pase() = default;
-
-bool Pase::plan(std::vector<StateType>& path) {
-    initializeCheck();
-
-    std::vector<SearchState*> popped_states;
-    lock_.lock();
-
-    startTimer();
-    while (!terminate_ && !isTimeOut()) {
-        if (open_.empty() && noWorkInProgress()) {
-            // Meaning that thee search can't continue.
-            terminate_ = true;
-            getTimeFromStart(stats_.time);
-            if (params_.verbose) {
-                std::cout << "No solution found" << std::endl;
-            }
-            lock_.unlock();
-            cleanUp();
-            return false;
-        }
-    }
-    return false;
-}
+/***Protected***/
 
 void Pase::initializeCheck() const {
     if (action_space_ptr_ == nullptr) {
@@ -77,6 +51,53 @@ void Pase::initializeCheck() const {
     if (open_.empty()) {
         throw std::runtime_error("Open list is empty, make sure to initialize the planner before run");
     }
+}
+
+/***Public***/
+
+Pase::Pase(const ParallelSearchParams& params) : ParallelSearch(params) {
+}
+
+Pase::~Pase() = default;
+
+bool Pase::plan(std::vector<StateType>& path) {
+    initializeCheck();
+
+    std::vector<SearchState*> popped_states;
+    lock_.lock();
+
+    startTimer();
+    while (!terminate_ && !isTimeOut()) {
+        SearchState* curr_state_ptr = NULL;
+
+        // Check if there is no more state to work on.
+        if (open_.empty() && noWorkInProgress()) {
+            // Meaning that the search can't continue.
+            terminate_ = true;
+            getTimeFromStart(stats_.time);
+            if (params_.verbose) {
+                std::cout << "No solution found" << std::endl;
+            }
+            lock_.unlock();
+            cleanUp();
+            return false;
+        }
+
+        // While loop to select a state to expand.
+        while (!curr_state_ptr && !open_.empty()) {
+            curr_state_ptr = open_.min();
+            open_.pop();
+            popped_states.push_back(curr_state_ptr);
+
+            // Independence check
+            // if (independentCheck(curr_state_ptr)) {
+            //     break;
+            // } else {
+            //     curr_state_ptr = NULL;
+            // }
+        }
+    }
+    return false;
 }
 
 void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
@@ -149,30 +170,6 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
     start_->f = computeHeuristic(start_ind_);
     open_.push(start_);
     start_->setOpen();
-}
-
-void Pase::cleanUp() {
-    // Notify all worker threads to stop.
-    for (int thread_id{0}; thread_id < params_.num_threads_; ++thread_id) {
-        std::unique_lock<LockType> locker(lock_vec_[thread_id]);
-        work_status_[thread_id] = true;
-        locker.unlock();
-        cv_vec_[thread_id].notify_one();
-    }
-
-    stats_.num_threads_spawned = work_futures_.size() + 1;
-
-    bool all_threads_exit = false;
-    while (!all_threads_exit) {
-        all_threads_exit = true;
-        for (auto& fut : work_futures_) {
-            if (!isFutureReady(fut)) {
-                all_threads_exit = false;
-                break;
-            }
-        }
-    }
-    work_futures_.clear();
 }
 
 void Pase::resetPlanningData() {
