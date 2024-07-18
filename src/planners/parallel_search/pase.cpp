@@ -63,31 +63,76 @@ bool Pase::independentCheck(int state_id, const boost::any& popped_vec) {
 }
 
 void Pase::workerLoop(int thread_id) {
-    try{
-        while(!terminate_) {
+    try {
+        while (!terminate_) {
             std::unique_lock<LockType> locker(lock_vec_[thread_id]);
             cv_vec_[thread_id].wait(locker, [this, thread_id] { return work_status_[thread_id]; });
             locker.unlock();
-            
+
             if (terminate_) {
                 break;
             }
-            
+
             expand(work_in_progress_->at(thread_id), thread_id);
-            
+
             locker.lock();
             work_in_progress_->at(thread_id) = nullptr;
             work_status_[thread_id] = false;
             locker.unlock();
         }
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
         std::cerr << "Worker thread " << thread_id << " terminated with exception: " << e.what() << std::endl;
     }
 }
 
 void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
-}
+    /// Status change, Stats & Debug
+    stampTimer();
+    lock_.lock();
+    stats_.lock_time += getTimeFromStamp();
+    stats_.num_jobs_per_thread[thread_id]++;
+    stats_.num_expanded++;
+    curr_state_ptr->setClosed();
 
+    if (params_.verbose) curr_state_ptr->print("Thread " + std::to_string(thread_id) + " Expanding ");
+
+    // Get the successors
+    // TODO: Currently there is no check for Preconditions on whether the action is valid for a state or not
+    // (or should it be taken care by the action space?)
+    std::vector<int> successors;
+    std::vector<double> costs;
+    lock_.unlock();
+    stampTimer();
+    action_space_ptr_->getSuccessors(curr_state_ptr->state_id, successors, costs);
+    stats_.evaluation_time += getTimeFromStamp();
+    lock_.lock();
+
+    for (size_t i{0}; i < successors.size(); ++i) {
+        int successor_id = successors[i];
+        double cost = costs[i];
+        auto successor_ptr = getOrCreateSearchState(successor_id);
+
+        // If the successor is already closed, skip it.
+        // Another variant of this algorithm would be to create a new search state for the successor and add it to the open list.
+
+        if (successor_ptr->in_closed) {
+            continue;
+        }
+        if (successor_ptr->in_open) {
+            if (successor_ptr->f > cost) {
+                successor_ptr->parent_id = curr_state_ptr->state_id;
+                successor_ptr->g = curr_state_ptr->g + cost;
+                successor_ptr->f = successor_ptr->g + params_.epsilon_*successor_ptr->h;
+                open_->update(successor_ptr.get());
+            }
+        } else {
+            setStateVals(successor_ptr->state_id, curr_state_ptr->state_id, cost);
+            open_->push(successor_ptr.get());
+            successor_ptr->setOpen();
+        }
+    }
+    lock_.unlock();
+}
 
 /***Public***/
 
@@ -183,9 +228,6 @@ bool Pase::plan(std::vector<StateType>& path) {
         }
 
         // Expand the current state.
-        /// Status change
-        curr_state_ptr->setClosed();
-        stats_.num_expanded++;
         lock_.unlock();
 
         int thread_id = 0;
