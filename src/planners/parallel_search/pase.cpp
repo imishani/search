@@ -122,7 +122,7 @@ void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
             if (successor_ptr->f > cost) {
                 successor_ptr->parent_id = curr_state_ptr->state_id;
                 successor_ptr->g = curr_state_ptr->g + cost;
-                successor_ptr->f = successor_ptr->g + params_.epsilon_*successor_ptr->h;
+                successor_ptr->f = successor_ptr->g + params_.epsilon_ * successor_ptr->h;
                 open_->update(successor_ptr.get());
             }
         } else {
@@ -175,7 +175,8 @@ bool Pase::plan(std::vector<StateType>& path) {
 
             // While loop to select a state to expand.
             while (!curr_state_ptr && !open_->empty()) {
-                curr_state_ptr = std::shared_ptr<SearchState>(open_->min());
+                // curr_state_ptr = std::shared_ptr<SearchState>(open_->min());
+                curr_state_ptr = states_[open_->min()->state_id];
                 open_->pop();
                 popped_states.push_back(curr_state_ptr);
 
@@ -299,6 +300,7 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
     int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
     auto goal_ = getOrCreateSearchState(goal_ind_);
     goals_.push_back(goal_ind_);
+    this->goal_ = goal_ind_;
 
     // Evaluate the goal state
     goal_->parent_id = PARENT_TYPE(GOAL);
@@ -311,6 +313,7 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
         start_->parent_id = PARENT_TYPE(START);
         heuristic_->setStart(const_cast<StateType&>(start));
         start_->g = 0;
+        start_->h = computeHeuristic(start_ind_);
         start_->f = computeHeuristic(start_ind_);
         // TODO: Temperarily using .get() to get the raw pointer.
         open_->push(start_.get());
@@ -337,6 +340,7 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
     int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
     auto goal_ = getOrCreateSearchState(goal_ind_);
     goals_.push_back(goal_ind_);
+    this->goal_ = goal_ind_;
 
     // Evaluate the start state
     start_->parent_id = PARENT_TYPE(START);
@@ -347,6 +351,7 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
 
     // Evaluate the start state.
     start_->g = 0;
+    start_->h = computeHeuristic(start_ind_);
     start_->f = computeHeuristic(start_ind_);
     // TODO: Temperarily using .get() to get the raw pointer.
     open_->push(start_.get());
