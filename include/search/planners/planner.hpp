@@ -137,6 +137,13 @@ struct SearchState : public ::smpl::HeapElement {
             elapsed_time /= scaler;
         }
 
+        double getTimeFromStamp() {
+            auto t_end = std::chrono::steady_clock::now();
+            double scaler = 1e9;
+            double elapsed_time = (double)std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_stamp_).count();
+            return elapsed_time /= scaler;
+        }
+
         bool isTimeOut() {
             double elapsed_time;
             getTimeFromStart(elapsed_time);

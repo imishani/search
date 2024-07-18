@@ -68,6 +68,8 @@ struct ParallelSearchPlannerStats : public PlannerStats {
     int num_threads_spawned{0};            // The number of threads spawned
     int num_evaluated{0};                  // The number of evaluated edges.
     std::vector<int> num_jobs_per_thread;  // The number of jobs per thread
+    double lock_time{0};                   // The time spent on locking
+    double evaluation_time{0};             // The time spent on getSuccessor/edge evaluation
 };
 
 /// @class ParallelSearch Base class.
@@ -106,6 +108,16 @@ class ParallelSearch : public Planner {
 
         void print() override {
             std::cout << "State: " << state_id << " Parent: " << parent_id << " g: " << g << " f: " << f << std::endl;
+        }
+
+        void print(std::string str) {
+            std::cout << str
+                      << "State: " << state_id
+                      << " | Parent: " << parent_id
+                      << " | g: " << g
+                      << " | f: " << f
+                      << " | h: " << h
+                      << std::endl;
         }
 
         double getLowerBound() const override {
@@ -182,7 +194,7 @@ class ParallelSearch : public Planner {
 
     /// @brief independency check to prevent re-expansion/re-evaluation
     virtual bool independentCheck(int id, const boost::any& popped_vec) = 0;
-    
+
     /// @brief worker loop for multi-threading
     virtual void workerLoop(int thread_id) = 0;
 
@@ -341,11 +353,11 @@ class ParallelSearch : public Planner {
 
    public:
     /**Not Implemented**/
-    
+
     /// @brief Constructor
     /// @param params The parameters
     explicit ParallelSearch(const ParallelSearchParams& params) : Planner(params), params_(params) {
-        heuristic_ = params.heuristic_;        
+        heuristic_ = params.heuristic_;
     }
 
     /// @brief Destructor
