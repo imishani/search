@@ -62,11 +62,32 @@ bool Pase::independentCheck(int state_id, const boost::any& popped_vec) {
     return true;
 }
 
+void Pase::workerLoop(int thread_id) {
+    try{
+        while(!terminate_) {
+            std::unique_lock<LockType> locker(lock_vec_[thread_id]);
+            cv_vec_[thread_id].wait(locker, [this, thread_id] { return work_status_[thread_id]; });
+            locker.unlock();
+            
+            if (terminate_) {
+                break;
+            }
+            
+            expand(work_in_progress_->at(thread_id), thread_id);
+            
+            locker.lock();
+            work_in_progress_->at(thread_id) = nullptr;
+            work_status_[thread_id] = false;
+            locker.unlock();
+        }
+    } catch (const std::exception &e) {
+        std::cerr << "Worker thread " << thread_id << " terminated with exception: " << e.what() << std::endl;
+    }
+}
+
 void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
 }
 
-void Pase::workerLoop(int thread_id) {
-}
 
 /***Public***/
 
