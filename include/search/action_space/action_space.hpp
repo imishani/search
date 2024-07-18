@@ -149,17 +149,20 @@ namespace ims {
         /// @return The robot state
         /// @note The id is assumed to be valid - meaning that the state exists in states_
         virtual auto getRobotState(const StateType& state_val) -> RobotState*{
+            lock_.lock();
             auto* curr_state = new RobotState;
             curr_state->state = state_val;
             auto it = state_to_id_.find(curr_state);
             if(it != state_to_id_.end()){
                 delete curr_state;
+                lock_.unlock();
                 return states_[it->second];
             } else {
                 // Raise an error.
                 std::cout << "getRobotState via state_val failed. State not found." << std::endl;
                 throw std::runtime_error("getRobotState via state_val failed. State not found.");
                 delete curr_state;
+                lock_.unlock();
                 return nullptr;
             }
         }
@@ -169,17 +172,20 @@ namespace ims {
         /// @return The robot state id
         /// @note The id is assumed to be valid - meaning that the state exists in states_
         virtual int getRobotStateId(const StateType& state_val){
+            lock_.lock();
             auto* curr_state = new RobotState;
             curr_state->state = state_val;
             auto it = state_to_id_.find(curr_state);
             if(it != state_to_id_.end()){
                 delete curr_state;
+                lock_.unlock();
                 return it->second;
             } else {
                 // Raise an error.
                 std::cout << "getRobotStateId via state_val failed. State not found." << std::endl;
                 throw std::runtime_error("getRobotStateId via state_val failed. State not found.");
                 delete curr_state;
+                lock_.unlock();
                 return -1;
             }
         }
@@ -189,14 +195,15 @@ namespace ims {
         /// @return The state id
         virtual int getOrCreateRobotState(const StateType& state_val){
             // check if the state exists
+            lock_.lock();
             auto* curr_state = new RobotState;
             curr_state->state = state_val;
             auto it = state_to_id_.find(curr_state);
             if(it != state_to_id_.end()){
                 delete curr_state;
+                lock_.unlock();
                 return it->second;
             } else {
-                lock_.lock();
                 states_.push_back(curr_state);
                 int state_id = (int)states_.size() - 1;
                 state_to_id_[curr_state] = state_id;
