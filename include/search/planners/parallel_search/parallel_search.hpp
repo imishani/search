@@ -224,6 +224,19 @@ class ParallelSearch : public Planner {
         return states_[state_id];
     }
 
+    /// @brief set the state with parent id and cost
+    /// @param state_id The id of the state.
+    /// @param parent_id The id of the parent state.
+    /// @param cost The cost associated with the search state. For example, in A*, this would be the f value.
+    virtual void setStateVals(int state_id, int parent_id, double cost) {
+        auto state_ = getSearchState(state_id);
+        auto parent = getSearchState(parent_id);
+        state_->parent_id = parent_id;
+        state_->g = parent->g + cost;
+        state_->h = computeHeuristic(state_id);
+        state_->f = state_->g + params_.epsilon_ * state_->h;
+    }
+
     /// @brief Compute the heuristic value of from state s to the goal state
     /// @param s The state
     double computeHeuristic(int state_id) {
