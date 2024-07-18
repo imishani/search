@@ -124,9 +124,12 @@ namespace ims {
         /// @param state_id The state id
         /// @return The state pointer
         virtual auto getRobotHashEntry(int state_id) -> RobotState*{
+            lock_.lock();
             if(state_id < 0 || state_id >= states_.size()){
+                lock_.unlock();
                 return nullptr;
             }
+            lock_.unlock();
             return states_[state_id];
         }
 
@@ -135,7 +138,9 @@ namespace ims {
         /// @return The state
         /// @note The id is assumed to be valid - meaning that the state exists in states_
         virtual auto getRobotState(size_t id) -> RobotState*{
+            lock_.lock();
             assert(id < states_.size() && id >= 0);
+            lock_.unlock();
             return states_[id];
         }
 
@@ -191,9 +196,11 @@ namespace ims {
                 delete curr_state;
                 return it->second;
             } else {
+                lock_.lock();
                 states_.push_back(curr_state);
                 int state_id = (int)states_.size() - 1;
                 state_to_id_[curr_state] = state_id;
+                lock_.unlock();
                 return state_id;
             }
         }
@@ -236,6 +243,12 @@ namespace ims {
             states_.clear();
             state_to_id_.clear();
         }
+        
+    protected:
+        
+        /// @brief  Lock for the action space to make it multi-thread safe
+        LockType lock_;
+
     };
 }
 #endif //SEARCH_ACTIONSPACE_HPP
