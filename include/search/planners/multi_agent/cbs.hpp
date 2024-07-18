@@ -79,6 +79,12 @@ struct CBSParams : public BestFirstSearchParams {
 
     /// @brief The weight to use in the low level planner heuristic.
     double weight_low_level_heuristic = 1.0;
+
+    /// @brief The conflict types to be requested by the CBS algorithm (to be found at the action-space). Each conflict type maps to a set of constraint types to be generated from it.
+    std::unordered_map<ConflictType, std::vector<ConstraintType>> conflict_type_to_constraint_types = {
+        {ConflictType::EDGE, {ConstraintType::EDGE}},
+        {ConflictType::VERTEX, {ConstraintType::VERTEX}}
+    };
 };
 
 // ==========================
@@ -159,7 +165,6 @@ struct SearchState : public ims::BestFirstSearch::SearchState, public SearchStat
         assert(sum_of_path_cost_lower_bounds > 0.0);
         return sum_of_path_cost_lower_bounds;
     }
-
 };
 
     // The base CBS class holds an abstract queue. The queue is instantiated in the constructor of the derived classes and reset in the initializePlanner() method of each derived class.
@@ -275,7 +280,7 @@ protected:
 
     // Public variable. For shadowing.
     /// @brief The conflict types that this algorithm asks for from the action space.
-    std::vector<ConflictType> conflict_types_ = {ConflictType::EDGE, ConflictType::VERTEX};
+    std::vector<ConflictType> conflict_types_; // Normally, this is set to {ConflictType::EDGE, ConflictType::VERTEX}. Comes from params.
 };
 
 }  // namespace ims

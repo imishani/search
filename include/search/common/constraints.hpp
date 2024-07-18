@@ -54,15 +54,18 @@ enum class ConstraintType {
     UNSET = -1,
     VERTEX = 0, // Do not be at v at time t.
     EDGE = 1, // Do not cross edge (u, v) at time t to t+1.
-    VERTEX_SPHERE3D = 2, // Do not be in sphere at time t.
-    VERTEX_PRIORITY = 3, // Do not conflict with agent at time t, setting other agent as specified in its path in the context.
-    EDGE_PRIORITY = 4, // Do not conflict with agent at time t_from to t_to, setting other agent as specified in its path in the context.
-    VERTEX_STATE_AVOIDANCE = 5, // Do not conflict with agent at a specified configuration at time t.
-    EDGE_STATE_AVOIDANCE = 6, // Do not conflict with agent at a specified configuration between time t_from to t_to.
-    ALL_EDGE_VERTEX_REQUEST = 7, // Initially used in Generalized-CBS, this is a request to create vertex and edge constraints for all conflicts available. Used in conflictsToConstraints.
-    SPHERE3DLARGE = 8, // Do not be in sphere at time t, but with a larger radius.
-    SPHERE3DXLARGE = 10, // Do not be in sphere at time t, but with a much larger radius.
-    PATH_PRIORITY = 11, // Do not be in sphere at time t, but with a much much larger radius.
+    VERTEX_SPHERE3D, // Do not be in sphere at time t.
+    EDGE_SPHERE3D, // Do not cross edge (u, v) at time t to t+1 if the associated configuration interpolation collides with a sphere.
+    VERTEX_PRIORITY, // Do not conflict with agent at time t, setting other agent as specified in its path in the context.
+    EDGE_PRIORITY, // Do not conflict with agent at time t_from to t_to, setting other agent as specified in its path in the context.
+    VERTEX_STATE_AVOIDANCE, // Do not conflict with agent at a specified configuration at time t.
+    EDGE_STATE_AVOIDANCE, // Do not conflict with agent at a specified configuration between time t_from to t_to.
+    ALL_EDGE_VERTEX_REQUEST, // Initially used in Generalized-CBS, this is a request to create vertex and edge constraints for all conflicts available. Used in conflictsToConstraints.
+    SPHERE3DLARGE, // Do not be in sphere at time t, but with a larger radius.
+    SPHERE3DXLARGE, // Do not be in sphere at time t, but with a much larger radius.
+    PATH_PRIORITY, // Do not be in sphere at time t, but with a much much larger radius.
+    VERTEX_POINT3D, // Do not be at v at time t if the associated configuration collides with a point.
+    EDGE_POINT3D, // Do not cross edge (u, v) at time t to t+1 if the associated configuration interpolation collides with a point.
 };
 
 // A map from constraint type to whether it is admissible or not.
@@ -193,6 +196,40 @@ struct VertexSphere3dConstraint : public Constraint {
     /// @brief The time interval of the constraint.
     std::pair<int, int> getTimeInterval() const override {
         return std::make_pair(time, time);
+    }
+};
+
+struct EdgeSphere3dConstraint : public Constraint {
+    /// @brief The center of the constrained sphere.
+    Eigen::Vector3d center;
+
+    /// @brief The radius of the sphere.
+    double radius;
+
+    /// @brief The time of the constraint. Inclusive in both from and to. We do, however, normally assume that time from is valid.
+    TimeType time_from;
+    TimeType time_to;
+
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param state The state vector.
+    explicit EdgeSphere3dConstraint(Eigen::Vector3d center, double radius, TimeType time_from, TimeType time_to) :
+                                            center(std::move(center)),
+                                            radius(radius),
+                                            time_from(time_from),
+                                            time_to(time_to){
+        /// @brief The type of the constraint.
+        type = ConstraintType::EDGE_SPHERE3D;
+    }
+
+    std::string toString() const override {
+        std::stringstream ss;
+        ss << "EdgeSphere3dConstraint. Center: (" << center.x() << ", " << center.y() << ", " << center.z() << ") Radius: " << radius << " Time: [" <<  time_from << ", " << time_to << "]";
+        return ss.str();
+    }
+
+    /// @brief The time interval of the constraint.
+    std::pair<int, int> getTimeInterval() const override {
+        return std::make_pair(time_from, time_to);
     }
 };
 

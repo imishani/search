@@ -72,6 +72,9 @@ void ims::CBSBase::verifyStartAndGoalInputStates(const std::vector<StateType>& s
 
 ims::CBS::CBS(const ims::CBSParams& params) : params_(params), CBSBase(params) {
     open_ = new SimpleQueue<SearchState, SearchStateCompare>();
+
+    // Set the conflict types.
+    conflict_types_ = getMapKeys(params_.conflict_type_to_constraint_types);
 }
 
 void ims::CBS::initializePlanner(std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs,
@@ -377,30 +380,18 @@ void ims::CBS::setStateVals(int state_id, int parent_id, double cost) {
 
 std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::CBS::conflictsToConstraints(const std::vector<std::shared_ptr<ims::Conflict>>& conflicts) {
     std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> agent_constraints;
+    // Create a converter object.
+    ims::conflict_conversions::ConflictsToConstraintsConverter conflict_converter;
+    // Add some context.
+    ims::conflict_conversions::ConflictConversionContext context;
+    context.agent_names = agent_names_;
+    conflict_converter.setContext(context);
 
     // Iterate through the conflicts and convert them to constraints.
     for (auto& conflict_ptr : conflicts) {
-        // Create a new constraint given the conflict.
-        if (conflict_ptr->type == ConflictType::VERTEX) {
-            auto* vertex_conflict_ptr = dynamic_cast<VertexConflict*>(conflict_ptr.get());
-            // Check if the conversion succeeded.
-            if (vertex_conflict_ptr == nullptr) {
-                throw std::runtime_error("Conflict is a vertex conflict, but could not be converted to a VertexConflict.");
-            }
-
-            // For each affected agent (2, in CBS), create a new constraint, and a search state for each as well.
-            ims::conflict_conversions::vertexConflictToVertexConstraints(vertex_conflict_ptr, agent_constraints);
-        }
-
-        // Otherwise, if the conflict is an edge conflict, add an edge constraint to each of the two affected agents.
-        else if (conflict_ptr->type == ConflictType::EDGE) {
-            auto* edge_conflict_ptr = dynamic_cast<EdgeConflict*>(conflict_ptr.get());
-
-            // Check if the conversion succeeded.
-            if (edge_conflict_ptr == nullptr) {
-                throw std::runtime_error("Conflict is an edge conflict, but could not be converted to an EdgeConflict.");
-            }
-            ims::conflict_conversions::edgeConflictToEdgeConstraints(edge_conflict_ptr, agent_constraints);
+        // Create a new constraint given the conflict. Check through the conflict types and convert them to constraints.
+        for (ConstraintType constraint_type : params_.conflict_type_to_constraint_types.at(conflict_ptr->type)){
+            conflict_converter.convertConflictToConstraints(conflict_ptr, constraint_type, agent_constraints);
         }
     }
 

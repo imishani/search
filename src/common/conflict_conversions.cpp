@@ -38,7 +38,132 @@
 namespace ims {
 namespace conflict_conversions {
 
-void vertexConflictToVertexConstraints(const VertexConflict * private_grids_vertex_conflict_ptr, 
+void ConflictsToConstraintsConverter::convertConflictToConstraints(const std::shared_ptr<ims::Conflict> & conflict_ptr,
+                                                                   const ims::ConstraintType &constraint_type,
+                                                                   std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> & agent_constraints) {
+    // The methodology is as follows:
+    // 1. Start by casting the conflict ptr to the correct type based on the type it specifies.
+    // 2. Based on the type of the con flict and the requested constraint, call the appropriate conversion function.
+    // 3. The conversion function will update the agent_constraints vector with the new constraints.
+
+    switch (conflict_ptr->type) {
+        case ConflictType::VERTEX:{
+            auto* vertex_conflict_ptr = dynamic_cast<VertexConflict*>(conflict_ptr.get());
+            // Check if the conversion succeeded.
+            if (vertex_conflict_ptr == nullptr) {
+                throw std::runtime_error("Conflict is a vertex conflict, but could not be converted to a VertexConflict.");
+            }
+            switch (constraint_type) {
+                case ConstraintType::VERTEX:
+                    vertexConflictToVertexConstraints(vertex_conflict_ptr, agent_constraints);
+                    break;
+                case ConstraintType::VERTEX_STATE_AVOIDANCE:
+                    vertexConflictToVertexStateAvoidanceConstraints(vertex_conflict_ptr, agent_constraints);
+                    break;
+                default:
+                    std::cerr << "Error: Unsupported constraint type (" << (int)constraint_type << ") for VERTEX conflict." << std::endl;
+                    break;
+            }
+            break;
+        }
+        case ConflictType::EDGE:{
+            auto* edge_conflict_ptr = dynamic_cast<EdgeConflict*>(conflict_ptr.get());
+            // Check if the conversion succeeded.
+            if (edge_conflict_ptr == nullptr) {
+                throw std::runtime_error("Conflict is an edge conflict, but could not be converted to an EdgeConflict.");
+            }
+            switch (constraint_type) {
+                case ConstraintType::EDGE:
+                    edgeConflictToEdgeConstraints(edge_conflict_ptr, agent_constraints);
+                    break;
+                case ConstraintType::EDGE_STATE_AVOIDANCE:
+                    edgeConflictToEdgeStateAvoidanceConstraints(edge_conflict_ptr, agent_constraints);
+                    break;
+                default:
+                    std::cerr << "Error: Unsupported constraint type (" << (int)constraint_type << ") for EDGE conflict." << std::endl;
+                    break;
+            }
+            break;
+        }
+        case ConflictType::VERTEX_POINT3D:{
+            auto* point3d_vertex_conflict_ptr = dynamic_cast<Point3dVertexConflict*>(conflict_ptr.get());
+            // Check if the conversion succeeded.
+            if (point3d_vertex_conflict_ptr == nullptr) {
+                throw std::runtime_error("Conflict is a point3d vertex conflict, but could not be converted to a Point3dVertexConflict.");
+            }
+            switch (constraint_type) {
+                case ConstraintType::VERTEX:
+                    point3dVertexConflictToVertexConstraints(point3d_vertex_conflict_ptr, agent_constraints);
+                    break;
+                case ConstraintType::VERTEX_STATE_AVOIDANCE:
+                    point3dVertexConflictToVertexStateAvoidanceConstraints(point3d_vertex_conflict_ptr, agent_constraints);
+                    break;
+                case ConstraintType::PATH_PRIORITY:
+                    point3dVertexConflictToPathPriorityConstraints(point3d_vertex_conflict_ptr, context_.getAgentNames(), agent_constraints);
+                    break;
+                case ConstraintType::VERTEX_SPHERE3D:
+                    point3dVertexConflictToSphere3dVertexConstraints(point3d_vertex_conflict_ptr, agent_constraints, context_.getSphere3dConstraintRadius());
+                    break;
+                case ConstraintType::SPHERE3DLARGE:
+                    point3dVertexConflictToSphere3dLargeConstraints(point3d_vertex_conflict_ptr, agent_constraints, context_.getSphere3dConstraintRadius());
+                    break;
+                case ConstraintType::SPHERE3DXLARGE:
+                    point3dVertexConflictToSphere3dXLargeConstraints(point3d_vertex_conflict_ptr, agent_constraints, context_.getSphere3dConstraintRadius());
+                    break;
+                case ConstraintType::VERTEX_POINT3D:
+                    // Very simple logic. A point3D constraint is simply a sphere3D constraint with a very small radius.
+                    point3dVertexConflictToSphere3dVertexConstraints(point3d_vertex_conflict_ptr, agent_constraints, 0.02);
+                default:
+                    std::cerr << "Error: Unsupported constraint type (" << (int)constraint_type << ") for VERTEX_POINT3D conflict." << std::endl;
+                    break;
+            }
+            break;
+        }
+        case ConflictType::EDGE_POINT3D:{
+            auto* point3d_edge_conflict_ptr = dynamic_cast<Point3dEdgeConflict*>(conflict_ptr.get());
+            // Check if the conversion succeeded.
+            if (point3d_edge_conflict_ptr == nullptr) {
+                throw std::runtime_error("Conflict is a point3d edge conflict, but could not be converted to a Point3dEdgeConflict.");
+            }
+            switch (constraint_type) {
+                case ConstraintType::EDGE:
+                    point3dEdgeConflictToEdgeConstraints(point3d_edge_conflict_ptr, agent_constraints);
+                    break;
+                case ConstraintType::EDGE_STATE_AVOIDANCE:
+                    point3dEdgeConflictToEdgeStateAvoidanceConstraints(point3d_edge_conflict_ptr, agent_constraints);
+                    break;
+                case ConstraintType::PATH_PRIORITY:
+                    point3dEdgeConflictToPathPriorityConstraints(point3d_edge_conflict_ptr, context_.getAgentNames(), agent_constraints);
+                    break;
+                case ConstraintType::VERTEX_SPHERE3D:
+                    point3dEdgeConflictToSphere3dEdgeConstraints(point3d_edge_conflict_ptr, agent_constraints,
+                                                                   context_.getSphere3dConstraintRadius());
+                    break;
+                case ConstraintType::SPHERE3DLARGE:
+                    point3dEdgeConflictToSphere3dLargeConstraints(point3d_edge_conflict_ptr, agent_constraints, context_.getSphere3dConstraintRadius());
+                    break;
+                case ConstraintType::SPHERE3DXLARGE:
+                    point3dEdgeConflictToSphere3dXLargeConstraints(point3d_edge_conflict_ptr, agent_constraints, context_.getSphere3dConstraintRadius());
+                    break;
+                case ConstraintType::EDGE_POINT3D:
+                    point3dEdgeConflictToSphere3dEdgeConstraints(point3d_edge_conflict_ptr, agent_constraints, 0.02);
+                    break;
+                default:
+                    std::cerr << "Error: Unsupported constraint type (" << (int)constraint_type << ") for EDGE_POINT3D conflict." << std::endl;
+                    break;
+            }
+            break;
+        }
+        case ConflictType::UNSET:
+            throw std::runtime_error("Conflict type is UNSET. Cannot convert to constraints.");
+            break;
+        default:
+            std::cerr << "Error: Unsupported conflict type (" << (int)conflict_ptr->type << ")." << std::endl;
+            break;
+    }
+}
+
+void ConflictsToConstraintsConverter::vertexConflictToVertexConstraints(const VertexConflict * private_grids_vertex_conflict_ptr,
                                        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
 
     // For each affected agent (2, in ECBS), create a new constraint, and down the line a search state for each as well.
@@ -54,7 +179,7 @@ void vertexConflictToVertexConstraints(const VertexConflict * private_grids_vert
 }
 
 
-void edgeConflictToEdgeConstraints(const EdgeConflict * private_grids_edge_conflict_ptr,
+void ConflictsToConstraintsConverter::edgeConflictToEdgeConstraints(const EdgeConflict * private_grids_edge_conflict_ptr,
                                         std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
     // We have two or more affected agents. For example say we have two and call them agent_a and agent_b. The conflict is 'a' moving 'state_from' to 'state_to' and 'b' moving from its own 'state_from' to 'state_to', each on their own private grid.
     for (int i = 0; i < private_grids_edge_conflict_ptr->agent_ids.size(); i++) {
@@ -62,7 +187,7 @@ void edgeConflictToEdgeConstraints(const EdgeConflict * private_grids_edge_confl
         StateType state_from = private_grids_edge_conflict_ptr->from_states[i];
         StateType state_to = private_grids_edge_conflict_ptr->to_states[i];
 
-        // It could be that one of the agents is not in transition while the other one is, so ceate a new edge constraint only if the states are different.
+        // It could be that one of the agents is not in transition while the other one is, so create a new edge constraint only if the states are different.
         if (state_from != state_to) {
             EdgeConstraint constraint = EdgeConstraint(state_from, state_to);
 
@@ -80,7 +205,7 @@ void edgeConflictToEdgeConstraints(const EdgeConflict * private_grids_edge_confl
     }
 }
 
-void vertexConflictToVertexStateAvoidanceConstraints(const VertexConflict * vertex_conflict_ptr, 
+void ConflictsToConstraintsConverter::vertexConflictToVertexStateAvoidanceConstraints(const VertexConflict * vertex_conflict_ptr,
                                        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
 
     // For each affected agent, create a new constraint, and down the line a search state for each as well.
@@ -104,7 +229,7 @@ void vertexConflictToVertexStateAvoidanceConstraints(const VertexConflict * vert
     }
 }
 
-void edgeConflictToEdgeStateAvoidanceConstraints(const EdgeConflict * edge_conflict_ptr,
+void ConflictsToConstraintsConverter::edgeConflictToEdgeStateAvoidanceConstraints(const EdgeConflict * edge_conflict_ptr,
                                         std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
     // We have two or more affected agents. For example say we have two and call them agent_a and agent_b. The conflict is 'a' moving 'state_from' to 'state_to' and 'b' moving from its own 'state_from' to 'state_to', each on their own private grid. The constraint imposed in this case is, for each agent, to avoid the transition of all other agents.
     for (int i = 0; i < edge_conflict_ptr->agent_ids.size(); i++) {
@@ -129,7 +254,7 @@ void edgeConflictToEdgeStateAvoidanceConstraints(const EdgeConflict * edge_confl
     }
 }
 
-void point3dVertexConflictToVertexStateAvoidanceConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+void ConflictsToConstraintsConverter::point3dVertexConflictToVertexStateAvoidanceConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
                                                 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
 
     // Create a new Vertex avoidance constraint for each of the agents. Point3dVertexConflict assumes private grids, so each agent has its own state.
@@ -153,7 +278,7 @@ void point3dVertexConflictToVertexStateAvoidanceConstraints(const Point3dVertexC
     }
 }
 
-void point3dEdgeConflictToEdgeStateAvoidanceConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+void ConflictsToConstraintsConverter::point3dEdgeConflictToEdgeStateAvoidanceConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
                                                 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
 
     // Create a new edge avoidance constraint for each of the agents. Point3dEdgeConflict assumes private grids, so each agent has its own state.
@@ -179,7 +304,7 @@ void point3dEdgeConflictToEdgeStateAvoidanceConstraints(const Point3dEdgeConflic
     }
 }
 
-void point3dVertexConflictToVertexPriorityConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+void ConflictsToConstraintsConverter::point3dVertexConflictToVertexPriorityConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
                                                 const std::vector<std::string>& agent_names,
                                                 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
     // Create a new Vertex avoidance constraint for each of the agents. Point3dVertexConflict assumes private grids, so each agent has its own state.
@@ -206,7 +331,7 @@ void point3dVertexConflictToVertexPriorityConstraints(const Point3dVertexConflic
     }
 }
 
-void point3dEdgeConflictToEdgePriorityConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+void ConflictsToConstraintsConverter::point3dEdgeConflictToEdgePriorityConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
                                                 const std::vector<std::string>& agent_names,
                                                 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
 
@@ -235,7 +360,7 @@ void point3dEdgeConflictToEdgePriorityConstraints(const Point3dEdgeConflict * po
     }
 }
 
-void point3dVertexConflictToSphere3dConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+void ConflictsToConstraintsConverter::point3dVertexConflictToSphere3dVertexConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius){
 
     // Create a new vertex constraint for each of the agents. Point3dVertexConflict assumes private grids, so each agent has its own state.
@@ -251,7 +376,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
     }
 }
 
-void point3dVertexConflictToSphere3dLargeConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+void ConflictsToConstraintsConverter::point3dVertexConflictToSphere3dLargeConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius){
 
     // Create a new vertex constraint for each of the agents. Point3dVertexConflict assumes private grids, so each agent has its own state.
@@ -266,7 +391,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
         agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<Sphere3dLargeConstraint>(constraint)});
     }
 }
-void point3dVertexConflictToSphere3dXLargeConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+void ConflictsToConstraintsConverter::point3dVertexConflictToSphere3dXLargeConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
                                                      std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius){
 
     // Create a new vertex constraint for each of the agents. Point3dVertexConflict assumes private grids, so each agent has its own state.
@@ -282,8 +407,8 @@ void point3dVertexConflictToSphere3dXLargeConstraints(const Point3dVertexConflic
     }
 }
 
-void point3dEdgeConflictToSphere3dConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
-std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius){
+void ConflictsToConstraintsConverter::point3dEdgeConflictToSphere3dEdgeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+                                                                                     std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius){
 
     // Create a new edge constraint for each of the agents. Point3DConflict assumes private grids, so each agent has its own state.
     for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
@@ -293,16 +418,15 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
         TimeType time_to = time_from + 1;
 
         // Create a new sphere3d constraint for each of the two timesteps.
-        VertexSphere3dConstraint constraint_from = VertexSphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_from);
-        VertexSphere3dConstraint constraint_to = VertexSphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_to);
+        EdgeSphere3dConstraint constraint = EdgeSphere3dConstraint(point3d_conflict_ptr->point, sphere3d_constraint_radius, time_from, time_to);
 
         // Update the constraints collective to also include the new constraint.
         // Notice that the two constraints are added together to one agent. 
-        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexSphere3dConstraint>(constraint_from), std::make_shared<VertexSphere3dConstraint>(constraint_to)});
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeSphere3dConstraint>(constraint)});
     }
 }
 
-void point3dEdgeConflictToSphere3dLargeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+void ConflictsToConstraintsConverter::point3dEdgeConflictToSphere3dLargeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
 std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius){
 
     // Create a new edge constraint for each of the agents. Point3DConflict assumes private grids, so each agent has its own state.
@@ -321,7 +445,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
         agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<Sphere3dLargeConstraint>(constraint_from), std::make_shared<Sphere3dLargeConstraint>(constraint_to)});
     }
 }
-void point3dEdgeConflictToSphere3dXLargeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+void ConflictsToConstraintsConverter::point3dEdgeConflictToSphere3dXLargeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
                                                    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints, double sphere3d_constraint_radius){
 
     // Create a new edge constraint for each of the agents. Point3DConflict assumes private grids, so each agent has its own state.
@@ -341,7 +465,7 @@ void point3dEdgeConflictToSphere3dXLargeConstraints(const Point3dEdgeConflict * 
     }
 }
 
-void point3dVertexConflictToVertexConstraints(const Point3dVertexConflict * point3d_conflict_ptr, 
+void ConflictsToConstraintsConverter::point3dVertexConflictToVertexConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
                                        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
     // Assert that the time is integral.
     assert(point3d_conflict_ptr->states.back().back() == std::round(point3d_conflict_ptr->states.back().back()));
@@ -358,7 +482,7 @@ void point3dVertexConflictToVertexConstraints(const Point3dVertexConflict * poin
     }
 }
 
-void point3dEdgeConflictToEdgeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr, 
+void ConflictsToConstraintsConverter::point3dEdgeConflictToEdgeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
                                        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
     // Create a new edge constraint for each of the agents. Point3dEdgeConflict assumes private grids, so each agent has its own state.
     for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
@@ -372,7 +496,7 @@ void point3dEdgeConflictToEdgeConstraints(const Point3dEdgeConflict * point3d_co
     }
 }
 
-void point3dVertexConflictToPathPriorityConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+void ConflictsToConstraintsConverter::point3dVertexConflictToPathPriorityConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
                                                       const std::vector<std::string>& agent_names,
                                                       std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
     // Create a new Vertex avoidance constraint for each of the agents. Point3dVertexConflict assumes private grids, so each agent has its own state.
@@ -399,7 +523,7 @@ void point3dVertexConflictToPathPriorityConstraints(const Point3dVertexConflict 
     }
 }
 
-void point3dEdgeConflictToPathPriorityConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+void ConflictsToConstraintsConverter::point3dEdgeConflictToPathPriorityConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
                                                   const std::vector<std::string>& agent_names,
                                                   std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
 
@@ -427,6 +551,5 @@ void point3dEdgeConflictToPathPriorityConstraints(const Point3dEdgeConflict * po
         agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<PathPriorityConstraint>(constraint)});
     }
 }
-
 }  // namespace conflict_conversions
 }  // namespace ims

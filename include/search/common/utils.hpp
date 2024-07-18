@@ -183,3 +183,13 @@ inline void removeTimeFromPath(PathType & path){
         state.pop_back();
     }
 }
+
+template <typename K, typename V>
+inline std::vector<K> getMapKeys(const std::unordered_map<K, V>& map){
+    std::vector<K> keys;
+    keys.reserve(map.size());
+    for (std::pair<const K, V> pair : map){
+        keys.push_back(pair.first);
+    }
+    return keys;
+}

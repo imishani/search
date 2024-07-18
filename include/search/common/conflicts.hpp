@@ -52,8 +52,8 @@ enum class ConflictType {
     UNSET = -1,
     VERTEX = 0,
     EDGE = 1,
-    POINT3D_EDGE = 4,
-    POINT3D_VERTEX = 5,
+    EDGE_POINT3D = 4,
+    VERTEX_POINT3D = 5,
 };
 
 /// @brief Base class for all search conflicts.
@@ -179,7 +179,7 @@ struct Point3dEdgeConflict : public Conflict {
                                 point(std::move(point)) {
     
     /// @brief The type of the Conflict.
-    type = ConflictType::POINT3D_EDGE;
+    type = ConflictType::EDGE_POINT3D;
     }
 
     std::string toString() const override {
@@ -229,7 +229,7 @@ struct Point3dVertexConflict : public Conflict {
                                 point(std::move(point)) {
     
     /// @brief The type of the Conflict.
-    type = ConflictType::POINT3D_VERTEX;
+    type = ConflictType::VERTEX_POINT3D;
     }
 
     std::string toString() const override {
