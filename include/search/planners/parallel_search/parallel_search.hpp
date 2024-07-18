@@ -341,6 +341,7 @@ class ParallelSearch : public Planner {
 
     /// @brief helper function to join all the spawned threads
     void joinThread() {
+        if (params_.num_threads_ == 1) return;
         // Notify all worker threads to stop.
         for (int thread_id{0}; thread_id < params_.num_threads_; ++thread_id) {
             std::unique_lock<LockType> locker(lock_vec_[thread_id]);
