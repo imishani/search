@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
     }
 
     // save the logs to a temporary file
-    logStats(logs, map_index, "wAstar");
+    logStats(logs, map_index, "PASE");
 
     std::string path_file = logPaths(paths, map_index, scale);
 

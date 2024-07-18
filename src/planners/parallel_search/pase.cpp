@@ -92,7 +92,6 @@ void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
     stats_.lock_time += getTimeFromStamp();
     stats_.num_jobs_per_thread[thread_id]++;
     stats_.num_expanded++;
-    curr_state_ptr->setClosed();
 
     if (params_.verbose) curr_state_ptr->print("Thread " + std::to_string(thread_id) + " Expanding ");
 
@@ -119,7 +118,7 @@ void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
             continue;
         }
         if (successor_ptr->in_open) {
-            if (successor_ptr->f > cost) {
+            if (successor_ptr->g > curr_state_ptr->g + cost) {
                 successor_ptr->parent_id = curr_state_ptr->state_id;
                 successor_ptr->g = curr_state_ptr->g + cost;
                 successor_ptr->f = successor_ptr->g + params_.epsilon_ * successor_ptr->h;
@@ -130,6 +129,7 @@ void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
             open_->push(successor_ptr.get());
             successor_ptr->setOpen();
         }
+        notifyMainThread();
     }
     lock_.unlock();
 }
@@ -229,6 +229,7 @@ bool Pase::plan(std::vector<StateType>& path) {
         }
 
         // Expand the current state.
+        curr_state_ptr->setClosed();
         lock_.unlock();
 
         int thread_id = 0;

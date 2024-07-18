@@ -335,7 +335,7 @@ class ParallelSearch : public Planner {
 
     /// @brief function for the worker thread to notify main thread
     inline void notifyMainThread() {
-        recheck_flag_ = false;
+        recheck_flag_ = true;
         cv_.notify_one();
     }
 
@@ -343,7 +343,7 @@ class ParallelSearch : public Planner {
     void joinThread() {
         if (params_.num_threads_ == 1) return;
         // Notify all worker threads to stop.
-        for (int thread_id{0}; thread_id < params_.num_threads_; ++thread_id) {
+        for (int thread_id{0}; thread_id < params_.num_threads_ - 1; ++thread_id) {
             std::unique_lock<LockType> locker(lock_vec_[thread_id]);
             work_status_[thread_id] = true;
             locker.unlock();
