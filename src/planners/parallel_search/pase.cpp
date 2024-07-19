@@ -66,7 +66,7 @@ void Pase::workerLoop(int thread_id) {
     try {
         while (!terminate_) {
             std::unique_lock<LockType> locker(lock_vec_[thread_id]);
-            cv_vec_[thread_id].wait(locker, [this, thread_id] { return work_status_[thread_id]; });
+            cv_vec_[thread_id].wait(locker, [this, thread_id] { return work_status_[thread_id] == 1; });
             locker.unlock();
 
             if (terminate_) {
@@ -77,7 +77,7 @@ void Pase::workerLoop(int thread_id) {
 
             locker.lock();
             work_in_progress_->at(thread_id) = nullptr;
-            work_status_[thread_id] = false;
+            work_status_[thread_id] = 0;
             locker.unlock();
         }
     } catch (const std::exception& e) {
@@ -242,7 +242,7 @@ bool Pase::plan(std::vector<StateType>& path) {
             while (!work_assinged) {
                 // Check if thread with [id] is available.
                 std::unique_lock<LockType> locker(lock_vec_[thread_id]);
-                bool working = work_status_[thread_id];
+                int working = work_status_[thread_id];
                 locker.unlock();
 
                 // If available
@@ -255,7 +255,7 @@ bool Pase::plan(std::vector<StateType>& path) {
                     }
                     locker.lock();
                     work_in_progress_->at(thread_id) = curr_state_ptr;
-                    work_status_[thread_id] = true;
+                    work_status_[thread_id] = 1;
                     work_assinged = true;
                     locker.unlock();
                     cv_vec_[thread_id].notify_one();

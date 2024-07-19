@@ -172,7 +172,7 @@ class ParallelSearch : public Planner {
     std::vector<std::future<void>> work_futures_;
 
     /// @brief Use a bool vector to keep track of the work status
-    std::vector<bool> work_status_;
+    std::vector<int> work_status_;
 
     /// @brief condition variable
     std::condition_variable cv_;
@@ -417,7 +417,7 @@ class ParallelSearch : public Planner {
         std::vector<LockType> lock_vec(params_.num_threads_ - 1);
         lock_vec_.swap(lock_vec);
         work_futures_.clear();
-        work_status_.resize(params_.num_threads_ - 1, false);
+        work_status_.resize(params_.num_threads_ - 1, 0);
         terminate_ = false;
         plan_found_ = false;
         recheck_flag_ = true;
