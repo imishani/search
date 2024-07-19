@@ -212,6 +212,7 @@ bool Pase::plan(std::vector<StateType>& path) {
             // If the current state is the goal state, then reconstruct the path.
             if (isGoalState(curr_state_ptr->state_id)) {
                 terminate_ = true;
+                curr_state_ptr->setClosed();
                 goal_ = curr_state_ptr->state_id;
                 getTimeFromStart(stats_.time);
                 reconstructPath(path, stats_.transition_costs);

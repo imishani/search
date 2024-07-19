@@ -30,32 +30,30 @@
  * \file   run_2d_wastar.cpp
  * \author Hanlan Yang (yanghanlan666@gmail.com)
  * \date   7/18/24
-*/
-
+ */
 
 #include <boost/filesystem.hpp>
-#include <vector>
-#include <memory>
-#include <iostream>
-#include <string>
 #include <cmath>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
 
 // project includes
-#include <search/planners/parallel_search/pase.hpp>
 #include <search/heuristics/standard_heuristics.hpp>
+#include <search/planners/parallel_search/pase.hpp>
+
 #include "action_space_2d_rob.hpp"
 #include "utils.hpp"
 
-
 int main(int argc, char** argv) {
-
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <num_threads> <path>" << std::endl;
+        std::cout << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <num_threads> <epsilon> <verbose>" << std::endl;
         return 0;
     }
     std::vector<std::string> maps;
 
-    boost::filesystem::path full_path( boost::filesystem::current_path() );
+    boost::filesystem::path full_path(boost::filesystem::current_path());
     std::cout << "Current path is : " << full_path.string() << std::endl;
     // At each emplace_back, use the full pathh and concatenate the map name
     maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/hrt201n.map");
@@ -64,11 +62,12 @@ int main(int argc, char** argv) {
     maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/ht_chantry.map");
     maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/brc203d/brc203d.map");
 
-    std::vector<std::string> starts_goals_path = {full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/",
-                                                  full_path.string() + "/../domains/2d_robot_nav/data/den501d/",
-                                                  full_path.string() + "/../domains/2d_robot_nav/data/den520d/",
-                                                  full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/",
-                                                  full_path.string() + "/../domains/2d_robot_nav/data/brc203d/",
+    std::vector<std::string> starts_goals_path = {
+        full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/",
+        full_path.string() + "/../domains/2d_robot_nav/data/den501d/",
+        full_path.string() + "/../domains/2d_robot_nav/data/den520d/",
+        full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/",
+        full_path.string() + "/../domains/2d_robot_nav/data/brc203d/",
     };
 
     int map_index = std::stoi(argv[1]);
@@ -91,19 +90,23 @@ int main(int argc, char** argv) {
     // construct planner params
     auto heuristic = std::make_shared<ims::EuclideanHeuristic>();
     double epsilon = 10.0;
-    ims::ParallelSearchParams params (heuristic, num_threads, epsilon);
+    bool verbose = false;
+    if (argc == 6) epsilon = std::stod(argv[5]);
+    if (argc == 7) verbose = std::stoi(argv[6]);
+    ims::ParallelSearchParams params(heuristic, num_threads, epsilon);
+    params.verbose = verbose;
     // construct the scene and the action space
-    Scene2DRob scene (map);
+    Scene2DRob scene(map);
     ActionType2dRob action_type;
 
     // log the results
     std::unordered_map<int, PlannerStats> logs;
     std::unordered_map<int, PathType> paths;
-    for (int i {0}; i < starts.size(); i++){
+    for (int i{0}; i < starts.size(); i++) {
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
         std::cout << "Goal: " << goals[i][0] << ", " << goals[i][1] << std::endl;
-        for (int j {0}; j < 2; j++){
+        for (int j{0}; j < 2; j++) {
             starts[i][j] = std::round(starts[i][j]);
             goals[i][j] = std::round(goals[i][j]);
         }
@@ -120,9 +123,8 @@ int main(int argc, char** argv) {
         // catch the exception if the start or goal is not valid
         try {
             planner.initializePlanner(ActionSpace, starts[i], goals[i]);
-        }
-        catch (std::exception& e) {
-            std::cout << RED << "Start or goal is not valid!" <<RESET << std::endl;
+        } catch (std::exception& e) {
+            std::cout << RED << "Start or goal is not valid!" << RESET << std::endl;
             continue;
         }
         // plan
@@ -130,8 +132,7 @@ int main(int argc, char** argv) {
         std::vector<StateType> path_;
         if (!planner.plan(path_)) {
             std::cout << RED << "No path found!" << RESET << std::endl;
-        }
-        else
+        } else
             std::cout << GREEN << "Path found!" << RESET << std::endl;
         PlannerStats stats = planner.reportStats();
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
@@ -140,8 +141,8 @@ int main(int argc, char** argv) {
         std::cout << "Number of nodes expanded: " << stats.num_expanded << std::endl;
         std::cout << "Number of nodes generated: " << stats.num_generated << std::endl;
         std::cout << "suboptimality: " << stats.suboptimality << RESET << std::endl;
-        logs[i] = stats; // log the stats
-        paths[i] = path_; // log the path
+        logs[i] = stats;   // log the stats
+        paths[i] = path_;  // log the path
     }
 
     // save the logs to a temporary file
