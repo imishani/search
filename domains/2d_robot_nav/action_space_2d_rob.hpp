@@ -30,18 +30,18 @@
  * \file   action_space_2d_rob.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   4/1/23
-*/
+ */
 
 #ifndef SEARCH_ACTIONSCENE2DROB_HPP
 #define SEARCH_ACTIONSCENE2DROB_HPP
 
-#include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
 
+#include "search/action_space/action_space.hpp"
 
 class Scene2DRob : public ims::SceneInterface {
-public:
-    explicit Scene2DRob(std::vector<std::vector<int>> &map_) : ims::SceneInterface(){
+   public:
+    explicit Scene2DRob(std::vector<std::vector<int>>& map_) : ims::SceneInterface() {
         map = &map_;
         map_size = {map->size(), map->at(0).size()};
     }
@@ -51,7 +51,6 @@ public:
 };
 
 struct ActionType2dRob : public ims::ActionType {
-
     ActionType2dRob() : ims::ActionType() {
         name = "ActionType2dRob";
         num_actions = 8;
@@ -61,11 +60,11 @@ struct ActionType2dRob : public ims::ActionType {
         state_discretization_ = {1, 1};
     }
 
-    std::vector<Action> getPrimActions() override{
+    std::vector<Action> getPrimActions() override {
         return action_prims;
     }
 
-    void Discretization(StateType& state_des) override{
+    void Discretization(StateType& state_des) override {
         state_discretization_ = state_des;
     }
 
@@ -74,33 +73,31 @@ struct ActionType2dRob : public ims::ActionType {
     std::vector<std::string> action_names;
     std::vector<double> action_costs;
     std::vector<Action> action_prims;
-
 };
 
 class actionSpace2dRob : public ims::ActionSpace {
-
-protected:
+   protected:
     std::shared_ptr<Scene2DRob> env_;
     std::shared_ptr<ActionType2dRob> action_type_;
 
-public:
+   public:
     actionSpace2dRob(const Scene2DRob& env,
-                     const ActionType2dRob& actions_ptr) : ims::ActionSpace(){
+                     const ActionType2dRob& actions_ptr) : ims::ActionSpace() {
         this->env_ = std::make_shared<Scene2DRob>(env);
         this->action_type_ = std::make_shared<ActionType2dRob>(actions_ptr);
     }
 
     void getActions(int state_id,
-                    std::vector<ActionSequence> &action_seqs,
+                    std::vector<ActionSequence>& action_seqs,
                     bool check_validity) override {
         ims::RobotState* curr_state = this->getRobotState(state_id);
         std::vector<Action> actions = action_type_->getPrimActions();
-        for (int i {0} ; i < action_type_->num_actions ; i++){
+        for (int i{0}; i < action_type_->num_actions; i++) {
             Action action = actions[i];
-            if (check_validity){
+            if (check_validity) {
                 StateType next_state_val = StateType(curr_state->state.size());
                 std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
-                if (!isStateValid(next_state_val)){
+                if (!isStateValid(next_state_val)) {
                     continue;
                 }
             }
@@ -112,20 +109,19 @@ public:
         }
     }
 
-
     bool getSuccessors(int curr_state_ind,
                        std::vector<int>& successors,
-                       std::vector<double>& costs) override{
+                       std::vector<double>& costs) override {
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
 
-        for (int i {0} ; i < actions.size() ; i++){
+        for (int i{0}; i < actions.size(); i++) {
             StateType action = actions[i][0];
             StateType next_state_val = StateType(curr_state->state.size());
             std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(), next_state_val.begin(), std::plus<>());
 
-            if (isStateValid(next_state_val)){
+            if (isStateValid(next_state_val)) {
                 int next_state_ind = getOrCreateRobotState(next_state_val);
                 successors.push_back(next_state_ind);
                 costs.push_back(action_type_->action_costs[i]);
@@ -134,21 +130,28 @@ public:
         return true;
     }
 
-    bool isStateValid(const StateType& state_val) override{
-        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
+    bool isStateValid(const StateType& state_val) override {
+        // auto dummy1 = state_val[0];
+        // if (1) {
+        //     double dummy = 0;
+        //     for (int i = 0; i < 5000; i++) {
+        //         dummy += floor(pow(0.125, 0.5));
+        //     }
+        //     dummy1 += dummy;
+        // }
+        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]) {
             return false;
         }
         int map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
-        if (map_val == 100){
+        if (map_val == 100) {
             return false;
         }
         return true;
     }
 
-    bool isPathValid(const PathType& path) override{
-        return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
+    bool isPathValid(const PathType& path) override {
+        return std::all_of(path.begin(), path.end(), [this](const StateType& state_val) { return isStateValid(state_val); });
     }
 };
 
-
-#endif //SEARCH_ACTIONSCENE2DROB_HPP
+#endif  // SEARCH_ACTIONSCENE2DROB_HPP
