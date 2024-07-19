@@ -30,18 +30,18 @@
  * \file   action_space_2d_rob.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   4/1/23
-*/
+ */
 
 #ifndef SEARCH_ACTIONSCENE2DROB_HPP
 #define SEARCH_ACTIONSCENE2DROB_HPP
 
-#include "search/action_space/action_space.hpp"
 #include <search/common/scene_interface.hpp>
 
+#include "search/action_space/action_space.hpp"
 
 class Scene2DRob : public ims::SceneInterface {
-public:
-    explicit Scene2DRob(std::vector<std::vector<int>> &map_) : ims::SceneInterface(){
+   public:
+    explicit Scene2DRob(std::vector<std::vector<int>>& map_) : ims::SceneInterface() {
         map = &map_;
         map_size = {map->size(), map->at(0).size()};
     }
@@ -51,7 +51,6 @@ public:
 };
 
 struct ActionType2dRob : public ims::ActionType {
-
     ActionType2dRob() : ims::ActionType() {
         name = "ActionType2dRob";
         num_actions = 8;
@@ -102,7 +101,7 @@ struct ActionType2dRob : public ims::ActionType {
         action_transition_costs = action_seqs_transition_costs;
     }
 
-    void Discretization(StateType& state_des) override{
+    void Discretization(StateType& state_des) override {
         state_discretization_ = state_des;
     }
 
@@ -114,14 +113,13 @@ struct ActionType2dRob : public ims::ActionType {
 };
 
 class actionSpace2dRob : public ims::ActionSpace {
-
-protected:
+   protected:
     std::shared_ptr<Scene2DRob> env_;
     std::shared_ptr<ActionType2dRob> action_type_;
 
-public:
+   public:
     actionSpace2dRob(const Scene2DRob& env,
-                     const ActionType2dRob& actions_ptr) : ims::ActionSpace(){
+                     const ActionType2dRob& actions_ptr) : ims::ActionSpace() {
         this->env_ = std::make_shared<Scene2DRob>(env);
         this->action_type_ = std::make_shared<ActionType2dRob>(actions_ptr);
     }
@@ -189,21 +187,28 @@ public:
         return true;
     }
 
-    bool isStateValid(const StateType& state_val) override{
-        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
+    bool isStateValid(const StateType& state_val) override {
+        // auto dummy1 = state_val[0];
+        // if (1) {
+        //     double dummy = 0;
+        //     for (int i = 0; i < 5000; i++) {
+        //         dummy += floor(pow(0.125, 0.5));
+        //     }
+        //     dummy1 += dummy;
+        // }
+        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]) {
             return false;
         }
         int map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
-        if (map_val == 100){
+        if (map_val == 100) {
             return false;
         }
         return true;
     }
 
-    bool isPathValid(const PathType& path) override{
-        return std::all_of(path.begin(), path.end(), [this](const StateType& state_val){return isStateValid(state_val);});
+    bool isPathValid(const PathType& path) override {
+        return std::all_of(path.begin(), path.end(), [this](const StateType& state_val) { return isStateValid(state_val); });
     }
 };
 
-
-#endif //SEARCH_ACTIONSCENE2DROB_HPP
+#endif  // SEARCH_ACTIONSCENE2DROB_HPP
