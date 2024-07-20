@@ -38,7 +38,7 @@ namespace ims {
 
 /***Protected***/
 
-bool Pase::independentCheck(int state_id, const boost::any& popped_vec) {
+bool Pase::independenceCheck(int state_id, const boost::any& popped_vec) {
     auto state = getSearchState(state_id);
     // Check against all the states being expanded.
     for (auto wip : *(work_in_progress_)) {
@@ -181,7 +181,7 @@ bool Pase::plan(std::vector<StateType>& path) {
                 popped_states.push_back(curr_state_ptr);
 
                 // Independence check
-                if (independentCheck(curr_state_ptr->state_id, popped_states)) {
+                if (independenceCheck(curr_state_ptr->state_id, popped_states)) {
                     break;
                 } else {
                     curr_state_ptr = NULL;
@@ -190,7 +190,12 @@ bool Pase::plan(std::vector<StateType>& path) {
 
             // Re-add the popped states to the open list.
             for (auto& s : popped_states) {
-                if (curr_state_ptr->state_id != s->state_id) {
+                if (!curr_state_ptr) {
+                    if (curr_state_ptr->state_id != s->state_id) {
+                        open_->push(s.get());
+                    }
+                }
+                else {
                     open_->push(s.get());
                 }
             }
