@@ -191,12 +191,11 @@ bool Pase::plan(std::vector<StateType>& path) {
             // Re-add the popped states to the open list.
             for (auto& s : popped_states) {
                 if (!curr_state_ptr) {
+                    open_->push(s.get());
+                } else {
                     if (curr_state_ptr->state_id != s->state_id) {
                         open_->push(s.get());
                     }
-                }
-                else {
-                    open_->push(s.get());
                 }
             }
             popped_states.clear();
