@@ -169,7 +169,15 @@ class actionSpace2dRob : public ims::ActionSpace {
                 StateType next_state_val = StateType(curr_state->state.size());
                 std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(),
                                next_state_val.begin(), std::plus<>());
-                if (!isStateValid(next_state_val)) {
+                // if (1) {
+            //     double dummy = 0;
+            //     for (int i = 0; i < 5000; i++) {
+            //         dummy += floor(pow(0.125, 0.5));
+            //         next_state_val[0] += 1;
+            //         next_state_val[0] -= 1;
+            //     }
+            // }
+            if (!isStateValid(next_state_val)) {
                     is_action_valid = false;
                     break;
                 }
@@ -188,14 +196,6 @@ class actionSpace2dRob : public ims::ActionSpace {
     }
 
     bool isStateValid(const StateType& state_val) override {
-        // auto dummy1 = state_val[0];
-        // if (1) {
-        //     double dummy = 0;
-        //     for (int i = 0; i < 5000; i++) {
-        //         dummy += floor(pow(0.125, 0.5));
-        //     }
-        //     dummy1 += dummy;
-        // }
         if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]) {
             return false;
         }

@@ -53,7 +53,7 @@ class Pase : public ParallelSearch {
     /*FUNCTIONS*/
 
     /// @brief independency check
-    bool independentCheck(int state_id, const boost::any& popped_vec) override;
+    bool independenceCheck(int state_id, const boost::any& popped_vec) override;
 
     /// @brief helper function to check if there's any state is being work in progress
     inline bool noWorkInProgress() const {
