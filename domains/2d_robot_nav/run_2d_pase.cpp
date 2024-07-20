@@ -91,8 +91,8 @@ int main(int argc, char** argv) {
     auto heuristic = std::make_shared<ims::EuclideanHeuristic>();
     double epsilon = 10.0;
     bool verbose = false;
-    if (argc == 6) epsilon = std::stod(argv[5]);
-    if (argc == 7) verbose = std::stoi(argv[6]);
+    if (argc >= 6) epsilon = std::stod(argv[5]);
+    if (argc >= 7) verbose = std::stoi(argv[6]);
     ims::ParallelSearchParams params(heuristic, num_threads, epsilon);
     params.verbose = verbose;
     // construct the scene and the action space
