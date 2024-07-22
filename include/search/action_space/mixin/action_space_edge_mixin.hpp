@@ -87,8 +87,8 @@ class ActionSpaceEdgeMixin {
    public:
     // Members
     using EdgeKey = RobotEdge;
-    using EdgeHash = PointerValueHash<EdgeKey>;
-    using EdgeEqual = PointerValueEqual<EdgeKey>;
+    using EdgeHash = SharedPointerValueHash<EdgeKey>;
+    using EdgeEqual = SharedPointerValueEqual<EdgeKey>;
     hash_map<std::shared_ptr<EdgeKey>, int, EdgeHash, EdgeEqual> edge_to_id_;
     /// @brief The edges
     std::vector<std::shared_ptr<RobotEdge>> edges_;
