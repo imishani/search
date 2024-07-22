@@ -50,7 +50,7 @@ namespace ims {
 struct RobotEdge {
     StateType state_mapped;
     StateType state;
-    Action action;
+    ActionSequence action;
 
     enum VALID { valid,
                  invalid,
@@ -111,9 +111,9 @@ class ActionSpaceEdgeMixin {
     }
 
     /// @brief Get a edge by state value and action pair
-    /// @param  edge_pair = std::pair<StateType, Action> The state value and action pair
+    /// @param  edge_pair = std::pair<StateType, ActionSequence> The state value and action pair
     /// @return The robot edge
-    virtual auto getRobotEdge(const std::pair<StateType, Action>& edge_pair) -> std::shared_ptr<RobotEdge> {
+    virtual auto getRobotEdge(const std::pair<StateType, ActionSequence>& edge_pair) -> std::shared_ptr<RobotEdge> {
         lock_e_.lock();
         auto curr_edge = std::make_shared<RobotEdge>();
         curr_edge->state = edge_pair.first;
@@ -132,10 +132,10 @@ class ActionSpaceEdgeMixin {
     }
 
     /// @brief Get a edge id by edge_pair (state value and action pair)
-    /// @param  edge_pair = std::pair<StateType, Action> The state value and action pair
+    /// @param  edge_pair = std::pair<StateType, ActionSequence> The state value and action pair
     /// @return The robot edge id
     /// @note The id is assumed to be valid - meaning that the edge exists in edges_
-    virtual int getRobotEdgeId(const std::pair<StateType, Action>& edge_pair) {
+    virtual int getRobotEdgeId(const std::pair<StateType, ActionSequence>& edge_pair) {
         lock_e_.lock();
         auto curr_edge = std::make_shared<RobotEdge>();
         curr_edge->state = edge_pair.first;
@@ -154,9 +154,9 @@ class ActionSpaceEdgeMixin {
     }
 
     /// @brief Get or create edge by edge pair
-    /// @param  edge_pair = std::pair<StateType, Action> The state value and action pair
+    /// @param  edge_pair = std::pair<StateType, ActionSequence> The state value and action pair
     /// @return The edge id
-    virtual int getOrCreateRobotEdge(const std::pair<StateType, Action>& edge_pair) {
+    virtual int getOrCreateRobotEdge(const std::pair<StateType, ActionSequence>& edge_pair) {
         // check if the edge exists
         lock_e_.lock();
         auto curr_edge = std::make_shared<RobotEdge>();
@@ -175,6 +175,13 @@ class ActionSpaceEdgeMixin {
         }
     }
 
+    /// @brief Create robot edges from a proxy edge
+    /// @param  proxy_edge_id The id of the proxy edge
+    /// @param  edges_ind& The index of created real-edges
+    /// @return Success bool
+    /// @note The id is assumed to be valid - meaning that the state exists in states_
+    virtual bool createRobotEdgesFromState(int state_id, std::vector<int>& edges_ind) = 0;
+    
     /// @brief Get single Successor by edge id
     /// @param curr_egde_ind The current state index
     /// @param successors The successor state
