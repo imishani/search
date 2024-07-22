@@ -43,7 +43,7 @@
 #include <utility>
 
 // project includes
-#include <search/action_space/action_space.hpp>
+#include <search/action_space/edge_action_space.hpp>
 #include <search/common/queue_general.hpp>
 #include <search/heuristics/base_heuristic.hpp>
 #include <search/planners/planner.hpp>
@@ -156,7 +156,7 @@ protected:
     std::shared_ptr<BaseHeuristic> i_heuristic_ = nullptr;
 
     /// @brief The action space.
-    std::shared_ptr<ActionSpace> action_space_ptr_;
+    std::shared_ptr<EdgeActionSpace> action_space_ptr_;
 
     /// @brief The (abstract) open list for search.
     std::unique_ptr<AbstractQueue<SearchState>> open_;
@@ -405,7 +405,7 @@ public:
     /// @param action_space_ptr The action space
     /// @param starts Vector of start states
     /// @param goals Vector of goal states
-    virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+    virtual void initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_space_ptr,
                                    const std::vector<StateType>& starts,
                                    const std::vector<StateType>& goals) = 0;
 
@@ -413,7 +413,7 @@ public:
     /// @param action_space_ptr The action space
     /// @param start The start state
     /// @param goal The goal state
-    virtual void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+    virtual void initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_space_ptr,
                                    const StateType& start, const StateType& goal) = 0;
 
     /// @brief plan a path

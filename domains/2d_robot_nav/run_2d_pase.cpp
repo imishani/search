@@ -43,7 +43,7 @@
 #include <search/heuristics/standard_heuristics.hpp>
 #include <search/planners/parallel_search/pase.hpp>
 
-#include "action_space_2d_rob.hpp"
+#include "action_space_2d_rob_edge.hpp"
 #include "utils.hpp"
 
 int main(int argc, char** argv) {
@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
         std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
 
-        std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
+        std::shared_ptr<edgeActionSpace2dRob> ActionSpace = std::make_shared<edgeActionSpace2dRob>(scene, action_type);
         // construct planner
         ims::Pase planner(params);
         // catch the exception if the start or goal is not valid

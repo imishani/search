@@ -286,7 +286,7 @@ bool Pase::plan(std::vector<StateType>& path) {
     return false;
 }
 
-void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+void Pase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_space_ptr,
                              const std::vector<StateType>& starts,
                              const std::vector<StateType>& goals) {
     // Action space pointer.
@@ -327,7 +327,7 @@ void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_pt
     }
 }
 
-void Pase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+void Pase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_space_ptr,
                              const StateType& start, const StateType& goal) {
     // Action space pointer.
     action_space_ptr_ = action_space_ptr;

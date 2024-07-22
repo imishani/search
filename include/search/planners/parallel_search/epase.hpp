@@ -61,10 +61,10 @@ class Epase : public ParallelSearch {
                            work_in_progress_->end(),
                            [](std::shared_ptr<SearchState> state) { return state == nullptr; });
     }
-    
+
     /// @brief main function to expand a state
     void expand(std::shared_ptr<SearchState> state, int thread_id);
-    
+
     /// @brief loop function for worker threads
     void workerLoop(int thread_id) override;
 
@@ -80,7 +80,7 @@ class Epase : public ParallelSearch {
     /// @param action_space_ptr The action space
     /// @param starts Vector of start states
     /// @param goals Vector of goal states
-    void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+    void initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_space_ptr,
                            const std::vector<StateType>& starts,
                            const std::vector<StateType>& goals);
 
@@ -88,7 +88,7 @@ class Epase : public ParallelSearch {
     /// @param action_space_ptr The action space
     /// @param start The start state
     /// @param goal The goal state
-    void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+    void initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_space_ptr,
                            const StateType& start, const StateType& goal);
 
     /// @brief plan a path
