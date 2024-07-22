@@ -286,9 +286,9 @@ bool Epase::plan(std::vector<StateType>& path) {
     return false;
 }
 
-void Epase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                             const std::vector<StateType>& starts,
-                             const std::vector<StateType>& goals) {
+void Epase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_space_ptr,
+                              const std::vector<StateType>& starts,
+                              const std::vector<StateType>& goals) {
     // Action space pointer.
     action_space_ptr_ = action_space_ptr;
     // Clear both.
@@ -327,8 +327,8 @@ void Epase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_p
     }
 }
 
-void Epase::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                             const StateType& start, const StateType& goal) {
+void Epase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_space_ptr,
+                              const StateType& start, const StateType& goal) {
     // Action space pointer.
     action_space_ptr_ = action_space_ptr;
     // Clear both.

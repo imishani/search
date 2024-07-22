@@ -80,7 +80,7 @@ public:
     /// @param action_space_ptr The action space
     /// @param starts Vector of start states
     /// @param goals Vector of goal states
-    void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+    void initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_space_ptr,
                            const std::vector<StateType>& starts,
                            const std::vector<StateType>& goals);
 
@@ -88,7 +88,7 @@ public:
     /// @param action_space_ptr The action space
     /// @param start The start state
     /// @param goal The goal state
-    void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+    void initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_space_ptr,
                            const StateType& start, const StateType& goal);
 
     /// @brief plan a path
