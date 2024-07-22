@@ -128,6 +128,25 @@ struct PointerValueEqual
     bool operator()(argument_type a, argument_type b) const { return *a == *b; }
 };
 
+/// helper struct to compute a hash value for a shared pointer using the hash value of
+/// the object it points to
+template <typename T>
+struct SharedPointerValueHash
+{
+    typedef std::shared_ptr<T> argument_type;
+    typedef std::size_t result_type;
+    result_type operator()(argument_type s) const { return std::hash<T>()(*s); }
+};
+
+/// Helper struct to test for equality between two shared pointers by testing for
+/// equality between the objects they point to.
+template <typename T>
+struct SharedPointerValueEqual
+{
+    typedef std::shared_ptr<T> argument_type;
+    bool operator()(argument_type a, argument_type b) const { return *a == *b; }
+};
+
 template <class T, class Allocator = std::allocator<T>>
 struct VectorHash
 {

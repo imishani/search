@@ -45,7 +45,7 @@ class EdgeActionSpace : public ActionSpace,
    public:
     /// @brief Constructor.
     explicit EdgeActionSpace() : ActionSpace(), ActionSpaceEdgeMixin() {
-        std::cout << "EdgeActionSpace: Constructor" << std::endl;
+        // std::cout << "EdgeActionSpace: Constructor" << std::endl;
     }
 
     /// @brief Destructor.
