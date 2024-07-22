@@ -167,6 +167,9 @@ struct Point3dEdgeConflict : public Conflict {
     // The point of conflict.
     Eigen::Vector3d point;
 
+    /// @brief A mask on the state dimensions that are in-conflict. True means in-conflict.
+    std::vector<std::vector<bool>> state_dim_in_conflict_masks;
+
     /// @brief Constructor, allowing to set the state_from, state_to, ids, and point.
     /// @param state The state vector.
     explicit Point3dEdgeConflict(const std::vector<StateType>& from_states,
@@ -218,6 +221,9 @@ struct Point3dVertexConflict : public Conflict {
 
     // The point of conflict.
     Eigen::Vector3d point;
+
+    /// @brief A mask on the state dimensions that are in-conflict. True means in-conflict.
+    std::vector<std::vector<bool>> state_dim_in_conflict_masks;
 
     /// @brief Constructor, allowing to set the state_from, state_to, ids, and point.
     /// @param state The state vector.

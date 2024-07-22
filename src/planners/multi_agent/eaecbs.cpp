@@ -125,12 +125,16 @@ void ims::EAECBS::createRootInOpenList() {
     double initial_sum_of_path_cost_lower_bounds{0.0};
 
     for (size_t i{0}; i < num_agents_; ++i) {
-        // Root trick.
-        // Add the previous start_paths as context to the action space.
-//        std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
-//        context_ptr->agent_paths = initial_paths;
-//        context_ptr->agent_names = agent_names_;
-//        agent_action_space_ptrs_[i]->constraints_collective_ptr_->setContext(context_ptr);
+        if (params_.is_root_trick){
+            // Root trick.
+            // Add the previous start_paths as context to the action space.
+            std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
+            MultiAgentPaths initial_paths;
+            flattenMultiAgentSeqPathsToMultiAgentPaths(initial_seq_paths, initial_paths);
+            context_ptr->agent_paths = initial_paths;
+            context_ptr->agent_names = agent_names_;
+            agent_action_space_ptrs_[i]->constraints_collective_ptr_->setContext(context_ptr);
+        }
 
         SeqPathType seq_path;
         SeqPathTransitionCostsType seq_path_transition_costs;
@@ -273,13 +277,18 @@ auto ims::EAECBS::getOrCreateSearchState(int state_id) -> ims::EAECBS::SearchSta
 }
 
 void ims::EAECBS::expand(int state_id) {
+    // Keep track of the newly created child nodes. Those will be added to OPEN later.
+    std::vector<SearchState*> child_search_states;
+
     auto state = getSearchState(state_id);
 
     // First, convert all conflicts to pairs of (agent_id, constraint). In vanilla ECBS, there is only one conflict found from a set of paths (the first/random one), and that would yield two constraints. To allow for more flexibility, we do not restrict the data structure to only two constraints per conflict.
     // Despite asking for many conflicts, we only convert the first one to constraints.
     std::vector<std::shared_ptr<Conflict>> conflicts_to_convert{state->unresolved_conflicts.begin(), state->unresolved_conflicts.begin() + 1};
 
-    // std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> constraints = conflictsToConstraints(state->conflicts);
+    int prev_num_conflicts = (int)state->unresolved_conflicts.size();
+    double prev_soc = state->sum_of_costs;
+
     std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> constraints = conflictsToConstraints(conflicts_to_convert);
 
     // Second, iterate through the constraints, and for each one, create a new search state. The new search state is a copy of the previous search state, with the constraint added to the constraints collective of the agent.
@@ -367,7 +376,13 @@ void ims::EAECBS::expand(int state_id) {
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
         new_state->seq_paths[agent_id].clear();
         new_state->seq_paths_transition_costs[agent_id].clear();
-        agent_planner_ptrs_[agent_id]->plan(new_state->seq_paths[agent_id], new_state->seq_paths_transition_costs[agent_id]);
+        bool is_replan_success = agent_planner_ptrs_[agent_id]->plan(new_state->seq_paths[agent_id], new_state->seq_paths_transition_costs[agent_id]);
+
+        if (!is_replan_success) {
+            std::cout << RED << "No path found for agent " << agent_id << " in the new CT state." << RESET << std::endl;
+            delete new_state;
+            continue;
+        }
         new_state->path_cost_lower_bounds[agent_id] = agent_planner_ptrs_[agent_id]->getStats().lower_bound;
 
         if (params_.verbose){
@@ -404,22 +419,39 @@ void ims::EAECBS::expand(int state_id) {
                                                        -1, // TODO(yoraish): get all the conflicts.
                                                        agent_names_);
 
-        std::cout << "New state soc: " << new_state_soc << std::endl;
-        std::cout << "New state num conflicts: " << new_state->unresolved_conflicts.size() << std::endl;
 
         new_state->f = new_state_soc;
         new_state->sum_of_path_cost_lower_bounds = new_state_lb;
-
-        // Add a random number between zero and one to f.
-        // new_state->f += (double)rand() / RAND_MAX; // Uncomment for nitro boost.
-
-        // Push the new state to the open list.
-        open_->push(new_state);
-        new_state->setOpen();
+        int new_state_num_conflicts = (int)new_state->unresolved_conflicts.size();
+        std::cout << "(SOC, Conflicts): (" << prev_soc << ", " << prev_num_conflicts << ") -> " << "(" << new_state_soc << ", " << new_state_num_conflicts << ")" << std::endl;
+        // Add the new state to the list of children.
+        child_search_states.push_back(new_state);
         stats_.num_generated++;
 
-        // Delete the previous state but keep the entry in the states_ vector.
-        // state = nullptr;
+        // If we are allowed to bypass conflicts, then check if the new state is
+        // 1. Of equal or lower cost, and
+        // 2. Has fewer conflicts.
+        // If so, then we discard all other child states created and only push this one with the parent's constraints.
+        if (params_.is_bypassing_conflicts) {
+            if (new_state_soc <= prev_soc && new_state_num_conflicts < prev_num_conflicts) {
+                std::cout << CYAN << "Bypassing conflicts." << RESET << std::endl;
+                // Discard all other child states. These are all but the last one.
+                for (size_t i{0}; i < child_search_states.size() - 1; ++i) {
+                    delete child_search_states[i];
+                }
+                // Clear the child search states vector and push the last one.
+                child_search_states.clear();
+                // Set the parent's constraints to the new state's constraints.
+                new_state->constraints_collectives = state->constraints_collectives;
+                child_search_states.push_back(new_state);
+                break;
+            }
+        }
+    }
+    // Push the child search states to the open list.
+    for (auto& child_search_state : child_search_states) {
+        open_->push(child_search_state);
+        child_search_state->setOpen();
     }
 }
 

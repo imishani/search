@@ -66,6 +66,8 @@ enum class ConstraintType {
     PATH_PRIORITY, // Do not be in sphere at time t, but with a much much larger radius.
     VERTEX_POINT3D, // Do not be at v at time t if the associated configuration collides with a point.
     EDGE_POINT3D, // Do not cross edge (u, v) at time t to t+1 if the associated configuration interpolation collides with a point.
+    VERTEX_PARTIAL, // Do not be at the subset v[mask==true] at time t.
+    EDGE_PARTIAL, // Do not cross any edge that satisfies (u[mask==true], v[mask==true]) at time t to t+1 if
 };
 
 // A map from constraint type to whether it is admissible or not.
@@ -78,6 +80,10 @@ const std::unordered_map<ConstraintType, bool> constraint_type_admissibility = {
     {ConstraintType::EDGE_PRIORITY,          false},
     {ConstraintType::VERTEX_STATE_AVOIDANCE, false},
     {ConstraintType::EDGE_STATE_AVOIDANCE,   false},
+    {ConstraintType::VERTEX_POINT3D,         true},
+    {ConstraintType::EDGE_POINT3D,         true},
+    {ConstraintType::VERTEX_PARTIAL,       true},
+    {ConstraintType::EDGE_PARTIAL,         true},
 };
 
 /// @brief Base class for all search constraints.
@@ -170,6 +176,42 @@ struct EdgeConstraint : public Constraint {
 // ==========================
 // Constraints used by CBS-MRAMP.
 // ==========================
+struct PartialVertexConstraint: public VertexConstraint {
+    // Variables.
+    /// @brief Each dimension marked as true is constrained.
+    std::vector<bool> state_dim_is_constrained_mask;
+
+    // Methods.
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param state The state vector.
+    /// @param state_dim_is_constrained_mask The mask of which dimensions are constrained.
+    explicit PartialVertexConstraint(StateType state, const std::vector<bool> & state_dim_is_constrained_mask) :
+            VertexConstraint(std::move(state)),
+            state_dim_is_constrained_mask(state_dim_is_constrained_mask) {
+        /// @brief The type of the constraint.
+        type = ConstraintType::VERTEX_PARTIAL;
+    }
+};
+
+struct PartialEdgeConstraint: public EdgeConstraint {
+    // Variables.
+    /// @brief Each dimension marked as true is constrained.
+    std::vector<bool> state_dim_is_constrained_mask;
+
+    // Methods.
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param state The state vector.
+    /// @param state_dim_is_constrained_mask The mask of which dimensions are constrained.
+    explicit PartialEdgeConstraint(StateType state_from,
+                                   StateType state_to,
+                                   const std::vector<bool>& state_dim_is_constrained_mask) :
+            EdgeConstraint(std::move(state_from), std::move(state_to)),
+            state_dim_is_constrained_mask(state_dim_is_constrained_mask) {
+        /// @brief The type of the constraint.
+        type = ConstraintType::EDGE_PARTIAL;
+    }
+};
+
 struct VertexSphere3dConstraint : public Constraint {
     /// @brief The center of the constrained sphere.
     Eigen::Vector3d center;

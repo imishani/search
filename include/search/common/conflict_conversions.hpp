@@ -41,6 +41,7 @@
 // Project includes.
 #include <search/common/conflicts.hpp>
 #include <search/common/constraints.hpp>
+#include <search/common/utils.hpp>
 
 namespace ims {
 namespace conflict_conversions {
@@ -177,6 +178,21 @@ public:
     /// @note This function adds pairs of <agent_id, constraints> to the agent_constraints vector.
     static void point3dEdgeConflictToEdgeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
         std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
+
+    /// @brief Convert a vertex point3d conflict to a partial vertex constraint.
+    /// @param point3d_conflict_ptr
+    /// @return
+    /// @note This function adds pairs of <agent_id, constraints> to the agent_constraints vector.
+    static void point3dVertexConflictToPartialVertexConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
+    /// @brief Convert an edge point3d conflict to a partial edge constraint.
+    /// @param point3d_conflict_ptr
+    /// @return
+    /// @note This function adds pairs of <agent_id, constraints> to the agent_constraints vector.
+    static void point3dEdgeConflictToPartialEdgeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+        std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints);
+
+
 protected:
     // Variables.
     // Extra context that some conversions need.

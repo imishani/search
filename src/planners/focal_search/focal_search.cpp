@@ -78,7 +78,7 @@ void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpac
         start_->g = 0;
         start_->c = 0;
         start_->f = computeHeuristic(start_ind_);
-        open_.push(start_);
+        open_->push(start_);
         start_->setOpen();
     }
 }
@@ -114,7 +114,7 @@ void ims::FocalSearch::initializePlanner(const std::shared_ptr<SubcostActionSpac
     start_->g = 0;
     start_->c = 0;
     start_->f = computeHeuristic(start_ind_);
-    open_.push(start_);
+    open_->push(start_);
     start_->setOpen();
 }
 
@@ -170,15 +170,15 @@ bool ims::FocalSearch::plan(std::vector<StateType>& path) {
 bool ims::FocalSearch::plan(std::vector<PathType>& seqs_path, std::vector<std::vector<double>>& seqs_transition_costs) {
     startTimer();
     int iter {0};
-    while (!open_.empty() && !isTimeOut()){
+    while (!open_->empty() && !isTimeOut()){
         // report progress every 1000 iterations
         if (iter % 100000 == 0){
-            std::cout << "open size: " << open_.size() << std::endl;
+            std::cout << "open size: " << open_->size() << std::endl;
         }
         
         // Get the state with the lowest f value from the open list and remove it.
-        auto state  = open_.min();
-        open_.pop();
+        auto state  = open_->min();
+        open_->pop();
 
         // Set it to closed.
         state->setClosed();
@@ -202,8 +202,8 @@ bool ims::FocalSearch::plan(std::vector<PathType>& seqs_path, std::vector<std::v
         ++iter;
 
         // Reorder the open list.
-        double open_list_f_lower_bound = open_.getLowerBound();
-        open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
+        double open_list_f_lower_bound = open_->getLowerBound();
+        open_->updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
     }
 
     getTimeFromStart(stats_.time);
@@ -237,11 +237,11 @@ void ims::FocalSearch::expand(int state_id){
                 successor->parent_id = state->state_id;
                 successor->f = cost;
                 successor->c = subcost;
-                open_.update(successor);
+                open_->update(successor);
             }
         } else {
             setStateVals(successor->state_id, state->state_id, cost, subcost);
-            open_.push(successor);
+            open_->push(successor);
             successor->setOpen();
         }
     }
@@ -344,7 +344,7 @@ void ims::FocalSearch::resetPlanningData() {
         delete state;
     }
     states_ = std::vector<SearchState*>();
-    open_.clear();
+    open_->clear();
 
     goals_.clear();
     goal_ = -1;

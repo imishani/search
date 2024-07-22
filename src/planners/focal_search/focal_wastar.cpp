@@ -82,7 +82,7 @@ void ims::FocalwAStar::initializePlanner(const std::shared_ptr<SubcostActionSpac
         start_->c = 0;
         start_->h = computeHeuristic(start_ind_);
         start_->f = start_->g + params_.epsilon*start_->h;
-        open_.push(start_);
+        open_->push(start_);
         start_->setOpen();
     }
 
@@ -128,7 +128,7 @@ void ims::FocalwAStar::initializePlanner(const std::shared_ptr<SubcostActionSpac
     start_->f = start_->g + params_.epsilon*start_->h;
     start_->setOpen();
 
-    open_.push(start_);
+    open_->push(start_);
 
     // Update stats suboptimality.
     this->stats_.suboptimality = params_.epsilon;
@@ -140,18 +140,18 @@ bool ims::FocalwAStar::plan(std::vector<PathType>& seqs_path, std::vector<std::v
     int iter {0};
 
     // Reorder the open list.
-    double open_list_f_lower_bound = open_.getLowerBound();
-    open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
+    double open_list_f_lower_bound = open_->getLowerBound();
+    open_->updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
 
-    while (!open_.empty() && !isTimeOut()){
+    while (!open_->empty() && !isTimeOut()){
         // report progress every 1000 iterations
         if (iter % 100000 == 0 && params_.verbose){
-            std::cout << "Iter: " << iter << " open size: " << open_.size() << std::endl;
+            std::cout << "Iter: " << iter << " open size: " << open_->size() << std::endl;
         }
 
         // Get a state from the OPEN list and remove it.
-        auto state  = open_.min();
-        open_.pop();
+        auto state  = open_->min();
+        open_->pop();
         state->setClosed();
 
         if (isGoalState(state->state_id)){
@@ -170,13 +170,13 @@ bool ims::FocalwAStar::plan(std::vector<PathType>& seqs_path, std::vector<std::v
         ++iter;
 
         // Check if the OPEN list is empty. If so, break.
-        if (open_.empty()){
+        if (open_->empty()){
             break;
         }
 
         // Reorder the open list.
-        open_list_f_lower_bound = open_.getLowerBound();
-        open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
+        open_list_f_lower_bound = open_->getLowerBound();
+        open_->updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
     }
 
     getTimeFromStart(stats_.time);
@@ -206,7 +206,7 @@ void ims::FocalwAStar::expand(int state_id){
                          successor_edge_total_subcost,
                          successor_edge_state_ids,
                          successor_seqs_transition_costs[i]);
-            open_.push(successor);
+            open_->push(successor);
             successor->setOpen();
         }
 
@@ -230,13 +230,13 @@ void ims::FocalwAStar::expand(int state_id){
                 // If the state is in the closed list, then we remove it from the closed list and insert it to the open list.
                 if (successor->in_closed){
                     successor->setOpen();
-                    open_.push(successor);
+                    open_->push(successor);
                 }
 
                 // If the state is in the open list, then we update its position in the open list.
                 else if (successor->in_open){
                     // TODO(yoraish): this may not be needed, as the OPEN list will be reordered after the expansion anyway.
-                    open_.update(successor);
+                    open_->update(successor);
                 }
 
                 // If the state is neither in the open list nor in the closed list, then we throw an error.

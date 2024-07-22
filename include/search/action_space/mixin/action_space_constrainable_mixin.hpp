@@ -68,7 +68,7 @@ public:
 
     /// @brief Get the constraints collective.
     /// @return The constraints collective.
-    ConstraintsCollective getConstraintsCollective() const { 
+    ConstraintsCollective getConstraintsCollective() const {
         return *constraints_collective_ptr_;
     }
 
@@ -102,7 +102,7 @@ public:
 
     // Member variables.
     /// @brief The constraints.
-    std::shared_ptr<ConstraintsCollective> constraints_collective_ptr_;
+    std::shared_ptr<ConstraintsCollective> constraints_collective_ptr_ = std::make_shared<ConstraintsCollective>();
 };
 
 }  // namespace ims

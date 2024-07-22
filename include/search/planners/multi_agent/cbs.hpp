@@ -85,6 +85,12 @@ struct CBSParams : public BestFirstSearchParams {
         {ConflictType::EDGE, {ConstraintType::EDGE}},
         {ConflictType::VERTEX, {ConstraintType::VERTEX}}
     };
+
+    /// @brief Whether to use the root trick. This informs each path plan in the root node with all previous paths computed.
+    bool is_root_trick = false;
+
+    /// @brief Whether to use bypassing.
+    bool is_bypassing_conflicts = false;
 };
 
 // ==========================
@@ -123,7 +129,7 @@ virtual std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> co
 /// @param starts The start states.
 /// @param goals The goal states.
 /// @param action_space_ptrs The action spaces.
-void verifyStartAndGoalInputStates(const std::vector<StateType>& starts,
+static void verifyStartAndGoalInputStates(const std::vector<StateType>& starts,
                                    const std::vector<StateType>& goals,
                                    const std::vector<std::shared_ptr<ConstrainedActionSpace>>& action_space_ptrs);
 
@@ -136,28 +142,28 @@ virtual void createLowLevelPlanners() = 0;
 /// @brief The search state.
 struct SearchState : public ims::BestFirstSearch::SearchState, public SearchStateLowerBoundMixin {
     // Map from agent id to a path. Get the state vector for agent i at time t by paths[agent_id][t].
-    MultiAgentPaths paths;
+    std::shared_ptr<MultiAgentPaths> paths;
 
     // The path costs.
-    std::unordered_map<int, double> paths_costs;
+    std::shared_ptr<std::unordered_map<int, double>> paths_costs = std::make_shared<std::unordered_map<int, double>>();
     double sum_of_costs = 0.0;
-    std::unordered_map<int, std::vector<double>> paths_transition_costs;
+    std::shared_ptr<std::unordered_map<int, std::vector<double>>> paths_transition_costs = std::make_shared<std::unordered_map<int, std::vector<double>>>();
 
     // The lower bound on the cost of the solution. This is the sum of the lower bounds of the individual agents.
-    std::unordered_map<int, double> path_cost_lower_bounds;
+    std::shared_ptr<std::unordered_map<int, double>> path_cost_lower_bounds = std::make_shared<std::unordered_map<int, double>>();
     double sum_of_path_cost_lower_bounds = 0.0;
 
     // The conflicts. This is a subset of all the conflicts that exist in the current state paths solution. The number of conflicts is determined by the user. For CBS, for example, we only consider the first conflict so the size here could be 1, or larger than 1 and then only one conflict will be converted to a constraint.
-    std::vector<std::shared_ptr<Conflict>> unresolved_conflicts = {};
+    std::shared_ptr<std::vector<std::shared_ptr<Conflict>>> unresolved_conflicts = std::make_shared<std::vector<std::shared_ptr<Conflict>>>();
 
     // Constraints created from the identified conflicts and any previously imposed constraints. Map from agent id to a map from time to a set of constraints. Note the quick check for any constraints at a given time. By constraints[agent_id][time].empty() we  can check if there are any constraints at a given time.
-    MultiAgentConstraintsCollective constraints_collectives;
+    std::shared_ptr<MultiAgentConstraintsCollective> constraints_collectives = std::make_shared<MultiAgentConstraintsCollective>();
 
     // The counts of the constraints in each constraint type.
-    std::unordered_map<ConstraintType, int> constraint_type_count;
+    std::shared_ptr<std::unordered_map<ConstraintType, int>> constraint_type_count = std::make_shared<std::unordered_map<ConstraintType, int>>();
 
     // A set of agent_ids whose paths are out of date. If there are any constraints here, the f value (aka its sum of costs) of this CT node is only an estimate, as well as potentially other values. If, upon evaluation, the g value become larger than the current g value, then the state is returned to the open list.
-    std::vector<int> agent_ids_need_replan = {};
+    std::shared_ptr<std::vector<int>> agent_ids_need_replan = std::make_shared<std::vector<int>>();
 
     /// @brief Required for FocalQueue
     /// @return 
@@ -253,6 +259,10 @@ protected:
     /// @return Whether the initialization and planning was successful.
     virtual bool initializeAndPlanLowLevel(int agent_id, std::vector<StateType>& path, PlannerStats& stats);
 
+    /// @brief Create a copy of the search state. Populate the new state with the values of the old state without referencing to it.
+    /// \param state
+    /// \param new_state
+    virtual void createSearchStateCopy(const SearchState* state, SearchState* new_state);
 
     /// Member variables.
     // The search parameters.

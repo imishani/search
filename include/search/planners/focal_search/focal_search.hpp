@@ -144,7 +144,8 @@ private:
     FocalSearchParams params_;
 
     /// @brief The open list is a focal queue.
-    FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, SearchStateFocalCompare> open_;
+    std::shared_ptr<FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, SearchStateFocalCompare>> open_ =
+            std::make_shared<FocalAndAnchorQueueWrapper<SearchState, SearchStateCompare, SearchStateFocalCompare>>();
 
     /// @brief Keeping track of states by their id.
     std::vector<SearchState*> states_;

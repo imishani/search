@@ -85,13 +85,6 @@ void ims::FocalwSIPP::initializePlanner(const std::shared_ptr<SubcostConstrained
     }
     // Get the search state for the start.
     ims::FocalwSIPP::SearchState* start_state = getOrCreateSearchStateFromCfgIdAndSafeInterval(start_cfg_id, start_safe_intervals[0]);
-    int start_id = start_state->state_id;
-    start_state->parent_id = PARENT_TYPE(START);
-    // Evaluate the start state
-    start_state->g = start_time;
-    start_state->f = start_state->g + params_.epsilon*start_state->h;
-    start_state->c = 0;
-    start_state->setOpen();
 
     // Create the objects for the goal state.
     int goal_cfg_id = action_space_ptr_->getOrCreateRobotState(goal_wo_time);
@@ -115,8 +108,15 @@ void ims::FocalwSIPP::initializePlanner(const std::shared_ptr<SubcostConstrained
     goal_state->h = 0;
 
     // Set the in open.
+    int start_id = start_state->state_id;
+    start_state->parent_id = PARENT_TYPE(START);
+    // Evaluate the start state
+    start_state->g = start_time;
+    start_state->c = 0;
+    start_state->setOpen();
     start_state->h = computeHeuristic(start_cfg_id);
-    open_.push(start_state);
+    start_state->f = start_state->g + params_.epsilon * start_state->h;
+    open_->push(start_state);
     // Update the sub-optimality bound in the statistics object.
     stats_.suboptimality = params_.epsilon;
     this->stats_.focal_suboptimality = params_.focal_suboptimality;
@@ -127,18 +127,18 @@ bool ims::FocalwSIPP::plan(std::vector<StateType>& path) {
     int iter {0};
 
     // Reorder the open list.
-    double open_list_f_lower_bound = open_.getLowerBound();
-    open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
+    double open_list_f_lower_bound = open_->getLowerBound();
+    open_->updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
 
-    while (!open_.empty() && !isTimeOut()){
+    while (!open_->empty() && !isTimeOut()){
         // report progress every 1000 iterations
-        if (iter % 100000 == 0 && params_.verbose){
-            std::cout << "Iter: " << iter << " open size: " << open_.size() << std::endl;
+        if (iter % 1 == 0 && params_.verbose){
+            std::cout << "Iter: " << iter << " open size: " << open_->size() << std::endl;
         }
 
         // Get a state from the OPEN list and remove it.
-        auto state  = open_.min();
-        open_.pop();
+        auto state  = open_->min();
+        open_->pop();
         state->setClosed();
 
         if (isGoalState(state->state_id)){
@@ -160,13 +160,13 @@ bool ims::FocalwSIPP::plan(std::vector<StateType>& path) {
         ++iter;
 
         // Check if the OPEN list is empty. If so, break.
-        if (open_.empty()){
+        if (open_->empty()){
             break;
         }
 
         // Update the OPEN list. Ensure that the focal bound is at least as large as the minimal f-value in the OPEN list.
-        open_list_f_lower_bound = open_.getLowerBound();
-        open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
+        open_list_f_lower_bound = open_->getLowerBound();
+        open_->updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
     }
     getTimeFromStart(stats_.time);
     return false;
@@ -279,7 +279,7 @@ void ims::FocalwSIPP::expand(int state_id){
                              successor_edge_state_ids,
                              successor_seqs_transition_costs[i]);
                 successor->setOpen();
-                open_.push(successor);
+                open_->push(successor);
                 StateType succ_state = action_space_ptr_->getRobotState(successor->cfg_state_id)->state;
             }
             // Otherwise, this state is either in open or in closed.
@@ -301,7 +301,7 @@ void ims::FocalwSIPP::expand(int state_id){
                     // If the state is in the closed list, then we remove it from the closed list and insert it to the open list.
                     if (successor->in_closed) {
                         successor->setOpen();
-                        open_.push(successor);
+                        open_->push(successor);
                         StateType succ_state = action_space_ptr_->getRobotState(successor->cfg_state_id)->state;
                         if (params_.verbose) {
                             std::cout << "State id " << successor->state_id << " gets parent id " << state->state_id
@@ -311,7 +311,7 @@ void ims::FocalwSIPP::expand(int state_id){
                     }
                         // If the state is in the open list, then we update its position in the open list.
                     else if (successor->in_open) {
-                        open_.update(successor);
+                        open_->update(successor);
                         if (params_.verbose) {
                             std::cout << "State id " << successor->state_id << " gets parent id " << state->state_id
                                       << " with g " << successor->g << " and f " << successor->f << " [updated]"
@@ -340,7 +340,7 @@ void ims::FocalwSIPP::setStateVals(SearchState* search_state_ptr,
     search_state_ptr->g = g_new;
     search_state_ptr->c = c_new;
     search_state_ptr->h = computeHeuristic(search_state_ptr->cfg_state_id);
-    search_state_ptr->f = search_state_ptr->g + params_.epsilon * search_state_ptr->h;
+    search_state_ptr->f = g_new + params_.epsilon * search_state_ptr->h;
     search_state_ptr->edge_from_parent_state_ids = std::make_shared<std::vector<int>>(edge_from_parent_cfg_state_ids);
     search_state_ptr->edge_from_parent_transition_costs = std::make_shared<std::vector<double>>(edge_from_parent_transition_costs);
 }
@@ -509,7 +509,7 @@ void ims::FocalwSIPP::resetPlanningData() {
         delete state;
     }
     states_ = std::vector<SearchState*>();
-    open_.clear();
+    open_->clear();
 
     goals_.clear();
     goal_ = -1;

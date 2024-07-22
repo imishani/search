@@ -113,6 +113,10 @@ void ConflictsToConstraintsConverter::convertConflictToConstraints(const std::sh
                 case ConstraintType::VERTEX_POINT3D:
                     // Very simple logic. A point3D constraint is simply a sphere3D constraint with a very small radius.
                     point3dVertexConflictToSphere3dVertexConstraints(point3d_vertex_conflict_ptr, agent_constraints, 0.02);
+                    break;
+                case ConstraintType::VERTEX_PARTIAL:
+                    point3dVertexConflictToPartialVertexConstraints(point3d_vertex_conflict_ptr, agent_constraints);
+                    break;
                 default:
                     std::cerr << "Error: Unsupported constraint type (" << (int)constraint_type << ") for VERTEX_POINT3D conflict." << std::endl;
                     break;
@@ -147,6 +151,9 @@ void ConflictsToConstraintsConverter::convertConflictToConstraints(const std::sh
                     break;
                 case ConstraintType::EDGE_POINT3D:
                     point3dEdgeConflictToSphere3dEdgeConstraints(point3d_edge_conflict_ptr, agent_constraints, 0.02);
+                    break;
+                case ConstraintType::EDGE_PARTIAL:
+                    point3dEdgeConflictToPartialEdgeConstraints(point3d_edge_conflict_ptr, agent_constraints);
                     break;
                 default:
                     std::cerr << "Error: Unsupported constraint type (" << (int)constraint_type << ") for EDGE_POINT3D conflict." << std::endl;
@@ -373,6 +380,11 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_con
 
         // Update the constraints collective to also include the new constraint.
         agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<VertexSphere3dConstraint>(constraint)});
+
+        // Print some.
+        std::cout << YELLOW << "Creating Sphere3d constraint at point: " << point3d_conflict_ptr->point.x() << ", " <<
+        point3d_conflict_ptr->point.y() << ", " << point3d_conflict_ptr->point.z()
+        << " at time " << time << RESET << std::endl;
     }
 }
 
@@ -423,6 +435,9 @@ void ConflictsToConstraintsConverter::point3dEdgeConflictToSphere3dEdgeConstrain
         // Update the constraints collective to also include the new constraint.
         // Notice that the two constraints are added together to one agent. 
         agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<EdgeSphere3dConstraint>(constraint)});
+        std::cout << YELLOW << "Creating Sphere3d constraint at point: " << point3d_conflict_ptr->point.x() << ", " <<
+        point3d_conflict_ptr->point.y() << ", " << point3d_conflict_ptr->point.z()
+        << " between times " << time_from << " and " << time_to << RESET << std::endl;
     }
 }
 
@@ -525,20 +540,20 @@ void ConflictsToConstraintsConverter::point3dVertexConflictToPathPriorityConstra
 
 void ConflictsToConstraintsConverter::point3dEdgeConflictToPathPriorityConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
                                                   const std::vector<std::string>& agent_names,
-                                                  std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints){
+                                                  std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints) {
 
     // Create a new edge avoidance constraint for each of the agents. Point3dEdgeConflict assumes private grids, so each agent has its own state.
     for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
         int agent_id = point3d_conflict_ptr->agent_ids[i];
 
         // Create a new edge constraint. The agent states are the other states that the agent should avoid. Their corresponding agent ids are also passed.
-        auto time_from = (TimeType)std::round(point3d_conflict_ptr->from_states[i].back());
-        auto time_to = (TimeType)std::round(point3d_conflict_ptr->to_states[i].back());
+        auto time_from = (TimeType) std::round(point3d_conflict_ptr->from_states[i].back());
+        auto time_to = (TimeType) std::round(point3d_conflict_ptr->to_states[i].back());
 
         // The agent names to avoid are the agent names corresponding to the agent ids to avoid.
         std::vector<int> agent_ids_to_avoid;
         std::vector<std::string> agent_names_to_avoid;
-        for (int agent_id_to_avoid : point3d_conflict_ptr->agent_ids) {
+        for (int agent_id_to_avoid: point3d_conflict_ptr->agent_ids) {
             if (agent_id_to_avoid != agent_id) {
                 agent_ids_to_avoid.push_back(agent_id_to_avoid);
                 agent_names_to_avoid.push_back(agent_names[agent_id_to_avoid]);
@@ -548,7 +563,50 @@ void ConflictsToConstraintsConverter::point3dEdgeConflictToPathPriorityConstrain
         constraint.agent_names_to_avoid = agent_names_to_avoid;
 
         // Update the constraints collective to also include the new constraint.
-        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{std::make_shared<PathPriorityConstraint>(constraint)});
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{
+                std::make_shared<PathPriorityConstraint>(constraint)});
+    }
+}
+
+void ConflictsToConstraintsConverter::point3dVertexConflictToPartialVertexConstraints(const Point3dVertexConflict * point3d_conflict_ptr,
+                                                    std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints) {
+    // Create a new partial edge constraint for each of the participating agent ids.
+    for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
+        int agent_id = point3d_conflict_ptr->agent_ids[i];
+
+        // The constrained mask for this agent. Each dimension marked true is constrained.
+        std::vector<bool> state_dim_is_constrained_mask = point3d_conflict_ptr->state_dim_in_conflict_masks.at(i);
+
+        // Create a new edge constraint.
+        PartialVertexConstraint constraint = PartialVertexConstraint(point3d_conflict_ptr->states.at(i),
+                                                                     state_dim_is_constrained_mask);
+
+        // Update the constraints vector to also include the new constraint.
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{
+                std::make_shared<PartialVertexConstraint>(constraint)});
+    }
+}
+
+void ConflictsToConstraintsConverter::point3dEdgeConflictToPartialEdgeConstraints(const Point3dEdgeConflict * point3d_conflict_ptr,
+                                                  std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>>& agent_constraints) {
+    // Create a new partial edge constraint for each of the participating agent ids.
+    std::cout << YELLOW << "CREATING PARTIAL EDGE CONSTRAINTS" << RESET << "\n";
+    std::cout << YELLOW << "The valid mask (agent0) is " << point3d_conflict_ptr->state_dim_in_conflict_masks.at(0) << RESET << "\n ";
+    std::cout << YELLOW << "The valid mask (agent1) is " << point3d_conflict_ptr->state_dim_in_conflict_masks.at(1) << RESET << "\n ";
+    for (int i = 0; i < point3d_conflict_ptr->agent_ids.size(); i++) {
+        int agent_id = point3d_conflict_ptr->agent_ids[i];
+
+        // The constrained mask for this agent. Each dimension marked true is constrained.
+        std::vector<bool> state_dim_is_constrained_mask = point3d_conflict_ptr->state_dim_in_conflict_masks.at(i);
+
+        // Create a new edge constraint.
+        PartialEdgeConstraint constraint = PartialEdgeConstraint(point3d_conflict_ptr->from_states.at(i),
+                                                                 point3d_conflict_ptr->to_states.at(i),
+                                                                 state_dim_is_constrained_mask);
+
+        // Update the constraints vector to also include the new constraint.
+        agent_constraints.emplace_back(agent_id, std::vector<std::shared_ptr<ims::Constraint>>{
+                std::make_shared<PartialEdgeConstraint>(constraint)});
     }
 }
 }  // namespace conflict_conversions

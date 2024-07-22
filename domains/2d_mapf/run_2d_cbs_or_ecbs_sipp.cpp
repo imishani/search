@@ -168,6 +168,7 @@ int main(int argc, char** argv) {
         params.low_level_focal_suboptimality = params.high_level_focal_suboptimality;
         params.weight_low_level_heuristic = 1.0;
         params.verbose = false;
+        params.is_bypassing_conflicts = false;
 
         for (int i {0}; i < num_agents; i++){
             // Note that the heuristic is not timed.

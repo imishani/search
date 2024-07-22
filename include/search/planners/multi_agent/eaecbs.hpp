@@ -126,7 +126,7 @@ protected:
             } else {
                 return f1 < f2;
             }
-        }   
+        }
     };
 
     /// @brief The search state compare struct.

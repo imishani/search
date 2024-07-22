@@ -44,6 +44,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <numeric>
 
 /// @brief Pretty print a vector of doubles into a stream.
 /// @param stream The stream to print to.
@@ -78,6 +79,9 @@ inline double vectorSum(const std::vector<double>& vec) {
 inline int vectorSum(const std::vector<int>& vec) {
     return std::accumulate(vec.begin(), vec.end(), 0);
 }
+inline int vectorSum(const std::vector<bool>& vec) {
+    return std::accumulate(vec.begin(), vec.end(), 0);
+}
 
 /// @brief Given a path made up of sequences, each connecting a parent to a child with some intermediate states, convert it to a single path.
 /// \param seq_states_to_child The path dividied to sequences. The structure of each sequence in the path is [state, intermediate states, child]. Note that the child sequence of this one will begin with 'child.'
@@ -105,12 +109,6 @@ inline void flattenSequencePathToPathType(const std::vector<PathType>& seq_state
     path.push_back(seq_states_to_child.back().back());
     transition_costs.push_back(seq_transition_costs_to_child.back().back());
     assert(path.size() == transition_costs.size());
-    // Print the sequences and the resulting path.
-     std::cout << "seq_states_to_child: " << seq_states_to_child << std::endl;
-        std::cout << "seq_transition_costs_to_child: " << seq_transition_costs_to_child << std::endl;
-        std::cout << "path: " << path << std::endl;
-        std::cout << "transition_costs: " << transition_costs << std::endl;
-        std::cout << "====================" << std::endl;
 }
 inline void flattenSeqPathToPathType(const std::vector<PathType>& seq_states_to_child,
                                      PathType& path) {

@@ -150,6 +150,8 @@ int main(int argc, char** argv) {
         params.high_level_focal_suboptimality = vm["high_level_focal_suboptimality"].as<double>();
         params.low_level_focal_suboptimality = params.high_level_focal_suboptimality;
         params.weight_low_level_heuristic = params.high_level_focal_suboptimality;
+        params.is_root_trick = false;
+        params.is_bypassing_conflicts = false;
         params.verbose = false;
         
         for (int i {0}; i < num_agents; i++){

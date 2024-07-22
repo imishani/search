@@ -154,7 +154,7 @@ void ims::FocalEAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<
         // Add the state to the open list if it is not already there.
         // NOTE(yoraish): does it makes sense to update states already in open? This may assign currently "good" state-parents to "bad" ones instead. For now, any state in open is not changed.
         if (!search_state_to_insert->in_closed && !search_state_to_insert->in_open){
-            open_.push(search_state_to_insert);
+            open_->push(search_state_to_insert);
             // Set the state to be open.
             search_state_to_insert->setOpen();
         }
@@ -184,7 +184,7 @@ void ims::FocalEAwAStarUniformCost::expand(int state_id){
                          successor_edge_total_subcost,
                          successor_edge_state_ids,
                          successor_seqs_transition_costs[i]);
-            open_.push(successor);
+            open_->push(successor);
             successor->setOpen();
         }
 
@@ -208,13 +208,13 @@ void ims::FocalEAwAStarUniformCost::expand(int state_id){
                 // If the state is in the closed list, then we remove it from the closed list and insert it to the open list.
                 if (successor->in_closed){
                     successor->setOpen();
-                    open_.push(successor);
+                    open_->push(successor);
                 }
 
                 // If the state is in the open list, then we update its position in the open list.
                 else if (successor->in_open){
                     // TODO(yoraish): this may not be needed, as the OPEN list will be reordered after the expansion anyway.
-                    open_.update(successor);
+                    open_->update(successor);
                 }
 
                 // If the state is neither in the open list nor in the closed list, then we throw an error.
