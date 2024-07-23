@@ -32,6 +32,8 @@
  * \date   4/1/23
  */
 
+// Merging
+
 #ifndef SEARCH_ACTIONSCENE2DROB_HPP
 #define SEARCH_ACTIONSCENE2DROB_HPP
 
