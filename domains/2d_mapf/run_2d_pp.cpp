@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
     // Construct the scene and the action space.
     std::shared_ptr<Scene2DRob> scene = std::make_shared<Scene2DRob>();
     scene->loadMap(map_file);
-    ActionType2dRob action_type;
+    ActionType2dRobTimed action_type;
 
     // Construct the parameters.
     std::vector<StateType> start_state_vals;
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
     planner.initializePlanner(action_spaces, start_state_vals, goal_state_vals);
 
     // Plan.
-    ims::MultiAgentPaths paths;
+    MultiAgentPaths paths;
     planner.plan(paths);
     
     if (paths.empty()){
@@ -211,7 +211,7 @@ int main(int argc, char** argv) {
     fout.close();
 
     // Execute the visualization script.
-    std::string command = "python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 1 && open paths.gif";
+    std::string command = "python3 ../domains/2d_mapf/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 1 && xdg-open paths.gif";
     std::cout << "Running the plot script..." << std::endl;
     system(command.c_str());
 

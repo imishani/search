@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16.3)
 project(search)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 # add include directories
 include_directories(include)
@@ -29,15 +29,11 @@ add_library(search SHARED
         src/planners/multi_agent/cbs_mp.cpp
         src/planners/multi_agent/ecbs.cpp
         src/planners/multi_agent/ecbs_mp.cpp
-        src/planners/multi_agent/eacbs.cpp
-        src/planners/multi_agent/eacbs_mp.cpp
         src/planners/multi_agent/eaecbs.cpp
         src/planners/multi_agent/eaecbs_mp.cpp
         src/planners/multi_agent/cbs_sphere3d.cpp
         src/planners/multi_agent/cbs_sipp.cpp
         src/planners/multi_agent/prioritized_planning.cpp
-        src/planners/multi_agent/generalized_cbs.cpp
-        src/planners/multi_agent/generalized_ecbs.cpp
         src/planners/sampling_based/drrt.cpp
         src/common/experience_graph.cpp
         src/common/conflict_conversions.cpp
@@ -93,9 +89,6 @@ target_link_libraries(run_2d_ackermann_rob_nav_wastar search ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_cbs_or_ecbs domains/2d_mapf/run_2d_cbs_or_ecbs.cpp)
 target_link_libraries(run_2d_mapf_cbs_or_ecbs search ${Boost_LIBRARIES})
-
-add_executable(run_2d_mapf_eacbs domains/2d_mapf/run_2d_eacbs.cpp)
-target_link_libraries(run_2d_mapf_eacbs search ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_eaecbs domains/2d_mapf/run_2d_eaecbs.cpp)
 target_link_libraries(run_2d_mapf_eaecbs search ${Boost_LIBRARIES})

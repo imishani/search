@@ -34,7 +34,6 @@
 
 #include <search/planners/focal_search/focal_wastar.hpp>
 ims::FocalwAStar::FocalwAStar(const ims::FocalwAStarParams &params) : params_(params), FocalSearch(params) {
-
 }
 
 ims::FocalwAStar::~FocalwAStar() = default;
@@ -83,11 +82,11 @@ void ims::FocalwAStar::initializePlanner(const std::shared_ptr<SubcostActionSpac
         start_->c = 0;
         start_->h = computeHeuristic(start_ind_);
         start_->f = start_->g + params_.epsilon*start_->h;
-        open_.push(start_);
+        open_->push(start_);
         start_->setOpen();
     }
 
-    // Update stats suboptimality.
+    // Update stats sub-optimality.
     this->stats_.suboptimality = params_.epsilon;
     this->stats_.focal_suboptimality = params_.focal_suboptimality;
 }
@@ -129,60 +128,57 @@ void ims::FocalwAStar::initializePlanner(const std::shared_ptr<SubcostActionSpac
     start_->f = start_->g + params_.epsilon*start_->h;
     start_->setOpen();
 
-    open_.push(start_);
+    open_->push(start_);
 
     // Update stats suboptimality.
     this->stats_.suboptimality = params_.epsilon;
     this->stats_.focal_suboptimality = params_.focal_suboptimality;
 }
 
-bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
+bool ims::FocalwAStar::plan(std::vector<PathType>& seqs_path, std::vector<std::vector<double>>& seqs_transition_costs) {
     startTimer();
     int iter {0};
 
     // Reorder the open list.
-    double open_list_f_lower_bound = open_.getLowerBound();
-    open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
+    double open_list_f_lower_bound = open_->getLowerBound();
+    open_->updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
 
-    while (!open_.empty() && !isTimeOut()){
+    while (!open_->empty() && !isTimeOut()){
         // report progress every 1000 iterations
         if (iter % 100000 == 0 && params_.verbose){
-            std::cout << "Iter: " << iter << " open size: " << open_.size() << std::endl;
+            std::cout << "Iter: " << iter << " open size: " << open_->size() << std::endl;
         }
-        
+
         // Get a state from the OPEN list and remove it.
-        auto state  = open_.min();
-        open_.pop();
+        auto state  = open_->min();
+        open_->pop();
         state->setClosed();
 
         if (isGoalState(state->state_id)){
             goal_ = state->state_id;
             getTimeFromStart(stats_.time);
-            reconstructPath(path, stats_.transition_costs);
+            reconstructPath(seqs_path, seqs_transition_costs);
             stats_.cost = state->g;
-            stats_.path_length = (int)path.size();
-            stats_.num_generated = (int)action_space_ptr_->states_.size();    
-
-            // TODO(yoraish): Get the non-weighted (g+h) minimal value from the OPEN list.
+            stats_.num_generated = (int)action_space_ptr_->states_.size();
+            stats_.focal_suboptimality = params_.focal_suboptimality;
             stats_.lower_bound = state->g / params_.epsilon;
-
             return true;
         }
 
-        // Expand the state.
+        // If it is not a goal state, then expand it.
         expand(state->state_id);
         ++iter;
-        
+
         // Check if the OPEN list is empty. If so, break.
-        if (open_.empty()){
+        if (open_->empty()){
             break;
         }
 
-        // Update the OPEN list. Ensure that the focal bound is at least as large as the minimal f-value in the OPEN list.
-        open_list_f_lower_bound = open_.getLowerBound();
-        open_.updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
-
+        // Reorder the open list.
+        open_list_f_lower_bound = open_->getLowerBound();
+        open_->updateWithBound(params_.focal_suboptimality * open_list_f_lower_bound);
     }
+
     getTimeFromStart(stats_.time);
     return false;
 }
@@ -190,50 +186,57 @@ bool ims::FocalwAStar::plan(std::vector<StateType>& path) {
 void ims::FocalwAStar::expand(int state_id){
 
     SearchState* state = getSearchState(state_id);
-    std::vector<int> successors;
-    std::vector<double> costs;
-    std::vector<double> subcosts;
+    std::vector<std::vector<int>> successor_seqs_state_ids;
+    std::vector<std::vector<double>> successor_seqs_transition_costs;
+    std::vector<std::vector<double>> successor_seqs_transition_subcosts;
 
-    action_space_ptr_->getSuccessors(state->state_id, successors, costs, subcosts);
-    for (size_t i {0} ; i < successors.size() ; ++i){
-        int successor_id = successors[i];
-        double cost = costs[i];
-        double subcost = subcosts[i];
+    action_space_ptr_->getSuccessors(state->state_id, successor_seqs_state_ids, successor_seqs_transition_costs, successor_seqs_transition_subcosts);
+    for (size_t i {0} ; i < successor_seqs_state_ids.size() ; ++i){
+        const std::vector<int> & successor_edge_state_ids = successor_seqs_state_ids[i];
+        int successor_id = successor_edge_state_ids.back();
+        double successor_edge_total_cost = vectorSum(successor_seqs_transition_costs[i]);
+        double successor_edge_total_subcost = vectorSum(successor_seqs_transition_subcosts[i]);
         SearchState* successor = getOrCreateSearchState(successor_id);
 
         // If this state does not already exists, then we add it to the open list normally.
-        // if (states_.find(successor_id) == states_.end()){
         if (!successor->in_closed && !successor->in_open){
-            setStateVals(successor->state_id, state->state_id, cost, subcost);
-            open_.push(successor);
+            setStateVals(successor->state_id,
+                         state->state_id,
+                         successor_edge_total_cost,
+                         successor_edge_total_subcost,
+                         successor_edge_state_ids,
+                         successor_seqs_transition_costs[i]);
+            open_->push(successor);
             successor->setOpen();
         }
 
         // If the state is not new, then we check if it passes the criterion for updating it either in the CLOSED list (update and insert to OPEN) or in the OPEN list (just update).
         else{
             // Compute the new tentative f, g, and c values.
-            double g_new = state->g + cost;
-            double c_new = state->c + subcost;
+            double g_new = state->g + successor_edge_total_cost;
+            double c_new = state->c + successor_edge_total_subcost;
             double f_new = g_new + params_.epsilon * successor->h;
 
             // Check the update criterion.
             if (f_new < successor->f || (f_new == successor->f && c_new < successor->c)){
                 // Update the state's parent and g value.
-                successor->parent_id = state->state_id;
-                successor->g = g_new;
-                successor->c = c_new;
-                successor->f = f_new;
+                setStateVals(successor->state_id,
+                             state->state_id,
+                             successor_edge_total_cost,
+                             successor_edge_total_subcost,
+                             successor_edge_state_ids,
+                             successor_seqs_transition_costs[i]);
 
                 // If the state is in the closed list, then we remove it from the closed list and insert it to the open list.
                 if (successor->in_closed){
                     successor->setOpen();
-                    open_.push(successor);
+                    open_->push(successor);
                 }
 
                 // If the state is in the open list, then we update its position in the open list.
                 else if (successor->in_open){
                     // TODO(yoraish): this may not be needed, as the OPEN list will be reordered after the expansion anyway.
-                    open_.update(successor);
+                    open_->update(successor);
                 }
 
                 // If the state is neither in the open list nor in the closed list, then we throw an error.
@@ -247,13 +250,27 @@ void ims::FocalwAStar::expand(int state_id){
 }
 
 
-void ims::FocalwAStar::setStateVals(int state_id, int parent_id, double cost, double subcost)
+void ims::FocalwAStar::setStateVals(int state_id, int parent_id, double transition_cost, double transition_subcost)
 {
     auto state_ = getSearchState(state_id);
     auto parent = getSearchState(parent_id);
     state_->parent_id = parent_id;
-    state_->g = parent->g + cost;
-    state_->c = parent->c + subcost;
+    state_->g = parent->g + transition_cost;
+    state_->c = parent->c + transition_subcost;
     state_->h = computeHeuristic(state_id);
     state_->f = state_->g + params_.epsilon*state_->h;
+}
+
+void ims::FocalwAStar::setStateVals(int state_id,
+                                    int parent_id,
+                                    double transition_cost,
+                                    double transition_subcost,
+                                    const std::vector<int>& seq_from_parent_state_ids,
+                                    const std::vector<double>& seq_from_parent_transition_costs)
+{
+    setStateVals(state_id, parent_id, transition_cost, transition_subcost);
+    auto state = getSearchState(state_id);
+    state->seq_from_parent_state_ids = std::make_shared<std::vector<int>>(seq_from_parent_state_ids);
+    state->seq_from_parent_transition_costs = std::make_shared<std::vector<double>>(seq_from_parent_transition_costs);
+
 }

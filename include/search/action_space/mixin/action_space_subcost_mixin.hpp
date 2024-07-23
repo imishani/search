@@ -56,18 +56,38 @@ public:
     ~ActionSpaceSubcostMixin() = default;
 
     /// @brief Overrides the getSuccessors method of ActionSpace to return a subcost in addition to a cost for each successor transition.
-    /// @details This method is used to get the successors of a given state.
-    /// @param state The state for which we want to get the successors.
-    /// @param successors The vector of successors to be filled.
-    /// @param costs The vector of costs to be filled.
-    /// @param subcosts The vector of subcosts to be filled.
+    /// @details See the base getSuccessors for more.
     virtual bool getSuccessors(int curr_state_ind,
-                                   std::vector<int>& successors,
-                                   std::vector<double>& costs, 
-                                   std::vector<double> &subcosts) = 0;
+                            std::vector<std::vector<int>>& seqs_state_ids,
+                            std::vector<std::vector<double>> & seqs_transition_costs,
+                            std::vector<std::vector<double>> & seqs_transition_subcosts) = 0;
+
+    [[deprecated("Use the new getSuccessors (for sequences) instead.")]]
+    bool getSuccessors(int curr_state_ind,
+                            std::vector<int> & successors,
+                            std::vector<double> & costs,
+                            std::vector<double> & subcosts) {
+        std::vector<std::vector<int>> seqs_state_ids;
+        std::vector<std::vector<double>> seqs_transition_costs;
+        std::vector<std::vector<double>> seqs_transition_subcosts;
+        getSuccessors(curr_state_ind, seqs_state_ids, seqs_transition_costs, seqs_transition_subcosts);
+        for (size_t i = 0; i < seqs_state_ids.size(); i++) {
+            // Check that the edges have only two elements (the parent and child states). Otherwise, abort with a message.
+            if (seqs_state_ids[i].size() != 2){
+                std::cout << RED << "getSuccessors: The seqs_state_ids[i] should have only two elements (the parent and child states). Instead, it has " << seqs_state_ids[i].size() << " elements." << RESET << std::endl;
+                std::cout << RED << "Edge state ids: " << seqs_state_ids[i] << RESET << std::endl;
+                std::cout << RED << "GetSuccessors would have returned the edge state ids: [" << seqs_state_ids[i].front() << ", " << seqs_state_ids[i].back() << "], which would lose information." << RESET << std::endl;
+                throw std::runtime_error("getSuccessors: The seqs_state_ids should have only two elements (the parent and child states).");
+            }
+            successors.push_back(seqs_state_ids[i].back());
+            costs.push_back(vectorSum(seqs_transition_costs[i]));
+            subcosts.push_back(vectorSum(seqs_transition_subcosts[i]));
+        }
+        return true;
+    }
+
     /// @brief Compute the subcost associated with a particular timed transition. Notice that states have time in their last element.
     virtual void getTransitionSubcost(const StateType& state_val_from, const StateType& state_val_to, double & subcost) = 0;
 };
 
 }  // namespace ims
-

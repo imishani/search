@@ -68,7 +68,7 @@ public:
 
     /// @brief Get the constraints collective.
     /// @return The constraints collective.
-    ConstraintsCollective getConstraintsCollective() const { 
+    ConstraintsCollective getConstraintsCollective() const {
         return *constraints_collective_ptr_;
     }
 
@@ -92,7 +92,7 @@ public:
     /// @param names The names of the agents.
     /// @param time_start The start time from which to check for conflicts. Inclusive. -1 defaults to zero.
     /// @param time_end The end time until which to check for conflicts. Inclusive. -1 defaults to the end.
-    virtual void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths, 
+    virtual void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths,
                            std::vector<std::shared_ptr<Conflict>>& conflicts_ptrs, 
                            const std::vector<ConflictType>& conflict_types,
                            int max_conflicts, 
@@ -102,7 +102,7 @@ public:
 
     // Member variables.
     /// @brief The constraints.
-    std::shared_ptr<ConstraintsCollective> constraints_collective_ptr_;
+    std::shared_ptr<ConstraintsCollective> constraints_collective_ptr_ = std::make_shared<ConstraintsCollective>();
 };
 
 }  // namespace ims

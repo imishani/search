@@ -54,7 +54,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             }
 
             // For each affected agent (2, in EACBS), create a new constraint, and a search state for each as well.
-            ims::conflict_conversions::vertexConflictToVertexStateAvoidanceConstraints(vertex_conflict_ptr, agent_constraints);
+            ims::conflict_conversions::ConflictsToConstraintsConverter::vertexConflictToVertexStateAvoidanceConstraints(vertex_conflict_ptr, agent_constraints);
         }
 
         // Otherwise, if the conflict is an edge conflict, add an edge constraint to each of the two affected agents.
@@ -65,7 +65,7 @@ std::vector<std::pair<int, std::vector<std::shared_ptr<ims::Constraint>>>> ims::
             if (edge_conflict_ptr == nullptr) {
                 throw std::runtime_error("Conflict is an edge conflict, but could not be converted to an EdgeConflict.");
             }
-            ims::conflict_conversions::edgeConflictToEdgeStateAvoidanceConstraints(edge_conflict_ptr, agent_constraints);
+            ims::conflict_conversions::ConflictsToConstraintsConverter::edgeConflictToEdgeStateAvoidanceConstraints(edge_conflict_ptr, agent_constraints);
         }
 
         else {

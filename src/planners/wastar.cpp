@@ -178,12 +178,13 @@ bool ims::wAStar::plan(std::vector<StateType>& path) {
 void ims::wAStar::expand(int state_id){
 
     auto state_ = getSearchState(state_id);
-    std::vector<int> successors;
-    std::vector<double> costs;
-    action_space_ptr_->getSuccessors(state_->state_id, successors, costs);
-    for (size_t i {0} ; i < successors.size() ; ++i){
-        int successor_id = successors[i];
-        double cost = costs[i];
+    std::vector<std::vector<int>> successor_seqs_state_ids;
+    std::vector<std::vector<double>> successor_seqs_transition_costs;
+    action_space_ptr_->getSuccessors(state_->state_id, successor_seqs_state_ids, successor_seqs_transition_costs);
+    for (size_t i {0} ; i < successor_seqs_state_ids.size() ; ++i){
+        const std::vector<int> & successor_edge_state_ids = successor_seqs_state_ids[i];
+        int successor_id = successor_edge_state_ids.back();
+        double successor_edge_total_cost = std::accumulate(successor_seqs_transition_costs[i].begin(), successor_seqs_transition_costs[i].end(), 0.0);
         auto successor = getOrCreateSearchState(successor_id);
         if (successor->in_closed){
             continue;
@@ -192,14 +193,20 @@ void ims::wAStar::expand(int state_id){
             std::cout << "Added Goal to open list" << std::endl;
         }
         if (successor->in_open){
-            if (successor->g > state_->g + cost){
-                successor->parent_id = state_->state_id;
-                successor->g = state_->g + cost;
-                successor->f = successor->g + params_.epsilon*successor->h;
+            if (successor->g > state_->g + successor_edge_total_cost){
+                setStateVals(successor->state_id,
+                             state_->state_id,
+                             successor_edge_total_cost,
+                             successor_edge_state_ids,
+                             successor_seqs_transition_costs[i]);
                 open_.update(successor);
             }
         } else {
-            setStateVals(successor->state_id, state_->state_id, cost);
+            setStateVals(successor->state_id,
+                         state_->state_id,
+                         successor_edge_total_cost,
+                         successor_edge_state_ids,
+                         successor_seqs_transition_costs[i]);
             open_.push(successor);
             successor->setOpen();
         }
@@ -207,46 +214,66 @@ void ims::wAStar::expand(int state_id){
     stats_.num_expanded++;
 }
 
-void ims::wAStar::setStateVals(int state_id, int parent_id, double cost)
+void ims::wAStar::setStateVals(int state_id, int parent_id, double transition_cost)
 {
     auto state_ = getSearchState(state_id);
     auto parent = getSearchState(parent_id);
     state_->parent_id = parent_id;
-    state_->g = parent->g + cost;
+    state_->g = parent->g + transition_cost;
     state_->h = computeHeuristic(state_id);
     state_->f = state_->g + params_.epsilon*state_->h;
 }
 
+void ims::wAStar::setStateVals(int state_id,
+                               int parent_id,
+                               double transition_cost,
+                               const std::vector<int> & seq_from_parent_state_ids,
+                               const std::vector<double> & seq_from_parent_transition_costs)
+{
+    setStateVals(state_id, parent_id, transition_cost);
+    auto state_ = getSearchState(state_id);
+    state_->seq_from_parent_state_ids = std::make_shared<std::vector<int>>(seq_from_parent_state_ids);
+    state_->seq_from_parent_transition_costs = std::make_shared<std::vector<double>>(seq_from_parent_transition_costs);
+}
 
 void ims::wAStar::reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) {
     path.clear();
     costs.clear();
 
     costs.push_back(0); // The goal state gets a transition cost of 0.
+    path.push_back(action_space_ptr_->getRobotState(goal_)->state);
     SearchState* state_ = getSearchState(goal_);
-    while (state_->parent_id != -1){
-        path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-        
-        // Get the transition cost. This is the difference between the g values of the current state and its parent.
-        double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
-        costs.push_back(transition_cost);
-
-        state_ = getSearchState(state_->parent_id);
+    while (state_->parent_id != START){
+        // Two options here. One if there are no edge-states from the parent to the state, and the other if there are.
+        // Go through the edge from the parent to the current state. Do not include the first and last elements.
+        int seq_from_parent_num_states = (int)state_->seq_from_parent_state_ids->size();
+        if (seq_from_parent_num_states > 2){
+            for (int i {seq_from_parent_num_states - 2}; i >= 0; --i){
+                int state_id = state_->seq_from_parent_state_ids->at(i);
+                double transition_cost = state_->seq_from_parent_transition_costs->at(i);
+                path.push_back(action_space_ptr_->getRobotState(state_id)->state);
+                costs.push_back(transition_cost);
+            }
+            state_ = getSearchState(state_->parent_id);
+        }
+        // If there are no edge-states.
+        else{
+            path.push_back(action_space_ptr_->getRobotState(state_->parent_id)->state);
+            // Get the transition cost. This is the difference between the g values of the current state and its parent.
+            double transition_cost = state_->g - getSearchState(state_->parent_id)->g;
+            costs.push_back(transition_cost);
+            state_ = getSearchState(state_->parent_id);
+        }
     }
-    path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-
     std::reverse(path.begin(), path.end());
-    std::reverse(costs.begin(), costs.end());   
+    std::reverse(costs.begin(), costs.end());
+
+    assert(path.size() == costs.size());
 }
 
 void ims::wAStar::reconstructPath(std::vector<StateType>& path) {
-    SearchState* state_ = getSearchState(goal_);
-    while (state_->parent_id != -1){
-        path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-        state_ = getSearchState(state_->parent_id);
-    }
-    path.push_back(action_space_ptr_->getRobotState(state_->state_id)->state);
-    std::reverse(path.begin(), path.end());
+    std::vector<double> costs;
+    reconstructPath(path, costs);
 }
 
 void ims::wAStar::resetPlanningData(){

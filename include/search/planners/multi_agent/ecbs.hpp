@@ -132,8 +132,8 @@ protected:
             double f2 = s2.f;
             double g1 = s1.g;
             double g2 = s2.g;
-            double c1 = s1.unresolved_conflicts.size();
-            double c2 = s2.unresolved_conflicts.size();
+            double c1 = (double)s1.unresolved_conflicts->size();
+            double c2 = (double)s2.unresolved_conflicts->size();
 
             if (f1 == f2) {
                 if (g1 == g2) {
@@ -154,7 +154,7 @@ protected:
     /// @brief The search state compare struct.
     struct ECBSFocalCompare{
         bool operator()(const SearchState& s1, const SearchState& s2) const{
-            if (s1.unresolved_conflicts.size() == s2.unresolved_conflicts.size()) {
+            if (s1.unresolved_conflicts->size() == s2.unresolved_conflicts->size()) {
                 if (s1.f == s2.f) {
                     if (s1.g == s2.g) {
                         return s1.state_id < s2.state_id;
@@ -163,7 +163,7 @@ protected:
                 }
                 return s1.f < s2.f;
             }
-            return s1.unresolved_conflicts.size() < s2.unresolved_conflicts.size();
+            return s1.unresolved_conflicts->size() < s2.unresolved_conflicts->size();
         }
     };
 

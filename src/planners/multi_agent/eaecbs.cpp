@@ -116,7 +116,8 @@ void ims::EAECBS::initializePlanner(std::vector<std::shared_ptr<SubcostExperienc
 
 void ims::EAECBS::createRootInOpenList() {
     // Generate a plan for each of the agents.
-    MultiAgentPaths initial_paths;
+    MultiAgentSeqPaths initial_seq_paths;
+    MultiAgentSeqPathsTransitionCosts initial_seq_paths_transition_costs;
     std::unordered_map<int, double> initial_paths_costs;
     std::unordered_map<int, std::vector<double>> initial_paths_transition_costs;
     std::unordered_map<int, double> initial_paths_lower_bounds;
@@ -124,15 +125,21 @@ void ims::EAECBS::createRootInOpenList() {
     double initial_sum_of_path_cost_lower_bounds{0.0};
 
     for (size_t i{0}; i < num_agents_; ++i) {
-        // Add the previous paths as context to the action space.
-        std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
-        context_ptr->agent_paths = initial_paths;
-        context_ptr->agent_names = agent_names_;
-        agent_action_space_ptrs_[i]->constraints_collective_ptr_->setContext(context_ptr);
+        if (params_.is_root_trick){
+            // Root trick.
+            // Add the previous start_paths as context to the action space.
+            std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
+            MultiAgentPaths initial_paths;
+            flattenMultiAgentSeqPathsToMultiAgentPaths(initial_seq_paths, initial_paths);
+            context_ptr->agent_paths = initial_paths;
+            context_ptr->agent_names = agent_names_;
+            agent_action_space_ptrs_[i]->constraints_collective_ptr_->setContext(context_ptr);
+        }
 
-        std::vector<StateType> path;
+        SeqPathType seq_path;
+        SeqPathTransitionCostsType seq_path_transition_costs;
         agent_planner_ptrs_[i]->initializePlanner(agent_action_space_ptrs_[i], starts_[i], goals_[i]);
-        bool is_plan_success = agent_planner_ptrs_[i]->plan(path);
+        bool is_plan_success = agent_planner_ptrs_[i]->plan(seq_path, seq_path_transition_costs);
 
         // Add the number of low level nodes to the counter.
         stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[i]->getStats().num_expanded;
@@ -145,24 +152,23 @@ void ims::EAECBS::createRootInOpenList() {
             return;
         }
 
-
         // Fix the last path state to have a correct time and not -1.
-        path.back().back() = path.size() - 1;
+        setLastStateTimeInTimedSequencePath(seq_path, seq_path_transition_costs);
 
-        // We use a map since down the line we may only store paths for some agents.
+        // We use a map since down the line we may only store start_paths for some agents.
         // initial_paths.insert(std::make_pair(i, path));
-        initial_paths[i] = path;
+        initial_seq_paths[i] = seq_path;
+        initial_seq_paths_transition_costs[i] = seq_path_transition_costs;
 
         // Compute the cost of the path.
-        initial_paths_costs[i] = agent_planner_ptrs_[i]->getStats().cost;
-        initial_paths_transition_costs[i] = agent_planner_ptrs_[i]->getStats().transition_costs;
+        initial_paths_costs[i] = computeTotalCostFromSeqPathsTransitionCosts(seq_path_transition_costs);
         initial_paths_lower_bounds[i] = agent_planner_ptrs_[i]->getStats().lower_bound;
         //LB-FIX 
         initial_sum_of_path_cost_lower_bounds += initial_paths_lower_bounds[i];
     }
 
-    // Report that the initial paths were found.
-    std::cout << "Initial paths found." << std::endl;
+    // Report that the initial start_paths were found.
+    std::cout << "Initial start_paths found." << std::endl;
 
 
     // Create the initial EACBS state to the open list. This planner does not interface with an action space, so it does not call the getOrCreateRobotState to retrieve a new-state index. But rather decides on a new index directly and creates a search-state index with the getOrCreateSearchState method. Additionally, there is no goal specification for EACBS, so we do not have a goal state.
@@ -171,23 +177,25 @@ void ims::EAECBS::createRootInOpenList() {
 
     // Set the initial EACBS state.
     start_->parent_id = PARENT_TYPE(START);
-    start_->paths = initial_paths;
-    start_->paths_costs = initial_paths_costs;
-    //LB-FIX 
+    start_->seq_paths = initial_seq_paths;
+    //LB-FIX
     start_->path_cost_lower_bounds = initial_paths_lower_bounds;
     //LB-FIX 
     start_->sum_of_path_cost_lower_bounds = initial_sum_of_path_cost_lower_bounds;
-    start_->paths_transition_costs = initial_paths_transition_costs;
+    start_->seq_paths_transition_costs = initial_seq_paths_transition_costs;
 
-    agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(start_->paths), 
+    // Flatten the sequence start_paths to start_paths in order to find conflicts.
+    MultiAgentPaths start_paths;
+    flattenMultiAgentSeqPathsToMultiAgentPaths(start_->seq_paths, start_paths);
+    agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(start_paths),
                                                     start_->unresolved_conflicts, 
                                                     getConflictTypes(),
                                                     -1, // TODO(yoraish): get all the conflicts.
                                                     agent_names_);
 
     // Set the cost of the CBSState start_.
-    double start_soc = std::accumulate(initial_paths_costs.begin(), initial_paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
-    int start_num_conflicts = start_->unresolved_conflicts.size();
+    double start_soc = computeTotalCostFromMultiAgentSeqPathsTransitionCosts(start_->seq_paths_transition_costs);
+    int start_num_conflicts = (int)start_->unresolved_conflicts.size();
     start_->f = start_soc;
     start_->sum_of_costs = start_soc;
     start_->sum_of_path_cost_lower_bounds = std::accumulate(initial_paths_lower_bounds.begin(), initial_paths_lower_bounds.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
@@ -233,7 +241,7 @@ bool ims::EAECBS::plan(MultiAgentPaths& paths) {
             goal_ = state->state_id;
             getTimeFromStart(stats_.time);
             stats_.cost = state->f;
-            paths = state->paths;
+            flattenMultiAgentSeqPathsToMultiAgentPaths(state->seq_paths, paths);
             stats_.num_expanded = iter;
             stats_.suboptimality = params_.high_level_focal_suboptimality;
             return true;
@@ -269,16 +277,18 @@ auto ims::EAECBS::getOrCreateSearchState(int state_id) -> ims::EAECBS::SearchSta
 }
 
 void ims::EAECBS::expand(int state_id) {
+    // Keep track of the newly created child nodes. Those will be added to OPEN later.
+    std::vector<SearchState*> child_search_states;
+
     auto state = getSearchState(state_id);
-    std::vector<int> successors;
-    std::vector<double> costs;
 
     // First, convert all conflicts to pairs of (agent_id, constraint). In vanilla ECBS, there is only one conflict found from a set of paths (the first/random one), and that would yield two constraints. To allow for more flexibility, we do not restrict the data structure to only two constraints per conflict.
-
     // Despite asking for many conflicts, we only convert the first one to constraints.
     std::vector<std::shared_ptr<Conflict>> conflicts_to_convert{state->unresolved_conflicts.begin(), state->unresolved_conflicts.begin() + 1};
 
-    // std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> constraints = conflictsToConstraints(state->conflicts);
+    int prev_num_conflicts = (int)state->unresolved_conflicts.size();
+    double prev_soc = state->sum_of_costs;
+
     std::vector<std::pair<int, std::vector<std::shared_ptr<Constraint>>>> constraints = conflictsToConstraints(conflicts_to_convert);
 
     // Second, iterate through the constraints, and for each one, create a new search state. The new search state is a copy of the previous search state, with the constraint added to the constraints collective of the agent.
@@ -299,9 +309,8 @@ void ims::EAECBS::expand(int state_id) {
 
         // The new state is a copy of the previous state.
         new_state->parent_id = state->state_id;
-        new_state->paths = state->paths;
-        new_state->paths_costs = state->paths_costs;
-        new_state->paths_transition_costs = state->paths_transition_costs;
+        new_state->seq_paths = state->seq_paths;
+        new_state->seq_paths_transition_costs = state->seq_paths_transition_costs;
         new_state->f = state->f;
         new_state->sum_of_costs = state->sum_of_costs;
         new_state->path_cost_lower_bounds = state->path_cost_lower_bounds; 
@@ -311,11 +320,16 @@ void ims::EAECBS::expand(int state_id) {
 
         // Update the constraints collective to also include the new constraint.
         new_state->constraints_collectives[agent_id].addConstraints(constraint_ptr);
+
+        if (params_.verbose){
+            std::cout << "Expanding state " << state->state_id << " with new constraint " << constraint_ptr[0]->toString() << " for agent " << agent_id << " to new CT state " << new_state->state_id << std::endl;
+        }
         
         // Update the action-space. Start with the constraints and their context.
         std::shared_ptr<ConstraintsCollective> constraints_collective_ptr = std::make_shared<ConstraintsCollective>(new_state->constraints_collectives[agent_id]);
         std::shared_ptr<ConstraintsContext> context_ptr = std::make_shared<ConstraintsContext>();
-        context_ptr->agent_paths = new_state->paths;
+        // Set the flattened paths in the context.
+        flattenMultiAgentSeqPathsToMultiAgentPaths(new_state->seq_paths, context_ptr->agent_paths);
         context_ptr->agent_names = agent_names_;
         constraints_collective_ptr->setContext(context_ptr);
         agent_action_space_ptrs_[agent_id]->setConstraintsCollective(constraints_collective_ptr);
@@ -331,20 +345,24 @@ void ims::EAECBS::expand(int state_id) {
             case ExperienceReuseType::PREVIOUS_SOLUTION: {
                 // std::cout << "Experience reuse type is PREVIOUS_SOLUTION. Updating the experiences collective with the previous solution." << std::endl;
                 agent_action_space_ptrs_[agent_id]->clearPathExperiences();
-                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(
+                        std::make_shared<PathExperience>(state->seq_paths[agent_id],
+                                                         state->seq_paths_transition_costs[agent_id]));
                 break;
             }
             case ExperienceReuseType::CT_BRANCH: {
                 // std::cout << "Experience reuse type is CT_BRANCH. Updating the experiences collective with the solution on branch." << std::endl;
-                new_state->experiences_collectives[agent_id].addTimedPathExperience(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(
+                        std::make_shared<PathExperience>(state->seq_paths[agent_id],
+                                                         state->seq_paths_transition_costs[agent_id]));
 
-                // Update the action-space with the updated experiences.
+                // Set the action-space experiences to be the ones from the parent plus the added path. This ensures we only keep the CT branch experiences.
                 agent_action_space_ptrs_[agent_id]->setExperiencesCollective(std::make_shared<ExperiencesCollective>(new_state->experiences_collectives[agent_id]));
                 break;
             }
             case ExperienceReuseType::CT_GLOBAL: {
                 // std::cout << "Experience reuse type is CT_GLOBAL. Updating the experiences collective with all previous solutions." << std::endl;
-                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->paths[agent_id], state->paths_transition_costs[agent_id]));
+                agent_action_space_ptrs_[agent_id]->addTimedPathExperienceToExperiencesCollective(std::make_shared<PathExperience>(state->seq_paths[agent_id], state->seq_paths_transition_costs[agent_id]));
                 break;
             }
             default: {
@@ -356,53 +374,84 @@ void ims::EAECBS::expand(int state_id) {
         agent_planner_ptrs_[agent_id]->initializePlanner(agent_action_space_ptrs_[agent_id], starts_[agent_id], goals_[agent_id]);
 
         // Replan for this agent and update the stored path associated with it in the new state. Update the cost of the new state as well.
-        new_state->paths[agent_id].clear();
-        agent_planner_ptrs_[agent_id]->plan(new_state->paths[agent_id]);
-        new_state->paths_transition_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().transition_costs;
-        new_state->paths_costs[agent_id] = agent_planner_ptrs_[agent_id]->getStats().cost;
+        new_state->seq_paths[agent_id].clear();
+        new_state->seq_paths_transition_costs[agent_id].clear();
+        bool is_replan_success = agent_planner_ptrs_[agent_id]->plan(new_state->seq_paths[agent_id], new_state->seq_paths_transition_costs[agent_id]);
+
+        if (!is_replan_success) {
+            std::cout << RED << "No path found for agent " << agent_id << " in the new CT state." << RESET << std::endl;
+            delete new_state;
+            continue;
+        }
         new_state->path_cost_lower_bounds[agent_id] = agent_planner_ptrs_[agent_id]->getStats().lower_bound;
+
+        if (params_.verbose){
+           std::cout << "New path for agent " << agent_id << " in new CT state " << new_state->state_id << " is: \n" << new_state->seq_paths[agent_id] << std::endl;
+           PathType flattened_path;
+           flattenSeqPathToPathType(new_state->seq_paths[agent_id], flattened_path);
+           std::cout << "Flattened new path " << agent_id << " in new CT state " << new_state->state_id << " is: \n" << flattened_path << "\n===" << std::endl;
+        }
 
         // Add the number of low level nodes to the counter.
         stats_.bonus_stats["num_low_level_expanded"] += agent_planner_ptrs_[agent_id]->getStats().num_expanded;
 
         // Get the sum of costs for the new state.
-        double new_state_soc = std::accumulate(new_state->paths_costs.begin(), new_state->paths_costs.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
+        double new_state_soc = computeTotalCostFromMultiAgentSeqPathsTransitionCosts(new_state->seq_paths_transition_costs);
         new_state->sum_of_costs = new_state_soc;
         double new_state_lb = std::accumulate(new_state->path_cost_lower_bounds.begin(), new_state->path_cost_lower_bounds.end(), 0.0, [](double acc, const std::pair<int, double>& path_cost) { return acc + path_cost.second; });
 
         // If there is no path for this agent, then this is not a valid state. Discard it.
-        if (new_state->paths[agent_id].empty()) {
+        if (new_state->seq_paths[agent_id].empty()) {
             delete new_state;
             continue;
         }
 
         // The goal state returned is at time -1. We need to fix that and set its time element (last value) to the size of the path.
-        new_state->paths[agent_id].back().back() = new_state->paths[agent_id].size() - 1;
+        setLastStateTimeInTimedSequencePath(new_state->seq_paths[agent_id], new_state->seq_paths_transition_costs[agent_id]);
 
         // Get any conflicts between the newly computed paths.
         // NOTE(yoraish):  that this could be checked in any of the action_spaces, since they must all operate on the same scene. This is funky though, since the action_space is not aware of the other agents. Maybe this should be done in the ECBS class, and then passed to the action_space.
-        agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(new_state->paths), 
+        MultiAgentPaths new_state_paths;
+        flattenMultiAgentSeqPathsToMultiAgentPaths(new_state->seq_paths, new_state_paths);
+        agent_action_space_ptrs_[0]->getPathsConflicts(std::make_shared<MultiAgentPaths>(new_state_paths),
                                                        new_state->unresolved_conflicts, 
                                                        getConflictTypes(),
                                                        -1, // TODO(yoraish): get all the conflicts.
                                                        agent_names_);
 
-        std::cout << "New state soc: " << new_state_soc << std::endl;
-        std::cout << "New state num conflicts: " << new_state->unresolved_conflicts.size() << std::endl;
 
         new_state->f = new_state_soc;
         new_state->sum_of_path_cost_lower_bounds = new_state_lb;
-
-        // Add a random number between zero and one to f.
-        // new_state->f += (double)rand() / RAND_MAX; // Uncomment for nitro boost.
-
-        // Push the new state to the open list.
-        open_->push(new_state);
-        new_state->setOpen();
+        int new_state_num_conflicts = (int)new_state->unresolved_conflicts.size();
+        std::cout << "(SOC, Conflicts): (" << prev_soc << ", " << prev_num_conflicts << ") -> " << "(" << new_state_soc << ", " << new_state_num_conflicts << ")" << std::endl;
+        // Add the new state to the list of children.
+        child_search_states.push_back(new_state);
         stats_.num_generated++;
 
-        // Delete the previous state but keep the entry in the states_ vector.
-        // state = nullptr;
+        // If we are allowed to bypass conflicts, then check if the new state is
+        // 1. Of equal or lower cost, and
+        // 2. Has fewer conflicts.
+        // If so, then we discard all other child states created and only push this one with the parent's constraints.
+        if (params_.is_bypassing_conflicts) {
+            if (new_state_soc <= prev_soc && new_state_num_conflicts < prev_num_conflicts) {
+                std::cout << CYAN << "Bypassing conflicts." << RESET << std::endl;
+                // Discard all other child states. These are all but the last one.
+                for (size_t i{0}; i < child_search_states.size() - 1; ++i) {
+                    delete child_search_states[i];
+                }
+                // Clear the child search states vector and push the last one.
+                child_search_states.clear();
+                // Set the parent's constraints to the new state's constraints.
+                new_state->constraints_collectives = state->constraints_collectives;
+                child_search_states.push_back(new_state);
+                break;
+            }
+        }
+    }
+    // Push the child search states to the open list.
+    for (auto& child_search_state : child_search_states) {
+        open_->push(child_search_state);
+        child_search_state->setOpen();
     }
 }
 

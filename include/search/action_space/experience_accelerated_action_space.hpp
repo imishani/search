@@ -64,7 +64,7 @@ public:
     ~ExperienceAcceleratedActionSpace() = default;
 
 
-    // A method that guarantees any state passed does creates a new state_id or reuses one that is not the goal.
+    // A method that guarantees any state passed creates a new state_id or reuses one that is not the goal. No goal checking is done (i.e., setting the time to -1).
     inline int getOrCreateRobotStateNonGoal(const StateType& state_val) {
         // Check if the state exists
         auto *curr_state = new ims::RobotState;
@@ -87,7 +87,9 @@ public:
     /// @brief To comply with the ActionSpaceExperienceAcceleratableMixin interface.
     /// @param state_id The state to get the valid experience subpaths for.
     /// @param subpaths The vector of subpaths -- to be updated with the subpaths.
-    void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs) override = 0;
+    void getValidExperienceSubpathsFromState(int state_id,
+                                             std::vector<std::vector<std::vector<int>>>& experience_seq_subpaths,
+                                             std::vector<std::vector<std::vector<double>>>& experience_seq_subpaths_transition_costs) override = 0;
 
 };
 

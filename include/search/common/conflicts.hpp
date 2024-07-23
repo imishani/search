@@ -52,8 +52,8 @@ enum class ConflictType {
     UNSET = -1,
     VERTEX = 0,
     EDGE = 1,
-    POINT3D_EDGE = 4,
-    POINT3D_VERTEX = 5,
+    EDGE_POINT3D = 4,
+    VERTEX_POINT3D = 5,
 };
 
 /// @brief Base class for all search conflicts.
@@ -167,6 +167,9 @@ struct Point3dEdgeConflict : public Conflict {
     // The point of conflict.
     Eigen::Vector3d point;
 
+    /// @brief A mask on the state dimensions that are in-conflict. True means in-conflict.
+    std::vector<std::vector<bool>> state_dim_in_conflict_masks;
+
     /// @brief Constructor, allowing to set the state_from, state_to, ids, and point.
     /// @param state The state vector.
     explicit Point3dEdgeConflict(const std::vector<StateType>& from_states,
@@ -179,7 +182,7 @@ struct Point3dEdgeConflict : public Conflict {
                                 point(std::move(point)) {
     
     /// @brief The type of the Conflict.
-    type = ConflictType::POINT3D_EDGE;
+    type = ConflictType::EDGE_POINT3D;
     }
 
     std::string toString() const override {
@@ -219,6 +222,9 @@ struct Point3dVertexConflict : public Conflict {
     // The point of conflict.
     Eigen::Vector3d point;
 
+    /// @brief A mask on the state dimensions that are in-conflict. True means in-conflict.
+    std::vector<std::vector<bool>> state_dim_in_conflict_masks;
+
     /// @brief Constructor, allowing to set the state_from, state_to, ids, and point.
     /// @param state The state vector.
     explicit Point3dVertexConflict(const std::vector<StateType>& states,
@@ -229,7 +235,7 @@ struct Point3dVertexConflict : public Conflict {
                                 point(std::move(point)) {
     
     /// @brief The type of the Conflict.
-    type = ConflictType::POINT3D_VERTEX;
+    type = ConflictType::VERTEX_POINT3D;
     }
 
     std::string toString() const override {

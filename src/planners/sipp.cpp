@@ -180,15 +180,16 @@ void ims::SIPP::expand(int state_id){
     auto state = getSearchState(state_id);
 
     StateType state_wo_time = action_space_ptr_->getRobotState(state->cfg_state_id)->state;
-    std::vector<int> successors;
-    std::vector<double> costs;
+    std::vector<std::vector<int>> successor_seqs_state_ids;
+    std::vector<std::vector<double>> successor_seqs_transition_costs;
     // The successors are ids of configurations without time. The configurations are stored in the action space.
-    action_space_ptr_->getSuccessors(state->cfg_state_id, successors, costs);
-    for (size_t i {0} ; i < successors.size() ; ++i){
-        int successor_cfg_state_id = successors[i];
+    action_space_ptr_->getSuccessors(state->cfg_state_id, successor_seqs_state_ids, successor_seqs_transition_costs);
+    for (size_t i {0} ; i < successor_seqs_state_ids.size() ; ++i){
+        const std::vector<int> & successor_edge_state_ids = successor_seqs_state_ids[i];
+        int successor_cfg_state_id = successor_edge_state_ids.back();
         StateType succ_state_wo_time = action_space_ptr_->getRobotState(successor_cfg_state_id)->state;
-        double cost = costs[i];
-        int transition_time = (int)cost;
+        double successor_edge_total_cost = vectorSum(successor_seqs_transition_costs[i]);
+        int transition_time = (TimeType)successor_edge_total_cost;
         assert(transition_time != 0);
         // The earliest time of reaching a successor.
         TimeType arrival_start_t = (TimeType)state->g + transition_time;
@@ -205,13 +206,17 @@ void ims::SIPP::expand(int state_id){
             // Compute the earliest valid arrival time to the successor. This necessitates a validity check w.r.t. constraints. The static obstacles are already checked in the getSuccessors function.
             TimeType arrival_t = -1;
             for (TimeType t = arrival_start_t ; t <= std::min(arrival_end_t, succ_safe_interval.second) ; ++t){
-                // Construct the configurations of the state and the successor.
-                StateType robot_cfg_state{state_wo_time};
-                StateType succ_robot_cfg_state{succ_state_wo_time};
-                robot_cfg_state.push_back(t - transition_time);
-                succ_robot_cfg_state.push_back(t);
+                // Construct the configurations of the state, the intermediate states, and the successor.
+                std::vector<StateType> robot_cfg_edge_states;
+                for (int j {0} ; j < (int)successor_edge_state_ids.size() ; ++j) {
+                    int edge_cfg_state_id = successor_edge_state_ids[j];
+                    StateType edge_cfg_state = action_space_ptr_->getRobotState(edge_cfg_state_id)->state;
+                    edge_cfg_state.push_back(t - transition_time + j);
+                    robot_cfg_edge_states.push_back(edge_cfg_state);
+                    assert(transition_time == vectorSum(successor_seqs_transition_costs[i]));
+                }
 
-                if (action_space_ptr_->isSatisfyingAllConstraints(robot_cfg_state,succ_robot_cfg_state)
+                if (isTimedCfgPathSatisfyingAllConstraints(robot_cfg_edge_states)
                                                                   && t >= succ_safe_interval.first
                                                                   && t <= succ_safe_interval.second){
                     if (params_.verbose){
@@ -233,7 +238,7 @@ void ims::SIPP::expand(int state_id){
                     if (params_.verbose){
                         std::cout << RED << " * Invalid arrival time: " << t << " from " << action_space_ptr_->getRobotState(state->cfg_state_id)->state << " to " << action_space_ptr_->getRobotState(successor_cfg_state_id)->state << RESET << std::endl;
                         std::cout << RED << " * The reason is: ";
-                        if (!action_space_ptr_->isSatisfyingAllConstraints(robot_cfg_state,succ_robot_cfg_state)){
+                        if (isTimedCfgPathSatisfyingAllConstraints(robot_cfg_edge_states)){
                             std::cout << "Constraints are not satisfied." << std::endl;
                         }
                         if (t < succ_safe_interval.first || t > succ_safe_interval.second){
@@ -250,7 +255,7 @@ void ims::SIPP::expand(int state_id){
             // Found a valid arrival time. Create a search state for this successor.
             SearchState* successor = getOrCreateSearchStateFromCfgIdAndSafeInterval(successor_cfg_state_id, succ_safe_interval);
             if (successor->in_closed){
-                // In WSIPP, closed nodes must be avaluated again and re-queued if a better path is found.
+                // In WSIPP, closed nodes must be evaluated again and re-queued if a better path is found.
                 if (params_.epsilon == 1){
                     continue;
                 }
@@ -259,6 +264,8 @@ void ims::SIPP::expand(int state_id){
                         successor->parent_id = state->state_id;
                         successor->g = arrival_t;
                         successor->f = successor->g + params_.epsilon * successor->h;
+                        successor->seq_from_parent_state_ids = std::make_shared<std::vector<int>>(successor_edge_state_ids);
+                        successor->seq_from_parent_transition_costs = std::make_shared<std::vector<double>>(successor_seqs_transition_costs[i]);
                         open_.push(successor);
                         successor->setOpen();
                         if (params_.verbose) {
@@ -277,6 +284,8 @@ void ims::SIPP::expand(int state_id){
                     successor->parent_id = state->state_id;
                     successor->g = arrival_t;
                     successor->f = successor->g + params_.epsilon*successor->h;
+                    successor->seq_from_parent_state_ids = std::make_shared<std::vector<int>>(successor_edge_state_ids);
+                    successor->seq_from_parent_transition_costs = std::make_shared<std::vector<double>>(successor_seqs_transition_costs[i]);
                     open_.update(successor);
                     if (params_.verbose) {
                         std::cout << "State id " << successor->state_id << " gets parent id " << state->state_id
@@ -289,6 +298,8 @@ void ims::SIPP::expand(int state_id){
                 successor->g = arrival_t;
                 successor->h = computeHeuristic(successor_cfg_state_id);
                 successor->f = successor->g + params_.epsilon*successor->h;
+                successor->seq_from_parent_state_ids = std::make_shared<std::vector<int>>(successor_edge_state_ids);
+                successor->seq_from_parent_transition_costs = std::make_shared<std::vector<double>>(successor_seqs_transition_costs[i]);
                 successor->setOpen();
                 open_.push(successor);
                 if (params_.verbose) {
@@ -340,51 +351,74 @@ void ims::SIPP::reconstructPath(std::vector<StateType>& path, std::vector<double
     if (goal_time == 0){
         return;
     }
-    // Start from the goal and go back to the start.
-    search_state = getSearchState(search_state->parent_id);
-
     while (search_state->parent_id != START){
-        // Get the arrival time of the state.
-        auto state_time = (TimeType)search_state->g;
-        // Get the previous arrival time.
-        auto child_state_time = (TimeType)path.back().back();
-        // Get the state configuration.
-        StateType state = action_space_ptr_->getRobotState(search_state->cfg_state_id)->state;
-
-        // If the state time is not exactly 1 unit away from the parent time, then we'll add more than one states waiting at this configuration.
-        int num_states_to_add = child_state_time - state_time;
-        double transition_cost = 1; // search_state->g - getSearchState(search_state->parent_id)->g;
-        double cost = transition_cost;
-
-        // Add the states.
-        for (int i = 0 ; i < num_states_to_add ; ++i){
-            StateType state_to_add = state;
-            state_to_add.push_back(state_time + num_states_to_add - 1 - i);
-            path.push_back(state_to_add);
-            costs.push_back(cost);
+        auto parent_search_state = getSearchState(search_state->parent_id);
+        // Two options to deal with adding a state to the reverse path.
+        // First, if there are intermediate edge states from the added state to the existing state.
+        int seq_from_parent_num_states = (int)search_state->seq_from_parent_state_ids->size();
+        // Assertion for convention: cost between any two states should be exactly 1.
+        assert(seq_from_parent_num_states == (int)vectorSum(*search_state->seq_from_parent_transition_costs) + 1);
+        // The edge from the parent includes the parent and the child state. If there are additional ones, insert them.
+        if (seq_from_parent_num_states > 2){
+            // The child state is already in the path. Start adding states from the edge.
+            for (int i{seq_from_parent_num_states - 2}; i >= 0; --i) {
+                // Get the state id.
+                int edge_cfg_state_id = search_state->seq_from_parent_state_ids->at(i);
+                // Get the transition cost from this state to its child.
+                double transition_cost = search_state->seq_from_parent_transition_costs->at(i);
+                // Add the timed configuration of this state and the cost to the path.
+                StateType state_to_add = action_space_ptr_->getRobotState(edge_cfg_state_id)->state;
+                state_to_add.push_back(path.back().back() - transition_cost);
+                path.push_back(state_to_add);
+                costs.push_back(transition_cost);
+            }
+            // Now, we must check if the edge total cost is equal to the cost difference between the state and the child.
+            // Get the arrival time at the existing state and its parent that we just added.
+            auto child_state_time = (TimeType)path.back().back();
+            auto parent_state_time = (TimeType)parent_search_state->g;
+            // Get the number of timesteps between the parent and child. This is the number of states that should exist
+            // from the parent state (inclusive) to the child (exclusive).
+            int num_states_needed_parent_until_child = child_state_time - parent_state_time;
+            // Get the number of states that should be added waiting at the parent. Starting from its g-value (inclusive).
+            int num_states_to_add = child_state_time - parent_state_time;
+            // Add the necessary number of waiting states.
+            for (int i{0}; i < num_states_to_add; ++i) {
+                StateType state_to_add = action_space_ptr_->getRobotState(parent_search_state->cfg_state_id)->state;
+                state_to_add.push_back(parent_state_time + num_states_to_add - 1 - i);
+                path.push_back(state_to_add);
+                costs.push_back(1); // The cost of waiting is 1.
+            }
+            // Set the search state to the parent.
+            search_state = parent_search_state;
         }
-
-        search_state = getSearchState(search_state->parent_id);
-    }
-    // Add the start state.
-    // Get the arrival time of the state.
-    auto state_time = (TimeType)search_state->g;
-    // Get the previous arrival time.
-    auto child_state_time = (TimeType)path.back().back();
-    // Get the state configuration.
-    StateType state = action_space_ptr_->getRobotState(search_state->cfg_state_id)->state;
-
-    // If the state time is not exactly 1 unit away from the parent time, then we'll add more than one states waiting at this configuration.
-    int num_states_to_add = child_state_time - state_time;
-    double transition_cost = 1 ;  // search_state->g;
-    double cost = transition_cost;
-
-    // Add the states.
-    for (int i = 0 ; i < num_states_to_add ; ++i){
-        StateType state_to_add = state;
-        state_to_add.push_back(state_time + num_states_to_add - 1 - i);
-        path.push_back(state_to_add);
-        costs.push_back(cost);
+        // Second, if there are no intermediate edge states from the added state to the existing state, just add the parent with the associated cost.
+        else{
+            // Get the transition cost from the parent to the child.
+            double transition_cost = 1; // By convention, if only one state in edge then the time transitioning must be 1.
+            // Add the parent to the path.
+            StateType parent_state_to_add = action_space_ptr_->getRobotState(parent_search_state->cfg_state_id)->state;
+            parent_state_to_add.push_back(search_state->g - 1);
+            path.push_back(parent_state_to_add);
+            costs.push_back(transition_cost);
+            // Now that we have added the edge back from the child to the parent (including the parent), we check if there
+            // is a need to wait at the parent configuration.
+            auto child_state_time = (TimeType)path.back().back();
+            auto parent_state_time = (TimeType)parent_search_state->g;
+            // Get the number of timesteps between the parent and child. This is the number of states that should exist
+            // from the parent state (inclusive) to the child (exclusive).
+            int num_states_needed_parent_until_child = child_state_time - parent_state_time;
+            // Get the number of states that should be added waiting at the parent. Starting from its g-value (inclusive).
+            int num_states_to_add = num_states_needed_parent_until_child;
+            // Add the necessary number of waiting states.
+            for (int i{0}; i < num_states_to_add; ++i) {
+                StateType state_to_add = action_space_ptr_->getRobotState(parent_search_state->cfg_state_id)->state;
+                state_to_add.push_back(parent_state_time + num_states_to_add - 1 - i);
+                path.push_back(state_to_add);
+                costs.push_back(1); // The cost of waiting is 1.
+            }
+            // Set the search state to the parent.
+            search_state = parent_search_state;
+        }
     }
 
     std::reverse(path.begin(), path.end());
@@ -418,4 +452,13 @@ void ims::SIPP::resetPlanningData(){
 
 auto ims::SIPP::getAllSearchStates() -> std::vector<ims::SIPP::SearchState*> {
     return states_;
+}
+
+bool ims::SIPP::isTimedCfgPathSatisfyingAllConstraints(const std::vector<StateType>& edge_robot_cfg_states){
+    for (size_t i {0} ; i < edge_robot_cfg_states.size() - 1 ; ++i){
+        if (!action_space_ptr_->isSatisfyingAllConstraints(edge_robot_cfg_states[i], edge_robot_cfg_states[i+1])){
+            return false;
+        }
+    }
+    return true;
 }

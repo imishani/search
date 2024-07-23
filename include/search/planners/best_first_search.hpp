@@ -32,9 +32,7 @@
  * \date   3/28/23
 */
 
-
-#ifndef SEARCH_BESTFIRSTSEARCH_HPP
-#define SEARCH_BESTFIRSTSEARCH_HPP
+#pragma once
 
 // standard includes
 #include <functional>
@@ -86,6 +84,10 @@ namespace ims{
 
             /// @brief The parent state
             int parent_id = UNSET;
+            /// @brief The edge from the parent to the state. Includes the parent and the state.
+            std::shared_ptr<std::vector<int>> seq_from_parent_state_ids;
+            /// @brief The edge step-costs from the parent to the state. Includes the parent and the state. Cost is i to i+1. Last cost is zero.
+            std::shared_ptr<std::vector<double>> seq_from_parent_transition_costs;
             /// @brief The cost to come
             double g = INF_DOUBLE;
             /// @brief The f value
@@ -178,6 +180,7 @@ namespace ims{
         /// @param state_id The id of the state.
         /// @param parent_id The id of the parent state.
         /// @param cost The cost associated with the search state. For example, in A*, this would be the f value.
+        /// @note The cost is sometimes the transition cost between the state and the parent.
         virtual void setStateVals(int state_id, int parent_id, double cost);
 
         /// @brief Compute the heuristic value of from state s to the goal state
@@ -207,4 +210,3 @@ namespace ims{
 
 
 
-#endif //SEARCH_BESTFIRSTSEARCH_HPP

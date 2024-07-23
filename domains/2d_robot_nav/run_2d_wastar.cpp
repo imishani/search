@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
     // construct the planner
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
-    ims::EuclideanHeuristic* heuristic = new ims::EuclideanHeuristic();
+    auto heuristic = new ims::EuclideanHeuristic();
     double epsilon = 10.0;
     ims::wAStarParams params (heuristic, epsilon);
     // construct the scene and the action space

@@ -54,27 +54,36 @@ enum class ConstraintType {
     UNSET = -1,
     VERTEX = 0, // Do not be at v at time t.
     EDGE = 1, // Do not cross edge (u, v) at time t to t+1.
-    SPHERE3D = 2, // Do not be in sphere at time t.
-    VERTEX_PRIORITY = 3, // Do not conflict with agent at time t, setting other agent as specified in its path in the context.
-    EDGE_PRIORITY = 4, // Do not conflict with agent at time t_from to t_to, setting other agent as specified in its path in the context.
-    VERTEX_STATE_AVOIDANCE = 5, // Do not conflict with agent at a specified configuration at time t.
-    EDGE_STATE_AVOIDANCE = 6, // Do not conflict with agent at a specified configuration between time t_from to t_to.
-    ALL_EDGE_VERTEX_REQUEST = 7, // Initially used in Generalized-CBS, this is a request to create vertex and edge constraints for all conflicts available. Used in conflictsToConstraints.
-    SPHERE3DLARGE = 8, // Do not be in sphere at time t, but with a larger radius.
-    SPHERE3DXLARGE = 10, // Do not be in sphere at time t, but with a much larger radius.
-    PATH_PRIORITY = 11, // Do not be in sphere at time t, but with a much much larger radius.
+    VERTEX_SPHERE3D, // Do not be in sphere at time t.
+    EDGE_SPHERE3D, // Do not cross edge (u, v) at time t to t+1 if the associated configuration interpolation collides with a sphere.
+    VERTEX_PRIORITY, // Do not conflict with agent at time t, setting other agent as specified in its path in the context.
+    EDGE_PRIORITY, // Do not conflict with agent at time t_from to t_to, setting other agent as specified in its path in the context.
+    VERTEX_STATE_AVOIDANCE, // Do not conflict with agent at a specified configuration at time t.
+    EDGE_STATE_AVOIDANCE, // Do not conflict with agent at a specified configuration between time t_from to t_to.
+    ALL_EDGE_VERTEX_REQUEST, // Initially used in Generalized-CBS, this is a request to create vertex and edge constraints for all conflicts available. Used in conflictsToConstraints.
+    SPHERE3DLARGE, // Do not be in sphere at time t, but with a larger radius.
+    SPHERE3DXLARGE, // Do not be in sphere at time t, but with a much larger radius.
+    PATH_PRIORITY, // Do not be in sphere at time t, but with a much much larger radius.
+    VERTEX_POINT3D, // Do not be at v at time t if the associated configuration collides with a point.
+    EDGE_POINT3D, // Do not cross edge (u, v) at time t to t+1 if the associated configuration interpolation collides with a point.
+    VERTEX_PARTIAL, // Do not be at the subset v[mask==true] at time t.
+    EDGE_PARTIAL, // Do not cross any edge that satisfies (u[mask==true], v[mask==true]) at time t to t+1 if
 };
 
 // A map from constraint type to whether it is admissible or not.
 const std::unordered_map<ConstraintType, bool> constraint_type_admissibility = {
-    {ConstraintType::UNSET, false},
-    {ConstraintType::VERTEX, true},
-    {ConstraintType::EDGE, true},
-    {ConstraintType::SPHERE3D, false},
-    {ConstraintType::VERTEX_PRIORITY, false},
-    {ConstraintType::EDGE_PRIORITY, false},
+    {ConstraintType::UNSET,                  false},
+    {ConstraintType::VERTEX,                 true},
+    {ConstraintType::EDGE,                   true},
+    {ConstraintType::VERTEX_SPHERE3D,        false},
+    {ConstraintType::VERTEX_PRIORITY,        false},
+    {ConstraintType::EDGE_PRIORITY,          false},
     {ConstraintType::VERTEX_STATE_AVOIDANCE, false},
-    {ConstraintType::EDGE_STATE_AVOIDANCE, false},
+    {ConstraintType::EDGE_STATE_AVOIDANCE,   false},
+    {ConstraintType::VERTEX_POINT3D,         true},
+    {ConstraintType::EDGE_POINT3D,         true},
+    {ConstraintType::VERTEX_PARTIAL,       true},
+    {ConstraintType::EDGE_PARTIAL,         true},
 };
 
 /// @brief Base class for all search constraints.
@@ -167,7 +176,43 @@ struct EdgeConstraint : public Constraint {
 // ==========================
 // Constraints used by CBS-MRAMP.
 // ==========================
-struct Sphere3dConstraint : public Constraint {
+struct PartialVertexConstraint: public VertexConstraint {
+    // Variables.
+    /// @brief Each dimension marked as true is constrained.
+    std::vector<bool> state_dim_is_constrained_mask;
+
+    // Methods.
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param state The state vector.
+    /// @param state_dim_is_constrained_mask The mask of which dimensions are constrained.
+    explicit PartialVertexConstraint(StateType state, const std::vector<bool> & state_dim_is_constrained_mask) :
+            VertexConstraint(std::move(state)),
+            state_dim_is_constrained_mask(state_dim_is_constrained_mask) {
+        /// @brief The type of the constraint.
+        type = ConstraintType::VERTEX_PARTIAL;
+    }
+};
+
+struct PartialEdgeConstraint: public EdgeConstraint {
+    // Variables.
+    /// @brief Each dimension marked as true is constrained.
+    std::vector<bool> state_dim_is_constrained_mask;
+
+    // Methods.
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param state The state vector.
+    /// @param state_dim_is_constrained_mask The mask of which dimensions are constrained.
+    explicit PartialEdgeConstraint(StateType state_from,
+                                   StateType state_to,
+                                   const std::vector<bool>& state_dim_is_constrained_mask) :
+            EdgeConstraint(std::move(state_from), std::move(state_to)),
+            state_dim_is_constrained_mask(state_dim_is_constrained_mask) {
+        /// @brief The type of the constraint.
+        type = ConstraintType::EDGE_PARTIAL;
+    }
+};
+
+struct VertexSphere3dConstraint : public Constraint {
     /// @brief The center of the constrained sphere.
     Eigen::Vector3d center;
 
@@ -179,14 +224,14 @@ struct Sphere3dConstraint : public Constraint {
 
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param state The state vector.
-    explicit Sphere3dConstraint(Eigen::Vector3d center, double radius, TimeType time) : center(std::move(center)), radius(radius), time(time) {
+    explicit VertexSphere3dConstraint(Eigen::Vector3d center, double radius, TimeType time) : center(std::move(center)), radius(radius), time(time) {
         /// @brief The type of the constraint.
-        type = ConstraintType::SPHERE3D;
+        type = ConstraintType::VERTEX_SPHERE3D;
     }
     
     std::string toString() const override {
         std::stringstream ss;
-        ss << "Sphere3dConstraint. Center: (" << center.x() << ", " << center.y() << ", " << center.z() << ") Radius: " << radius << " Time: " << time;
+        ss << "VertexSphere3dConstraint. Center: (" << center.x() << ", " << center.y() << ", " << center.z() << ") Radius: " << radius << " Time: " << time;
         return ss.str();
     }
 
@@ -196,27 +241,61 @@ struct Sphere3dConstraint : public Constraint {
     }
 };
 
-struct Sphere3dLargeConstraint : public Sphere3dConstraint {
+struct EdgeSphere3dConstraint : public Constraint {
+    /// @brief The center of the constrained sphere.
+    Eigen::Vector3d center;
+
+    /// @brief The radius of the sphere.
+    double radius;
+
+    /// @brief The time of the constraint. Inclusive in both from and to. We do, however, normally assume that time from is valid.
+    TimeType time_from;
+    TimeType time_to;
+
+    /// @brief Constructor, allowing to set the state, time, and type.
+    /// @param state The state vector.
+    explicit EdgeSphere3dConstraint(Eigen::Vector3d center, double radius, TimeType time_from, TimeType time_to) :
+                                            center(std::move(center)),
+                                            radius(radius),
+                                            time_from(time_from),
+                                            time_to(time_to){
+        /// @brief The type of the constraint.
+        type = ConstraintType::EDGE_SPHERE3D;
+    }
+
+    std::string toString() const override {
+        std::stringstream ss;
+        ss << "EdgeSphere3dConstraint. Center: (" << center.x() << ", " << center.y() << ", " << center.z() << ") Radius: " << radius << " Time: [" <<  time_from << ", " << time_to << "]";
+        return ss.str();
+    }
+
+    /// @brief The time interval of the constraint.
+    std::pair<int, int> getTimeInterval() const override {
+        return std::make_pair(time_from, time_to);
+    }
+};
+
+struct Sphere3dLargeConstraint : public VertexSphere3dConstraint {
 
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param center The center of the constrained sphere.
     /// @param radius The radius of the sphere.
     /// @param time The time of the constraint.
-    explicit Sphere3dLargeConstraint(Eigen::Vector3d center, double radius, TimeType time) : 
-        Sphere3dConstraint(std::move(center), radius, time) {
+    explicit Sphere3dLargeConstraint(Eigen::Vector3d center, double radius, TimeType time) :
+            VertexSphere3dConstraint(std::move(center), radius, time) {
         /// @brief The type of the constraint.
         type = ConstraintType::SPHERE3DLARGE;
     }
 };
 
-struct Sphere3dXLargeConstraint : public Sphere3dConstraint {
+struct Sphere3dXLargeConstraint : public VertexSphere3dConstraint {
 
     /// @brief Constructor, allowing to set the state, time, and type.
     /// @param center The center of the constrained sphere.
     /// @param radius The radius of the sphere.
     /// @param time The time of the constraint.
     explicit Sphere3dXLargeConstraint(Eigen::Vector3d center, double radius, TimeType time) :
-            Sphere3dConstraint(std::move(center), radius, time) {
+            VertexSphere3dConstraint(std::move(center), radius, time) {
         /// @brief The type of the constraint.
         type = ConstraintType::SPHERE3DXLARGE;
     }

@@ -114,7 +114,12 @@ namespace ims{
         /// @return if the plan was successful or not
         bool plan(std::vector<StateType> &path) override;
 
-        void setStateVals(SearchState* state_id, SearchState* parent_id, double cost, double subcost);
+        void setStateVals(SearchState* state_id,
+                          SearchState* parent_id,
+                          double new_cost,
+                          double new_subcost,
+                          const std::vector<int>& seq_from_parent_cfg_state_ids,
+                          const std::vector<double>& seq_from_parent_transition_costs);
 
         /// @brief Get a search state given its configuration-id and safe interval.
         /// @param cfg_state_id The configuration id.
@@ -143,6 +148,14 @@ namespace ims{
         void reconstructPath(std::vector<StateType>& path, std::vector<double>& costs) override;
 
         void expand(int state_id) override;
+
+        /// @brief Check if a sequence of states satisfy constraints.
+        /// @param edge_robot_cfg_states The sequence of states. Each is a StateType with the last element being time.
+        bool isTimedPathSatisfyingAllConstraints(const PathType& edge_robot_cfg_states);
+
+        /// @brief Get the subcost incurred by a timed sequence of states.
+        /// @param edge_robot_cfg_states The sequence of states.
+        double getTimedPathSubcost(const std::vector<StateType>& edge_robot_cfg_states);
 
         FocalwSIPPParams params_;
 

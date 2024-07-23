@@ -34,11 +34,7 @@
 
 
 #include <boost/filesystem.hpp>
-#include <vector>
-#include <memory>
 #include <iostream>
-#include <fstream>
-#include <string>
 #include <cmath>
 
 // project includes

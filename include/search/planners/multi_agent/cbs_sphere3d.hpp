@@ -114,7 +114,7 @@ protected:
     CBSSphere3dParams params_;
 
     /// @brief The conflict types that this algorithm asks for from the action space. Shadow the value in the parent class.
-    std::vector<ConflictType> conflict_types_{ConflictType::POINT3D_VERTEX, ConflictType::POINT3D_EDGE};
+    std::vector<ConflictType> conflict_types_{ConflictType::VERTEX_POINT3D, ConflictType::EDGE_POINT3D};
 };
 
 }  // namespace ims

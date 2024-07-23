@@ -66,13 +66,17 @@ public:
     void addPathExperienceToExperiencesCollective(const std::shared_ptr<PathExperience>& experience) {
         experiences_collective_ptr_->addPathExperience(experience);
     }
-
+    /// @brief Add a timed path experience to the experiences collective. This strips the states from their time dimension in all sequences of the path.
+    /// \param experience
     void addTimedPathExperienceToExperiencesCollective(const std::shared_ptr<PathExperience>& experience) {
-        PathType path_wo_time = experience->getPath(); // A copy of the path that will be modified to remove the time component.
-        for (auto& state : path_wo_time) {
-            state.pop_back();
+        SeqPathType seq_path_wo_time = experience->getSeqPath(); // A copy of the path that will be modified to remove the time component.
+        for (auto& seq : seq_path_wo_time) {
+            for (auto& state : seq) {
+                state.pop_back();
+            }
         }
-        std::shared_ptr<PathExperience> experience_wo_time = std::make_shared<PathExperience>(path_wo_time, experience->getPathTransitionCosts());
+
+        std::shared_ptr<PathExperience> experience_wo_time = std::make_shared<PathExperience>(seq_path_wo_time, experience->getSeqPathTransitionCosts());
         experiences_collective_ptr_->addPathExperience(experience_wo_time);
     }
 
@@ -86,13 +90,36 @@ public:
     }
 
     /// @brief Get subpaths that are valid for the given state. These are all the suffixes of the path experiences that include the given state, starting from this state. 
-    virtual void getValidExperienceSubpathsFromState(int state_id, std::vector<std::vector<int>>& subpaths, std::vector<std::vector<double>>& subpath_transition_costs) = 0;
+    virtual void getValidExperienceSubpathsFromState(int state_id,
+                                             std::vector<std::vector<std::vector<int>>>& experience_seq_subpaths,
+                                             std::vector<std::vector<std::vector<double>>>& experience_seq_subpaths_transition_costs) = 0;
 
     /// @brief Get successors with experience acceleration.
     /// @param state_id The state id.
     /// @param successors The successors to be updated.
     /// @param costs The costs to be updated.
-    virtual bool getSuccessorsExperienceAccelerated(int state_id, std::vector<int>& successors, std::vector<double>& costs) = 0;
+    virtual bool getSuccessorsExperienceAccelerated(int curr_state_ind,
+                            std::vector<std::vector<int>>& seqs_state_ids,
+                            std::vector<std::vector<double>> & seqs_transition_costs) = 0;
+
+    virtual bool getSuccessorsExperienceAccelerated(int curr_state_ind,
+                            std::vector<int> & successors,
+                            std::vector<double> & costs) {
+        std::vector<std::vector<int>> seqs_state_ids;
+        std::vector<std::vector<double>> seqs_transition_costs;
+        getSuccessorsExperienceAccelerated(curr_state_ind, seqs_state_ids, seqs_transition_costs);
+        for (size_t i = 0; i < seqs_state_ids.size(); i++) {
+            if (seqs_state_ids[i].size() != 2){
+                std::cout << RED << "getSuccessors: The seqs_state_ids[i] should have only two elements (the parent and child states). Instead, it has " << seqs_state_ids[i].size() << " elements." << RESET << std::endl;
+                std::cout << RED << "Edge state ids: " << seqs_state_ids[i] << RESET << std::endl;
+                std::cout << RED << "GetSuccessors would have returned the edge state ids: [" << seqs_state_ids[i].front() << ", " << seqs_state_ids[i].back() << "], which would lose information." << RESET << std::endl;
+                throw std::runtime_error("getSuccessors: The seqs_state_ids should have only two elements (the parent and child states).");
+            }
+            successors.push_back(seqs_state_ids[i].back());
+            costs.push_back(std::accumulate(seqs_transition_costs[i].begin(), seqs_transition_costs[i].end(), 0.0));
+        }
+        return true;
+    }
 
     
     // Member variables.

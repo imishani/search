@@ -101,6 +101,8 @@ int main(int argc, char** argv) {
     // Construct the parameters.
     ims::EAECBSParams params;
     params.weight_low_level_heuristic = 20.0;
+    params.verbose = false;
+    params.is_bypassing_conflicts = false;
     params.low_level_heuristic_ptrs;
     for (int i {0}; i < num_agents; i++){
         params.low_level_heuristic_ptrs.emplace_back(new ims::EuclideanRemoveTimeHeuristic);
@@ -153,7 +155,7 @@ int main(int argc, char** argv) {
     planner.initializePlanner(action_spaces, start_state_vals, goal_state_vals);
 
     // Plan.
-    ims::MultiAgentPaths paths;
+    MultiAgentPaths paths;
     planner.plan(paths);
     
     if (paths.empty()){
@@ -207,7 +209,7 @@ int main(int argc, char** argv) {
     fout.close();
 
     // Execute the visualization script.
-    std::string command = "python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 1 && open paths.gif";
+    std::string command = "python3 ../domains/2d_mapf/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 1 && xdg-open paths.gif";
     std::cout << "Running the plot script..." << std::endl;
     system(command.c_str());
 

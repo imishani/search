@@ -40,6 +40,7 @@
 #include <search/common/constraints.hpp>
 #include <search/action_space/subcost_action_space.hpp>
 #include <search/action_space/experience_accelerated_constrained_action_space.hpp>
+#include <search/action_space/mixin/action_space_subcost_mixin.hpp>
 #include <search/common/scene_interface.hpp>
 #include <search/planners/multi_agent/cbs.hpp>
 #include <search/common/utils.hpp>
@@ -61,7 +62,7 @@ struct ActionType2dRob : public ims::ActionType {
         this->name = "ActionType2dRob";
         this->num_actions = 4;
         this->action_names = {"N", "E", "S", "W",};
-        this->action_costs = {1, 1, 1, 1};
+        this->action_seqs_transition_costs = {1, 1, 1, 1};
         this->action_deltas = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
         this->state_discretization_ = {1, 1};
     }
@@ -71,6 +72,19 @@ struct ActionType2dRob : public ims::ActionType {
         return this->action_deltas;
     }
 
+    void getPrimActions(std::vector<ActionSequence>& action_seqs,
+                            std::vector<std::vector<double>> & action_transition_costs ) override {
+        action_seqs.clear();
+        action_transition_costs.clear();
+        for (int i {0} ; i < this->num_actions ; i++){
+            ActionSequence action_edge;
+            action_edge.push_back({0, 0});
+            action_edge.push_back(this->action_deltas[i]);
+            action_seqs.push_back(action_edge);
+            action_transition_costs.push_back({0, this->action_seqs_transition_costs[i]});
+        }
+    }
+
     void Discretization(StateType& state_des) override {
         state_discretization_ = state_des;
     }
@@ -78,7 +92,7 @@ struct ActionType2dRob : public ims::ActionType {
     std::string name;
     int num_actions;
     std::vector<std::string> action_names;
-    std::vector<double> action_costs;
+    std::vector<double> action_seqs_transition_costs;
     std::vector<std::vector<double>> action_deltas;
 };
 
@@ -87,7 +101,7 @@ struct ActionType2dRobTimed : public ActionType2dRob {
         name = "ActionType2dRobTimed";
         num_actions = 5;
         action_names = {"N", "E", "S", "W", "Wait"};
-        action_costs = {1, 1, 1, 1, 1};
+        action_seqs_transition_costs = {1, 1, 1, 1, 1};
         action_deltas = {{0, 1, 1}, {1, 0, 1}, {0, -1, 1}, {-1, 0, 1}, {0, 0, 1}};
         state_discretization_ = {1, 1, 1};
     }
@@ -99,6 +113,9 @@ private:
     std::shared_ptr<ActionType2dRob> action_type_;
 
 public:
+    // Make the getSuccessors method from the ActionSpace base class available.
+    using ActionSpace::getSuccessors;
+
     ExperienceAcceleratedConstrainedActionSpace2dRob(const scene2DRob& env,
                                 const ActionType2dRob& actions_ptr) : ims::ExperienceAcceleratedConstrainedActionSpace() {
         this->env_ = std::make_shared<scene2DRob>(env);
@@ -181,8 +198,8 @@ public:
     }
 
     bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs) override {
+                           std::vector<std::vector<int>>& seqs_state_ids,
+                           std::vector<std::vector<double>> & seqs_transition_costs) override {
         auto curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
@@ -199,8 +216,8 @@ public:
             // EXAMPLE NOTE: it may sometimes make sense to check constraint satisfaction within the isStateValid method, for efficiency. For example, if a constraint requires comparison of a robot state against a world state and simulataneously the state of another robot, then it would be better to set all robots into their specified configurations and check for validity only once.
             if (isStateValid(next_state_val)) {
                 int next_state_ind = getOrCreateRobotState(next_state_val);
-                successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
+                seqs_state_ids.push_back({curr_state_ind, next_state_ind});
+                seqs_transition_costs.push_back({action_type_->action_seqs_transition_costs[i], 0});
             }
         }
         return true;
@@ -215,7 +232,7 @@ public:
             auto curr_state = path[i];
             auto next_state = path[i + 1];
             auto action = action_type_->getPrimActions()[next_state[2]];
-            cost += action_type_->action_costs[next_state[2]];
+            cost += action_type_->action_seqs_transition_costs[next_state[2]];
         }
         return cost;
     }
@@ -226,8 +243,15 @@ public:
 
         return getSuccessors(curr_state_ind, successors, costs);
     }
-    
-    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths,
+
+    // Get successors with subcosts. The subcosts are the number of conflicts that would be created on a transition to the successor.
+    bool getSuccessorsExperienceAccelerated(int curr_state_ind,
+                           std::vector<std::vector<int>>& seqs_state_ids,
+                           std::vector<std::vector<double>> & seqs_transition_costs) override {
+        return getSuccessors(curr_state_ind, seqs_state_ids, seqs_transition_costs);
+    }
+
+    void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths,
                            std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs,
                            const std::vector<ims::ConflictType>& conflict_types, int max_conflicts,
                            const std::vector<std::string> & names, TimeType time_start, TimeType time_end) override {
@@ -304,6 +328,8 @@ private:
     std::shared_ptr<ActionType2dRob> action_type_;
 
 public:
+    using ActionSpace::getSuccessors;
+    using ActionSpaceSubcostMixin::getSuccessors;
     SubcostExperienceAcceleratedConstrainedActionSpace2dRob(const scene2DRob& env,
                                 const ActionType2dRob& actions_ptr) : ims::SubcostExperienceAcceleratedConstrainedActionSpace() {
         this->env_ = std::make_shared<scene2DRob>(env);
@@ -385,8 +411,8 @@ public:
     }
 
     bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs) override {
+                           std::vector<std::vector<int>>& seqs_state_ids,
+                           std::vector<std::vector<double>> & seqs_transition_costs) override {
         auto curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
@@ -403,8 +429,8 @@ public:
             // EXAMPLE NOTE: it may sometimes make sense to check constraint satisfaction within the isStateValid method, for efficiency. For example, if a constraint requires comparison of a robot state against a world state and simulataneously the state of another robot, then it would be better to set all robots into their specified configurations and check for validity only once.
             if (isStateValid(next_state_val)) {
                 int next_state_ind = getOrCreateRobotState(next_state_val);
-                successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
+                seqs_state_ids.push_back({curr_state_ind, next_state_ind});
+                seqs_transition_costs.push_back({action_type_->action_seqs_transition_costs[i], 0});
             }
         }
         return true;
@@ -412,9 +438,9 @@ public:
 
     // Get successors with subcosts. The subcosts are the number of conflicts that would be created on a transition to the successor.
     bool getSuccessors(int curr_state_ind,
-                       std::vector<int>& successors,
-                       std::vector<double>& costs,
-                       std::vector<double>& subcosts) override {
+                           std::vector<std::vector<int>>& seqs_state_ids,
+                           std::vector<std::vector<double>> & seqs_transition_costs,
+                           std::vector<std::vector<double>>& seqs_transition_subcosts) override {
 
         auto curr_state = this->getRobotState(curr_state_ind);
         
@@ -433,16 +459,15 @@ public:
             // If the state successor is valid, then compute the number of conflicts that would be created on a transition to the successor and add it to the successors.
             if (isStateValid(next_state_val)) {
                 int next_state_ind = getOrCreateRobotState(next_state_val);
-                successors.push_back(next_state_ind);
-                costs.push_back(action_type_->action_costs[i]);
-
+                seqs_state_ids.push_back({curr_state_ind, next_state_ind});
+                seqs_transition_costs.push_back({action_type_->action_seqs_transition_costs[i], 0});
                 // Compute the number of conflicts that would be created on a transition to the successor.
                 // Loop through the paths of all the other agents and check if the transition to the successor creates a conflict.
                 double num_conflicts = 0;
                 computeTransitionConflictsCost(curr_state->state, next_state_val, num_conflicts);
 
                 // Set the subcost.
-                subcosts.push_back(num_conflicts);
+                seqs_transition_subcosts.push_back({num_conflicts, 0});
             }
         }
         return true;
@@ -453,7 +478,6 @@ public:
                        std::vector<int>& successors,
                        std::vector<double>& costs,
                        std::vector<double>& subcosts) override {
-
         return getSuccessors(curr_state_ind, successors, costs, subcosts);
     }
 
@@ -461,9 +485,23 @@ public:
     bool getSuccessorsExperienceAccelerated(int curr_state_ind,
                        std::vector<int>& successors,
                        std::vector<double>& costs) override {
-
         return getSuccessors(curr_state_ind, successors, costs);
     }
+
+    bool getSuccessorsExperienceAccelerated(int curr_state_ind,
+                           std::vector<std::vector<int>>& seqs_state_ids,
+                           std::vector<std::vector<double>> & seqs_transition_costs) override {
+        return getSuccessors(curr_state_ind, seqs_state_ids, seqs_transition_costs);
+    }
+
+    // Get successors with subcosts. The subcosts are the number of conflicts that would be created on a transition to the successor.
+    bool getSuccessorsExperienceAccelerated(int curr_state_ind,
+                           std::vector<std::vector<int>>& seqs_state_ids,
+                           std::vector<std::vector<double>> & seqs_transition_costs,
+                           std::vector<std::vector<double>>& seqs_transition_subcosts) override {
+        return getSuccessors(curr_state_ind, seqs_state_ids, seqs_transition_costs, seqs_transition_subcosts);
+    }
+
 
 
     void computeTransitionConflictsCost(const StateType& state, const StateType& next_state_val, double & num_conflicts) override {
@@ -498,12 +536,12 @@ public:
             auto curr_state = path[i];
             auto next_state = path[i + 1];
             auto action = action_type_->getPrimActions()[next_state[2]];
-            cost += action_type_->action_costs[next_state[2]];
+            cost += action_type_->action_seqs_transition_costs[next_state[2]];
         }
         return cost;
     }
 
-    void getPathsConflicts(std::shared_ptr<ims::MultiAgentPaths> paths,
+    void getPathsConflicts(std::shared_ptr<MultiAgentPaths> paths,
                            std::vector<std::shared_ptr<ims::Conflict>>& conflicts_ptrs,
                            const std::vector<ims::ConflictType>& conflict_types,
                            int max_conflicts, const std::vector<std::string> & names,

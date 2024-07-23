@@ -68,7 +68,8 @@ namespace ims{
     /// uses inflation of the heuristic function to find a solution with a cost that is within a factor of epsilon
     /// of the optimal solution (epsilon-suboptimality).
     class wAStar : public BestFirstSearch{
-
+        friend class SIPP;
+        friend class FocalwSIPP;
     private:
 
         friend class AStar; friend class Dijkstra;
@@ -132,11 +133,15 @@ namespace ims{
         /// @return The states.
         auto getAllSearchStates() -> std::vector<SearchState*>;
 
-        
+
     protected:
 
         void setStateVals(int state_id, int parent_id, double cost) override;
-
+        void setStateVals(int state_id,
+                           int parent_id,
+                           double transition_cost,
+                           const std::vector<int> & seq_from_parent_state_ids,
+                           const std::vector<double> & seq_from_parent_transition_costs);
         void expand(int state_id) override;
 
         void reconstructPath(std::vector<StateType>& path) override;

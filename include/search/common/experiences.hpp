@@ -91,14 +91,14 @@ struct ExperienceBase {
 
 /// @brief path experience PathExperience. This is one of the most common type of experience when working in motion planning.
 struct PathExperience : public ExperienceBase {
-    /// @brief The path.
-    PathType path_;
+    /// @brief The sequence path. The states at the beginning of each sequence are all the states that can be the start of a sub-experience.
+    SeqPathType seq_path_;
 
     /// @brief The path transition costs.
-    std::vector<double> path_transition_costs_;
+    SeqPathTransitionCostsType seq_path_transition_costs_;
 
     /// @brief Constructor
-    explicit PathExperience(PathType path, const std::vector<double>& path_transition_costs) : path_(std::move(path)), path_transition_costs_(path_transition_costs), ExperienceBase() {
+    explicit PathExperience(SeqPathType seq_path, SeqPathTransitionCostsType seq_path_transition_costs) : seq_path_(std::move(seq_path)), seq_path_transition_costs_(std::move(seq_path_transition_costs)), ExperienceBase() {
         type = ExperienceType::PATH;
     }
 
@@ -108,28 +108,41 @@ struct PathExperience : public ExperienceBase {
     /// @brief Get a string with information about the experience.
     std::string toString() const override {
         std::string str = "PathExperience: ";
-        for (const auto& state : path_) {
+        for (const auto& seq : seq_path_) {
             str += "[";
-            for (auto val : state) {
-                str += std::to_string(val) + " ";
+            for (const auto& state : seq) {
+                str += "[";
+                for (auto val : state) {
+                    str += std::to_string(val) + " ";
+                }
+                str += "]";
             }
             str += "]\n";
         }
         return str;
     }
 
+    /// @brief Get a flattened path.
+    /// @return The flattened path.
+    PathType getPath() const {
+        PathType path;
+        flattenSeqPathToPathType(seq_path_, path);
+        return path;
+    }
+
     /// @brief Get the path.
     /// @return The path.
-    const PathType& getPath() const {
-        return path_;
+    const SeqPathType& getSeqPath() const {
+        return seq_path_;
     }
 
     /// @brief Get the path transition costs.
     /// @return The path transition costs.
-    const std::vector<double>& getPathTransitionCosts() const {
-        return path_transition_costs_;
+    const SeqPathTransitionCostsType& getSeqPathTransitionCosts() const {
+        return seq_path_transition_costs_;
     }
 };
+
 
 
 /// @brief path experience PathExperience. This is one of the most common type of experience when working in motion planning.
@@ -140,7 +153,7 @@ struct TransitionExperience : public ExperienceBase {
     bool is_valid_ = true;
 
     /// @brief The path transition costs.
-    double transition_cost_;
+    double transition_cost_{};
 
     /// @brief Constructor
     TransitionExperience(const StateType& state_from, const StateType& state_to, const bool is_valid) :
@@ -148,7 +161,8 @@ struct TransitionExperience : public ExperienceBase {
         type = ExperienceType::TRANSITION;
     }
 
-    TransitionExperience(const std::pair<StateType, StateType>& state_pair, const bool is_valid) : state_from_(state_pair.first), state_to_(state_pair.second), is_valid_(is_valid), ExperienceBase() {
+    TransitionExperience(const std::pair<StateType, StateType>& state_pair, const bool is_valid) :
+    state_from_(state_pair.first), state_to_(state_pair.second), is_valid_(is_valid), ExperienceBase() {
         type = ExperienceType::TRANSITION;
     }
 
@@ -219,19 +233,19 @@ struct ExperiencesCollective {
     }
 
     void addPathExperience(const std::shared_ptr<PathExperience>& experience) {
-        // TODO(yoraish) IMPORTANT: Check if this experience is new. Unsure how to do this well.
+        // TODO(yoraish) IMPORTANT: Check if this experience is new and avoid adding exact duplictates. Unsure how to do this well.
 
         path_experiences_ptrs_.push_back(experience);
         
-        // Point each of the states in the experience to this experience.
+        // Point each of the states in the experience (i.e., the first states in each sequence of the experience) to this experience.
         // Keep track of the states that have already been seen in this experience. This is to avoid adding the same experience multiple times for the same state.
         std::set<StateType> states_seen_in_experience;
-        for (const auto& state : experience->getPath()) {
-            if (states_seen_in_experience.find(state) != states_seen_in_experience.end()) {
+        for (const auto& seq : experience->getSeqPath()) {
+            if (states_seen_in_experience.find(seq.front()) != states_seen_in_experience.end()) {
                 continue;
             }
-            state_to_path_experiences_ptrs_[state].push_back(experience);
-            states_seen_in_experience.insert(state);
+            state_to_path_experiences_ptrs_[seq.front()].push_back(experience);
+            states_seen_in_experience.insert(seq.front());
         }
     }
 
@@ -244,22 +258,26 @@ struct ExperiencesCollective {
     void addTimedPathExperience(const std::shared_ptr<PathExperience>& experience) {
 
         // A copy of the path that will be modified to remove the time component and remove loops.
-        PathType path_wo_time;
-        std::vector<double> path_transition_costs;
-        for (size_t i{0}; i < experience->getPath().size() ; ++i){
-            StateType state = experience->getPath()[i];
-            state.pop_back();
-
-            // If the current state is the same as the previous state, then skip it.
-            if (i > 0 && state == path_wo_time.back()){
+        const SeqPathType & seq_path = experience->getSeqPath();
+        const SeqPathTransitionCostsType & seq_path_transition_costs = experience->getSeqPathTransitionCosts();
+        SeqPathType seq_path_wo_time;
+        SeqPathTransitionCostsType seq_path_transition_costs_wo_time;
+        for (int i = 0; i < seq_path.size(); ++i) {
+            std::vector<double> seq_transition_costs = seq_path_transition_costs[i];
+            PathType seq_wo_time = seq_path[i];
+            // Start by removing the time component from the sequence.
+            removeTimeFromPath(seq_wo_time);
+            // If this is not a wait, then add the costs and strip the sequence from its time.
+            if (!isPathStatesAllEqual(seq_wo_time)){
+                seq_path_wo_time.push_back(seq_wo_time);
+                seq_path_transition_costs_wo_time.push_back(seq_transition_costs);
+            }
+            else{
                 continue;
             }
-            path_wo_time.push_back(state);
-            path_transition_costs.push_back(experience->getPathTransitionCosts()[i]);
         }
-        path_transition_costs.back() = 0.0;
 
-        std::shared_ptr<PathExperience> experience_wo_time = std::make_shared<PathExperience>(path_wo_time, experience->getPathTransitionCosts());
+        std::shared_ptr<PathExperience> experience_wo_time = std::make_shared<PathExperience>(seq_path_wo_time, seq_path_transition_costs_wo_time);
         addPathExperience(experience_wo_time);
     }
 
@@ -267,8 +285,10 @@ struct ExperiencesCollective {
     /// @param state The state to get the experiences for.
     /// @param experience_subpaths The vector of subpaths -- to be updated with the subpaths.
     /// @param experience_subpaths_transition_costs The vector of subpath transition costs -- to be updated with the subpath transition costs.
-    void getSubExperiencesFromState(const StateType& state, std::vector<PathType>& experience_subpaths, std::vector<std::vector<double>>&experience_subpaths_transition_costs) const {
-
+    void getSubExperiencesFromState(const StateType& state,
+                                    std::vector<SeqPathType>& experience_subseqpaths,
+                                    std::vector<SeqPathTransitionCostsType> & experience_subseqpaths_transition_costs) const {
+        experience_subseqpaths.clear(); experience_subseqpaths_transition_costs.clear();
         // Find all the experiences that contain this state. Return if there are none.
         if (state_to_path_experiences_ptrs_.find(state) == state_to_path_experiences_ptrs_.end()) {
             return;
@@ -278,14 +298,20 @@ struct ExperiencesCollective {
 
         // Remove all prefixes in the experiences that come before this state.
         for (const auto& experience_ptr : all_experiences_with_state) {
-            // Find the index of the state in the experience. A state may appear more than once if the experience has loops or waits. So find the last index.
-            auto state_rev_index_it = std::find(experience_ptr->getPath().rbegin(), experience_ptr->getPath().rend(), state);
-            int state_rev_index = (int)std::distance(experience_ptr->getPath().rbegin(), state_rev_index_it);
-            int state_index = experience_ptr->getPath().size() - state_rev_index - 1;
-
-            // Add the subpath to the experiences.
-            experience_subpaths.emplace_back(experience_ptr->getPath().begin() + state_index, experience_ptr->getPath().end());
-            experience_subpaths_transition_costs.emplace_back(experience_ptr->getPathTransitionCosts().begin() + state_index, experience_ptr->getPathTransitionCosts().end());
+            // Find the index of the sequence in the seq_path that has this state as the start state.
+            int subexp_start_ix = 0;
+            for (int i {(int)experience_ptr->getSeqPath().size() - 1}; i >= 0; --i) {
+                if (experience_ptr->seq_path_[i].front() == state) {
+                    subexp_start_ix = i;
+                    break;
+                }
+            }
+            // Creat the sub-experience. It starts from the star index and ends at the experience-end.
+            SeqPathType seq_path_subexp{experience_ptr->seq_path_.begin() + subexp_start_ix, experience_ptr->seq_path_.end()};
+            SeqPathTransitionCostsType seq_path_subexp_transition_costs{experience_ptr->seq_path_transition_costs_.begin() + subexp_start_ix, experience_ptr->seq_path_transition_costs_.end()};
+            // Add to the vector of sub-experiences.
+            experience_subseqpaths.push_back(seq_path_subexp);
+            experience_subseqpaths_transition_costs.push_back(seq_path_subexp_transition_costs);
         }
     }
 

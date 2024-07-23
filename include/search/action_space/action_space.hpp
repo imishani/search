@@ -32,12 +32,12 @@
  * \date   3/28/23
  */
 
-#ifndef SEARCH_ACTIONSPACE_HPP
-#define SEARCH_ACTIONSPACE_HPP
+#pragma once
 
 // standard includes
 #include <iostream>
 #include <memory>
+#include <numeric>
 
 // project includes
 #include "search/common/scene_interface.hpp"
@@ -90,7 +90,9 @@ namespace ims {
 
         /// @brief Get the possible actions
         /// @return The possible actions
+        [[deprecated("Use the new getPrimActions (for sequences) instead.")]]
         virtual std::vector<Action> getPrimActions() = 0;
+        virtual void getPrimActions(std::vector<ActionSequence>& action_seqs, std::vector<std::vector<double>> & action_transition_costs ) = 0;
 
         /// @brief Get the resolution of the state space (for discretization)
         /// @param state_des The state discretization
@@ -113,7 +115,7 @@ namespace ims {
         /// @brief The states
         std::vector<RobotState*> states_;
 
-        /// Methods
+        /// Methods.
         /// @brief Constructor
         explicit ActionSpace() = default;
 
@@ -208,15 +210,41 @@ namespace ims {
 
         /// @brief Get Successor
         /// @param curr_state_ind The current state index
-        /// @param successors The successor state
+        /// @param seqs_state_ids All states between the current state and the successor, including them. For example, say we have a current state [1,1] and a successor [1,4]. Let's say the edge connecting them is [1,1], [1,2], [1,3], [1,4]. If their state ids are 101, 102, 103, 104, then seqs_state_ids should be [101, 102, 103. 104].
+        /// @param seqs_transition_costs The cost of the transitions between all states on the edge. In the example above, the the seqs_transition_costs should be the cost of the transition from [1,1] to [1,2] and [1,2] to [1,3] and [1,3] to [1,4], for example: [1,1,1,0], with each element being the cost of the transition from i to i+1. The last entry therefore is zero since it is the cost of the transition from the last state to an unknown next state.
         /// @return Success bool
         /// @note Beware the you should make sure that the state is discretized! (see ActionType::Discretization)
         /// If you are using an implicit graph where the state space is not discrete then define the discretization
         /// based on the tolerance for comparison between states.
         /// @attention You should use getOrCreateRobotState() and getRobotState() when generating the successors!
         virtual bool getSuccessors(int curr_state_ind,
+                                   std::vector<std::vector<int>>& seqs_state_ids,
+                                   std::vector<std::vector<double>> & seqs_transition_costs) = 0;
+
+        [[deprecated("Use the new getSuccessors (for sequences) instead.")]]
+        bool getSuccessors(int curr_state_ind,
                                    std::vector<int>& successors,
-                                   std::vector<double>& costs) = 0;
+                                   std::vector<double>& costs){
+            std::vector<std::vector<int>> seqs_state_ids;
+            std::vector<std::vector<double>> seqs_transition_costs;
+            bool success = getSuccessors(curr_state_ind, seqs_state_ids, seqs_transition_costs);
+            if(success){
+                for(size_t i = 0; i < seqs_state_ids.size(); i++){
+
+                    // Check that the edges have only two elements (the parent and child states). Otherwise, abort with a message.
+                    if (seqs_state_ids[i].size() != 2){
+                        std::cout << RED << "getSuccessors: The seqs_state_ids[i] should have only two elements (the parent and child states). Instead, it has " << seqs_state_ids[i].size() << " elements." << RESET << std::endl;
+                        std::cout << RED << "Edge state ids: " << seqs_state_ids[i] << RESET << std::endl;
+                        std::cout << RED << "GetSuccessors would have returned the edge state ids: [" << seqs_state_ids[i].front() << ", " << seqs_state_ids[i].back() << "], which would lose information." << RESET << std::endl;
+                        throw std::runtime_error("getSuccessors: The seqs_state_ids should have only two elements (the parent and child states).");
+                    }
+
+                    successors.push_back(seqs_state_ids[i].back());
+                    costs.push_back(vectorSum(seqs_transition_costs[i]));
+                }
+            }
+            return success;
+        }
 
         /// @brief check if the state is valid
         /// @param state_val The values if the state
@@ -238,4 +266,3 @@ namespace ims {
         }
     };
 }
-#endif //SEARCH_ACTIONSPACE_HPP

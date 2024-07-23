@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
     std::cout << "Constructing planner..." << std::endl;
     bool useECBS = (vm["high_level_focal_suboptimality"].as<double>() > 1.0);
 
-    ims::MultiAgentPaths paths;
+    MultiAgentPaths paths;
     PlannerStats stats;
 
     if (!useECBS) {
@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
         ActionType2dRob action_type;
         // Print the available actions.
         std::cout << "Available actions should be untimed:: " << std::endl;
-        for (const Action & a : action_type.getPrimActions()){
+        for (const ActionSequence & a : action_type.action_seq_prims){
             std::cout << " *   " << a << std::endl;
         }
 
@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
         ActionType2dRob action_type;
         // Print the available actions.
         std::cout << "Available actions should be untimed:: " << std::endl;
-        for (const Action & a : action_type.getPrimActions()){
+        for (const ActionSequence & a : action_type.action_seq_prims){
             std::cout << " *   " << a << std::endl;
         }
 
@@ -168,6 +168,7 @@ int main(int argc, char** argv) {
         params.low_level_focal_suboptimality = params.high_level_focal_suboptimality;
         params.weight_low_level_heuristic = 1.0;
         params.verbose = false;
+        params.is_bypassing_conflicts = false;
 
         for (int i {0}; i < num_agents; i++){
             // Note that the heuristic is not timed.
@@ -237,7 +238,7 @@ int main(int argc, char** argv) {
     fout.close();
 
     // Execute the visualization script.
-    std::string command = "python3 ../src/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 1 && open paths.gif";
+    std::string command = "python3 ../domains/2d_mapf/scripts/visualize_2d_time_paths.py --paths-yaml paths.yaml --fps 1 && xdg-open paths.gif";
     std::cout << "Running the plot script..." << std::endl;
     system(command.c_str());
 
