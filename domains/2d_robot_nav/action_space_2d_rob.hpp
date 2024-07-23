@@ -57,14 +57,14 @@ struct ActionType2dRob : public ims::ActionType {
         name = "ActionType2dRob";
         num_actions = 8;
         action_names = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
-        action_seqs_transition_costs = {{1.0 ,0.0},
-                                         {1.414, 0.0},
-                                         {1, 0.0},
-                                         {1.414, 0.0},
-                                         {1, 0.0},
-                                         {1.414, 0.0},
-                                         {1, 0.0},
-                                         {1.414, 0.0}};
+        action_seqs_transition_costs = {{1.0, 0.0},
+                                        {1.414, 0.0},
+                                        {1, 0.0},
+                                        {1.414, 0.0},
+                                        {1, 0.0},
+                                        {1.414, 0.0},
+                                        {1, 0.0},
+                                        {1.414, 0.0}};
         action_seq_prims = {{{0, 0}, {0, 1}},
                             {{0, 0}, {1, 1}},
                             {{0, 0}, {1, 0}},
@@ -73,32 +73,32 @@ struct ActionType2dRob : public ims::ActionType {
                             {{0, 0}, {-1, -1}},
                             {{0, 0}, {-1, 0}},
                             {{0, 0}, {-1, 1}}};
-// Example for actions with a few states along the edge.
-//        num_actions = 4;
-//        action_names = {"N", "E", "S", "W",};
-//        action_seqs_transition_costs = {{1.1, 1.0, 1.0, 1.0, 0.0},
-//                                         {0.33, 0.33, 0.33, 0.0},
-//                                         {1.1, 0.1, 0.1, 0.1, 0.1, 0},
-//                                         {1.1, 1.0, 1.0, 1.0,  0.0}};
-//        action_seq_prims = {{{0, 0}, {1,1},    {2,2}, {1,2}, {0, 1},},
-//                            {{0, 0}, {1, 1}, {2, 0}, {3, 0}},
-//                            {{0,0}, {-1, 0}, {-2, 0}, {-3, 0}, {-4, 0}, {-5, 0}},
-//                            {{0, 0}, {-1, -1}, {-2, -2}, {-2, -1}, {0, -1}}};
+        // Example for actions with a few states along the edge.
+        //        num_actions = 4;
+        //        action_names = {"N", "E", "S", "W",};
+        //        action_seqs_transition_costs = {{1.1, 1.0, 1.0, 1.0, 0.0},
+        //                                         {0.33, 0.33, 0.33, 0.0},
+        //                                         {1.1, 0.1, 0.1, 0.1, 0.1, 0},
+        //                                         {1.1, 1.0, 1.0, 1.0,  0.0}};
+        //        action_seq_prims = {{{0, 0}, {1,1},    {2,2}, {1,2}, {0, 1},},
+        //                            {{0, 0}, {1, 1}, {2, 0}, {3, 0}},
+        //                            {{0,0}, {-1, 0}, {-2, 0}, {-3, 0}, {-4, 0}, {-5, 0}},
+        //                            {{0, 0}, {-1, -1}, {-2, -2}, {-2, -1}, {0, -1}}};
 
         state_discretization_ = {1, 1};
     }
 
-    std::vector<Action> getPrimActions() override{
+    std::vector<Action> getPrimActions() override {
         std::vector<Action> actions;
         actions.reserve(action_seq_prims.size());
-        for (const ActionSequence & a : action_seq_prims){
+        for (const ActionSequence& a : action_seq_prims) {
             actions.push_back(a.back());
         }
         return actions;
     }
 
     void getPrimActions(std::vector<ActionSequence>& action_seqs,
-                            std::vector<std::vector<double>> & action_transition_costs ) override{
+                        std::vector<std::vector<double>>& action_transition_costs) override {
         action_seqs = action_seq_prims;
         action_transition_costs = action_seqs_transition_costs;
     }
@@ -127,16 +127,16 @@ class actionSpace2dRob : public ims::ActionSpace {
     }
 
     void getActions(int state_id,
-                    std::vector<ActionSequence> & action_seqs,
+                    std::vector<ActionSequence>& action_seqs,
                     bool check_validity) override {
         ims::RobotState* curr_state = this->getRobotState(state_id);
         std::vector<ActionSequence> prim_action_seqs;
         std::vector<std::vector<double>> prim_action_transition_costs;
         action_type_->getPrimActions(prim_action_seqs, prim_action_transition_costs);
-        for (int i {0} ; i < action_type_->num_actions ; i++){
+        for (int i{0}; i < action_type_->num_actions; i++) {
             ActionSequence action_seq = prim_action_seqs[i];
-            if (check_validity){
-                for (const Action & action : action_seq) {
+            if (check_validity) {
+                for (const Action& action : action_seq) {
                     StateType next_state_val = StateType(curr_state->state.size());
                     std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(),
                                    next_state_val.begin(), std::plus<>());
@@ -152,13 +152,13 @@ class actionSpace2dRob : public ims::ActionSpace {
     }
 
     bool getSuccessors(int curr_state_ind,
-                                   std::vector<std::vector<int>>& seqs_state_ids,
-                                   std::vector<std::vector<double>> & seqs_transition_costs) override{
+                       std::vector<std::vector<int>>& seqs_state_ids,
+                       std::vector<std::vector<double>>& seqs_transition_costs) override {
         ims::RobotState* curr_state = this->getRobotState(curr_state_ind);
         std::vector<ActionSequence> actions;
         getActions(curr_state_ind, actions, false);
 
-        for (int i {0} ; i < actions.size() ; i++){
+        for (int i{0}; i < actions.size(); i++) {
             // Create edges to populate.
             std::vector<int> successor_edge_state_ids;
             std::vector<double> successor_edge_transition_costs;
@@ -166,20 +166,20 @@ class actionSpace2dRob : public ims::ActionSpace {
 
             // Transform the given action to be rooted at the current state.
             bool is_action_valid = true;
-            for (size_t j {0} ; j < action_seq.size() ; j++){
-                const Action & action = action_seq[j];
+            for (size_t j{0}; j < action_seq.size(); j++) {
+                const Action& action = action_seq[j];
                 StateType next_state_val = StateType(curr_state->state.size());
                 std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(),
                                next_state_val.begin(), std::plus<>());
                 // if (1) {
-            //     double dummy = 0;
-            //     for (int i = 0; i < 5000; i++) {
-            //         dummy += floor(pow(0.125, 0.5));
-            //         next_state_val[0] += 1;
-            //         next_state_val[0] -= 1;
-            //     }
-            // }
-            if (!isStateValid(next_state_val)) {
+                //     double dummy = 0;
+                //     for (int i = 0; i < 5000; i++) {
+                //         dummy += floor(pow(0.125, 0.5));
+                //         next_state_val[0] += 1;
+                //         next_state_val[0] -= 1;
+                //     }
+                // }
+                if (!isStateValid(next_state_val)) {
                     is_action_valid = false;
                     break;
                 }
