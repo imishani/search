@@ -108,8 +108,8 @@ namespace ims{
                            int parent_id,
                            double transition_cost,
                            double transition_subcost,
-                           const std::vector<int> & edge_from_parent_state_ids,
-                           const std::vector<double> & edge_from_parent_transition_costs);
+                           const std::vector<int> & seq_from_parent_state_ids,
+                           const std::vector<double> & seq_from_parent_transition_costs);
 
     protected:
 

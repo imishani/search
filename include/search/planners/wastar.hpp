@@ -140,8 +140,8 @@ namespace ims{
         void setStateVals(int state_id,
                            int parent_id,
                            double transition_cost,
-                           const std::vector<int> & edge_from_parent_state_ids,
-                           const std::vector<double> & edge_from_parent_transition_costs);
+                           const std::vector<int> & seq_from_parent_state_ids,
+                           const std::vector<double> & seq_from_parent_transition_costs);
         void expand(int state_id) override;
 
         void reconstructPath(std::vector<StateType>& path) override;

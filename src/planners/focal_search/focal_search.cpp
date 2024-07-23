@@ -280,32 +280,32 @@ void ims::FocalSearch::reconstructPath(std::vector<PathType>& seq_states_to_chil
     while (state_->parent_id != -1){
 
         // Go through the edge from the parent to the current state. Do not include the first and last elements.
-        int edge_from_parent_num_states = (int)state_->edge_from_parent_state_ids->size();
-        if (edge_from_parent_num_states > 2){
+        int seq_from_parent_num_states = (int)state_->seq_from_parent_state_ids->size();
+        if (seq_from_parent_num_states > 2){
             // Add the sequence from the parent to this state to the path.
             PathType seq_states;
             std::vector<double> seq_transition_costs;
-            for (int i {0}; i < edge_from_parent_num_states; ++i){
-                seq_states.push_back(action_space_ptr_->getRobotState(state_->edge_from_parent_state_ids->at(i))->state);
-                seq_transition_costs.push_back(state_->edge_from_parent_transition_costs->at(i));
+            for (int i {0}; i < seq_from_parent_num_states; ++i){
+                seq_states.push_back(action_space_ptr_->getRobotState(state_->seq_from_parent_state_ids->at(i))->state);
+                seq_transition_costs.push_back(state_->seq_from_parent_transition_costs->at(i));
             }
             seq_states_to_child.push_back(seq_states);
             seq_transition_costs_to_child.push_back(seq_transition_costs);
 
             // Assert that this transition cost is the same as the one from the parent to the current state.
-            double edge_from_parent_total_cost = vectorSum(*state_->edge_from_parent_transition_costs);
-            double rounded_edge_from_parent_total_cost = std::round(edge_from_parent_total_cost * 1000) / 1000;
+            double seq_from_parent_total_cost = vectorSum(*state_->seq_from_parent_transition_costs);
+            double rounded_seq_from_parent_total_cost = std::round(seq_from_parent_total_cost * 1000) / 1000;
             double rounded_g_difference =
                         std::round((state_->g - getSearchState(state_->parent_id)->g) * 1000) / 1000;
-            if (rounded_edge_from_parent_total_cost != rounded_g_difference){
-                printf("Edge from parent total cost: %f and rounded g difference: %f\n", edge_from_parent_total_cost, rounded_g_difference);
+            if (rounded_seq_from_parent_total_cost != rounded_g_difference){
+                printf("Edge from parent total cost: %f and rounded g difference: %f\n", seq_from_parent_total_cost, rounded_g_difference);
                 std::cout << RED << "Parent state: " << action_space_ptr_->getRobotState(state_->parent_id)->state << std::endl;
                 std::cout << "Current state: " << action_space_ptr_->getRobotState(state_->state_id)->state << std::endl;
-                std::cout << "Edge from parent total cost: " << edge_from_parent_total_cost << std::endl;
+                std::cout << "Edge from parent total cost: " << seq_from_parent_total_cost << std::endl;
                 std::cout << "State g: " << state_->g << std::endl;
                 std::cout << "Parent g: " << getSearchState(state_->parent_id)->g << std::endl;
                 std::cout << "Expected: " << state_->g - getSearchState(state_->parent_id)->g << " and got "
-                          << edge_from_parent_total_cost << RESET << std::endl;
+                          << seq_from_parent_total_cost << RESET << std::endl;
                 throw std::runtime_error("The edge from parent total cost is not equal to the difference between the g values of the parent and the current state.");
             }
             state_ = getSearchState(state_->parent_id);

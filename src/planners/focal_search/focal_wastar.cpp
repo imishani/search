@@ -265,12 +265,12 @@ void ims::FocalwAStar::setStateVals(int state_id,
                                     int parent_id,
                                     double transition_cost,
                                     double transition_subcost,
-                                    const std::vector<int>& edge_from_parent_state_ids,
-                                    const std::vector<double>& edge_from_parent_transition_costs)
+                                    const std::vector<int>& seq_from_parent_state_ids,
+                                    const std::vector<double>& seq_from_parent_transition_costs)
 {
     setStateVals(state_id, parent_id, transition_cost, transition_subcost);
     auto state = getSearchState(state_id);
-    state->edge_from_parent_state_ids = std::make_shared<std::vector<int>>(edge_from_parent_state_ids);
-    state->edge_from_parent_transition_costs = std::make_shared<std::vector<double>>(edge_from_parent_transition_costs);
+    state->seq_from_parent_state_ids = std::make_shared<std::vector<int>>(seq_from_parent_state_ids);
+    state->seq_from_parent_transition_costs = std::make_shared<std::vector<double>>(seq_from_parent_transition_costs);
 
 }

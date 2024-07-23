@@ -118,8 +118,8 @@ namespace ims{
                           SearchState* parent_id,
                           double new_cost,
                           double new_subcost,
-                          const std::vector<int>& edge_from_parent_cfg_state_ids,
-                          const std::vector<double>& edge_from_parent_transition_costs);
+                          const std::vector<int>& seq_from_parent_cfg_state_ids,
+                          const std::vector<double>& seq_from_parent_transition_costs);
 
         /// @brief Get a search state given its configuration-id and safe interval.
         /// @param cfg_state_id The configuration id.

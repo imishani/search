@@ -334,15 +334,15 @@ void ims::FocalwSIPP::setStateVals(SearchState* search_state_ptr,
                                    SearchState* parent_search_state_ptr,
                                    double g_new,
                                    double c_new,
-                                   const std::vector<int>& edge_from_parent_cfg_state_ids,
-                                      const std::vector<double>& edge_from_parent_transition_costs){
+                                   const std::vector<int>& seq_from_parent_cfg_state_ids,
+                                      const std::vector<double>& seq_from_parent_transition_costs){
     search_state_ptr->parent_id = parent_search_state_ptr->state_id;
     search_state_ptr->g = g_new;
     search_state_ptr->c = c_new;
     search_state_ptr->h = computeHeuristic(search_state_ptr->cfg_state_id);
     search_state_ptr->f = g_new + params_.epsilon * search_state_ptr->h;
-    search_state_ptr->edge_from_parent_state_ids = std::make_shared<std::vector<int>>(edge_from_parent_cfg_state_ids);
-    search_state_ptr->edge_from_parent_transition_costs = std::make_shared<std::vector<double>>(edge_from_parent_transition_costs);
+    search_state_ptr->seq_from_parent_state_ids = std::make_shared<std::vector<int>>(seq_from_parent_cfg_state_ids);
+    search_state_ptr->seq_from_parent_transition_costs = std::make_shared<std::vector<double>>(seq_from_parent_transition_costs);
 }
 
 auto ims::FocalwSIPP::getOrCreateSearchStateFromCfgIdAndSafeInterval(int cfg_state_id,
@@ -425,17 +425,17 @@ void ims::FocalwSIPP::reconstructPath(std::vector<StateType>& path, std::vector<
         auto parent_search_state = getSearchState(search_state->parent_id);
         // Two options to deal with adding a state to the reverse path.
         // First, if there are intermediate edge states from the added state to the existing state.
-        int edge_from_parent_num_states = (int)search_state->edge_from_parent_state_ids->size();
+        int seq_from_parent_num_states = (int)search_state->seq_from_parent_state_ids->size();
         // Assertion for convention: cost between any two states should be exactly 1.
-        assert(edge_from_parent_num_states == (int)vectorSum(*search_state->edge_from_parent_transition_costs) + 1);
+        assert(seq_from_parent_num_states == (int)vectorSum(*search_state->seq_from_parent_transition_costs) + 1);
         // The edge from the parent includes the parent and the child state. If there are additional ones, insert them.
-        if (edge_from_parent_num_states > 2){
+        if (seq_from_parent_num_states > 2){
             // The child state is already in the path. Start adding states from the edge.
-            for (int i{edge_from_parent_num_states - 2}; i >= 0; --i) {
+            for (int i{seq_from_parent_num_states - 2}; i >= 0; --i) {
                 // Get the state id.
-                int edge_cfg_state_id = search_state->edge_from_parent_state_ids->at(i);
+                int edge_cfg_state_id = search_state->seq_from_parent_state_ids->at(i);
                 // Get the transition cost from this state to its child.
-                double transition_cost = search_state->edge_from_parent_transition_costs->at(i);
+                double transition_cost = search_state->seq_from_parent_transition_costs->at(i);
                 // Add the timed configuration of this state and the cost to the path.
                 StateType state_to_add = action_space_ptr_->getRobotState(edge_cfg_state_id)->state;
                 state_to_add.push_back(path.back().back() - transition_cost);

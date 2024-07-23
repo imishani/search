@@ -133,8 +133,8 @@ void ims::EAwAStarUniformCost::addValidSubpathToOpenList(const std::vector<std::
 //        // double transition_c_cost = action_space_ptr_->getTransitionConflictCost(prev_state_id, state_id);
 //        // search_state->c = getSearchState(search_state->parent_id)->c + transition_c_cost;
 //        // Set the sequence from the parent to the state. In this first implementation, we assume that the sequence is a single edge.
-//        search_state->edge_from_parent_state_ids = {prev_state_id, state_id};
-//        search_state->edge_from_parent_transition_costs = {costs[i-1], 0.0};
+//        search_state->seq_from_parent_state_ids = {prev_state_id, state_id};
+//        search_state->seq_from_parent_transition_costs = {costs[i-1], 0.0};
 //
 //        // Add the state to the open list if it is not already there.
 //        // TODO(yoraish): does it makes sense to update states already in open? This may assign currently "good" state-parents to "bad" ones instead. For now, any state in open is not changed.
