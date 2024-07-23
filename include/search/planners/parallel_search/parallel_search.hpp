@@ -113,7 +113,7 @@ protected:
             std::cout << "State: " << state_id << " Parent: " << parent_id << " g: " << g << " f: " << f << std::endl;
         }
 
-        void print(std::string str) {
+        virtual void print(std::string str) {
             std::cout << str
                       << "State: " << state_id
                       << " | Parent: " << parent_id
@@ -125,6 +125,26 @@ protected:
 
         double getLowerBound() const override {
             return f;
+        }
+    };
+    
+    struct SearchEdge : public ParallelSearch::SearchState {
+        int edge_id = UNSET;
+        double cost = INF_DOUBLE;
+        bool is_proxy = true;
+        
+        bool isState() const {
+            return !is_proxy;
+        }
+
+        void print(std::string str) override {
+            std::cout << str
+                      << "Edge: " << edge_id
+                      << " | Parent: " << parent_id
+                      << " | g: " << g
+                      << " | f: " << f
+                      << " | h: " << h
+                      << std::endl;
         }
     };
 
