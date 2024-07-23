@@ -29,8 +29,6 @@ add_library(search SHARED
         src/planners/multi_agent/cbs_mp.cpp
         src/planners/multi_agent/ecbs.cpp
         src/planners/multi_agent/ecbs_mp.cpp
-        src/planners/multi_agent/eacbs.cpp
-        src/planners/multi_agent/eacbs_mp.cpp
         src/planners/multi_agent/eaecbs.cpp
         src/planners/multi_agent/eaecbs_mp.cpp
         src/planners/multi_agent/cbs_sphere3d.cpp
@@ -91,9 +89,6 @@ target_link_libraries(run_2d_ackermann_rob_nav_wastar search ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_cbs_or_ecbs domains/2d_mapf/run_2d_cbs_or_ecbs.cpp)
 target_link_libraries(run_2d_mapf_cbs_or_ecbs search ${Boost_LIBRARIES})
-
-add_executable(run_2d_mapf_eacbs domains/2d_mapf/run_2d_eacbs.cpp)
-target_link_libraries(run_2d_mapf_eacbs search ${Boost_LIBRARIES})
 
 add_executable(run_2d_mapf_eaecbs domains/2d_mapf/run_2d_eaecbs.cpp)
 target_link_libraries(run_2d_mapf_eaecbs search ${Boost_LIBRARIES})
