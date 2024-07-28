@@ -102,17 +102,6 @@ public:
     /// @return True if the trajectories are connected
     /// TODO: Remove from here. It should be in action space!!
     bool areTrajectoriesConnected(int traj1_id, int traj2_id) {
-//        if ((traj1_id == 58 && traj2_id == 57) || (traj1_id == 57 && traj2_id == 58)) {
-//            std::cout << "traj1_id: " << traj1_id << ", traj2_id: " << traj2_id << std::endl;
-//        }
-
-        // check if this pair is in disconnected_trajectories_
-        for (auto disconnected_traj : disconnected_trajectories_) {
-            if ((disconnected_traj.first == traj1_id && disconnected_traj.second == traj2_id) ||
-                (disconnected_traj.first == traj2_id && disconnected_traj.second == traj1_id)) {
-                return true; // TODO: fix this. create a new function for checking connectivity
-            }
-        }
 
         std::queue<int> q;
         std::vector<bool> visited(mosaic_trajectories_.size(), false);
@@ -133,28 +122,25 @@ public:
             }
         }
         return false;
-//
-//        // check if traj2_id is in traj1 edges
-//        for (auto edge : traj1->edges) {
-//            if (edge.first == traj2_id) {
-//                return true;
-//            }
-//        }
-//        //check if traj1_id and traj2_id are connect by checking connected_trajectories_
-//        for (auto connected_traj : connected_trajectories_) {
-//            if ((connected_traj.first == traj1_id && connected_traj.second == traj2_id) ||
-//                (connected_traj.first == traj2_id && connected_traj.second == traj1_id)) {
-//                return true;
-//            }
-//        }
-//        return false;
+    }
+
+    /// @brief A function to lookup whether two trajectories cannot be connected
+    /// @param traj1_id The id of the first trajectory
+    /// @param traj2_id The id of the second trajectory
+    /// @return True if the trajectories are unconnectable
+    bool areTrajectoriesUnconnectable(int traj1_id, int traj2_id) {
+
+        return std::any_of(unconnectable_trajectories_.begin(), unconnectable_trajectories_.end(), [traj1_id, traj2_id](const std::pair<int, int>& disconnected_traj) {
+            return (disconnected_traj.first == traj1_id && disconnected_traj.second == traj2_id) ||
+                   (disconnected_traj.first == traj2_id && disconnected_traj.second == traj1_id);
+        });
     }
 
     std::vector<Trajectory*> mosaic_trajectories_; // The trajectories
 
     std::vector<std::pair<int, int>> connected_trajectories_; // The connected trajectories
 
-    std::vector<std::pair<int, int>> disconnected_trajectories_; // The disconnected trajectories. TODO: This can be optimize in many cool ways!
+    std::vector<std::pair<int, int>> unconnectable_trajectories_; // The disconnected trajectories. TODO: This can be optimize in many cool ways!
     // TODO: It is important to also make sure that if we cannot guarantee that two trajectories are disconnected, then we allow later on to try to connect them again.
 
 };

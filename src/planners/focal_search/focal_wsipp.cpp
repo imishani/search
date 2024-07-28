@@ -111,7 +111,11 @@ void ims::FocalwSIPP::initializePlanner(const std::shared_ptr<SubcostConstrained
     heuristic_->setStart(const_cast<StateType &>(start_wo_time));
     // Evaluate the goal state
     goal_state->parent_id = PARENT_TYPE(GOAL);
-    heuristic_->setGoal(const_cast<StateType &>(goal_wo_time));
+    goal_constraint_.type = SINGLE_SEARCH_STATE_GOAL;
+    goal_constraint_.check_goal = &singleGoalConstraint;
+    goal_constraint_.check_goal_user = &goal_state->state_id;
+    goal_constraint_.action_space_ptr = action_space_ptr_;
+    heuristic_->setGoalConstraint(goal_constraint_);
     goal_state->h = 0;
 
     // Set the in open.

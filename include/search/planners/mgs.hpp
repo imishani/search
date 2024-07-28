@@ -216,6 +216,10 @@ public:
                            const StateType& start, const StateType& goal);
 
     inline void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                                  const std::vector<StateType>& starts,
+                                  const GoalConstraint& goal_constraint) override { throw std::runtime_error("MGS::initializePlanner() called with an ActionSpace that is not a ActionSpaceMGS."); }
+
+    inline void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
                                   const StateType& starts,
                                   const StateType& goals) override { throw std::runtime_error("MGS::initializePlanner() called with an ActionSpace that is not a ActionSpaceMGS."); }
 

@@ -298,11 +298,12 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
     std::pair<Eigen::VectorXd , Eigen::VectorXd> closest_states;
 
     ///////////////////// Find the closest pair of trajectories /////////////////////
-    // Surprisingly, this takes the most time. TODO: We need to optimize this.
+    // Surprisingly, this takes most of the time. TODO: We need to optimize this.
     for (int i{0}; i < action_space_ptr_mosaic->mosaic_trajectories_.size(); i++) {
         Eigen::MatrixXd traj = action_space_ptr_mosaic->mosaic_trajectories_[i]->trajectory;
         for (int j {i}; j < action_space_ptr_mosaic->mosaic_trajectories_.size(); j++){
-            if (action_space_ptr_mosaic->areTrajectoriesConnected(i, j) || i == j) {
+            if (action_space_ptr_mosaic->areTrajectoriesConnected(i, j) ||
+            action_space_ptr_mosaic->areTrajectoriesUnconnectable(i, j) || (i == j)) {
                 continue;
             }
             Eigen::MatrixXd traj2 = action_space_ptr_mosaic->mosaic_trajectories_[j]->trajectory;
@@ -363,14 +364,8 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
 
     ims::wAStar planner(params);
     std::vector<ActionSequence> generated;
-//    StateType start = {user_data->start[0], user_data->start[1]};
-//    StateType goal = {user_data->goal[0], user_data->goal[1]};
     StateType start = {closest_states.first[0], closest_states.first[1]};
     StateType goal = {closest_states.second[0], closest_states.second[1]};
-
-//    std::cout << "Trajectories: " << traj_pair.first << ", " << traj_pair.second << std::endl;
-//    std::cout << "Start: " << start[0] << ", " << start[1] << std::endl;
-//    std::cout << "Goal: " << goal[0] << ", " << goal[1] << std::endl;
 
     try {
         planner.initializePlanner(as, start, goal);
@@ -382,7 +377,7 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
     std::vector<StateType> path;
     if (!planner.plan(path)) {
         std::cout << RED << "Could not plan" << RESET << std::endl;
-        action_space_ptr_mosaic->disconnected_trajectories_.emplace_back(traj_pair);
+        action_space_ptr_mosaic->unconnectable_trajectories_.emplace_back(traj_pair);
         delete heuristic;
         return generated;
     }

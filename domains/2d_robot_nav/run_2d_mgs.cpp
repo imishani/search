@@ -139,8 +139,7 @@ int main(int argc, char** argv) {
             planner.initializePlanner(ActionSpace, controllers, starts[i], goals[i]);
         }
         catch (std::exception& e) {
-            std::cout << e.what() << std::endl;
-            std::cout << RED << "Start or goal is not valid!" << RESET << std::endl;
+            std::cout << RED << e.what() << RESET << std::endl;
             continue;
         }
         // plan
@@ -151,7 +150,6 @@ int main(int argc, char** argv) {
             path_.clear();
             continue;
         }
-
         else
             std::cout << MAGENTA << "Path found!" << RESET << std::endl;
         ims::MGSPlannerStats stats = planner.reportStats();

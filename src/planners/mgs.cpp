@@ -79,9 +79,9 @@ void ims::MGS::initializePlanner(const std::shared_ptr<ActionSpaceMGS>& action_s
     goals_.push_back(goal_ind_);
 
     // Evaluate the goal state
-    goal_constraint_.type = MULTI_SEARCH_STATE_GOAL;
-    goal_constraint_.check_goal = &multiGoalConstraint;
-    goal_constraint_.check_goal_user = &goals_;
+    goal_constraint_.type = SINGLE_SEARCH_STATE_GOAL;
+    goal_constraint_.check_goal = &singleGoalConstraint;
+    goal_constraint_.check_goal_user = &goal_->state_id;
     goal_constraint_.action_space_ptr = action_space_ptr_;
 
 
