@@ -126,19 +126,39 @@ class edgeActionSpace2dRob : public ims::EdgeActionSpace {
     }
 
     bool getSuccessor(int curr_edge_ind,
-                      int& successor,
-                      double& cost) override {
+                      std::vector<int>& seqs_state_id,
+                      std::vector<double>& seqs_transition_cost) override {
         auto curr_edge = this->getRobotEdge(curr_edge_ind);
+        auto action_seq = curr_edge->action;
+        auto cost = getActionCost(action_seq);
+        bool is_action_valid = true;
         StateType next_state_val = StateType(curr_edge->state);
-        cost = 0;
-        for (auto act : curr_edge->action) {
-            std::transform(next_state_val.begin(), next_state_val.end(), act.begin(), next_state_val.begin(), std::plus<>());
+
+        for (size_t j{0}; j < action_seq.size(); j++) {
+            const Action& action = action_seq[j];
+            StateType next_state_val = StateType(curr_edge->state.size());
+            std::transform(curr_edge->state.begin(), curr_edge->state.end(), action.begin(),
+                           next_state_val.begin(), std::plus<>());
+            // if (1) {
+            //     double dummy = 0;
+            //     for (int i = 0; i < 5000; i++) {
+            //         dummy += floor(pow(0.125, 0.5));
+            //         next_state_val[0] += 1;
+            //         next_state_val[0] -= 1;
+            //     }
+            // }
             if (!isStateValid(next_state_val)) {
-                return false;
+                is_action_valid = false;
+                break;
             }
-            cost += getActionCost(act);
+            int next_state_ind = getOrCreateRobotState(next_state_val);
+            // Add to action edge.
+            seqs_state_id.push_back(next_state_ind);
+            seqs_transition_cost.push_back(cost[j]);
         }
-        successor = getOrCreateRobotState(next_state_val);
+        if (!is_action_valid) {
+            return false;
+        }
         return true;
     }
 
@@ -157,15 +177,17 @@ class edgeActionSpace2dRob : public ims::EdgeActionSpace {
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val) { return isStateValid(state_val); });
     }
 
-    double getActionCost(const Action& action) {
-        std::vector<Action> actions = this->action_type_->getPrimActions();
-        for (int i{0}; i < actions.size(); ++i) {
-            if (action == actions[i]) {
+    std::vector<double> getActionCost(const ActionSequence& action) {
+        std::vector<ActionSequence> prim_action_seqs;
+        std::vector<std::vector<double>> prim_action_transition_costs;
+        action_type_->getPrimActions(prim_action_seqs, prim_action_transition_costs);
+        for (int i{0}; i < prim_action_seqs.size(); ++i) {
+            if (action == prim_action_seqs[i]) {
                 auto cost_seq = this->action_type_->action_seqs_transition_costs[i];
-                return std::accumulate(cost_seq.begin(), cost_seq.end(), 0.0);
+                return cost_seq;
             }
         }
 
-        throw std::runtime_error("Action not found in action_type_");
+        throw std::runtime_error("ActionSeq not found in action_type_'s prim action seqs");
     }
 };

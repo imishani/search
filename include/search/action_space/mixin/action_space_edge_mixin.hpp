@@ -181,18 +181,18 @@ class ActionSpaceEdgeMixin {
     /// @return Success bool
     /// @note The id is assumed to be valid - meaning that the state exists in states_
     virtual bool createRobotEdgesFromState(int state_id, std::vector<int>& edges_ind) = 0;
-    
+
     /// @brief Get single Successor by edge id
-    /// @param curr_egde_ind The current state index
-    /// @param successors The successor state
+    /// @param seqs_state_ids All states between the current state and the successor, including them. For example, say we have a current state [1,1] and a successor [1,4]. Let's say the edge connecting them is [1,1], [1,2], [1,3], [1,4]. If their state ids are 101, 102, 103, 104, then seqs_state_ids should be [101, 102, 103. 104].
+    /// @param seqs_transition_costs The cost of the transitions between all states on the edge. In the example above, the the seqs_transition_costs should be the cost of the transition from [1,1] to [1,2] and [1,2] to [1,3] and [1,3] to [1,4], for example: [1,1,1,0], with each element being the cost of the transition from i to i+1. The last entry therefore is zero since it is the cost of the transition from the last state to an unknown next state.
     /// @return Success bool
     /// @note Beware the you should make sure that the state is discretized! (see ActionType::Discretization)
     /// If you are using an implicit graph where the state space is not discrete then define the discretization
     /// based on the tolerance for comparison between states.
     /// @attention You should use getOrCreateRobotState() and getRobotState() when generating the successors!
     virtual bool getSuccessor(int curr_edge_ind,
-                              int& successor,
-                              double& cost) = 0;
+                              std::vector<int>& seqs_state_ids,
+                              std::vector<double>& seqs_transition_costs) = 0;
 
     /// @brief Clear all the cached edges data in the action space.
     virtual void resetPlanningData() {
