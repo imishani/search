@@ -12,13 +12,16 @@
 #include <boost/algorithm/string.hpp>
 #include <search/common/experience_graph.hpp>
 #include <search/common/intrusive_heap.h>
+#include <torch/torch.h>
+#include <torch/script.h>
+#include "../../../../libtorch/include/torch/csrc/jit/api/module.h"
 
 
 class Scene2DRob : public ims::SceneInterface {
 public:
     explicit Scene2DRob(std::vector<std::vector<int>> &map_) : ims::SceneInterface(){
         map = &map_;
-        map_size = {map->size(), map[0].size()};
+        map_size = {map->size(), map->at(0).size()};
     }
 
     std::vector<std::vector<int>>* map;
@@ -208,6 +211,201 @@ public:
                     } else {
                         edge_data.push_back(curr_state);
                     }
+                }
+            }
+        }
+        return true;
+    }
+
+    bool loadEGraphFromNN(const std::string& path) override {
+        int width = env_->map_size[0];
+        int height = env_->map_size[1];
+
+        // Define Idx2action mappings
+        std::vector<std::pair<int, int>> Idx2action(8);
+        Idx2action[0] = std::make_pair(1, 1);
+        Idx2action[1] = std::make_pair(1, 0);
+        Idx2action[2] = std::make_pair(1, -1);
+        Idx2action[3] = std::make_pair(0, -1);
+        Idx2action[4] = std::make_pair(-1, -1);
+        Idx2action[5] = std::make_pair(-1, 0);
+        Idx2action[6] = std::make_pair(-1, 1);
+        Idx2action[7] = std::make_pair(0, 1);
+
+        // First generate num_traj start and goal pairs
+        int num_traj = 5;
+        int num_samples = 2*num_traj;
+        std::vector<StateType> sampled_states;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                StateType new_state;
+                new_state.push_back(x);
+                new_state.push_back(y);
+                if (isStateValid(new_state)) {
+                    sampled_states.push_back(new_state);
+                }
+            }
+        }
+        // Get 2*num_traj non-duplicate states
+        if (sampled_states.size() > num_samples) {
+            // Randomly sample num_samples points from points
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::shuffle(sampled_states.begin(), sampled_states.end(), gen);
+            sampled_states.resize(num_samples);
+        }
+        // Make sure we have even number of sampled states. Half of them will be start states and the other half will
+        // be goal states
+        if (sampled_states.size() % 2 != 0) {
+            sampled_states.pop_back();
+        }
+        num_traj = sampled_states.size() / 2;
+        // Prepare input tensors
+        torch::Tensor cur_states = torch::empty({num_traj, 4}, torch::dtype(torch::kFloat));
+        for (int i = 0; i<num_traj; i++) {
+            cur_states.index({i, 0}) = sampled_states[i][0];
+            cur_states.index({i, 1}) = sampled_states[i][1];
+            cur_states.index({i, 2}) = sampled_states[i+num_traj][0];
+            cur_states.index({i, 3}) = sampled_states[i+num_traj][1];
+        }
+        // std::cout << cur_states << std::endl;
+        sampled_states.clear();
+
+        torch::jit::script::Module module;
+        try {
+            module = torch::jit::load(path);
+        }
+        catch (std::exception& e) {
+            std::cout << "Cannot load NN model!" << std::endl;
+            return false;
+        }
+
+        // // TODO: For some reason, libtorch cannot detect available GPU for now.
+        // auto device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
+        // module.to(device);
+
+
+        int max_steps = 10;
+        // Initialize foot_steps
+        torch::Tensor foot_steps = torch::empty({max_steps, num_traj, 7}, torch::kInt); // 7 = 4 (state) + 3 (actions)
+        for (int step = 0; step < max_steps; ++step) {
+            // torch::Tensor input_tensor = cur_states.to(device);
+            torch::Tensor input_tensor = cur_states.clone();
+            input_tensor.index({torch::indexing::Slice(), 0}) /= width;
+            input_tensor.index({torch::indexing::Slice(), 1}) /= height;
+            input_tensor.index({torch::indexing::Slice(), 2}) /= width;
+            input_tensor.index({torch::indexing::Slice(), 3}) /= height;
+
+            module.eval();
+            torch::Tensor outputs;
+            {
+                torch::NoGradGuard no_grad;
+                // std::cout << "-------------------------------------------" << std::endl;
+                // std::cout << "Input Tensor: " << std::endl;
+                // std::cout << input_tensor << std::endl;
+
+                outputs = module.forward({input_tensor}).toTensor();
+
+                // std::cout << "Output Tensor: " << std::endl;
+                // std::cout << outputs << std::endl;
+            }
+
+            // Get the index of the max log-probability
+            auto max_indices = std::get<1>(outputs.max(1));
+            // std::cout << max_indices << std::endl;
+
+            // Convert to actions
+            // Convert vector of pairs to a tensor (n x 2 tensor)
+            torch::Tensor action_tensor = torch::empty({num_traj, 2}, torch::kFloat);
+            for (int i = 0; i < num_traj; ++i) {
+                int index = max_indices[i].item<int>();
+                action_tensor[i][0] = Idx2action[index].first;
+                action_tensor[i][1] = Idx2action[index].second;
+            }
+
+
+            // Prepare foot_step data
+            torch::Tensor foot_step = cur_states.clone();
+            max_indices = max_indices.view({num_traj, 1});
+            // std::cout << cur_states.sizes() << std::endl;
+            // std::cout << max_indices.sizes() << std::endl;
+            // std::cout << action_tensor.sizes() << std::endl;
+            foot_step = torch::cat({foot_step, max_indices}, 1);
+            foot_step = torch::cat({foot_step, action_tensor}, 1);
+
+            // Ensure integer type
+            foot_step = foot_step.to(torch::kInt);
+            // std::cout << "Foot Step: " << std::endl;
+            // std::cout << foot_step << std::endl;
+
+            // Store in foot_steps
+            foot_steps.index({step}) = foot_step;
+
+            // Update cur_states
+            cur_states.index({torch::indexing::Slice(), 2}) += action_tensor.index({torch::indexing::Slice(), 0});
+            cur_states.index({torch::indexing::Slice(), 3}) += action_tensor.index({torch::indexing::Slice(), 1});
+            // std::cout << action_tensor << std::endl;
+            // std::cout << cur_states << std::endl;
+        }
+
+        foot_steps = foot_steps.permute({1, 0, 2});
+        // std::cout << foot_steps << std::endl;
+
+        std::vector<PathType> primitives;
+        for(int i=0; i<num_traj; i++) {
+            PathType new_prim;
+            new_prim.resize(max_steps);
+            for(int j=0; j < max_steps; j++) {
+                new_prim[j].push_back(foot_steps[i][j][2].item<int>());
+                new_prim[j].push_back(foot_steps[i][j][3].item<int>());
+            }
+            if(isPathValid(new_prim)) {
+                primitives.push_back(new_prim);
+            }
+        }
+
+        // for(int i = 0; i<primitives.size(); i++) {
+        //     std::cout << "--------------------------------" << std::endl;
+        //     for(int j=0; j<primitives[i].size(); j++) {
+        //         std::cout << primitives[i][j][0] << ", " << primitives[i][j][1] << std::endl;
+        //     }
+        // }
+
+        for(std::vector<StateType> prim : primitives) {
+            auto& prev_state = prim.front();
+            auto pid = egraph_.insert_node(prev_state);
+            int entry_s_id = getOrCreateRobotState(prev_state);
+
+            // map the state id to the node id in the experience graph
+            if (pid == egraph_.num_nodes() - 1){
+                state_to_nodes_map_[prev_state].push_back(pid);
+                egraph_state_ids_.resize(pid + 1, -1);
+                egraph_state_ids_[pid] = entry_s_id;
+            }
+            states_to_nodes_[entry_s_id] = pid;
+
+            std::vector<StateType> edge_data;
+            for (size_t i = 1; i < prim.size(); ++i) {
+                auto& curr_state = prim[i];
+                StateType cs = curr_state;
+                if (curr_state != prev_state) { // TODO: check if its fine
+                    auto cid = egraph_.insert_node(curr_state);
+                    int curr_s_id = getOrCreateRobotState(curr_state);
+
+                    // map the state id to the node id in the experience graph
+                    if (cid == egraph_.num_nodes() - 1){
+                        state_to_nodes_map_[curr_state].push_back(cid);
+                        egraph_state_ids_.resize(cid + 1, -1);
+                        egraph_state_ids_[cid] = curr_s_id;
+                    }
+                    states_to_nodes_[curr_s_id] = cid;
+
+                    // add edge
+                    egraph_.insert_edge(pid, cid, edge_data);
+                    pid = cid;
+                    prev_state = cs;
+                } else {
+                    edge_data.push_back(curr_state);
                 }
             }
         }

@@ -1,14 +1,25 @@
 cmake_minimum_required(VERSION 3.16.3)
 project(search)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
+set(Torch_DIR "~/libtorch/share/cmake/Torch")
+set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda-12.5")
 
 # add include directories
 include_directories(include)
+include_directories(${CUDA_INCLUDE_DIRS})
+include_directories(${Boost_INCLUDE_DIRS})
 
 # link boost libraries
 find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
-include_directories(${Boost_INCLUDE_DIRS})
+find_package(Torch REQUIRED)
+find_package(Threads REQUIRED)
+find_package(CUDAToolkit REQUIRED)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+set(CMAKE_CUDA_COMPILER "/usr/local/cuda-12.5/bin/nvcc")
+list(APPEND CMAKE_PREFIX_PATH "/home/spencer/libtorch/share/cmake")
+
 
 add_library(search SHARED
         src/planners/best_first_search.cpp
@@ -58,7 +69,18 @@ install(TARGETS search
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 add_executable(run_2d_egraph_wastar domains/2d_robot_nav/run_2d_egraph_wastar.cpp)
-target_link_libraries(run_2d_egraph_wastar search ${Boost_LIBRARIES})
+target_link_libraries(run_2d_egraph_wastar search ${Boost_LIBRARIES} ${TORCH_LIBRARIES})
+target_link_directories(run_2d_egraph_wastar PUBLIC ${TORCH_INCLUDE_DIRS})
+set_property(TARGET run_2d_egraph_wastar PROPERTY CXX_STANDARD 17)
+
+add_executable(run_2d_egraph_wastar_nn domains/2d_robot_nav/run_2d_egraph_wastar_nn.cpp)
+target_link_libraries(run_2d_egraph_wastar_nn search ${Boost_LIBRARIES} ${TORCH_LIBRARIES})
+target_link_directories(run_2d_egraph_wastar_nn PUBLIC ${TORCH_INCLUDE_DIRS})
+set_property(TARGET run_2d_egraph_wastar_nn PROPERTY CXX_STANDARD 17)
+
+add_executable(temp_test temp_test.cpp)
+target_link_libraries(temp_test "${TORCH_LIBRARIES}")
+set_property(TARGET temp_test PROPERTY CXX_STANDARD 17)
 
 add_executable(run_2d_rob_nav_astar domains/2d_robot_nav/run_2d_astar.cpp)
 target_link_libraries(run_2d_rob_nav_astar search ${Boost_LIBRARIES})
@@ -70,7 +92,7 @@ add_executable(run_2d_rob_nav_bfs domains/2d_robot_nav/run_2d_bfs.cpp)
 target_link_libraries(run_2d_rob_nav_bfs search ${Boost_LIBRARIES})
 
 add_executable(run_2d_rob_nav_wastar domains/2d_robot_nav/run_2d_wastar.cpp)
-target_link_libraries(run_2d_rob_nav_wastar search ${Boost_LIBRARIES})
+target_link_libraries(run_2d_rob_nav_wastar search ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(run_2d_rotation_rob_nav_wastar domains/2d_robot_nav/run_2d_rotation_wastar.cpp)
 target_link_libraries(run_2d_rotation_rob_nav_wastar search ${Boost_LIBRARIES})

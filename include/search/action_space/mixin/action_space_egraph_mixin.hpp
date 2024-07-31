@@ -55,6 +55,10 @@ public:
     /// @param path The path to the file
     virtual bool loadEGraph(const std::string &path) = 0;
 
+    /// @brief Load the experience graph by using a NN generated trajectories
+    /// @param path The path to the NN model
+    virtual bool loadEGraphFromNN(const std::string &path) = 0;
+
     /// @brief Get the E-graph nodes
     /// @param nodes The vector to store the nodes in
     virtual void getEGraphNodes(int state_id,

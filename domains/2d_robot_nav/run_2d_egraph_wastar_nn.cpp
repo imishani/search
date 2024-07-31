@@ -1,50 +1,25 @@
-/*
- * Copyright (C) 2023, Itamar Mishani
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the Carnegie Mellon University nor the names of its
- *       contributors may be used to endorse or promote products derived from
- *       this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- */
-/*!
- * \file   run_2d_wastar.cpp
- * \author Itamar Mishani (imishani@cmu.edu)
- * \date   3/28/23
-*/
-
-
+//
+// Created by spencer on 7/29/24.
+//
 #include <boost/filesystem.hpp>
+#include <torch/torch.h>
+#include <torch/script.h>
 #include <vector>
 #include <memory>
 #include <iostream>
+#include <fstream>
 #include <string>
+#include <random>
 #include <cmath>
 
 // project includes
-#include <search/planners/wastar.hpp>
-#include <search/heuristics/standard_heuristics.hpp>
-#include "action_space_2d_rob.hpp"
+#include "search/planners/egraph_wastar.hpp"
+#include "search/heuristics/standard_heuristics.hpp"
+#include "search/heuristics/base_heuristic.hpp"
+#include "experience_heuristic_2d.hpp"
+#include "action_space_2d_rob_experience.hpp"
 #include "utils.hpp"
+
 
 
 int main(int argc, char** argv) {
@@ -55,8 +30,8 @@ int main(int argc, char** argv) {
     }
     std::vector<std::string> maps;
 
-    boost::filesystem::path full_path( boost::filesystem::current_path() );
-    std::cout << "Current path is : " << full_path.string() << std::endl;
+    // boost::filesystem::path full_path( boost::filesystem::current_path() );
+    // std::cout << "Current path is : " << full_path.string() << std::endl;
     // At each emplace_back, use the full pathh and concatenate the map name
     maps.emplace_back("/home/spencer/repos/search/domains/2d_robot_nav/data/hrt201n/hrt201n.map");
     maps.emplace_back("/home/spencer/repos/search/domains/2d_robot_nav/data/den501d/den501d.map");
@@ -82,31 +57,33 @@ int main(int argc, char** argv) {
     catch (std::exception& e) {
         std::cout << YELLOW << "Didn't specify whether to save the path or not. Default is not to save." << RESET << std::endl;
     }
-    std::string path = starts_goals_path[map_index];
 
+    std::string path = starts_goals_path[map_index];
+    std::string model_path = path + "traced_model.pt";
     std::string map_file = maps[map_index];
 
     std::string type;
     int width, height;
     std::vector<std::vector<int>> map = loadMap(map_file.c_str(), type, width, height, scale);
-
+    std::cout << "get here" << std::endl;
     std::vector<std::vector<double>> starts, goals;
     loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
 
+
     // construct the planner
     std::cout << "Constructing planner..." << std::endl;
-    // construct planner params
-    ims::EuclideanHeuristic* heuristic = new ims::EuclideanHeuristic();
-    double epsilon = 10.0;
-    ims::wAStarParams params (heuristic, epsilon);
     // construct the scene and the action space
+
+    // construct scene
     Scene2DRob scene (map);
-    ActionType2dRob action_type;
 
     // log the results
     std::unordered_map<int, PlannerStats> logs;
-    std::unordered_map<int, PathType> paths;
+    std::unordered_map<int, std::vector<StateType>> paths;
+    // std::vector<PlannerStats> logs(starts.size());
+    // std::vector<std::vector<StateType>> paths(starts.size());
     for (int i {0}; i < starts.size(); i++){
+        std::cout << "******************************************" << std::endl;
         // round the start and goal to the nearest integer
         std::cout << "Start: " << starts[i][0] << ", " << starts[i][1] << std::endl;
         std::cout << "Goal: " << goals[i][0] << ", " << goals[i][1] << std::endl;
@@ -121,26 +98,39 @@ int main(int argc, char** argv) {
         std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
         std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
 
-        std::shared_ptr<actionSpace2dRob> ActionSpace = std::make_shared<actionSpace2dRob>(scene, action_type);
+        // construct action type and other inputs for planner
+        ActionType2dRob action_type;
+        std::shared_ptr<ActionSpaceEGraph2DRob> ActionSpace = std::make_shared<ActionSpaceEGraph2DRob>(scene, action_type);
+
+        double epsilon = 10.0;
+        double egraph_epsilon = 5.0;
+        std::shared_ptr<ims::EuclideanHeuristic> origin_heuristic = std::make_shared<ims::EuclideanHeuristic>();
+        auto* heuristic = new ims::GenericEGraphHeuristic(origin_heuristic, ActionSpace);
+        heuristic->setEGraphWeight(egraph_epsilon);
+
+        // construct planner params
+        ims::ExperienceWAStarParams params(heuristic, epsilon, egraph_epsilon, model_path);
         // construct planner
-        ims::wAStar planner(params);
+        ims::ExperienceWAstar planner(params);
         // catch the exception if the start or goal is not valid
         try {
             planner.initializePlanner(ActionSpace, starts[i], goals[i]);
+            std::cout << "Planner initialized" << std::endl;
         }
         catch (std::exception& e) {
-            std::cout << RED << "Start or goal is not valid!" <<RESET << std::endl;
+            std::cout << RED << "Start or goal is not valid!" << RESET << std::endl;
             continue;
         }
         // plan
         std::cout << "Planning..." << std::endl;
         std::vector<StateType> path_;
         if (!planner.plan(path_)) {
-            std::cout << RED << "No path found!" << RESET << std::endl;
+            std::cout << "No path found!" << std::endl;
+            continue;
+//            return 0;
         }
-        else
-        {
-            std::cout << GREEN << "Path found!" << RESET << std::endl;
+        else{
+            std::cout << "Path found!" << std::endl;
             if (cache) {
                 // Save the path to a file as csv
                 std::string path_file = path + "experiences/" + "path_" + std::to_string(i) + ".csv";
@@ -154,27 +144,34 @@ int main(int argc, char** argv) {
                 file.close();
             }
         }
+
+
         PlannerStats stats = planner.reportStats();
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
         std::cout << "cost: " << stats.cost << std::endl;
         std::cout << "Path length: " << path_.size() << std::endl;
+        // logs.insert(std::make_pair(i, stats));
+        // paths.insert(std::make_pair(i, path_));
         std::cout << "Number of nodes expanded: " << stats.num_expanded << std::endl;
         std::cout << "Number of nodes generated: " << stats.num_generated << std::endl;
         std::cout << "suboptimality: " << stats.suboptimality << RESET << std::endl;
-        logs[i] = stats; // log the stats
-        paths[i] = path_; // log the path
+        // logs[i] = stats;
+        // paths[i] = path_;
+
+        delete heuristic;
     }
 
     // save the logs to a temporary file
-    logStats(logs, map_index, "wAstar");
+    // logStats(logs, map_index, "egraph_wastar");
+    //
+    // std::string path_file = logPaths(paths, map_index, scale);
 
-    std::string path_file = logPaths(paths, map_index, scale);
-
-    std::string plot_path = "/home/spencer/repos/search/domains/2d_robot_nav/scripts/visualize_paths.py";
-    std::string command = "python3 " + plot_path + " --filepath " + path_file;
-    std::cout << "Running the plot script..." << std::endl;
-
-    system(command.c_str());
+    // std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
+    // std::string command = "python3 " + plot_path + " --filepath " + path_file;
+    // std::cout << "Running the plot script..." << std::endl;
+    //
+    // system(command.c_str());
 
     return 0;
 }
+
