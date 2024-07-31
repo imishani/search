@@ -53,8 +53,8 @@ namespace ims {
 /// @class ParallelSearch Parameters
 struct ParallelSearchParams : public PlannerParams {
     /// @brief Constructor
-    explicit ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic) : PlannerParams(), heuristic_(heuristic) {}
-    explicit ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic, int num_threads, double epsilon) : PlannerParams(), heuristic_(heuristic), num_threads_(num_threads), epsilon_(epsilon) {}
+    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic) : PlannerParams(), heuristic_(heuristic) {}
+    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic, int num_threads, double epsilon) : PlannerParams(), heuristic_(heuristic), num_threads_(num_threads), epsilon_(epsilon) {}
 
     /// @brief Destructor
     ~ParallelSearchParams() override = default;
