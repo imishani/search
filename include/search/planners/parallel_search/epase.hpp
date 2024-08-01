@@ -46,8 +46,8 @@
 
 namespace ims {
 
-/// @class Parallel A* with Slow Expansion (PASE) Search class.
-/// @brief This is an algorithm that utilizes multi-threading to speed up the search process. The key idea is to expand independent states
+/// @class Edge-based Parallel A* with Slow Evaluation (ePASE) Search class.
+/// @brief This is an algorithm that utilizes multi-threading to speed up the search process. The key idea is to evaluate independent edges
 class Epase : public ParallelSearch {
    protected:
     /*FUNCTIONS*/
@@ -96,6 +96,6 @@ class Epase : public ParallelSearch {
     /// @return if the plan was successful or not
     bool plan(std::vector<StateType>& path);
 
-};  // class Parallel A* with Slow Expansion (PASE) Search
+};  // class edge-based Parallel A* with Slow Evaluation (ePASE) Search
 
 }  // namespace ims
