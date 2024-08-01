@@ -132,7 +132,6 @@ class edgeActionSpace2dRob : public ims::EdgeActionSpace {
         auto action_seq = curr_edge->action;
         auto cost = getActionCost(action_seq);
         bool is_action_valid = true;
-        StateType next_state_val = StateType(curr_edge->state);
 
         for (size_t j{0}; j < action_seq.size(); j++) {
             const Action& action = action_seq[j];
