@@ -53,13 +53,16 @@ namespace ims {
 /// @class ParallelSearch Parameters
 struct ParallelSearchParams : public PlannerParams {
     /// @brief Constructor
-    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic) : PlannerParams(), heuristic_(heuristic) {}
-    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic, int num_threads, double epsilon) : PlannerParams(), heuristic_(heuristic), num_threads_(num_threads), epsilon_(epsilon) {}
+    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic) : PlannerParams(), heuristic_(heuristic), i_heuristic_(heuristic) {}
+    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic, std::shared_ptr<BaseHeuristic> i_heuristic) : PlannerParams(), heuristic_(heuristic), i_heuristic_(i_heuristic) {}
+    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic, int num_threads, double epsilon) : PlannerParams(), heuristic_(heuristic), i_heuristic_(heuristic), num_threads_(num_threads), epsilon_(epsilon) {}
+    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic, std::shared_ptr<BaseHeuristic> i_heuristic, int num_threads, double epsilon) : PlannerParams(), heuristic_(heuristic), i_heuristic_(i_heuristic), num_threads_(num_threads), epsilon_(epsilon) {}
 
     /// @brief Destructor
     ~ParallelSearchParams() override = default;
 
     std::shared_ptr<BaseHeuristic> heuristic_ = nullptr;
+    std::shared_ptr<BaseHeuristic> i_heuristic_ = nullptr;  // Heuristic for independency check
     int num_threads_ = 1;
     double epsilon_ = 1.0;
 };
@@ -148,6 +151,9 @@ protected:
 
     /// @brief Pointer to the heuristic function
     std::shared_ptr<BaseHeuristic> heuristic_ = nullptr;
+
+    /// @brief Pointer to the independence heuristic function
+    std::shared_ptr<BaseHeuristic> i_heuristic_ = nullptr;
 
     /// @brief The action space.
     std::shared_ptr<ActionSpace> action_space_ptr_;
@@ -255,8 +261,8 @@ protected:
         double dist;
         auto s1 = action_space_ptr_->getRobotState(s1_id);
         auto s2 = action_space_ptr_->getRobotState(s2_id);
-        if (!heuristic_->getHeuristic(s1->state, s2->state, dist))
-            throw std::runtime_error("Heuristic function failed");
+        if (!i_heuristic_->getHeuristic(s1->state, s2->state, dist))
+            throw std::runtime_error("Indepence Heuristic function failed");
         else
             return dist;
     }
@@ -316,7 +322,7 @@ protected:
         if (action_space_ptr_ == nullptr) {
             throw std::runtime_error("Action space is not initialized");
         }
-        if (heuristic_ == nullptr) {
+        if (heuristic_ == nullptr || i_heuristic_ == nullptr) {
             throw std::runtime_error("Heuristic is not initialized");
         }
         if (goals_.empty() || goal_ == -1) {
@@ -372,6 +378,7 @@ public:
     /// @param params The parameters
     explicit ParallelSearch(const ParallelSearchParams& params) : Planner(params), params_(params) {
         heuristic_ = params.heuristic_;
+        i_heuristic_ = params.i_heuristic_;
     }
 
     /// @brief Destructor
