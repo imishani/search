@@ -274,6 +274,15 @@ protected:
         return states_[state_id];
     }
 
+    /// @brief Get the edge by id
+    /// @param edge_id The id of the state
+    /// @return The state
+    /// @note Use this function only if you are sure that the state exists.
+    auto getSearchEdge(int edge_id) -> std::shared_ptr<SearchEdge> {
+        assert(edge_id < edges_.size() && edge_id >= 0);
+        return edges_[edge_id];
+    }
+
     /// @brief Get the state by id or create a new one if it does not exist. If a search state does not exist yet and a new one is created, it's ID will be set, and all other member fields will initialize to default values.
     /// @param state_id The id of the state
     /// @return The state
@@ -287,6 +296,42 @@ protected:
             states_[state_id]->state_id = state_id;
         }
         return states_[state_id];
+    }
+
+    /// @brief Get the proxy edge by id or create a new one if it does not exist. Note that the input will be a pair of proxy ind and state ind.
+    /// @param edge_id The id of the edge
+    /// @param state_id The id of the state
+    /// @return The edge
+    auto getOrCreateProxyEdge(int edge_id, int state_id) -> std::shared_ptr<SearchEdge> {
+        if (edge_id >= edges_.size()) {
+            edges_.resize(edge_id + 1, nullptr);
+        }
+        if (edges_[edge_id] == nullptr) {
+            assert(edge_id < edges_.size() && edge_id >= 0);
+            edges_[edge_id] = std::make_shared<SearchEdge>();
+            edges_[edge_id]->edge_id = edge_id;
+            edges_[edge_id]->state_id = state_id;
+            edges_[edge_id]->is_proxy = true;
+        }
+        else {
+            assert(edges_[edge_id]->state_id == state_id);
+        }
+        return edges_[edge_id];
+    }
+
+    /// @brief sync the proxy edge value with its corresponding state
+    /// @param edge_id The id of the edge
+    virtual void setProxyVals(int edge_id) {
+        auto edge = getSearchEdge(edge_id);
+        if (!edge->isState()) {
+            throw std::runtime_error("The edge is not a proxy edge");
+        }
+        auto state = getSearchState(edge->state_id);
+        edge->parent_id = state->parent_id;
+        edge->g = state->g;
+        edge->h = state->h;
+        edge->f = state->f;
+        edge->edge_priority = state->f;
     }
 
     /// @brief set the state with parent id and cost
