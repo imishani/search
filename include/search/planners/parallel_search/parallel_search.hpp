@@ -312,8 +312,7 @@ protected:
             edges_[edge_id]->edge_id = edge_id;
             edges_[edge_id]->state_id = state_id;
             edges_[edge_id]->is_proxy = true;
-        }
-        else {
+        } else {
             assert(edges_[edge_id]->state_id == state_id);
         }
         return edges_[edge_id];
