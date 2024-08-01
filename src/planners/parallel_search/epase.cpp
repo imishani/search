@@ -86,15 +86,53 @@ void Epase::workerLoop(int thread_id) {
     }
 }
 
-void Epase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
+void Epase::expandProxy(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
     /// Status change, Stats & Debug
     stampTimer();
     lock_.lock();
     stats_.lock_time += getTimeFromStamp();
-    stats_.num_jobs_per_thread[thread_id]++;
     stats_.num_expanded++;
 
-    if (params_.verbose) curr_state_ptr->print("Thread " + std::to_string(thread_id) + " Expanding ");
+    if (params_.verbose) curr_edge_ptr->print("Thread " + std::to_string(thread_id) + " Proxy Expanding ");
+
+    // Get the real edges
+    std::vector<int> real_edges;
+    if (!action_space_ptr_->createRobotEdgesFromProxy(curr_edge_ptr->edge_id, real_edges)) {
+        throw std::runtime_error("Action Space - Failed to create real edges from proxy edge");
+    }
+
+    // For epase, the real-edge's expansion priority is based on the proxy edge's f-value.
+    double priority = curr_edge_ptr->edge_priority;
+
+    // Create the real edges and add them to the open list.
+    for (auto i : real_edges) {
+        auto real_edge_ptr = getOrCreateSearchEdge(i);
+        // Should be running into these case where the real edge is already in closed/opened.
+        // Since the proxy edge will take care of the update in the open list.
+        setEdgeVals(real_edge_ptr->edge_id, curr_edge_ptr->state_id, priority);
+        edge_open_->push(real_edge_ptr.get());
+        real_edge_ptr->setOpen();
+        notifyMainThread();
+    }
+    lock_.unlock();
+}
+
+void Epase::expand(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
+    /// Status change, Stats & Debug
+    stampTimer();
+    lock_.lock();
+    stats_.lock_time += getTimeFromStamp();
+
+    // If the edge is a proxy edge, expand it and add real-edges into open list.
+    if (curr_edge_ptr->isState()) {
+        lock_.unlock();
+        expandProxy(curr_edge_ptr, thread_id);
+        return;
+    }
+
+    stats_.num_jobs_per_thread[thread_id]++;
+
+    if (params_.verbose) curr_edge_ptr->print("Thread " + std::to_string(thread_id) + " Expanding ");
 
     // Get the successors
     // TODO: Currently there is no check for Preconditions on whether the action is valid for a state or not
