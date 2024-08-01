@@ -34,7 +34,7 @@ add_library(search SHARED
         src/planners/multi_agent/cbs_sphere3d.cpp
         src/planners/multi_agent/cbs_sipp.cpp
         src/planners/multi_agent/prioritized_planning.cpp
-        src/planners/parallel_search/epase.cpp
+        # src/planners/parallel_search/epase.cpp
         src/planners/parallel_search/pase.cpp
         src/planners/sampling_based/drrt.cpp
         src/common/experience_graph.cpp
