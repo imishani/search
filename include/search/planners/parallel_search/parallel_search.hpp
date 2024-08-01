@@ -147,6 +147,7 @@ protected:
                       << " | g: " << g
                       << " | f: " << f
                       << " | h: " << h
+                      << " | proxy: " << is_proxy
                       << std::endl;
         }
     };
