@@ -51,6 +51,7 @@ struct RobotEdge {
     StateType state_mapped;
     StateType state;
     ActionSequence action;
+    int state_id = -1;
 
     enum VALID { valid,
                  invalid,
@@ -175,12 +176,40 @@ class ActionSpaceEdgeMixin {
         }
     }
 
-    /// @brief Create robot edges from a proxy edge
-    /// @param  proxy_edge_id The id of the proxy edge
+    /// @brief Get or create a proxy edge by state_val
+    /// @param  state_val The state value
+    /// @return the proxy edge id
+    virtual int getOrCreateProxyEdge(const StateType& state_val) = 0;
+
+    /// @brief Create Proxy edge from a state
+    /// @param  state_id The id of the state
+    /// @return Pair = (int proxy_id, int state_id) of the proxy edge id
+    virtual int createProxyEdgeFromState(int state_id) = 0;
+
+    /// @brief Create robot edges from a state
+    /// @param  state_id The id of the state
     /// @param  edges_ind& The index of created real-edges
     /// @return Success bool
     /// @note The id is assumed to be valid - meaning that the state exists in states_
     virtual bool createRobotEdgesFromState(int state_id, std::vector<int>& edges_ind) = 0;
+
+    /// @brief Create robot edges from a proxy edge
+    /// @param  proxy_id The id of the proxy edge
+    /// @param  edges_ind& The index of created real-edges
+    /// @return Success bool
+    /// @note This func will check if the edge id is a proxy, if not, it will throw a runtime error.
+    virtual bool createRobotEdgesFromProxy(int proxy_id, std::vector<int>& edges_ind) {
+        auto proxy_edge = getRobotEdge(proxy_id);
+        lock_e_.lock();
+        if (proxy_edge->state_id == -1) {
+            lock_e_.unlock();
+            throw std::runtime_error("createRobotEdgesFromProxy failed. The edge id is not a proxy.");
+            return false;
+        } else {
+            lock_e_.unlock();
+            return createRobotEdgesFromState(proxy_edge->state_id, edges_ind);
+        }
+    }
 
     /// @brief Get single Successor by edge id
     /// @param seqs_state_ids All states between the current state and the successor, including them. For example, say we have a current state [1,1] and a successor [1,4]. Let's say the edge connecting them is [1,1], [1,2], [1,3], [1,4]. If their state ids are 101, 102, 103, 104, then seqs_state_ids should be [101, 102, 103. 104].
