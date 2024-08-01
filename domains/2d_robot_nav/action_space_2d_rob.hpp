@@ -32,8 +32,6 @@
  * \date   4/1/23
  */
 
-// Merging
-
 #ifndef SEARCH_ACTIONSCENE2DROB_HPP
 #define SEARCH_ACTIONSCENE2DROB_HPP
 
@@ -42,7 +40,7 @@
 #include "search/action_space/action_space.hpp"
 
 class Scene2DRob : public ims::SceneInterface {
-   public:
+public:
     explicit Scene2DRob(std::vector<std::vector<int>>& map_) : ims::SceneInterface() {
         map = &map_;
         map_size = {map->size(), map->at(0).size()};
@@ -115,11 +113,11 @@ struct ActionType2dRob : public ims::ActionType {
 };
 
 class actionSpace2dRob : public ims::ActionSpace {
-   protected:
+protected:
     std::shared_ptr<Scene2DRob> env_;
     std::shared_ptr<ActionType2dRob> action_type_;
 
-   public:
+public:
     actionSpace2dRob(const Scene2DRob& env,
                      const ActionType2dRob& actions_ptr) : ims::ActionSpace() {
         this->env_ = std::make_shared<Scene2DRob>(env);

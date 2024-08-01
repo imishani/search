@@ -49,7 +49,7 @@ namespace ims {
 /// @class Parallel A* with Slow Expansion (PASE) Search class.
 /// @brief This is an algorithm that utilizes multi-threading to speed up the search process. The key idea is to expand independent states
 class Pase : public ParallelSearch {
-   protected:
+protected:
     /*FUNCTIONS*/
 
     /// @brief independency check
@@ -61,14 +61,14 @@ class Pase : public ParallelSearch {
                            work_in_progress_->end(),
                            [](std::shared_ptr<SearchState> state) { return state == nullptr; });
     }
-    
+
     /// @brief main function to expand a state
     void expand(std::shared_ptr<SearchState> state, int thread_id);
-    
+
     /// @brief loop function for worker threads
     void workerLoop(int thread_id) override;
 
-   public:
+public:
     /// @brief Constructor
     /// @param params The parameters
     explicit Pase(const ParallelSearchParams& params);

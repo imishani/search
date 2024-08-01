@@ -76,7 +76,7 @@ struct ParallelSearchPlannerStats : public PlannerStats {
 /// @brief A base class for parallel search algorithm that utilize multi-threads to find the optimal path
 /// @note This class cannot run by itself as it is lacking implementation in essential functions (plan(),etc.).
 class ParallelSearch : public Planner {
-   protected:
+protected:
     /*ABSTRACT LEVEL/STRUCT DEFINITION*/
 
     /// @brief The search state.
@@ -365,7 +365,7 @@ class ParallelSearch : public Planner {
         work_futures_.clear();
     }
 
-   public:
+public:
     /**Not Implemented**/
 
     /// @brief Constructor
