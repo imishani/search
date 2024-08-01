@@ -74,7 +74,7 @@ void Epase::workerLoop(int thread_id) {
                 break;
             }
 
-            expand(work_in_progress_->at(thread_id), thread_id);
+            expand(std::dynamic_pointer_cast<SearchEdge>(work_in_progress_->at(thread_id)), thread_id);
 
             locker.lock();
             work_in_progress_->at(thread_id) = nullptr;
