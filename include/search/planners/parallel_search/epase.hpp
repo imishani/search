@@ -62,11 +62,14 @@ class Epase : public ParallelSearch {
                            [](std::shared_ptr<ims::SearchState> Edge) { return Edge == nullptr; });
     }
 
-    /// @brief main function to expand a edge
-    void expand(std::shared_ptr<SearchEdge> Edge, int thread_id);
-
     /// @brief loop function for worker threads
     void workerLoop(int thread_id) override;
+
+    /// @brief helper function to expand a proxy edge
+    virtual void expandProxy(std::shared_ptr<SearchEdge> Edge, int thread_id);
+
+    /// @brief main function to expand an edge
+    void expand(std::shared_ptr<SearchEdge> Edge, int thread_id);
 
    public:
     /// @brief Constructor

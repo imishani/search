@@ -131,9 +131,9 @@ protected:
 
     struct SearchEdge : public ParallelSearch::SearchState {
         int edge_id = UNSET;
-        int child_id = UNSET;
-        double cost = INF_DOUBLE;
-        bool is_proxy = true;
+        // int child_id = UNSET;
+        // double cost = INF_DOUBLE;
+        bool is_proxy = false;
         double edge_priority = INF_DOUBLE;
 
         bool isState() const {
@@ -148,6 +148,7 @@ protected:
                       << " | f: " << f
                       << " | h: " << h
                       << " | proxy: " << is_proxy
+                      << " | priority: " << edge_priority
                       << std::endl;
         }
     };
@@ -299,6 +300,21 @@ protected:
         return states_[state_id];
     }
 
+    /// @brief Get the edge by id or create a new one if it does not exist. If a search edge does not exist yet and a new one is created, it's ID will be set, and all other member fields will initialize to default values.
+    /// @param edge_id The id of the edge
+    /// @return The edge
+    auto getOrCreateSearchEdge(int edge_id) -> std::shared_ptr<SearchEdge> {
+        if (edge_id >= edges_.size()) {
+            edges_.resize(edge_id + 1, nullptr);
+        }
+        if (edges_[edge_id] == nullptr) {
+            assert(edge_id < edges_.size() && edge_id >= 0);
+            edges_[edge_id] = std::make_shared<SearchEdge>();
+            edges_[edge_id]->edge_id = edge_id;
+        }
+        return edges_[edge_id];
+    }
+
     /// @brief Get the proxy edge by id or create a new one if it does not exist. Note that the input will be a pair of proxy ind and state ind.
     /// @param edge_id The id of the edge
     /// @param state_id The id of the state
@@ -332,6 +348,21 @@ protected:
         edge->h = state->h;
         edge->f = state->f;
         edge->edge_priority = state->f;
+    }
+
+    /// @brief set the edge with proxy edge's info
+    /// @param edge_id The id of the edge.
+    /// @param proxy_id The id of the proxy edge.
+    /// @param priority The priority of the real edges.
+    virtual void setEdgeVals(int edge_id, int proxy_id, double priority) {
+        auto edge_ = getSearchEdge(edge_id);
+        auto proxy = getSearchEdge(proxy_id);
+        edge_->parent_id = proxy->parent_id;
+        edge_->state_id = proxy->state_id;
+        edge_->g = proxy->g;
+        edge_->h = proxy->h;
+        edge_->f = proxy->f;
+        edge_->edge_priority = priority;
     }
 
     /// @brief set the state with parent id and cost
