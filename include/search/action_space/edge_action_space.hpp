@@ -52,7 +52,6 @@ class EdgeActionSpace : public ActionSpace,
     ~EdgeActionSpace() {
         resetPlanningData();
     };
-    
 
     virtual bool createRobotEdgesFromState(int state_id, std::vector<int>& edges_ind) override {
         // ActionSequence vec
@@ -69,6 +68,32 @@ class EdgeActionSpace : public ActionSpace,
             edges_ind.emplace_back(getOrCreateRobotEdge(std::make_pair(state_val, act)));
         }
         return true;
+    }
+
+    virtual int getOrCreateProxyEdge(StateType state_val) {
+        // check if the proxy edge exists
+        lock_e_.lock();
+        auto curr_edge = std::make_shared<RobotEdge>();
+        curr_edge->state = state_val;
+        curr_edge->action = ActionSequence();
+        auto it = edge_to_id_.find(curr_edge);
+        if (it != edge_to_id_.end()) {
+            lock_e_.unlock();
+            return it->second;
+        } else {
+            edges_.push_back(curr_edge);
+            int edge_id = (int)edges_.size() - 1;
+            edge_to_id_[curr_edge] = edge_id;
+            lock_e_.unlock();
+            int state_id = getOrCreateRobotState(state_val);
+            curr_edge->state_id = state_id;
+            return edge_id;
+        }
+    }
+    
+    virtual int createProxyEdgeFromState(int state_id) {
+        auto state_val = getRobotState(state_id)->state;
+        return getOrCreateProxyEdge(state_val);
     }
 
     /// @brief Overrides reset planning data
