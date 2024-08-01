@@ -304,27 +304,35 @@ void Epase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_spa
         throw std::runtime_error("Currently, only one goal is supported");
     }
 
-    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
-    auto goal_ = getOrCreateSearchState(goal_ind_);
-    goals_.push_back(goal_ind_);
-    this->goal_ = goal_ind_;
+    // Creating the goal state
+    int goal_state_ind_ = action_space_ptr_->getOrCreateRobotState(goals[0]);
+    int goal_edge_ind_ = action_space_ptr_->createProxyEdgeFromState(goal_state_ind_);
+    auto goal_state_ = getOrCreateSearchState(goal_state_ind_);
+    auto goal_edge_ = getOrCreateProxyEdge(goal_edge_ind_, goal_state_ind_);
 
     // Evaluate the goal state
-    goal_->parent_id = PARENT_TYPE(GOAL);
+    goal_state_->parent_id = PARENT_TYPE(GOAL);
+    setProxyVals(goal_edge_ind_);
     heuristic_->setGoal(const_cast<StateType&>(goals[0]));
+    goals_.push_back(goal_edge_ind_);
+    this->goal_ = goal_edge_ind_;
 
     for (auto& start : starts) {
+        // Creating the start state
+        int start_state_ind_ = action_space_ptr_->getOrCreateRobotState(start);
+        int start_edge_ind_ = action_space_ptr_->createProxyEdgeFromState(start_state_ind_);
+        auto start_state_ = getOrCreateSearchState(start_state_ind_);
+        auto start_edge_ = getOrCreateProxyEdge(start_edge_ind_, start_state_ind_);
         // Evaluate the start state
-        int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-        auto start_ = getOrCreateSearchState(start_ind_);
-        start_->parent_id = PARENT_TYPE(START);
         heuristic_->setStart(const_cast<StateType&>(start));
-        start_->g = 0;
-        start_->h = computeHeuristic(start_ind_);
-        start_->f = computeHeuristic(start_ind_);
+        start_state_->parent_id = PARENT_TYPE(START);
+        start_state_->g = 0;
+        start_state_->h = computeHeuristic(start_state_ind_);
+        start_state_->f = computeHeuristic(start_state_ind_);
+        setProxyVals(start_edge_ind_);
         // TODO: Temperarily using .get() to get the raw pointer.
-        open_->push(start_.get());
-        start_->setOpen();
+        edge_open_->push(start_edge_.get());
+        start_edge_->setOpen();
     }
 }
 
@@ -334,35 +342,37 @@ void Epase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_spa
     action_space_ptr_ = action_space_ptr;
     // Clear both.
     action_space_ptr_->resetPlanningData();
-    resetPlanningData();
-
-    // Reset the search algorithm and the action space.
-    action_space_ptr_->resetPlanningData();
     this->resetPlanningData();
 
-    // Check if start is valid and add it to the action space.
-    int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
-    auto start_ = getOrCreateSearchState(start_ind_);
+    // Creating the goal state
+    int goal_state_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
+    int goal_edge_ind_ = action_space_ptr_->createProxyEdgeFromState(goal_state_ind_);
+    auto goal_state_ = getOrCreateSearchState(goal_state_ind_);
+    auto goal_edge_ = getOrCreateProxyEdge(goal_edge_ind_, goal_state_ind_);
 
-    int goal_ind_ = action_space_ptr_->getOrCreateRobotState(goal);
-    auto goal_ = getOrCreateSearchState(goal_ind_);
-    goals_.push_back(goal_ind_);
-    this->goal_ = goal_ind_;
+    // Evaluate the goal state
+    goal_state_->parent_id = PARENT_TYPE(GOAL);
+    setProxyVals(goal_edge_ind_);
+    heuristic_->setGoal(const_cast<StateType&>(goal));
+    goals_.push_back(goal_edge_ind_);
+    this->goal_ = goal_edge_ind_;
+
+    // Creating the start state
+    int start_state_ind_ = action_space_ptr_->getOrCreateRobotState(start);
+    int start_edge_ind_ = action_space_ptr_->createProxyEdgeFromState(start_state_ind_);
+    auto start_state_ = getOrCreateSearchState(start_state_ind_);
+    auto start_edge_ = getOrCreateProxyEdge(start_edge_ind_, start_state_ind_);
 
     // Evaluate the start state
-    start_->parent_id = PARENT_TYPE(START);
     heuristic_->setStart(const_cast<StateType&>(start));
-    // Evaluate the goal state
-    goal_->parent_id = PARENT_TYPE(GOAL);
-    heuristic_->setGoal(const_cast<StateType&>(goal));
-
-    // Evaluate the start state.
-    start_->g = 0;
-    start_->h = computeHeuristic(start_ind_);
-    start_->f = computeHeuristic(start_ind_);
+    start_state_->parent_id = PARENT_TYPE(START);
+    start_state_->g = 0;
+    start_state_->h = computeHeuristic(start_state_ind_);
+    start_state_->f = computeHeuristic(start_state_ind_);
+    setProxyVals(start_edge_ind_);
     // TODO: Temperarily using .get() to get the raw pointer.
-    open_->push(start_.get());
-    start_->setOpen();
+    edge_open_->push(start_edge_.get());
+    start_edge_->setOpen();
 }
 
 }  // namespace ims
