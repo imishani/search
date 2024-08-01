@@ -59,7 +59,7 @@ protected:
     inline bool noWorkInProgress() const {
         return std::all_of(work_in_progress_->begin(),
                            work_in_progress_->end(),
-                           [](std::shared_ptr<SearchState> state) { return state == nullptr; });
+                           [](std::shared_ptr<ims::SearchState> state) { return state == nullptr; });
     }
 
     /// @brief main function to expand a state

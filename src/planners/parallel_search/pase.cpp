@@ -41,7 +41,8 @@ namespace ims {
 bool Pase::independenceCheck(int state_id, const boost::any& popped_vec) {
     auto state = getSearchState(state_id);
     // Check against all the states being expanded.
-    for (auto wip : *(work_in_progress_)) {
+    for (auto w : *(work_in_progress_)) {
+        auto wip = std::dynamic_pointer_cast<SearchState>(w);
         if (!wip) {
             continue;
         }
@@ -73,7 +74,7 @@ void Pase::workerLoop(int thread_id) {
                 break;
             }
 
-            expand(work_in_progress_->at(thread_id), thread_id);
+            expand(std::dynamic_pointer_cast<SearchState>(work_in_progress_->at(thread_id)), thread_id);
 
             locker.lock();
             work_in_progress_->at(thread_id) = nullptr;
@@ -122,11 +123,11 @@ void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
                 successor_ptr->parent_id = curr_state_ptr->state_id;
                 successor_ptr->g = curr_state_ptr->g + cost;
                 successor_ptr->f = successor_ptr->g + params_.epsilon_ * successor_ptr->h;
-                open_->update(successor_ptr.get());
+                state_open_->update(successor_ptr.get());
             }
         } else {
             setStateVals(successor_ptr->state_id, curr_state_ptr->state_id, cost);
-            open_->push(successor_ptr.get());
+            state_open_->push(successor_ptr.get());
             successor_ptr->setOpen();
         }
         notifyMainThread();
@@ -137,9 +138,6 @@ void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
 /***Public***/
 
 Pase::Pase(const ParallelSearchParams& params) : ParallelSearch(params) {
-    // Instantiation
-    open_ = std::make_unique<SimpleQueue<SearchState, SearchStateCompare>>();
-    work_in_progress_ = std::make_unique<std::vector<std::shared_ptr<SearchState>>>(params.num_threads_ - 1, nullptr);
 }
 
 Pase::~Pase() = default;
@@ -158,7 +156,7 @@ bool Pase::plan(std::vector<StateType>& path) {
         // Select work loop
         while (!terminate_ && !curr_state_ptr) {
             // Check if there is no more state to work on.
-            if (open_->empty() && noWorkInProgress()) {
+            if (state_open_->empty() && noWorkInProgress()) {
                 // Meaning that the search can't continue.
                 terminate_ = true;
                 getTimeFromStart(stats_.time);
@@ -174,10 +172,10 @@ bool Pase::plan(std::vector<StateType>& path) {
             }
 
             // While loop to select a state to expand.
-            while (!curr_state_ptr && !open_->empty()) {
-                // curr_state_ptr = std::shared_ptr<SearchState>(open_->min());
-                curr_state_ptr = states_[open_->min()->state_id];
-                open_->pop();
+            while (!curr_state_ptr && !state_open_->empty()) {
+                // curr_state_ptr = std::shared_ptr<SearchState>(state_open_->min());
+                curr_state_ptr = states_[state_open_->min()->state_id];
+                state_open_->pop();
                 popped_states.push_back(curr_state_ptr);
 
                 // Independence check
@@ -191,10 +189,10 @@ bool Pase::plan(std::vector<StateType>& path) {
             // Re-add the popped states to the open list.
             for (auto& s : popped_states) {
                 if (!curr_state_ptr) {
-                    open_->push(s.get());
+                    state_open_->push(s.get());
                 } else {
                     if (curr_state_ptr->state_id != s->state_id) {
-                        open_->push(s.get());
+                        state_open_->push(s.get());
                     }
                 }
             }
@@ -322,7 +320,7 @@ void Pase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_spac
         start_->h = computeHeuristic(start_ind_);
         start_->f = computeHeuristic(start_ind_);
         // TODO: Temperarily using .get() to get the raw pointer.
-        open_->push(start_.get());
+        state_open_->push(start_.get());
         start_->setOpen();
     }
 }
@@ -360,7 +358,7 @@ void Pase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_spac
     start_->h = computeHeuristic(start_ind_);
     start_->f = computeHeuristic(start_ind_);
     // TODO: Temperarily using .get() to get the raw pointer.
-    open_->push(start_.get());
+    state_open_->push(start_.get());
     start_->setOpen();
 }
 

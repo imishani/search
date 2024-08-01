@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <boost/any.hpp>
 #include <future>
+#include <memory>
 #include <utility>
 
 // project includes
@@ -169,6 +170,9 @@ protected:
     /// @brief Keeping track of states by their id.
     std::vector<std::shared_ptr<SearchState>> states_;
 
+    /// @brief Keeping track of edges by their id.
+    std::vector<std::shared_ptr<SearchEdge>> edges_;
+
     /// @brief Pointer to the heuristic function
     std::shared_ptr<BaseHeuristic> heuristic_ = nullptr;
 
@@ -178,11 +182,14 @@ protected:
     /// @brief The action space.
     std::shared_ptr<EdgeActionSpace> action_space_ptr_;
 
-    /// @brief The (abstract) open list for search.
-    std::unique_ptr<AbstractQueue<SearchState>> open_;
+    /// @brief The (abstract) open list for search state.
+    std::unique_ptr<AbstractQueue<SearchState>> state_open_;
+
+    /// @brief The (abstract) open list for search state.
+    std::unique_ptr<AbstractQueue<SearchEdge>> edge_open_;
 
     /// @brief A vector holding all the state/edge that is WIP
-    std::unique_ptr<std::vector<std::shared_ptr<SearchState>>> work_in_progress_;
+    std::unique_ptr<std::vector<std::shared_ptr<ims::SearchState>>> work_in_progress_;
 
     /// @brief The stats.
     ParallelSearchPlannerStats stats_;
@@ -365,7 +372,7 @@ protected:
         if (goals_.empty() || goal_ == -1) {
             throw std::runtime_error("Goals are not initialized");
         }
-        if (open_->empty()) {
+        if (state_open_->empty() && edge_open_->empty()) {
             throw std::runtime_error("Open list is empty, make sure to initialize the planner before run");
         }
     }
@@ -414,6 +421,10 @@ public:
     /// @brief Constructor
     /// @param params The parameters
     explicit ParallelSearch(const ParallelSearchParams& params) : Planner(params), params_(params) {
+        // Instantiation
+        state_open_ = std::make_unique<SimpleQueue<SearchState, SearchStateCompare>>();
+        edge_open_ = std::make_unique<SimpleQueue<SearchEdge, SearchEdgeCompare>>();
+        work_in_progress_ = std::make_unique<std::vector<std::shared_ptr<ims::SearchState>>>(params.num_threads_ - 1, nullptr);
         heuristic_ = params.heuristic_;
         i_heuristic_ = params.i_heuristic_;
     }
@@ -445,17 +456,21 @@ public:
 
     virtual void resetPlanningData() override {
         // First dealing with raw pointers data structure
-        open_->clear();
+        state_open_->clear();
+        edge_open_->clear();
 
         states_.clear();
         states_ = std::vector<std::shared_ptr<SearchState>>();
+
+        edges_.clear();
+        edges_ = std::vector<std::shared_ptr<SearchEdge>>();
 
         goals_.clear();
         goal_ = -1;
         stats_ = ParallelSearchPlannerStats();
         stats_.num_jobs_per_thread.resize(params_.num_threads_, 0);
 
-        work_in_progress_->resize(params_.num_threads_ - 1, NULL);
+        work_in_progress_->resize(params_.num_threads_ - 1, nullptr);
         std::vector<std::condition_variable> cv_vec(params_.num_threads_ - 1);
         cv_vec_.swap(cv_vec);
         std::vector<LockType> lock_vec(params_.num_threads_ - 1);
