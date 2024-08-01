@@ -53,17 +53,17 @@ class Epase : public ParallelSearch {
     /*FUNCTIONS*/
 
     /// @brief independency check
-    bool independenceCheck(int state_id, const boost::any& popped_vec) override;
+    bool independenceCheck(int edge_id, const boost::any& popped_vec) override;
 
-    /// @brief helper function to check if there's any state is being work in progress
+    /// @brief helper function to check if there's any edge is being work in progress
     inline bool noWorkInProgress() const {
         return std::all_of(work_in_progress_->begin(),
                            work_in_progress_->end(),
-                           [](std::shared_ptr<SearchState> state) { return state == nullptr; });
+                           [](std::shared_ptr<ims::SearchState> Edge) { return Edge == nullptr; });
     }
 
-    /// @brief main function to expand a state
-    void expand(std::shared_ptr<SearchState> state, int thread_id);
+    /// @brief main function to 
+    void expand(std::shared_ptr<SearchEdge> Edge, int thread_id);
 
     /// @brief loop function for worker threads
     void workerLoop(int thread_id) override;
