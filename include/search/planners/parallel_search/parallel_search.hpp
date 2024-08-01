@@ -128,12 +128,14 @@ protected:
             return f;
         }
     };
-    
+
     struct SearchEdge : public ParallelSearch::SearchState {
         int edge_id = UNSET;
+        int child_id = UNSET;
         double cost = INF_DOUBLE;
         bool is_proxy = true;
-        
+        double edge_priority = INF_DOUBLE;
+
         bool isState() const {
             return !is_proxy;
         }
@@ -159,6 +161,19 @@ protected:
                 return s1.g > s2.g;
             else
                 return s1.f < s2.f;
+        }
+    };
+
+    /// @brief The search edge compare struct.
+    struct SearchEdgeCompare {
+        bool operator()(const SearchEdge& e1, const SearchEdge& e2) const {
+            if (e1.edge_priority != e2.edge_priority)
+                return e1.edge_priority < e2.edge_priority;
+            if (e1.f != e2.f)
+                return e1.f < e2.f;
+            if (e1.g != e2.g)
+                return e1.g > e2.g;
+            return e1.state_id < e2.state_id;
         }
     };
 
