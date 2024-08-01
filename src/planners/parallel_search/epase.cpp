@@ -138,9 +138,6 @@ void Epase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
 /***Public***/
 
 Epase::Epase(const ParallelSearchParams& params) : ParallelSearch(params) {
-    // Instantiation
-    open_ = std::make_unique<SimpleQueue<SearchState, SearchStateCompare>>();
-    work_in_progress_ = std::make_unique<std::vector<std::shared_ptr<SearchState>>>(params.num_threads_ - 1, nullptr);
 }
 
 Epase::~Epase() = default;
@@ -148,22 +145,22 @@ Epase::~Epase() = default;
 bool Epase::plan(std::vector<StateType>& path) {
     initializeCheck();
 
-    std::vector<std::shared_ptr<SearchState>> popped_states;
+    std::vector<std::shared_ptr<SearchEdge>> popped_edges;
     lock_.lock();
 
     startTimer();
     // Time out control loop
     while (!terminate_ && !isTimeOut()) {
-        std::shared_ptr<SearchState> curr_state_ptr = NULL;
+        std::shared_ptr<SearchEdge> curr_edge_ptr = nullptr;
 
         // Select work loop
-        while (!terminate_ && !curr_state_ptr) {
+        while (!terminate_ && !curr_edge_ptr) {
             // Check if there is no more state to work on.
-            if (open_->empty() && noWorkInProgress()) {
+            if (edge_open_->empty() && noWorkInProgress()) {
                 // Meaning that the search can't continue.
                 terminate_ = true;
                 getTimeFromStart(stats_.time);
-                stats_.cost = curr_state_ptr->g;
+                stats_.cost = curr_edge_ptr->g;
                 stats_.num_generated = (int)action_space_ptr_->states_.size();
                 stats_.suboptimality = params_.epsilon_;
                 if (params_.verbose) {
@@ -174,36 +171,35 @@ bool Epase::plan(std::vector<StateType>& path) {
                 return false;
             }
 
-            // While loop to select a state to expand.
-            while (!curr_state_ptr && !open_->empty()) {
-                // curr_state_ptr = std::shared_ptr<SearchState>(open_->min());
-                curr_state_ptr = states_[open_->min()->state_id];
-                open_->pop();
-                popped_states.push_back(curr_state_ptr);
+            // While loop to select an edge to expand.
+            while (!curr_edge_ptr && !edge_open_->empty()) {
+                curr_edge_ptr = edges_[edge_open_->min()->edge_id];
+                edge_open_->pop();
+                popped_edges.push_back(curr_edge_ptr);
 
                 // Independence check
-                if (independenceCheck(curr_state_ptr->state_id, popped_states)) {
+                if (independenceCheck(curr_edge_ptr->state_id, popped_edges)) {
                     break;
                 } else {
-                    curr_state_ptr = NULL;
+                    curr_edge_ptr = nullptr;
                 }
             }
 
-            // Re-add the popped states to the open list.
-            for (auto& s : popped_states) {
-                if (!curr_state_ptr) {
-                    open_->push(s.get());
+            // Re-add the popped edges to the open list.
+            for (auto& s : popped_edges) {
+                if (!curr_edge_ptr) {
+                    edge_open_->push(s.get());
                 } else {
-                    if (curr_state_ptr->state_id != s->state_id) {
-                        open_->push(s.get());
+                    if (curr_edge_ptr->edge_id != s->edge_id) {
+                        edge_open_->push(s.get());
                     }
                 }
             }
-            popped_states.clear();
+            popped_edges.clear();
 
-            // If curr_state_ptr is NULL, meaning that none of the states in the open list can be expanded.
+            // If curr_state_ptr is NULL, meaning that none of the edges in the open list can be expanded.
             // Wait for the other threads to finish.
-            if (!curr_state_ptr) {
+            if (!curr_edge_ptr) {
                 lock_.unlock();
                 // Wait for recheck_flag_ to be set true
                 std::unique_lock<std::mutex> locker(lock_);
@@ -215,13 +211,13 @@ bool Epase::plan(std::vector<StateType>& path) {
             }
 
             // If the current state is the goal state, then reconstruct the path.
-            if (isGoalState(curr_state_ptr->state_id)) {
+            if (isGoalState(curr_edge_ptr->edge_id)) {
                 terminate_ = true;
-                curr_state_ptr->setClosed();
-                goal_ = curr_state_ptr->state_id;
+                curr_edge_ptr->setClosed();
+                goal_ = curr_edge_ptr->state_id;
                 getTimeFromStart(stats_.time);
                 reconstructPath(path, stats_.transition_costs);
-                stats_.cost = curr_state_ptr->g;
+                stats_.cost = curr_edge_ptr->g;
                 stats_.path_length = (int)path.size();
                 stats_.num_generated = (int)action_space_ptr_->states_.size();
                 stats_.suboptimality = params_.epsilon_;
@@ -235,14 +231,14 @@ bool Epase::plan(std::vector<StateType>& path) {
         }
 
         // Expand the current state.
-        curr_state_ptr->setClosed();
+        curr_edge_ptr->setClosed();
         lock_.unlock();
 
         int thread_id = 0;
         bool work_assinged = false;
 
         if (params_.num_threads_ == 1) {
-            expand(curr_state_ptr, 0);
+            expand(curr_edge_ptr, 0);
         } else {
             while (!work_assinged) {
                 // Check if thread with [id] is available.
@@ -259,7 +255,7 @@ bool Epase::plan(std::vector<StateType>& path) {
                             std::async(std::launch::async, &Epase::workerLoop, this, thread_id));
                     }
                     locker.lock();
-                    work_in_progress_->at(thread_id) = curr_state_ptr;
+                    work_in_progress_->at(thread_id) = curr_edge_ptr;
                     work_status_[thread_id] = 1;
                     work_assinged = true;
                     locker.unlock();
