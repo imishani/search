@@ -41,7 +41,8 @@ namespace ims {
 bool Epase::independenceCheck(int state_id, const boost::any& popped_vec) {
     auto state = getSearchState(state_id);
     // Check against all the states being expanded.
-    for (auto wip : *(work_in_progress_)) {
+    for (auto w : *(work_in_progress_)) {
+        auto wip = std::dynamic_pointer_cast<SearchEdge>(w);
         if (!wip) {
             continue;
         }
@@ -51,7 +52,7 @@ bool Epase::independenceCheck(int state_id, const boost::any& popped_vec) {
         }
     }
     // Check against all the states ahead in the open list.
-    for (auto& pop : boost::any_cast<const std::vector<std::shared_ptr<SearchState>>&>(popped_vec)) {
+    for (auto& pop : boost::any_cast<const std::vector<std::shared_ptr<SearchEdge>>&>(popped_vec)) {
         if (pop->state_id != state_id) {
             auto h_diff = computeHeuristic(state_id, pop->state_id);
             if (state->g > pop->g + params_.epsilon_ * h_diff) {
