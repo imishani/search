@@ -151,7 +151,7 @@ bool Pase::plan(std::vector<StateType>& path) {
     startTimer();
     // Time out control loop
     while (!terminate_ && !isTimeOut()) {
-        std::shared_ptr<SearchState> curr_state_ptr = NULL;
+        std::shared_ptr<SearchState> curr_state_ptr = nullptr;
 
         // Select work loop
         while (!terminate_ && !curr_state_ptr) {
@@ -182,7 +182,7 @@ bool Pase::plan(std::vector<StateType>& path) {
                 if (independenceCheck(curr_state_ptr->state_id, popped_states)) {
                     break;
                 } else {
-                    curr_state_ptr = NULL;
+                    curr_state_ptr = nullptr;
                 }
             }
 
@@ -198,7 +198,7 @@ bool Pase::plan(std::vector<StateType>& path) {
             }
             popped_states.clear();
 
-            // If curr_state_ptr is NULL, meaning that none of the states in the open list can be expanded.
+            // If curr_state_ptr is nullptr, meaning that none of the states in the open list can be expanded.
             // Wait for the other threads to finish.
             if (!curr_state_ptr) {
                 lock_.unlock();
