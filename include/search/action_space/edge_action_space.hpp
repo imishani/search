@@ -42,7 +42,7 @@ namespace ims {
 ///@brief Action space for E-graph search
 class EdgeActionSpace : public ActionSpace,
                         public ActionSpaceEdgeMixin {
-   public:
+public:
     /// @brief Constructor.
     explicit EdgeActionSpace() : ActionSpace(), ActionSpaceEdgeMixin() {
         // std::cout << "EdgeActionSpace: Constructor" << std::endl;
@@ -90,7 +90,7 @@ class EdgeActionSpace : public ActionSpace,
             return edge_id;
         }
     }
-    
+
     virtual int createProxyEdgeFromState(int state_id) {
         auto state_val = getRobotState(state_id)->state;
         return getOrCreateProxyEdge(state_val);

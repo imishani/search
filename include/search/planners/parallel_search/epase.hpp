@@ -49,7 +49,7 @@ namespace ims {
 /// @class Edge-based Parallel A* with Slow Evaluation (ePASE) Search class.
 /// @brief This is an algorithm that utilizes multi-threading to speed up the search process. The key idea is to evaluate independent edges
 class Epase : public ParallelSearch {
-   protected:
+protected:
     /*FUNCTIONS*/
 
     /// @brief independency check
@@ -71,7 +71,7 @@ class Epase : public ParallelSearch {
     /// @brief main function to expand an edge
     void expand(std::shared_ptr<SearchEdge> Edge, int thread_id);
 
-   public:
+public:
     /// @brief Constructor
     /// @param params The parameters
     explicit Epase(const ParallelSearchParams& params);
