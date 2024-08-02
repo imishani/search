@@ -34,6 +34,7 @@ add_library(search SHARED
         src/planners/multi_agent/cbs_sphere3d.cpp
         src/planners/multi_agent/cbs_sipp.cpp
         src/planners/multi_agent/prioritized_planning.cpp
+        src/planners/parallel_search/pase.cpp
         src/planners/sampling_based/drrt.cpp
         src/common/experience_graph.cpp
         src/common/conflict_conversions.cpp
@@ -77,6 +78,9 @@ target_link_libraries(run_2d_rob_nav_arastar search ${Boost_LIBRARIES})
 
 add_executable(run_2d_rob_nav_nparastar domains/2d_robot_nav/run_2d_nparastar.cpp)
 target_link_libraries(run_2d_rob_nav_nparastar search ${Boost_LIBRARIES})
+
+add_executable(run_2d_rob_nav_pase domains/2d_robot_nav/run_2d_pase.cpp)
+target_link_libraries(run_2d_rob_nav_pase search ${Boost_LIBRARIES})
 
 add_executable(run_2d_rob_nav_wastar_local_heu domains/2d_robot_nav/run_2d_wastar_local_heu.cpp)
 target_link_libraries(run_2d_rob_nav_wastar_local_heu search ${Boost_LIBRARIES})
