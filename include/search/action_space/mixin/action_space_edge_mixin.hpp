@@ -85,7 +85,7 @@ namespace ims {
 
 /// @brief A trait class (mixin) for allowing an ActionSpace to use the "edge" representation, where an edge is a pair of state action (s,a).
 class ActionSpaceEdgeMixin {
-   public:
+public:
     // Members
     using EdgeKey = RobotEdge;
     using EdgeHash = SharedPointerValueHash<EdgeKey>;
@@ -229,7 +229,7 @@ class ActionSpaceEdgeMixin {
         edge_to_id_.clear();
     }
 
-   protected:
+protected:
     /// @brief  Lock for the action space to make it multi-thread safe
     LockType lock_e_;
 };

@@ -43,11 +43,11 @@
 
 /// @brief ActionSpace for 2D robot navigation that also allows edge representation
 class edgeActionSpace2dRob : public ims::EdgeActionSpace {
-   protected:
+protected:
     std::shared_ptr<Scene2DRob> env_;
     std::shared_ptr<ActionType2dRob> action_type_;
 
-   public:
+public:
     edgeActionSpace2dRob(const Scene2DRob& env,
                          const ActionType2dRob& actions_ptr) : ims::EdgeActionSpace() {
         this->env_ = std::make_shared<Scene2DRob>(env);
