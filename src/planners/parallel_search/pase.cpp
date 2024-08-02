@@ -87,9 +87,9 @@ void Pase::workerLoop(int thread_id) {
 
 void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
     /// Status change, Stats & Debug
-    stampTimer();
+    stampTimer(thread_id);
     lock_.lock();
-    stats_.lock_time += getTimeFromStamp();
+    stats_.lock_time += getTimeFromStamp(thread_id);
     stats_.num_jobs_per_thread[thread_id]++;
     stats_.num_expanded++;
 
@@ -101,9 +101,9 @@ void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
     std::vector<std::vector<int>> successor_seqs_state_ids;
     std::vector<std::vector<double>> successor_seqs_transition_costs;
     lock_.unlock();
-    stampTimer();
+    stampTimer(thread_id);
     action_space_ptr_->getSuccessors(curr_state_ptr->state_id, successor_seqs_state_ids, successor_seqs_transition_costs);
-    stats_.evaluation_time += getTimeFromStamp();
+    stats_.evaluation_time += getTimeFromStamp(thread_id);
     lock_.lock();
 
     for (size_t i{0}; i < successor_seqs_state_ids.size(); ++i) {

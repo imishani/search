@@ -186,6 +186,9 @@ protected:
     /// @brief condition variable vectors
     std::vector<std::condition_variable> cv_vec_;
 
+    /// @brief Vector to hold time stamp for each thread
+    std::vector<std::chrono::time_point<std::chrono::steady_clock>> t_stamps_;
+
     /// Control variables
     /// @brief atomic variable to keep track of terminate_ flag
     std::atomic<bool> terminate_{false};
@@ -205,6 +208,20 @@ protected:
     virtual void workerLoop(int thread_id) = 0;
 
     /**Implemented**/
+
+    /// @brief Start the t_stamp_ timer for thread_id
+    /// @param thread_id The id of the thread
+    inline void stampTimer(int thread_id) { t_stamps_[thread_id] = std::chrono::steady_clock::now(); }
+
+    /// @brief Get the time from the t_stamp_ timer for thread_id
+    /// @param thread_id The id of the thread
+    /// @return Time elapsed in second
+    double getTimeFromStamp(int thread_id) {
+        auto t_end = std::chrono::steady_clock::now();
+        double scaler = 1e9;
+        double elapsed_time = (double)std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_stamps_[thread_id]).count();
+        return elapsed_time /= scaler;
+    }
 
     /// @brief Get the state by id
     /// @param state_id The id of the state
@@ -425,6 +442,7 @@ public:
         lock_vec_.swap(lock_vec);
         work_futures_.clear();
         work_status_.resize(params_.num_threads_ - 1, 0);
+        t_stamps_.resize(params_.num_threads_ - 1, std::chrono::steady_clock::now());
         terminate_ = false;
         plan_found_ = false;
         recheck_flag_ = true;
