@@ -126,6 +126,23 @@ struct SearchState : public ::smpl::HeapElement {
             elapsed_time = (double)std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_start_).count();
             elapsed_time /= scaler;
         }
+        
+        /// @brief utility function to collect runtime
+        void stampTimer() { t_stamp_ = std::chrono::steady_clock::now(); }
+        
+        void getTimeFromStamp(double &elapsed_time) {
+            auto t_end = std::chrono::steady_clock::now();
+            double scaler = 1e9;
+            elapsed_time = (double)std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_stamp_).count();
+            elapsed_time /= scaler;
+        }
+
+        double getTimeFromStamp() {
+            auto t_end = std::chrono::steady_clock::now();
+            double scaler = 1e9;
+            double elapsed_time = (double)std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_stamp_).count();
+            return elapsed_time /= scaler;
+        }
 
         bool isTimeOut() {
             double elapsed_time;
@@ -166,6 +183,7 @@ struct SearchState : public ::smpl::HeapElement {
         std::vector<int> goals_;
         PlannerParams params_;
         std::chrono::time_point<std::chrono::steady_clock> t_start_;
+        std::chrono::time_point<std::chrono::steady_clock> t_stamp_;
         PlannerStats stats_;
         std::shared_ptr<ActionSpace> action_space_ptr_;
 

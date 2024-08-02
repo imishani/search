@@ -32,6 +32,8 @@
     * _Experience-Accelerated Enhanced Conflict-Based Search_ (xECBS)
   * Prioritized Planning
     * _Prioritized Planning_ (PP)
+* **Parallel Search**
+  * _Parallel A* with Slow Expansion_ (PA*SE)
 
 <u>Note</u>: More algorithms will be added in the near future.
 
