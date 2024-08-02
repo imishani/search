@@ -88,9 +88,9 @@ void Epase::workerLoop(int thread_id) {
 
 void Epase::expandProxy(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
     /// Status change, Stats & Debug
-    stampTimer();
+    stampTimer(thread_id);
     lock_.lock();
-    stats_.lock_time += getTimeFromStamp();
+    stats_.lock_time += getTimeFromStamp(thread_id);
     stats_.num_expanded++;
 
     if (params_.verbose) curr_edge_ptr->print("Thread " + std::to_string(thread_id) + " Proxy Expanding ");
@@ -119,9 +119,9 @@ void Epase::expandProxy(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id
 
 void Epase::expand(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
     /// Status change, Stats & Debug
-    stampTimer();
+    stampTimer(thread_id);
     lock_.lock();
-    stats_.lock_time += getTimeFromStamp();
+    stats_.lock_time += getTimeFromStamp(thread_id);
 
     // If the edge is a proxy edge, expand it and add real-edges into open list.
     if (curr_edge_ptr->isState()) {
@@ -140,9 +140,9 @@ void Epase::expand(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
     std::vector<int> successors;
     std::vector<double> costs;
     lock_.unlock();
-    stampTimer();
+    stampTimer(thread_id);
     action_space_ptr_->getSuccessors(curr_state_ptr->state_id, successors, costs);
-    stats_.evaluation_time += getTimeFromStamp();
+    stats_.evaluation_time += getTimeFromStamp(thread_id);
     lock_.lock();
 
     for (size_t i{0}; i < successors.size(); ++i) {
