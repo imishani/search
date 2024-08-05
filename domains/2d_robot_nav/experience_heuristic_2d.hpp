@@ -130,8 +130,11 @@ namespace ims {
                 }
             }
             /* Compute Heuristic distance for Experience Graph nodes */
-
-            h_nodes_.assign(eg->num_nodes(), INF_DOUBLE);
+            h_nodes_.clear();
+            // h_nodes_.assign(eg->num_nodes(), HeuristicNode(INF_DOUBLE));
+            for (int i{0}; i<eg->num_nodes(); i++) {
+                h_nodes_.push_back(HeuristicNode(INF_DOUBLE));
+            }
             open_.clear();
             // avoid malloc(): invalid size (unsorted)
             h_nodes_[0].dist = 0;
