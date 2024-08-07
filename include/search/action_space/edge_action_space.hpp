@@ -70,7 +70,7 @@ public:
         return true;
     }
 
-    virtual int getOrCreateProxyEdge(StateType state_val) {
+    virtual int getOrCreateProxyEdge(const StateType& state_val) override {
         // check if the proxy edge exists
         lock_e_.lock();
         auto curr_edge = std::make_shared<RobotEdge>();
@@ -91,7 +91,7 @@ public:
         }
     }
 
-    virtual int createProxyEdgeFromState(int state_id) {
+    virtual int createProxyEdgeFromState(int state_id) override {
         auto state_val = getRobotState(state_id)->state;
         return getOrCreateProxyEdge(state_val);
     }

@@ -183,7 +183,7 @@ public:
 
     /// @brief Create Proxy edge from a state
     /// @param  state_id The id of the state
-    /// @return Pair = (int proxy_id, int state_id) of the proxy edge id
+    /// @return int proxy_id the proxy edge id
     virtual int createProxyEdgeFromState(int state_id) = 0;
 
     /// @brief Create robot edges from a state

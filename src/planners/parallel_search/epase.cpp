@@ -134,42 +134,47 @@ void Epase::expand(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
 
     if (params_.verbose) curr_edge_ptr->print("Thread " + std::to_string(thread_id) + " Expanding ");
 
-    // Get the successors
+    // Get a successor
     // TODO: Currently there is no check for Preconditions on whether the action is valid for a state or not
     // (or should it be taken care by the action space?)
-    std::vector<int> successors;
-    std::vector<double> costs;
+    std::vector<int> successor_seqs_state_ids;
+    std::vector<double> successor_seqs_transition_costs;
     lock_.unlock();
     stampTimer(thread_id);
-    action_space_ptr_->getSuccessors(curr_state_ptr->state_id, successors, costs);
+    action_space_ptr_->getSuccessor(curr_edge_ptr->edge_id, successor_seqs_state_ids, successor_seqs_transition_costs);
     stats_.evaluation_time += getTimeFromStamp(thread_id);
     lock_.lock();
 
-    for (size_t i{0}; i < successors.size(); ++i) {
-        int successor_id = successors[i];
-        double cost = costs[i];
-        auto successor_ptr = getOrCreateSearchState(successor_id);
+    int successor_id = successor_seqs_state_ids.back();
+    double cost = std::accumulate(successor_seqs_transition_costs.begin(), successor_seqs_transition_costs.end(), 0.0);
+    int proxy_id = action_space_ptr_->createProxyEdgeFromState(successor_id);
 
-        // If the successor is already closed, skip it.
-        // Another variant of this algorithm would be to create a new search state for the successor and add it to the open list.
+    auto successor_state_ptr = getOrCreateSearchState(successor_id);
+    auto successor_ptr = getOrCreateProxyEdge(proxy_id, successor_id);
 
-        if (successor_ptr->in_closed) {
-            continue;
-        }
-        if (successor_ptr->in_open) {
-            if (successor_ptr->g > curr_state_ptr->g + cost) {
-                successor_ptr->parent_id = curr_state_ptr->state_id;
-                successor_ptr->g = curr_state_ptr->g + cost;
-                successor_ptr->f = successor_ptr->g + params_.epsilon_ * successor_ptr->h;
-                open_->update(successor_ptr.get());
-            }
-        } else {
-            setStateVals(successor_ptr->state_id, curr_state_ptr->state_id, cost);
-            open_->push(successor_ptr.get());
-            successor_ptr->setOpen();
-        }
-        notifyMainThread();
+    // If the successor is already closed, skip it.
+    // Another variant of this algorithm would be to create a new search state for the successor and add it to the open list.
+    if (successor_ptr->in_closed) {
+        lock_.unlock();
+        return;
     }
+
+    if (successor_ptr->in_open) {
+        if (successor_ptr->g > curr_edge_ptr->g + cost) {
+            successor_ptr->parent_id = curr_edge_ptr->state_id;
+            successor_ptr->g = curr_edge_ptr->g + cost;
+            successor_ptr->f = successor_ptr->g + params_.epsilon_ * successor_ptr->h;
+            successor_ptr->edge_priority = successor_ptr->f;
+            state_open_->update(successor_ptr.get());
+        }
+    } else {
+        setStateVals(successor_ptr->state_id, curr_edge_ptr->state_id, cost);
+        setProxyVals(proxy_id);
+        edge_open_->push(successor_ptr.get());
+        successor_ptr->setOpen();
+    }
+    notifyMainThread();
+
     lock_.unlock();
 }
 
