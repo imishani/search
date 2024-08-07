@@ -107,9 +107,9 @@ void Epase::expandProxy(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id
     // Create the real edges and add them to the open list.
     for (auto i : real_edges) {
         auto real_edge_ptr = getOrCreateSearchEdge(i);
-        // Should be running into these case where the real edge is already in closed/opened.
+        // Shouldn't be running into these case where the real edge is already in closed/opened.
         // Since the proxy edge will take care of the update in the open list.
-        setEdgeVals(real_edge_ptr->edge_id, curr_edge_ptr->state_id, priority);
+        setEdgeVals(real_edge_ptr->edge_id, curr_edge_ptr->edge_id, priority);
         edge_open_->push(real_edge_ptr.get());
         real_edge_ptr->setOpen();
         notifyMainThread();
