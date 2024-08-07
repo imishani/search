@@ -83,6 +83,9 @@ target_link_libraries(run_2d_rob_nav_nparastar search ${Boost_LIBRARIES})
 add_executable(run_2d_rob_nav_pase domains/2d_robot_nav/run_2d_pase.cpp)
 target_link_libraries(run_2d_rob_nav_pase search ${Boost_LIBRARIES})
 
+add_executable(run_2d_rob_nav_epase domains/2d_robot_nav/run_2d_epase.cpp)
+target_link_libraries(run_2d_rob_nav_epase search ${Boost_LIBRARIES})
+
 add_executable(run_2d_rob_nav_wastar_local_heu domains/2d_robot_nav/run_2d_wastar_local_heu.cpp)
 target_link_libraries(run_2d_rob_nav_wastar_local_heu search ${Boost_LIBRARIES})
 
