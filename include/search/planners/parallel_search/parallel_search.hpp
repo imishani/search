@@ -330,7 +330,8 @@ protected:
             edges_[edge_id]->state_id = state_id;
             edges_[edge_id]->is_proxy = true;
         } else {
-            assert(edges_[edge_id]->state_id == state_id);
+            if (edges_[edge_id]->state_id != state_id)
+                throw std::runtime_error("Proxy edge already exists with different state id");
         }
         return edges_[edge_id];
     }
