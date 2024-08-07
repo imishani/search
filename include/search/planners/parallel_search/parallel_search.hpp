@@ -137,7 +137,7 @@ protected:
         double edge_priority = INF_DOUBLE;
 
         bool isState() const {
-            return !is_proxy;
+            return is_proxy;
         }
 
         void print(std::string str) override {
@@ -569,7 +569,7 @@ public:
         lock_vec_.swap(lock_vec);
         work_futures_.clear();
         work_status_.resize(params_.num_threads_ - 1, 0);
-        t_stamps_.resize(params_.num_threads_ - 1, std::chrono::steady_clock::now());
+        t_stamps_.resize(params_.num_threads_, std::chrono::steady_clock::now());
         terminate_ = false;
         plan_found_ = false;
         recheck_flag_ = true;
