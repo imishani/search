@@ -150,27 +150,24 @@ int main(int argc, char** argv) {
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
         std::cout << "cost: " << stats.cost << std::endl;
         std::cout << "Path length: " << path_.size() << std::endl;
-        // logs.insert(std::make_pair(i, stats));
-        // paths.insert(std::make_pair(i, path_));
         std::cout << "Number of nodes expanded: " << stats.num_expanded << std::endl;
         std::cout << "Number of nodes generated: " << stats.num_generated << std::endl;
         std::cout << "suboptimality: " << stats.suboptimality << RESET << std::endl;
-        // logs[i] = stats;
-        // paths[i] = path_;
+        logs[i] = stats;
+        paths[i] = path_;
 
         delete heuristic;
     }
 
     // save the logs to a temporary file
-    // logStats(logs, map_index, "egraph_wastar");
-    //
-    // std::string path_file = logPaths(paths, map_index, scale);
+    logStats(logs, map_index, "egraph_wastar_nn");
+    std::string path_file = logPaths(paths, map_index, scale);
 
-    // std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
-    // std::string command = "python3 " + plot_path + " --filepath " + path_file;
-    // std::cout << "Running the plot script..." << std::endl;
-    //
-    // system(command.c_str());
+    std::string plot_path = "/home/spencer/repos/search/domains/2d_robot_nav/scripts/visualize_paths.py";
+    std::string command = "python3 " + plot_path + " --filepath " + path_file;
+    std::cout << "Running the plot script..." << std::endl;
+
+    system(command.c_str());
 
     return 0;
 }

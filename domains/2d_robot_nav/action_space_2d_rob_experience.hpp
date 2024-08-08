@@ -217,7 +217,7 @@ public:
         return true;
     }
 
-    bool loadEGraphFromNN(const std::string& path) override {
+    bool loadEGraphFromNN(const std::string& path, const StateType& start, const StateType& goal) override {
         int width = env_->map_size[0];
         int height = env_->map_size[1];
 
@@ -233,33 +233,15 @@ public:
         Idx2action[7] = std::make_pair(0, 1);
 
         // First generate num_traj start and goal pairs
-        int num_traj = 5;
+        int num_traj = 50;
         int num_samples = 2*num_traj;
         std::vector<StateType> sampled_states;
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                StateType new_state;
-                new_state.push_back(x);
-                new_state.push_back(y);
-                if (isStateValid(new_state)) {
-                    sampled_states.push_back(new_state);
-                }
-            }
-        }
-        // Get 2*num_traj non-duplicate states
-        if (sampled_states.size() > num_samples) {
-            // Randomly sample num_samples points from points
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::shuffle(sampled_states.begin(), sampled_states.end(), gen);
-            sampled_states.resize(num_samples);
-        }
-        // Make sure we have even number of sampled states. Half of them will be start states and the other half will
-        // be goal states
-        if (sampled_states.size() % 2 != 0) {
-            sampled_states.pop_back();
-        }
+        // getUniformSamples(num_samples, sampled_states);
+        getEllipsoidalSamples(num_samples, sampled_states, start, goal);
+        // getLinkSamples(num_samples, sampled_states, start, goal);
+        num_samples = sampled_states.size();
         num_traj = sampled_states.size() / 2;
+        std::cout << GREEN << "Generating " << num_traj << " trajectories" << RESET << std::endl;
         // Prepare input tensors
         torch::Tensor cur_states = torch::empty({num_traj, 4}, torch::dtype(torch::kFloat));
         for (int i = 0; i<num_traj; i++) {
@@ -268,8 +250,6 @@ public:
             cur_states.index({i, 2}) = sampled_states[i+num_traj][0];
             cur_states.index({i, 3}) = sampled_states[i+num_traj][1];
         }
-        // std::cout << cur_states << std::endl;
-        sampled_states.clear();
 
         torch::jit::script::Module module;
         try {
@@ -280,12 +260,11 @@ public:
             return false;
         }
 
-        // // TODO: For some reason, libtorch cannot detect available GPU for now.
+        // TODO: For some reason, libtorch cannot detect available GPU for now.
         // auto device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
         // module.to(device);
 
-
-        int max_steps = 10;
+        int max_steps = 30;
         // Initialize foot_steps
         torch::Tensor foot_steps = torch::empty({max_steps, num_traj, 7}, torch::kInt); // 7 = 4 (state) + 3 (actions)
         for (int step = 0; step < max_steps; ++step) {
@@ -300,22 +279,12 @@ public:
             torch::Tensor outputs;
             {
                 torch::NoGradGuard no_grad;
-                // std::cout << "-------------------------------------------" << std::endl;
-                // std::cout << "Input Tensor: " << std::endl;
-                // std::cout << input_tensor << std::endl;
-
                 outputs = module.forward({input_tensor}).toTensor();
-
-                // std::cout << "Output Tensor: " << std::endl;
-                // std::cout << outputs << std::endl;
             }
 
             // Get the index of the max log-probability
             auto max_indices = std::get<1>(outputs.max(1));
-            // std::cout << max_indices << std::endl;
-
-            // Convert to actions
-            // Convert vector of pairs to a tensor (n x 2 tensor)
+            // Convert indices to action tensor (n x 2 tensor)
             torch::Tensor action_tensor = torch::empty({num_traj, 2}, torch::kFloat);
             for (int i = 0; i < num_traj; ++i) {
                 int index = max_indices[i].item<int>();
@@ -323,33 +292,19 @@ public:
                 action_tensor[i][1] = Idx2action[index].second;
             }
 
-
             // Prepare foot_step data
             torch::Tensor foot_step = cur_states.clone();
             max_indices = max_indices.view({num_traj, 1});
-            // std::cout << cur_states.sizes() << std::endl;
-            // std::cout << max_indices.sizes() << std::endl;
-            // std::cout << action_tensor.sizes() << std::endl;
             foot_step = torch::cat({foot_step, max_indices}, 1);
             foot_step = torch::cat({foot_step, action_tensor}, 1);
-
-            // Ensure integer type
-            foot_step = foot_step.to(torch::kInt);
-            // std::cout << "Foot Step: " << std::endl;
-            // std::cout << foot_step << std::endl;
-
             // Store in foot_steps
+            foot_step = foot_step.to(torch::kInt);
             foot_steps.index({step}) = foot_step;
-
             // Update cur_states
             cur_states.index({torch::indexing::Slice(), 2}) += action_tensor.index({torch::indexing::Slice(), 0});
             cur_states.index({torch::indexing::Slice(), 3}) += action_tensor.index({torch::indexing::Slice(), 1});
-            // std::cout << action_tensor << std::endl;
-            // std::cout << cur_states << std::endl;
         }
-
         foot_steps = foot_steps.permute({1, 0, 2});
-        // std::cout << foot_steps << std::endl;
 
         std::vector<PathType> primitives;
         for(int i=0; i<num_traj; i++) {
@@ -363,13 +318,10 @@ public:
                 primitives.push_back(new_prim);
             }
         }
-
-        // for(int i = 0; i<primitives.size(); i++) {
-        //     std::cout << "--------------------------------" << std::endl;
-        //     for(int j=0; j<primitives[i].size(); j++) {
-        //         std::cout << primitives[i][j][0] << ", " << primitives[i][j][1] << std::endl;
-        //     }
-        // }
+        // TODO: Must check here if there is any valid primitive else memory issues
+        if(primitives.size() == 0) {
+            std::cout << "No valid primitive" << std::endl;
+        }
 
         for(std::vector<StateType> prim : primitives) {
             auto& prev_state = prim.front();
@@ -409,6 +361,129 @@ public:
                 }
             }
         }
+        return true;
+    }
+
+    bool getUniformSamples(int num_samples, std::vector<StateType>& sampled_states) override {
+        int width = env_->map_size[0];
+        int height = env_->map_size[1];
+        sampled_states.clear();
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                StateType new_state;
+                new_state.push_back(x);
+                new_state.push_back(y);
+                if (isStateValid(new_state)) {
+                    sampled_states.push_back(new_state);
+                }
+            }
+        }
+        // Randomly sample num_samples points from points
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::shuffle(sampled_states.begin(), sampled_states.end(), gen);
+        // Get 2*num_traj non-duplicate states
+        if (sampled_states.size() > num_samples) {
+            sampled_states.resize(num_samples);
+            return true;
+        }
+        // Make sure we have even number of sampled states. Half of them will be start states and the other half will
+        // be goal states
+        if (sampled_states.size() % 2 != 0) {
+            sampled_states.pop_back();
+        }
+        return true;
+    }
+
+    bool getEllipsoidalSamples(int num_samples, std::vector<StateType>& sampled_states, const StateType& start, const StateType& goal) override {
+        int width = env_->map_size[0];
+        int height = env_->map_size[1];
+        sampled_states.clear();
+        std::shared_ptr<ims::EuclideanHeuristic> euclidean_heuristic = std::make_shared<ims::EuclideanHeuristic>();
+        double dist;
+        euclidean_heuristic->getHeuristic(start, goal, dist);
+        double thresh = 4*dist;
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                StateType new_state;
+                new_state.push_back(x);
+                new_state.push_back(y);
+                double distFromStart, distFromGoal;
+                euclidean_heuristic->getHeuristic(start, new_state, distFromStart);
+                euclidean_heuristic->getHeuristic(goal, new_state, distFromGoal);
+                double new_dist = distFromStart + distFromGoal;
+                if (isStateValid(new_state) && new_dist <= thresh) {
+                    sampled_states.push_back(new_state);
+                }
+            }
+        }
+        // Randomly sample num_samples points from points
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::shuffle(sampled_states.begin(), sampled_states.end(), gen);
+        // Get 2*num_traj non-duplicate states
+        if (sampled_states.size() > num_samples) {
+            sampled_states.resize(num_samples);
+            return true;
+        }
+        // Make sure we have even number of sampled states. Half of them will be start states and the other half will
+        // be goal states
+        if (sampled_states.size() % 2 != 0) {
+            sampled_states.pop_back();
+        }
+        return true;
+    }
+
+    bool getLinkSamples(int num_samples, std::vector<StateType>& sampled_states, const StateType& start, const StateType& goal) override {
+        int width = env_->map_size[0];
+        int height = env_->map_size[1];
+        sampled_states.clear();
+        std::shared_ptr<ims::EuclideanHeuristic> euclidean_heuristic = std::make_shared<ims::EuclideanHeuristic>();
+        double dist;
+        euclidean_heuristic->getHeuristic(start, goal, dist);
+        // TODO: think of a better way to determine sampling radius
+        double thresh = dist / 2;
+        std::vector<StateType> start_group;
+        std::vector<StateType> goal_group;
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                StateType new_state;
+                new_state.push_back(x);
+                new_state.push_back(y);
+                if(!isStateValid(new_state)) {
+                    continue;
+                }
+                double distFromStart, distFromGoal;
+                euclidean_heuristic->getHeuristic(start, new_state, distFromStart);
+                euclidean_heuristic->getHeuristic(goal, new_state, distFromGoal);
+                if (distFromGoal > thresh && distFromStart > thresh) {
+                    continue;
+                }
+                if (distFromStart < distFromGoal) {
+                    start_group.push_back(new_state);
+                } else {
+                    goal_group.push_back(new_state);
+                }
+
+            }
+        }
+        std::cout << RED << start_group.size() << ", " << goal_group.size() << RESET << std::endl;
+        int num_traj = std::min(start_group.size(), goal_group.size());
+        num_traj = std::min(num_traj, num_samples/2);
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::shuffle(start_group.begin(), start_group.end(), gen);
+        std::shuffle(goal_group.begin(), goal_group.end(), gen);
+
+        start_group.resize(num_traj);
+        goal_group.resize(num_traj);
+
+        sampled_states.resize(2*num_traj);
+        std::copy(start_group.begin(), start_group.end(), sampled_states.begin());
+        std::copy(goal_group.begin(), goal_group.end(), sampled_states.begin() + num_traj);
         return true;
     }
 

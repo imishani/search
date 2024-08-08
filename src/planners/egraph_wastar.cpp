@@ -79,7 +79,7 @@ void ims::ExperienceWAstar::initializePlanner(const std::shared_ptr<ActionSpace>
 
     // load the experience graph
     // egraph_action_space_ptr_->loadEGraph(params_.experiences_dir);
-    egraph_action_space_ptr_->loadEGraphFromNN(params_.experiences_dir);
+    egraph_action_space_ptr_->loadEGraphFromNN(params_.experiences_dir, start, goal);
 
     start_->parent_id = PARENT_TYPE(START);
     goal_->parent_id = PARENT_TYPE(GOAL);

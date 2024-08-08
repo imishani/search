@@ -57,7 +57,19 @@ public:
 
     /// @brief Load the experience graph by using a NN generated trajectories
     /// @param path The path to the NN model
-    virtual bool loadEGraphFromNN(const std::string &path) = 0;
+    virtual bool loadEGraphFromNN(const std::string &path, const StateType& start, const StateType& goal) = 0;
+
+    /// @brief Uniformly generate valid states
+    /// @param num_samples Number of sampled states
+    virtual bool getUniformSamples(int num_samples, std::vector<StateType>& sampled_states) = 0;
+
+    /// @brief Generate valid states within a heuristic ellipsoid
+    /// @param num_samples Number of sampled states
+    virtual bool getEllipsoidalSamples(int num_samples, std::vector<StateType>& sampled_states, const StateType& start, const StateType& goal) = 0;
+
+    /// @brief Generate valid states grouping around start and goal
+    /// @param num_samples Number of sampled states
+    virtual bool getLinkSamples(int num_samples, std::vector<StateType>& sampled_states, const StateType& start, const StateType& goal) = 0;
 
     /// @brief Get the E-graph nodes
     /// @param nodes The vector to store the nodes in
