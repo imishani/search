@@ -200,13 +200,10 @@ public:
     /// @note This func will check if the edge id is a proxy, if not, it will throw a runtime error.
     virtual bool createRobotEdgesFromProxy(int proxy_id, std::vector<int>& edges_ind) {
         auto proxy_edge = getRobotEdge(proxy_id);
-        lock_e_.lock();
         if (proxy_edge->state_id == -1) {
-            lock_e_.unlock();
             throw std::runtime_error("createRobotEdgesFromProxy failed. The edge id is not a proxy.");
             return false;
         } else {
-            lock_e_.unlock();
             return createRobotEdgesFromState(proxy_edge->state_id, edges_ind);
         }
     }
