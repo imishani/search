@@ -143,6 +143,7 @@ protected:
         void print(std::string str) override {
             std::cout << str
                       << "Edge: " << edge_id
+                      << " | State: " << state_id
                       << " | Parent: " << parent_id
                       << " | g: " << g
                       << " | f: " << f

@@ -39,6 +39,8 @@
 
 #include "search/action_space/action_space.hpp"
 
+#define SLOW_EVAL false
+
 class Scene2DRob : public ims::SceneInterface {
 public:
     explicit Scene2DRob(std::vector<std::vector<int>>& map_) : ims::SceneInterface() {
@@ -169,14 +171,14 @@ public:
                 StateType next_state_val = StateType(curr_state->state.size());
                 std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(),
                                next_state_val.begin(), std::plus<>());
-                // if (1) {
-                //     double dummy = 0;
-                //     for (int i = 0; i < 5000; i++) {
-                //         dummy += floor(pow(0.125, 0.5));
-                //         next_state_val[0] += 1;
-                //         next_state_val[0] -= 1;
-                //     }
-                // }
+                if (SLOW_EVAL) {
+                    double dummy = 0;
+                    for (int i = 0; i < 5000; i++) {
+                        dummy += floor(pow(0.125, 0.5));
+                        next_state_val[0] += 1;
+                        next_state_val[0] -= 1;
+                    }
+                }
                 if (!isStateValid(next_state_val)) {
                     is_action_valid = false;
                     break;
