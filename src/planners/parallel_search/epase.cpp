@@ -161,10 +161,10 @@ void Epase::expand(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
 
     if (successor_ptr->in_open) {
         if (successor_ptr->g > curr_edge_ptr->g + cost) {
-            successor_ptr->parent_id = curr_edge_ptr->state_id;
-            successor_ptr->g = curr_edge_ptr->g + cost;
-            successor_ptr->f = successor_ptr->g + params_.epsilon_ * successor_ptr->h;
-            successor_ptr->edge_priority = successor_ptr->f;
+            successor_state_ptr->parent_id = curr_edge_ptr->state_id;
+            successor_state_ptr->g = curr_edge_ptr->g + cost;
+            successor_state_ptr->f = successor_state_ptr->g + params_.epsilon_ * successor_state_ptr->h;
+            setProxyVals(proxy_id);
             edge_open_->update(successor_ptr.get());
         }
     } else {
