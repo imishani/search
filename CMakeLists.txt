@@ -11,8 +11,11 @@ find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
 
 find_package(Eigen3 REQUIRED)
 
+find_package(HDF5 REQUIRED)
+
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${EIGEN3_INCLUDE_DIR})
+include_directories(${HDF5_INCLUDE_DIRS})
 
 add_library(search SHARED
         src/planners/best_first_search.cpp
@@ -130,9 +133,11 @@ target_link_libraries(run_2d_rob_nav_sipp search ${Boost_LIBRARIES})
 add_executable(run_2d_mapf_cbs_or_ecbs_sipp domains/2d_mapf/run_2d_cbs_or_ecbs_sipp.cpp)
 target_link_libraries(run_2d_mapf_cbs_or_ecbs_sipp search ${Boost_LIBRARIES})
 
-
 add_executable(run_walls domains/2d_robot_nav/tests/follow_wall.cpp)
 target_link_libraries(run_walls search ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES})
+
+add_executable(generate_data_traj domains/2d_robot_nav/data/generate_data_traj.cpp)
+target_link_libraries(generate_data_traj search ${Boost_LIBRARIES} ${HDF5_LIBRARIES})
 
 
 # Tests.

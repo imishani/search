@@ -98,11 +98,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # load the trajs_path
-    trajs_path = np.loadtxt("../../../cmake-build-debug/trajs_path_mosaic.txt", dtype=int, delimiter=',')
+    trajs_path = np.loadtxt("../../../cmake-build-release/trajs_path_mosaic.txt", dtype=int, delimiter=',')
     trajectories = []
     for i in trajs_path:
         # load the trajectory
-        trajectory = np.loadtxt(f"../../../cmake-build-debug/trajectories/trajectory_{i}.txt", dtype=float, delimiter=',')
+        trajectory = np.loadtxt(f"../../../cmake-build-release/trajectories/trajectory_{i}.txt", dtype=float, delimiter=',')
         trajectories.append(trajectory)
     # visualize the states
     visualize(args.map_number, trajectories, args.debug_mode)

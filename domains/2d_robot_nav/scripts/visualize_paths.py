@@ -139,6 +139,56 @@ def visualize(map_ind, scaler, paths_dict, path_ids_to_visualize):
     plt.show()
 
 
+def visualize_paths_by_order(map_ind, scaler, paths_dict, path_ids_to_visualize):
+    """
+    Animate the paths in the order they are provided
+    :param scaler:
+    :param map_ind: the index of the map to use
+    :param paths_dict: A dictionary
+    :param path_ids_to_visualize: A list of path ids to visualize
+    :return:
+    """
+    # load the map (octile map)
+    map_file = MAPS[map_ind]
+    map_data, map_type, width, height = load_map(map_file, scaler)
+
+    # create the figure
+    fig = plt.figure()
+    # create the axis
+    ax = plt.axes(xlim=(0, width), ylim=(0, height))
+    ax.invert_yaxis()
+    # create the image
+    plt.imshow(map_data, cmap='Greys', vmin=0, vmax=100)
+    # remove the xaixs and yaxis
+    ax.axes.get_xaxis().set_visible(False)
+    ax.axes.get_yaxis().set_visible(False)
+
+    # if a path id is provided, plot only that path
+    if path_ids_to_visualize is not None:
+        paths_to_visualize = {}
+        for path_id in path_ids_to_visualize:
+            paths_to_visualize[path_id] = paths_dict[path_id]
+    else:
+        paths_to_visualize = paths_dict
+
+    # plot the paths
+    fig.tight_layout()
+    for path in paths_to_visualize.values():
+        # get the x and y coordinates
+        x = path[:, 0]
+        y = path[:, 1]
+        ax.plot(x, y, 'b', markersize=2)
+        # plot a red circle (without fill) at the start
+        ax.plot(x[0], y[0], 'ro', fillstyle='none', markersize=5)
+        # plot a green circle (without fill) at the goal
+        ax.plot(x[-1], y[-1], 'go', fillstyle='none', markersize=5)
+        plt.pause(0.1)
+        plt.draw()
+
+    # show the plot
+    plt.show()
+
+
 if __name__ == "__main__":
     # get the path argument
     import argparse
@@ -147,7 +197,8 @@ if __name__ == "__main__":
     parser.add_argument("--filepath", help="path to the file containing the path solutions")
     parser.add_argument("--path_ids", help="the path ids to visualize (if multiple ids, separate with commas)",
                         default=None)
-    parser.add_argument("--imagepath", help="path to the image file the generated plot will be saved to", 
+    parser.add_argument("--animate", help="if set, the paths will be animated", default='true')
+    parser.add_argument("--imagepath", help="path to the image file the generated plot will be saved to",
                         default=None)
     args = parser.parse_args()
     # if no argument is provided, raise an error
@@ -155,8 +206,13 @@ if __name__ == "__main__":
         raise ValueError("No path provided")
     if args.path_ids is not None:
         args.path_ids = [int(x) for x in args.path_ids.split(",")]
+    if args.animate == 'true':
+        args.animate = True
+    else:
+        args.animate = False
 
     import os
+
     path_to_this_file = os.path.dirname(os.path.abspath(__file__))
 
     MAPS = [path_to_this_file + "/../data/hrt201n/hrt201n.map",
@@ -168,4 +224,8 @@ if __name__ == "__main__":
     # load the data
     map_index, scale, paths = load_data(args.filepath)
     # visualize the paths
-    visualize(map_index, scale, paths, args.path_ids)
+    if args.animate:
+        visualize_paths_by_order(map_index, scale, paths, args.path_ids)
+    else:
+        visualize(map_index, scale, paths, args.path_ids)
+

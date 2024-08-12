@@ -7,6 +7,11 @@ cmake-build-rosrelease/
 cmake-build-rosdebug/
 build*/
 .vscode/
+*pycache*
+*egg-info*
+*wandb/
+*data/
+*logs/
 
 domains/2d_mapf/datasets/
 *mp4
