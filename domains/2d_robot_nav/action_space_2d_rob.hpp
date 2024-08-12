@@ -40,6 +40,7 @@
 #include "search/action_space/action_space.hpp"
 
 #define SLOW_EVAL false
+#define SLOW_FACTOR 20000
 
 class Scene2DRob : public ims::SceneInterface {
 public:
@@ -173,7 +174,7 @@ public:
                                next_state_val.begin(), std::plus<>());
                 if (SLOW_EVAL) {
                     double dummy = 0;
-                    for (int i = 0; i < 5000; i++) {
+                    for (int i = 0; i < SLOW_FACTOR; i++) {
                         dummy += floor(pow(0.125, 0.5));
                         next_state_val[0] += 1;
                         next_state_val[0] -= 1;
