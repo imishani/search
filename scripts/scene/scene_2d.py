@@ -84,7 +84,7 @@ class Scene2D(SceneInterfaceBase):
         return (self.map[trajectory[:, 1], trajectory[:, 0]] >= 100).any()
 
     def render(self,
-               trajectories: torch.Tensor = None,
+               trajectories: torch.Tensor | list = None,
                *args, **kwargs):
         """
         Render the scene with the trajectories.
@@ -105,17 +105,24 @@ class Scene2D(SceneInterfaceBase):
         ax.axes.get_yaxis().set_visible(False)
 
         if trajectories is not None:
-            for row in range(trajectories.shape[0]):
+            if isinstance(trajectories, torch.Tensor):
+                traj_num = trajectories.shape[0]
+            elif isinstance(trajectories, list):
+                traj_num = len(trajectories)
+            else:
+                raise ValueError("Trajectories must be a torch.Tensor or a list of torch.Tensor.")
+            for row in range(traj_num):
                 traj = to_numpy(trajectories[row])
                 # plot the trajectory
-                x = traj[:, 0]
-                y = traj[:, 1]
-                ax.plot(x, y, 'b', markersize=2)
+                x = traj[:-1, 0]
+                y = traj[:-1, 1]
+                ax.plot(x, y, 'bo', markersize=2)
                 # plot a red circle (without fill) at the start
                 ax.plot(x[0], y[0], 'ro', fillstyle='none', markersize=5)
                 # plot a green circle (without fill) at the goal
-                ax.plot(x[-1], y[-1], 'go', fillstyle='none', markersize=5)
+                ax.plot(traj[-1, 0], traj[-1, 1], 'go', fillstyle='none', markersize=5)
 
         # show the plot
         fig.tight_layout()
         return fig
+

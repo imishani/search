@@ -32,3 +32,4 @@ class SceneInterfaceBase(abc.ABC):
     @abc.abstractmethod
     def render(self, *args, **kwargs):
         pass
+

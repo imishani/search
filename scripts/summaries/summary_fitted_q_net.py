@@ -8,21 +8,22 @@ from scripts.models import build_context
 from scripts.scene import SceneInterfaceBase
 from scripts.summaries.summary_base import SummaryBase
 
-# Fix if QtWidgets and QtWidgets.QApplication.instance():
-# AttributeError: module 'PySide2.QtWidgets' has no attribute 'QApplication'
 import matplotlib
 matplotlib.use('Agg')
 
 
-class SummaryTrajectoryGeneration(SummaryBase):
+class SummaryFittedQNet(SummaryBase):
 
     def __init__(self,
                  scene_interface: SceneInterfaceBase,
-                 project_name: str = "mosaic_diffusion",
+                 project_name: str = "mosaic_fitted_q_net",
                  **kwargs):
         super().__init__(**kwargs)
         self.scene_interface = scene_interface
         wandb.init(project=project_name)
+        # action map
+        self.action_map = torch.tensor([[0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1]],
+                                       dtype=torch.float32)
 
     def compute_fraction_free_trajs(self, trajs):
         n_free = 0
@@ -36,26 +37,38 @@ class SummaryTrajectoryGeneration(SummaryBase):
         dataset = datasubset.dataset
 
         # ------------------------------------------------------------------------------------
-        n_samples = 25
+        n_samples = 10
+        max_horizon = 50
+
         trajectory_id = np.random.choice(datasubset.indices, size=n_samples, replace=False)
 
-        data_normalized = dataset[trajectory_id]
-        context = build_context(model, dataset, data_normalized)
-
+        data_normalized = dataset[trajectory_id][f'{dataset.field_key_data}_normalized']
+        data_unnormalized = dataset.denormalize(data_normalized, dataset.field_key_data)
         # ------------------------------------------------------------------------------------
-        # Sample trajectories with the diffusion/cvae model
-        horizon = dataset.n_support_points
-        hard_conds = dataset.get_batch_hard_conditions(data_normalized[f"{dataset.field_key_traj}_normalized"])
+        trajs = []
+        self.action_map = self.action_map.to(data_normalized.device)
+        for i in range(n_samples):
+            traj = data_unnormalized[i, [0, 1]].unsqueeze(0).clone()
+            state = data_normalized[i, :4]
+            state_unnormalized = data_unnormalized[i, :2].to(data_normalized.device)
+            for t in range(max_horizon):
+                action = model.get_action(state)
+                action = self.action_map[action].squeeze()
+                state_unnormalized += action
+                # cat zeros to the end of the unnormalized state to match the data dim to normalize
+                state = torch.cat((state_unnormalized, torch.zeros_like(data_normalized[i, 2:])), dim=0)
+                state = dataset.normalize(state, dataset.field_key_data)[:4]
+                traj = torch.cat((traj, state_unnormalized.unsqueeze(0)), dim=0)
+                if state_unnormalized[0] == data_unnormalized[i, 2] and state_unnormalized[1] == data_unnormalized[i, 3]:
+                    break
+            # add the goal state to the end of the trajectory
+            traj = torch.cat((traj, data_unnormalized[i, [2, 3]].unsqueeze(0)), dim=0)
+            trajs.append(traj)
 
-        trajs_normalized = model.run_inference(
-            context, hard_conds,
-            n_samples=n_samples, horizon=horizon,
-            deterministic_steps=0
-        )
 
         # unnormalize trajectory samples from the diffusion model
-        trajs = dataset.denormalize(trajs_normalized, dataset.field_key_traj)
-        trajs_ground_truth = dataset.denormalize(data_normalized['trajs_normalized'], dataset.field_key_traj)
+        # trajs = dataset.denormalize(trajs_normalized, dataset.field_key_traj)
+        # trajs_ground_truth = dataset.denormalize(data_normalized['trajs_normalized'], dataset.field_key_traj)
 
         # ------------------------------------------------------------------------------------
         # STATISTICS
@@ -68,8 +81,8 @@ class SummaryTrajectoryGeneration(SummaryBase):
         # Render
 
         # # dataset trajectory
-        fig_joint_trajs_dataset, fig_robot_trajs_dataset = None, None
-        fig_robot_trajs_dataset = self.scene_interface.render(trajectories=trajs_ground_truth)
+        # fig_joint_trajs_dataset, fig_robot_trajs_dataset = None, None
+        # fig_robot_trajs_dataset = self.scene_interface.render(trajectories=trajs_ground_truth)
 
         # fig_joint_trajs_dataset, _, fig_robot_trajs_dataset, _ = dataset.render(
         #     task_id=task_id,
@@ -81,7 +94,7 @@ class SummaryTrajectoryGeneration(SummaryBase):
         # start_state_pos = pos_trajs[0][0]
         # goal_state_pos = pos_trajs[0][-1]
         #
-        fig_joint_trajs_diffusion = None
+        # fig_joint_trajs_diffusion = None
         # fig_joint_trajs_diffusion, _ = dataset.planner_visualizer.plot_joint_space_state_trajectories(
         #     trajs=pos_trajs,
         #     pos_start_state=start_state_pos, pos_goal_state=goal_state_pos,
@@ -95,14 +108,14 @@ class SummaryTrajectoryGeneration(SummaryBase):
         #     linestyle='dashed'
         # )
 
-        if fig_joint_trajs_dataset is not None:
-            wandb.log({f"{prefix}joint trajectories DATASET": wandb.Image(fig_joint_trajs_dataset)}, step=train_step)
-        if fig_robot_trajs_dataset is not None:
-            wandb.log({f"{prefix}robot trajectories DATASET": wandb.Image(fig_robot_trajs_dataset)}, step=train_step)
-
-        if fig_joint_trajs_diffusion is not None:
-            wandb.log({f"{prefix}joint trajectories DIFFUSION": wandb.Image(fig_joint_trajs_diffusion)},
-                      step=train_step)
+        # if fig_joint_trajs_dataset is not None:
+        #     wandb.log({f"{prefix}joint trajectories DATASET": wandb.Image(fig_joint_trajs_dataset)}, step=train_step)
+        # if fig_robot_trajs_dataset is not None:
+        #     wandb.log({f"{prefix}robot trajectories DATASET": wandb.Image(fig_robot_trajs_dataset)}, step=train_step)
+        #
+        # if fig_joint_trajs_diffusion is not None:
+        #     wandb.log({f"{prefix}joint trajectories DIFFUSION": wandb.Image(fig_joint_trajs_diffusion)},
+        #               step=train_step)
         if fig_robot_trajs_diffusion is not None:
             wandb.log({f"{prefix}robot trajectories DIFFUSION": wandb.Image(fig_robot_trajs_diffusion)},
                       step=train_step)
@@ -110,11 +123,11 @@ class SummaryTrajectoryGeneration(SummaryBase):
         if debug:
             plt.show()
 
-        if fig_joint_trajs_dataset is not None:
-            plt.close(fig_joint_trajs_dataset)
-        if fig_robot_trajs_dataset is not None:
-            plt.close(fig_robot_trajs_dataset)
-        if fig_joint_trajs_diffusion is not None:
-            plt.close(fig_joint_trajs_diffusion)
+        # if fig_joint_trajs_dataset is not None:
+        #     plt.close(fig_joint_trajs_dataset)
+        # if fig_robot_trajs_dataset is not None:
+        #     plt.close(fig_robot_trajs_dataset)
+        # if fig_joint_trajs_diffusion is not None:
+        #     plt.close(fig_joint_trajs_diffusion)
         if fig_robot_trajs_diffusion is not None:
             plt.close(fig_robot_trajs_diffusion)

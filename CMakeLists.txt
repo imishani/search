@@ -139,6 +139,9 @@ target_link_libraries(run_walls search ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES})
 add_executable(generate_data_traj domains/2d_robot_nav/data/generate_data_traj.cpp)
 target_link_libraries(generate_data_traj search ${Boost_LIBRARIES} ${HDF5_LIBRARIES})
 
+add_executable(generate_data_fqi domains/2d_robot_nav/data/generate_data_fqi.cpp)
+target_link_libraries(generate_data_fqi search ${Boost_LIBRARIES} ${HDF5_LIBRARIES})
+
 
 # Tests.
 add_executable(test_search test/common/test_queue.cpp)

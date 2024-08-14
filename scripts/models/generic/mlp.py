@@ -1,10 +1,14 @@
 from torch import nn
 
-from models.layers import MLP
+from scripts.models.layers import MLP
+
 
 class MLPModel(nn.Module):
-    def __init__(self, in_dim=16, out_dim=16, input_field='x',
-                 output_field='y',
+    def __init__(self,
+                 in_dim: int = 16,
+                 out_dim: int = 16,
+                 input_field: str = 'x',
+                 output_field: str = 'y',
                  pretrained_dir=None,
                  **kwargs):
         super().__init__()

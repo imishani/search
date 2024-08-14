@@ -43,8 +43,8 @@ ims::wAStar::~wAStar() {
 }
 
 void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_space_ptr,
-                                             const std::vector<StateType> &starts,
-                                             const ims::GoalConstraint &goal_constraint) {
+                                    const std::vector<StateType> &starts,
+                                    const ims::GoalConstraint &goal_constraint) {
     // space pointer
     action_space_ptr_ = action_space_ptr;
     // Clear both.
@@ -127,7 +127,7 @@ void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace> &action_s
 }
 
 void ims::wAStar::initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                   const StateType& start, const StateType& goal) {
+                                    const StateType& start, const StateType& goal) {
     // Space pointer.
     action_space_ptr_ = action_space_ptr;
 
@@ -237,9 +237,6 @@ void ims::wAStar::expand(int state_id){
         auto successor = getOrCreateSearchState(successor_id);
         if (successor->in_closed){
             continue;
-        }
-        if (isGoalState(successor_id) && params_.verbose ){
-            std::cout << "Added Goal to open list" << std::endl;
         }
         if (successor->in_open){
             if (successor->g > state_->g + cost){

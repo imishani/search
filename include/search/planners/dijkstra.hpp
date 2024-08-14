@@ -41,6 +41,15 @@
 
 namespace ims{
 
+    struct Policy{
+        StateType state;
+        StateType action;
+        StateType next_state;
+        StateType goal_state;
+        double cost;
+        double q_value;
+    };
+
     struct DijkstraParams : public AStarParams{
 
         /// @brief Constructor
@@ -60,7 +69,17 @@ namespace ims{
         /// @param params The parameters
         explicit Dijkstra(const DijkstraParams &params);
 
+        /// @brief initialize the planner with the start state (backward search only)
+        /// @param start_state The start state
+        void initializePolicyPlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                                     const StateType& start_state);
+
         bool exhaustPlan();
+
+        /// @brief the policy of the planner
+        /// @param state_id The state id
+        /// @return The policy
+        Policy getPolicy(int state_id);
 
     };
 

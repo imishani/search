@@ -35,3 +35,10 @@ class WeightedL2(WeightedLoss):
 
     def _loss(self, pred, targ):
         return F.mse_loss(pred, targ, reduction='none')
+
+
+class SmoothL1Loss(WeightedLoss):
+
+    def _loss(self, pred, targ):
+        return F.smooth_l1_loss(pred, targ, reduction='none')
+
