@@ -10,7 +10,8 @@ build*/
 *pycache*
 *egg-info*
 *wandb/
-*data/
+domains/2d_robot_nav/data/den501d/data/*
+#*data/
 *logs/
 
 domains/2d_mapf/datasets/
