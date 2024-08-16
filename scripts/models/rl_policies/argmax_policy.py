@@ -47,7 +47,8 @@ class ArgMaxPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
                 out_dim=self.ac_dim,
                 hidden_dim=self.size,
                 n_layers=self.n_layers,
-                act=activation
+                act=activation,
+                batch_norm=False
             )
 
             self.mean_net = None
@@ -60,15 +61,16 @@ class ArgMaxPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
                 out_dim=self.ac_dim,
                 hidden_dim=self.size,
                 n_layers=self.n_layers,
-                act=activation
+                act=activation,
+                batch_norm=False
             )
             self.logstd = nn.Parameter(
                 torch.zeros(self.ac_dim, dtype=torch.float32)
             )
-            self.optimizer = optim.Adam(
-                itertools.chain([self.logstd], self.q_net.parameters()),
-                self.learning_rate
-            )
+            # self.optimizer = optim.Adam(
+            #     itertools.chain([self.logstd], self.q_net.parameters()),
+            #     self.learning_rate
+            # )
 
     ##################################
 
@@ -120,10 +122,14 @@ class ArgMaxPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
         terminal_n = torch.zeros_like(reward_n)
         # target_q_values = reward_n + (1 - terminal_n) * 0.99 * q_values_next.max(dim=1)[0]
-        target_q_values = reward_n + (1 - terminal_n) * 0.99 * q_next
-        target_q_values = q_next
+        # target_q_values = reward_n + (1 - terminal_n) * 0.99 * q_next
+        # target_q_values = q_next
+        target_q_values = torch.ones_like(qa_t_values, dtype=torch.float32, device=qa_t_values.device)
+        # at index ac_na, set the target_q_values to q_next
+        target_q_values.scatter_(1, ac_na.unsqueeze(1), q_next.unsqueeze(1))
 
-        loss, info = self.loss_fn(q_t_values, target_q_values)
+        # loss, info = self.loss_fn(q_t_values, target_q_values)
+        loss, info = self.loss_fn(qa_t_values, target_q_values)
         return loss, info
 
     # This function defines the forward pass of the network.

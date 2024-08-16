@@ -18,8 +18,8 @@ class FittedQNetLoss:
         # convert the torch objects to ints
         ac = ac.long()
         nex_ob = data_normalized[:, 5:7]
-        rew = data_denormalized[:, 7]
-        q_next = data_denormalized[:, 8]
+        rew = data_normalized[:, 7]
+        q_next = data_normalized[:, 8]
         loss, info = model.update(ob, ac, nex_ob, rew, q_next)
 
         loss_dict = {'fqi_loss': loss}

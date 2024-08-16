@@ -10,7 +10,7 @@ from scripts import losses
 def experiment(
         # ####################################################################### Dataset
         dataset_class='FQIReplayBuffer',
-        dataset_path: str = '/home/itamar/work/code/algorithms/search/domains/2d_robot_nav/data/den501d/data'
+        dataset_path: str = '/home/imishani/work/code/algorithms/search/domains/2d_robot_nav/data/den501d/data'
                             '/fqi_replay_buffer.h5',
 
         ########################################################################
@@ -93,7 +93,7 @@ def experiment(
     # loss_fn = val_loss_fn = getattr(losses, loss_class)()
 
     # Summary
-    scene2d = scene_2d.Scene2D('/home/itamar/work/code/algorithms/search/domains/2d_robot_nav/data/den501d/den501d.map')
+    scene2d = scene_2d.Scene2D('/home/imishani/work/code/algorithms/search/domains/2d_robot_nav/data/den501d/den501d.map')
     summary_fn = trainer.get_summary(
         summary_class=summary_class,
         scene_interface=scene2d

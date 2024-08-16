@@ -15,7 +15,7 @@ class FQIReplayBuffer(DatasetBase):
         self.state_dim = int(self.metadata['state_dim'].item())
         assert 'action_dim' in self.metadata.keys(), "Metadata must contain 'action_dim' key."
         self.action_dim = int(self.metadata['action_dim'].item())
-        # self.balance_data(column_dim=2*self.state_dim)
+        self.balance_data(column_dim=2*self.state_dim)
 
     def balance_data(self, column_dim):
         """
