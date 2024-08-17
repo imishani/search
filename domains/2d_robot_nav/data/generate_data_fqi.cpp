@@ -151,13 +151,27 @@ int main(int argc, char** argv) {
         std::cout << GREEN << "Planning time: " << stats.time << " sec" << std::endl;
         std::cout << "Number of nodes expanded: " << stats.num_expanded << std::endl;
         logs[i] = stats; // log the stats
-        for (auto& state : planner.getAllSearchStates()) {
-            if (state->parent_id == PARENT_TYPE::START) {
-                continue;
-            }
-            ims::Policy policy = planner.getPolicy(state->state_id);
-            policies->push_back(policy);
+        auto all_states = planner.getAllSearchStates();
+
+        // sample N state actions and generate a policy
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(0, static_cast<int>(all_states.size()) - 1);
+        for (int sample_idx {0}; sample_idx < 2000; sample_idx++) {
+            int state_id = dis(gen);
+            std::vector<ims::Policy> policy = planner.getSuccessorPolicies(state_id);
+            // pick a random policy
+            std::uniform_int_distribution<> dis_policy(0, static_cast<int>(policy.size()) - 1);
+            const ims::Policy& sampled_policy = policy[dis_policy(gen)];
+            policies->push_back(sampled_policy);
         }
+        // for (auto& state : planner.getAllSearchStates()) {
+        //     if (state->parent_id == PARENT_TYPE::START) {
+        //         continue;
+        //     }
+        //     ims::Policy policy = planner.getPolicy(state->state_id);
+        //     policies->push_back(policy);
+        // }
     }
     // save the paths to a file
     std::string path_file_ = path + "data/" + "fqi_replay_buffer.h5";

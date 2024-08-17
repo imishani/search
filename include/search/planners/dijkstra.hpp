@@ -81,6 +81,12 @@ namespace ims{
         /// @return The policy
         Policy getPolicy(int state_id);
 
+        ///@brief Get all the policies of the successors of a state, not only the best one
+        ///@param state_id The state id
+        ///@return Vector of policies
+        std::vector<Policy> getSuccessorPolicies(int state_id);
+
+
     };
 
 }

@@ -92,6 +92,8 @@ bool ims::Dijkstra::exhaustPlan() {
     }
 
 }
+
+
 ims::Policy ims::Dijkstra::getPolicy(int state_id) {
     Policy policy;
     policy.state = action_space_ptr_->getRobotState(state_id)->state;
@@ -100,11 +102,10 @@ ims::Policy ims::Dijkstra::getPolicy(int state_id) {
     std::vector<double> costs;
     action_space_ptr_->getSuccessors(state_id, successors, costs);
     double max_cost = std::numeric_limits<double>::max();
-    for (int i = 0; i < successors.size(); i++){
+    for (int i {0}; i < successors.size(); i++){
         int successor_id = successors[i];
         double cost = costs[i];
         auto successor = getOrCreateSearchState(successor_id);
-
         if (successor->g + cost < max_cost){
             max_cost = successor->g + cost;
             policy.next_state = action_space_ptr_->getRobotState(successor_id)->state;
@@ -120,5 +121,28 @@ ims::Policy ims::Dijkstra::getPolicy(int state_id) {
 }
 
 
+std::vector<ims::Policy> ims::Dijkstra::getSuccessorPolicies(const int state_id) {
+    const StateType search_state = action_space_ptr_->getRobotState(state_id)->state;
+    const StateType goal_state = action_space_ptr_->getRobotState(goal_)->state;
+    std::vector<Policy> policies;
+    std::vector<int> successors;
+    std::vector<double> costs;
+    action_space_ptr_->getSuccessors(state_id, successors, costs);
+    for (int i {0}; i < successors.size(); i++) {
+        Policy policy;
+        policy.state = search_state;
+        policy.goal_state = goal_state;
+
+        policy.next_state = action_space_ptr_->getRobotState(successors[i])->state;
+        policy.action.resize(policy.next_state.size());
+        for (int j = 0; j < policy.next_state.size(); j++){
+            policy.action[j] = policy.next_state[j] - policy.state[j];
+        }
+        policy.cost = costs[i];
+        policy.q_value = getOrCreateSearchState(successors[i])->g;
+        policies.push_back(policy);
+    }
+    return policies;
+}
 
 
