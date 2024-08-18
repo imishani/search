@@ -141,7 +141,7 @@ class ArgMaxPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         loss1, info1 = self.loss_fn(q_out, target_q_values)
         loss2, info2 = self.loss_fn(cost_out, reward_n.unsqueeze(1))
         # loss, info = self.loss_fn(qa_t_values, target_q_values)
-        return loss1 + loss2, info1
+        return loss1, info1, loss2, info2
 
         # # Use self.forward to compute the action distribution and loss
         # action_distribution = self.forward(ob_no)

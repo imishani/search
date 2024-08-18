@@ -20,8 +20,8 @@ class FittedQNetLoss:
         nex_ob = data_normalized[:, 5:7]
         rew = data_normalized[:, 7]
         q_next = data_normalized[:, 8]
-        loss, info = model.update(ob, ac, nex_ob, rew, q_next)
+        loss1, info1, loss2, info2 = model.update(ob, ac, nex_ob, rew, q_next)
 
-        loss_dict = {'fqi_loss': loss}
-
+        loss_dict = {'q_loss': loss1, 'a_loss': loss2}
+        info = {*info1, *info2}
         return loss_dict, info
