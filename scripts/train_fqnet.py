@@ -17,11 +17,11 @@ def experiment(
         # Diffusion Model
         model_class: str = 'ArgMaxPolicy',
         # Network parameters
-        hidden_dim: int = 512,
-        num_layers: int = 8,
+        hidden_dim: int = 256,
+        num_layers: int = 5,
         activation: str = 'relu',
         # Training parameters
-        batch_size: int = 512,
+        batch_size: int = 2056,
         lr: float = 1e-4,
         num_train_steps: int = 1_500_000,  # 500000
         # loss_class: str = 'WeightedL2',

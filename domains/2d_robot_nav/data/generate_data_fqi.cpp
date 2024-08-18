@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dis(0, static_cast<int>(all_states.size()) - 1);
-        for (int sample_idx {0}; sample_idx < 2000; sample_idx++) {
+        for (int sample_idx {0}; sample_idx < 20000; sample_idx++) {
             int state_id = dis(gen);
             std::vector<ims::Policy> policy = planner.getSuccessorPolicies(state_id);
             // pick a random policy

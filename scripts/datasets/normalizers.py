@@ -155,20 +155,23 @@ class LimitsNormalizer(Normalizer):
         # [ 0, 1 ]
         x = (x - self.mins) / (self.maxs - self.mins)
         # [ -1, 1 ]
-        x = 2 * x - 1
+        # x = 2 * x - 1
         return x
 
     def denormalize(self, x, eps=1e-4):
         """
             x : [ -1, 1 ]
         """
-        if x.max() > 1 + eps or x.min() < -1 - eps:
+        # if x.max() > 1 + eps or x.min() < -1 - eps:
+        #     # print(f'[ datasets/mujoco ] Warning: sample out of range | ({x.min():.4f}, {x.max():.4f})')
+        #     x = torch.clip(x, -1, 1)
+        #
+        # # [ -1, 1 ] --> [ 0, 1 ]
+        # x = (x + 1) / 2.
+
+        if x.max() > 1 + eps or x.min() < 0 - eps:
             # print(f'[ datasets/mujoco ] Warning: sample out of range | ({x.min():.4f}, {x.max():.4f})')
-            x = torch.clip(x, -1, 1)
-
-        # [ -1, 1 ] --> [ 0, 1 ]
-        x = (x + 1) / 2.
-
+            x = torch.clip(x, 0, 1)
         return x * (self.maxs - self.mins) + self.mins
 
 

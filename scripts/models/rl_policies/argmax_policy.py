@@ -44,7 +44,7 @@ class ArgMaxPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         if self.discrete:
             self.q_net = MLP(
                 in_dim=self.ob_dim,
-                out_dim=self.ac_dim,
+                out_dim=self.ac_dim * 2,
                 hidden_dim=self.size,
                 n_layers=self.n_layers,
                 act=activation,
@@ -53,12 +53,12 @@ class ArgMaxPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
 
             self.mean_net = None
             self.logstd = None
-            self.optimizer = optim.Adam(self.q_net.parameters(),
-                                        self.learning_rate)
+            # self.optimizer = optim.Adam(self.q_net.parameters(),
+            #                             self.learning_rate)
         else:
             self.q_net = MLP(
                 in_dim=self.ob_dim,
-                out_dim=self.ac_dim,
+                out_dim=self.ac_dim * 2,
                 hidden_dim=self.size,
                 n_layers=self.n_layers,
                 act=activation,
@@ -88,7 +88,12 @@ class ArgMaxPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # action_distribution = self.forward(observation)
         # action = action_distribution.sample()
         # action = self.q_net(observation).argmax(axis=-1)
-        action = self.q_net(observation).argmin(axis=-1)
+
+        q_cost_vals = self.q_net(observation)
+        q_vals, cost_vals = torch.chunk(q_cost_vals, 2, dim=1)
+        # take the sum
+        v_vals = q_vals + cost_vals
+        action = q_vals.argmin(axis=-1)
 
         return action.squeeze()
         # return action
@@ -117,20 +122,32 @@ class ArgMaxPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # q_next = to_torch(q_next, device=self.q_net.device)
 
         qa_t_values = self.q_net(ob_no)
-        q_t_values = torch.gather(qa_t_values, 1, ac_na.unsqueeze(1)).squeeze(1)
+        # q_t_values = torch.gather(qa_t_values, 1, ac_na.unsqueeze(1)).squeeze(1)
+        q_out, cost_out = torch.chunk(qa_t_values, 2, dim=1)
+        q_out = torch.gather(q_out, 1, ac_na.unsqueeze(1)).squeeze(1)
+        cost_out = torch.gather(cost_out, 1, ac_na.unsqueeze(1)).squeeze(1)
+
         # q_values_next = self.q_net(next_ob_no)
 
         terminal_n = torch.zeros_like(reward_n)
         # target_q_values = reward_n + (1 - terminal_n) * 0.99 * q_values_next.max(dim=1)[0]
         # target_q_values = reward_n + (1 - terminal_n) * 0.99 * q_next
-        # target_q_values = q_next
-        target_q_values = torch.ones_like(qa_t_values, dtype=torch.float32, device=qa_t_values.device)
-        # at index ac_na, set the target_q_values to q_next
-        target_q_values.scatter_(1, ac_na.unsqueeze(1), q_next.unsqueeze(1))
+        target_q_values = q_next
 
-        # loss, info = self.loss_fn(q_t_values, target_q_values)
-        loss, info = self.loss_fn(qa_t_values, target_q_values)
-        return loss, info
+        # target_q_values = torch.ones_like(qa_t_values, dtype=torch.float32, device=qa_t_values.device)
+        # at index ac_na, set the target_q_values to q_next
+        # target_q_values.scatter_(1, ac_na.unsqueeze(1), q_next.unsqueeze(1))
+
+        loss1, info1 = self.loss_fn(q_out, target_q_values)
+        loss2, info2 = self.loss_fn(cost_out, reward_n.unsqueeze(1))
+        # loss, info = self.loss_fn(qa_t_values, target_q_values)
+        return loss1 + loss2, info1
+
+        # # Use self.forward to compute the action distribution and loss
+        # action_distribution = self.forward(ob_no)
+        # loss = -action_distribution.log_prob(ac_na) * q_next
+        # loss = loss.mean()
+        # return loss, {}
 
     # This function defines the forward pass of the network.
     # You can return anything you want, but you should be able to differentiate
