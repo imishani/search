@@ -131,6 +131,7 @@ void Epase::expand(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
     }
 
     stats_.num_jobs_per_thread[thread_id]++;
+    stats_.num_evaluated++;
 
     if (params_.verbose) curr_edge_ptr->print("Thread " + std::to_string(thread_id) + " Expanding ");
 
@@ -141,10 +142,12 @@ void Epase::expand(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
     std::vector<double> successor_seqs_transition_costs;
     lock_.unlock();
     stampTimer(thread_id);
-    action_space_ptr_->getSuccessor(curr_edge_ptr->edge_id, successor_seqs_state_ids, successor_seqs_transition_costs);
+    bool succ = action_space_ptr_->getSuccessor(curr_edge_ptr->edge_id, successor_seqs_state_ids, successor_seqs_transition_costs);
     stats_.evaluation_time += getTimeFromStamp(thread_id);
+    if (!succ) {
+        return;
+    }
     lock_.lock();
-    stats_.num_evaluated++;
 
     int successor_id = successor_seqs_state_ids.back();
     double cost = std::accumulate(successor_seqs_transition_costs.begin(), successor_seqs_transition_costs.end(), 0.0);

@@ -103,12 +103,18 @@ void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
     std::vector<std::vector<double>> successor_seqs_transition_costs;
     lock_.unlock();
     stampTimer(thread_id);
-    action_space_ptr_->getSuccessors(curr_state_ptr->state_id, successor_seqs_state_ids, successor_seqs_transition_costs);
+    bool succ = action_space_ptr_->getSuccessors(curr_state_ptr->state_id, successor_seqs_state_ids, successor_seqs_transition_costs);
     stats_.evaluation_time += getTimeFromStamp(thread_id);
+    if (!succ) {
+        return;
+    }
     lock_.lock();
 
     for (size_t i{0}; i < successor_seqs_state_ids.size(); ++i) {
         stats_.num_evaluated++;
+        if (successor_seqs_state_ids[i].empty()) {
+            continue;
+        }
         int successor_id = successor_seqs_state_ids[i].back();
         double cost = std::accumulate(successor_seqs_transition_costs[i].begin(), successor_seqs_transition_costs[i].end(), 0.0);
         auto successor_ptr = getOrCreateSearchState(successor_id);
