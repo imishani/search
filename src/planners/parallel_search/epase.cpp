@@ -144,6 +144,7 @@ void Epase::expand(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
     action_space_ptr_->getSuccessor(curr_edge_ptr->edge_id, successor_seqs_state_ids, successor_seqs_transition_costs);
     stats_.evaluation_time += getTimeFromStamp(thread_id);
     lock_.lock();
+    stats_.num_evaluated++;
 
     int successor_id = successor_seqs_state_ids.back();
     double cost = std::accumulate(successor_seqs_transition_costs.begin(), successor_seqs_transition_costs.end(), 0.0);
