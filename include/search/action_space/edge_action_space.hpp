@@ -111,11 +111,11 @@ public:
             throw std::runtime_error("Edge Action Space - (getQValue) Edge is not a real edge, action is empty");
         }
         // First get the transition cost
-        std::vector<double> cost_seq{};
+        std::vector<double> cost_seq(edge_ptr->action.size(), 0);
         getActionCost(getRobotStateId(edge_ptr->state), edge_ptr->action, cost_seq);
         double cost = std::accumulate(cost_seq.begin(), cost_seq.end(), 0.0);
         // Then get a proxy edge without validity check
-        StateType next_state_val = StateType();
+        StateType next_state_val = StateType(edge_ptr->state.size(), 0);
         if (!getSuccessorProxy(edge_id, next_state_val)) {
             throw std::runtime_error("Edge Action Space - (getQValue) Failed to get successor proxy");
         }

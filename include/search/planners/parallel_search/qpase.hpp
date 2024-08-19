@@ -42,8 +42,8 @@
 #include <utility>
 
 // project includes
-#include <search/planners/parallel_search/parallel_search.hpp>
 #include <search/planners/parallel_search/epase.hpp>
+#include <search/planners/parallel_search/parallel_search.hpp>
 
 namespace ims {
 

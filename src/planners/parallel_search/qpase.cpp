@@ -53,12 +53,12 @@ void Qpase::expandProxy(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id
         throw std::runtime_error("Action Space - Failed to create real edges from proxy edge");
     }
 
-    // For epase, the real-edge's expansion priority is based on the proxy edge's f-value.
-    double priority = curr_edge_ptr->edge_priority;
 
     // Create the real edges and add them to the open list.
     for (auto i : real_edges) {
         auto real_edge_ptr = getOrCreateSearchEdge(i);
+        // For qpase, the real-edge's expansion priority is g + epsilon * q-value
+        double priority = curr_edge_ptr->g + params_.epsilon_*this->action_space_ptr_->getQValue(i);
         // Shouldn't be running into these case where the real edge is already in closed/opened.
         // Since the proxy edge will take care of the update in the open list.
         setEdgeVals(real_edge_ptr->edge_id, curr_edge_ptr->edge_id, priority);
@@ -103,6 +103,7 @@ void Qpase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_spa
     goal_state_->parent_id = PARENT_TYPE(GOAL);
     setProxyVals(goal_edge_ind_);
     heuristic_->setGoal(const_cast<StateType&>(goals[0]));
+    this->action_space_ptr_->setGoal(goals[0]);
     goals_.push_back(goal_edge_ind_);
     this->goal_ = goal_edge_ind_;
 
@@ -143,6 +144,7 @@ void Qpase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_spa
     goal_state_->parent_id = PARENT_TYPE(GOAL);
     setProxyVals(goal_edge_ind_);
     heuristic_->setGoal(const_cast<StateType&>(goal));
+    this->action_space_ptr_->setGoal(goal);
     goals_.push_back(goal_edge_ind_);
     this->goal_ = goal_edge_ind_;
 
