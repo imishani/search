@@ -124,13 +124,25 @@ public:
         }
         return true;
     }
+    
+    bool getSuccessorProxy(int curr_edge_ind, StateType& next_state_val) override {
+        auto curr_edge = this->getRobotEdge(curr_edge_ind);
+        auto action_seq = curr_edge->action;
+        auto action = action_seq.back();
+
+        std::transform(curr_edge->state.begin(), curr_edge->state.end(), action.begin(),
+                       next_state_val.begin(), std::plus<>());
+
+        return true;
+    }
 
     bool getSuccessor(int curr_edge_ind,
                       std::vector<int>& seqs_state_id,
                       std::vector<double>& seqs_transition_cost) override {
         auto curr_edge = this->getRobotEdge(curr_edge_ind);
         auto action_seq = curr_edge->action;
-        auto cost = getActionCost(action_seq);
+        getActionCost(getRobotStateId(curr_edge->state), action_seq, seqs_transition_cost);
+
         bool is_action_valid = true;
 
         for (size_t j{0}; j < action_seq.size(); j++) {
@@ -153,7 +165,6 @@ public:
             int next_state_ind = getOrCreateRobotState(next_state_val);
             // Add to action edge.
             seqs_state_id.push_back(next_state_ind);
-            seqs_transition_cost.push_back(cost[j]);
         }
         if (!is_action_valid) {
             return false;
@@ -176,14 +187,15 @@ public:
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val) { return isStateValid(state_val); });
     }
 
-    std::vector<double> getActionCost(const ActionSequence& action) {
+    void getActionCost(int curr_state_id, const ActionSequence& action, std::vector<double>& seq_transition_costs) override {
         std::vector<ActionSequence> prim_action_seqs;
         std::vector<std::vector<double>> prim_action_transition_costs;
         action_type_->getPrimActions(prim_action_seqs, prim_action_transition_costs);
         for (int i{0}; i < prim_action_seqs.size(); ++i) {
             if (action == prim_action_seqs[i]) {
                 auto cost_seq = this->action_type_->action_seqs_transition_costs[i];
-                return cost_seq;
+                seq_transition_costs = cost_seq;
+                return;
             }
         }
 

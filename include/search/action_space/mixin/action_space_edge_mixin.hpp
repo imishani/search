@@ -93,6 +93,8 @@ public:
     hash_map<std::shared_ptr<EdgeKey>, int, EdgeHash, EdgeEqual> edge_to_id_;
     /// @brief The edges
     std::vector<std::shared_ptr<RobotEdge>> edges_;
+    /// @brief The heuristic to compute Q-values
+    std::shared_ptr<BaseHeuristic> q_heuristic_;
 
     /// @brief Constructor
     explicit ActionSpaceEdgeMixin() = default;
@@ -207,6 +209,34 @@ public:
             return createRobotEdgesFromState(proxy_edge->state_id, edges_ind);
         }
     }
+
+    /// @brief Set the goal for the q-heuristic
+    /// @param goal The goal state
+    virtual void setGoal(const StateType& goal) {
+        if (q_heuristic_ == nullptr) {
+            throw std::runtime_error("Edge Action Space - (setGoal) Q-Heuristic is not set");
+        }
+        q_heuristic_->setGoal(const_cast<StateType&>(goal));
+    }
+
+    /// @brief Get the cost of an action.
+    /// @param curr_state_id The id of the current state
+    /// @param action_seq The action
+    /// @param seq_transition_costs The cost of the transitions seq
+    virtual void getActionCost(int curr_state_id,
+                               const ActionSequence& action_seq,
+                               std::vector<double>& seq_transition_costs) = 0;
+
+    /// @brief Get the Q-value of a state-action pair
+    /// @param edge_id The id of the edge. This should be a real edge.
+    /// @return The Q-value
+    virtual double getQValue(int edge_id) = 0;
+
+    /// @brief Get a proxy successor without any validity check
+    /// @param curr_edge_id The id of the real edge
+    /// @param next_state_val The next state value
+    /// @return Success bool
+    virtual bool getSuccessorProxy(int curr_edge_id, StateType& next_state_val) = 0;
 
     /// @brief Get single Successor by edge id
     /// @param seqs_state_ids All states between the current state and the successor, including them. For example, say we have a current state [1,1] and a successor [1,4]. Let's say the edge connecting them is [1,1], [1,2], [1,3], [1,4]. If their state ids are 101, 102, 103, 104, then seqs_state_ids should be [101, 102, 103. 104].

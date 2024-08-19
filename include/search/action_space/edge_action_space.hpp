@@ -45,7 +45,12 @@ class EdgeActionSpace : public ActionSpace,
 public:
     /// @brief Constructor.
     explicit EdgeActionSpace() : ActionSpace(), ActionSpaceEdgeMixin() {
-        // std::cout << "EdgeActionSpace: Constructor" << std::endl;
+        q_heuristic_ = nullptr;
+    }
+
+    /// @brief Constructor.
+    EdgeActionSpace(std::shared_ptr<BaseHeuristic> q_heuristic) : ActionSpace(), ActionSpaceEdgeMixin() {
+        q_heuristic_ = q_heuristic;
     }
 
     /// @brief Destructor.
@@ -94,6 +99,29 @@ public:
     virtual int createProxyEdgeFromState(int state_id) override {
         auto state_val = getRobotState(state_id)->state;
         return getOrCreateProxyEdge(state_val);
+    }
+
+    virtual double getQValue(int edge_id) override {
+        if (q_heuristic_ == nullptr) {
+            throw std::runtime_error("Edge Action Space - (getQValue) Q-Heuristic is not set");
+        }
+        // Get the real edges
+        auto edge_ptr = getRobotEdge(edge_id);
+        if (edge_ptr->action.empty()) {
+            throw std::runtime_error("Edge Action Space - (getQValue) Edge is not a real edge, action is empty");
+        }
+        // First get the transition cost
+        std::vector<double> cost_seq{};
+        getActionCost(getRobotStateId(edge_ptr->state), edge_ptr->action, cost_seq);
+        double cost = std::accumulate(cost_seq.begin(), cost_seq.end(), 0.0);
+        // Then get a proxy edge without validity check
+        StateType next_state_val = StateType();
+        if (!getSuccessorProxy(edge_id, next_state_val)) {
+            throw std::runtime_error("Edge Action Space - (getQValue) Failed to get successor proxy");
+        }
+        double next_state_h = 0;
+        q_heuristic_->getHeuristic(next_state_val, next_state_h);
+        return cost + next_state_h;
     }
 
     /// @brief Overrides reset planning data
