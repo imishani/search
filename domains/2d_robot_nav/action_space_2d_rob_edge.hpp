@@ -37,6 +37,7 @@
 // Project includes.
 #include <search/action_space/edge_action_space.hpp>
 #include <search/common/scene_interface.hpp>
+#include <search/heuristics/standard_heuristics.hpp>
 
 // Local includes.
 #include "action_space_2d_rob.hpp"
@@ -50,6 +51,13 @@ protected:
 public:
     edgeActionSpace2dRob(const Scene2DRob& env,
                          const ActionType2dRob& actions_ptr) : ims::EdgeActionSpace() {
+        this->env_ = std::make_shared<Scene2DRob>(env);
+        this->action_type_ = std::make_shared<ActionType2dRob>(actions_ptr);
+    }
+
+    edgeActionSpace2dRob(const Scene2DRob& env,
+                         const ActionType2dRob& actions_ptr,
+                         std::shared_ptr<ims::BaseHeuristic> q_heuristic) : ims::EdgeActionSpace(q_heuristic) {
         this->env_ = std::make_shared<Scene2DRob>(env);
         this->action_type_ = std::make_shared<ActionType2dRob>(actions_ptr);
     }
@@ -124,7 +132,7 @@ public:
         }
         return true;
     }
-    
+
     bool getSuccessorProxy(int curr_edge_ind, StateType& next_state_val) override {
         auto curr_edge = this->getRobotEdge(curr_edge_ind);
         auto action_seq = curr_edge->action;
