@@ -2,8 +2,11 @@ cmake_minimum_required(VERSION 3.16.3)
 project(search)
 
 set(CMAKE_CXX_STANDARD 17)
+# path to libtorch!!!
+set(CMAKE_PREFIX_PATH "~/libtorch/share/cmake/Torch")
 set(Torch_DIR "~/libtorch/share/cmake/Torch")
-set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda-12.5")
+set(CMAKE_CUDA_ARCHITECTURES "60;70;75;80")
+set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
 
 # add include directories
 include_directories(include)
@@ -17,7 +20,6 @@ find_package(Threads REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
-set(CMAKE_CUDA_COMPILER "/usr/local/cuda-12.5/bin/nvcc")
 list(APPEND CMAKE_PREFIX_PATH "/home/spencer/libtorch/share/cmake")
 
 

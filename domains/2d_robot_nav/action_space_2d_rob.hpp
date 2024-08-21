@@ -43,7 +43,7 @@ class Scene2DRob : public ims::SceneInterface {
 public:
     explicit Scene2DRob(std::vector<std::vector<int>> &map_) : ims::SceneInterface(){
         map = &map_;
-        map_size = {map->size(), map[0].size()};
+        map_size = {map->size(), map->at(0).size()};
     }
 
     std::vector<std::vector<int>>* map;
@@ -138,7 +138,7 @@ public:
         if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
             return false;
         }
-        int map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
+        auto map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
         if (map_val == 100){
             return false;
         }

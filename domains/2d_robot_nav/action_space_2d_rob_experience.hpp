@@ -9,6 +9,7 @@
 #include "search/action_space/egraph_action_space.hpp"
 #include <search/common/scene_interface.hpp>
 #include <boost/filesystem.hpp>
+#include <filesystem>
 #include <boost/algorithm/string.hpp>
 #include <search/common/experience_graph.hpp>
 #include <search/common/intrusive_heap.h>
@@ -313,8 +314,12 @@ public:
             for(int j=0; j < max_steps; j++) {
                 new_prim[j].push_back(foot_steps[i][j][2].item<int>());
                 new_prim[j].push_back(foot_steps[i][j][3].item<int>());
+                if(!isStateValid(new_prim[j])) {
+                    new_prim.resize(j);
+                    break;
+                }
             }
-            if(isPathValid(new_prim)) {
+            if(isPathValid(new_prim) && new_prim.size()>=2) {
                 primitives.push_back(new_prim);
             }
         }
@@ -403,7 +408,7 @@ public:
         std::shared_ptr<ims::EuclideanHeuristic> euclidean_heuristic = std::make_shared<ims::EuclideanHeuristic>();
         double dist;
         euclidean_heuristic->getHeuristic(start, goal, dist);
-        double thresh = 4*dist;
+        double thresh = 3*dist;
 
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
@@ -444,7 +449,8 @@ public:
         double dist;
         euclidean_heuristic->getHeuristic(start, goal, dist);
         // TODO: think of a better way to determine sampling radius
-        double thresh = dist / 2;
+        // double thresh = dist / 2;
+        double thresh = 20;
         std::vector<StateType> start_group;
         std::vector<StateType> goal_group;
 
@@ -462,28 +468,23 @@ public:
                 if (distFromGoal > thresh && distFromStart > thresh) {
                     continue;
                 }
-                if (distFromStart < distFromGoal) {
-                    start_group.push_back(new_state);
-                } else {
-                    goal_group.push_back(new_state);
-                }
-
+                sampled_states.push_back(new_state);
             }
         }
-        std::cout << RED << start_group.size() << ", " << goal_group.size() << RESET << std::endl;
-        int num_traj = std::min(start_group.size(), goal_group.size());
-        num_traj = std::min(num_traj, num_samples/2);
+        // Randomly sample num_samples points from points
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::shuffle(start_group.begin(), start_group.end(), gen);
-        std::shuffle(goal_group.begin(), goal_group.end(), gen);
-
-        start_group.resize(num_traj);
-        goal_group.resize(num_traj);
-
-        sampled_states.resize(2*num_traj);
-        std::copy(start_group.begin(), start_group.end(), sampled_states.begin());
-        std::copy(goal_group.begin(), goal_group.end(), sampled_states.begin() + num_traj);
+        std::shuffle(sampled_states.begin(), sampled_states.end(), gen);
+        // Get 2*num_traj non-duplicate states
+        if (sampled_states.size() > num_samples) {
+            sampled_states.resize(num_samples);
+            return true;
+        }
+        // Make sure we have even number of sampled states. Half of them will be start states and the other half will
+        // be goal states
+        if (sampled_states.size() % 2 != 0) {
+            sampled_states.pop_back();
+        }
         return true;
     }
 
