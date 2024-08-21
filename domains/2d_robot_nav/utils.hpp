@@ -10,19 +10,19 @@
 // library includes
 #include "search/common/types.hpp"
 
-double radsToDegs(double rads)
+inline double radsToDegs(double rads)
 {
     return rads * 180.0 / M_PI;
 }
 
-double degsToRads(double degs)
+inline double degsToRads(double degs)
 {
     return degs * M_PI / 180.0;
 }
 
-std::vector<std::vector<int>> loadMap(const char *fname,
-                                      std::string& type, int& width,
-                                      int& height, int scale=1) {
+inline std::vector<std::vector<int>> loadMap(const char *fname,
+                                             std::string& type, int& width,
+                                             int& height, int scale=1) {
 
     std::vector<std::vector<int>> map;
     FILE *f;
@@ -40,7 +40,7 @@ std::vector<std::vector<int>> loadMap(const char *fname,
                 {
                     char c;
                     do {
-                        fscanf(f, "%c", &c);
+                        bool succ = fscanf(f, "%c", &c);
                     } while (isspace(c));
 
                     map[x][y] = (c == '.' || c == 'G' || c == 'S' || c == 'T') ? 0 : 100;
@@ -52,8 +52,8 @@ std::vector<std::vector<int>> loadMap(const char *fname,
     }
 
     std::vector<std::vector<int>> scaled_map;
-    int scaled_height = scale*height;
-    int scaled_width = scale*width;
+    const int scaled_height = scale*height;
+    const int scaled_width = scale*width;
     scaled_map.resize(scaled_width, std::vector<int>(scaled_height));
 
     for (int y = 0; y < scaled_height; y++)
@@ -67,7 +67,7 @@ std::vector<std::vector<int>> loadMap(const char *fname,
     return scaled_map;
 }
 
-void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, std::vector<std::vector<double>>& goals, int scale, int num_runs, const std::string& path)
+inline void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, std::vector<std::vector<double>>& goals, int scale, int num_runs, const std::string& path)
 {
     std::ifstream starts_fin(path + "nav2d_starts.txt");
     std::ifstream goals_fin(path + "nav2d_goals.txt");
@@ -97,7 +97,7 @@ void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, std::vect
 /// @param discretization The rounding factor.
 /// @param num The number to be rounded.
 /// @return The discretizaed version of the number.
-double roundByDiscretization(double discretization, double num) {
+inline double roundByDiscretization(double discretization, double num) {
     return round(num / discretization) * discretization; 
 }
 
@@ -105,7 +105,7 @@ double roundByDiscretization(double discretization, double num) {
 /// @param state A vector representing the state of the robot.
 /// @param state_discretization A vector contains the numbers each state value should be rounded to the closest multiple of.
 /// @return The discretized version of the inputed state.
-StateType discretizeState(const StateType& state, const StateType& state_discretization) {
+inline StateType discretizeState(const StateType& state, const StateType& state_discretization) {
     StateType discretized_state = {};
     for (int i = 0; i < state.size(); i++) {
         discretized_state.push_back(roundByDiscretization(state_discretization[i], state[i]));
@@ -116,7 +116,7 @@ StateType discretizeState(const StateType& state, const StateType& state_discret
 /// @brief Removes duplicate actions from a vector of actions.
 /// @param actions A vector of actions (a.k.a a vector of vectors).
 /// @return The input vector with all the duplicates removed.
-std::vector<Action> removeDuplicateActions(std::vector<Action> actions) {
+inline std::vector<Action> removeDuplicateActions(std::vector<Action> actions) {
     // Step 1: Sort the vector
     std::sort(actions.begin(), actions.end());
 
@@ -133,7 +133,7 @@ std::vector<Action> removeDuplicateActions(std::vector<Action> actions) {
 /// @param end The ending state of the line segment.
 /// @param state_discretization A vector contains the numbers each state value should be rounded to the closest multiple of.
 /// @return A list of discretized states (PathType) on the line segment.
-PathType getDiscretePointsOnLine(const StateType& start, const StateType& end, const StateType& state_discretization) {
+inline PathType getDiscretePointsOnLine(const StateType& start, const StateType& end, const StateType& state_discretization) {
     double x1 = start[0];
     double x2 = end[0];
     double y1 = start[1];
@@ -159,9 +159,9 @@ PathType getDiscretePointsOnLine(const StateType& start, const StateType& end, c
 /// @param stats The statistics of the planner.
 /// @param map_index The index of the map.
 /// @param planner_name The name of the planner.
-void logStats(const std::unordered_map<int, PlannerStats>& stats,
-              int map_index,
-              const std::string& planner_name) {
+inline void logStats(const std::unordered_map<int, PlannerStats>& stats,
+                     int map_index,
+                     const std::string& planner_name) {
     // save the logs to a file in current directory
     std::string log_file = "logs_map" + std::to_string(map_index) + "_" + planner_name + ".csv";
     // save logs object to a file
@@ -175,9 +175,9 @@ void logStats(const std::unordered_map<int, PlannerStats>& stats,
     file.close();
 }
 
-std::string logPaths(const std::unordered_map<int, PathType>& paths,
-              int map_index,
-              int scale) {
+inline std::string logPaths(const std::unordered_map<int, PathType>& paths,
+                            int map_index,
+                            int scale) {
     // save the paths to a temporary file
     std::string path_file = "paths_tmp.csv";
     // save paths object to a file
@@ -194,7 +194,7 @@ std::string logPaths(const std::unordered_map<int, PathType>& paths,
     return path_file;
 }
 
-std::string logActionPrimsMap(const std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> action_prims_map, StateType state_discretization) {
+inline std::string logActionPrimsMap(const std::map<double, std::pair<std::vector<Action>, std::vector<Action>>> action_prims_map, StateType state_discretization) {
     // save the action primatives map to a temporary file
     std::string action_prims_map_file = "action_prims_map_tmp.csv";
     // save action primatives map object to a file

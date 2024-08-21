@@ -90,7 +90,7 @@ def load_data(file_path: str):
     return map_index_, scaler, paths_
 
 
-def visualize(map_ind, scaler, paths_dict, path_ids_to_visualize):
+def visualize(map_ind, scaler, paths_dict, path_ids_to_visualize, map_type):
     """
     Visualizes the paths
     :param scaler:
@@ -99,20 +99,39 @@ def visualize(map_ind, scaler, paths_dict, path_ids_to_visualize):
     :param path_ids_to_visualize: A list of path ids to visualize
     :return:
     """
-    # load the map (octile map)
-    map_file = MAPS[map_ind]
-    map_data, map_type, width, height = load_map(map_file, scaler)
+    if map_type == 'octile':
+        # load the map (octile map)
+        map_file = MAPS[map_ind]
+        map_data, map_type, width, height = load_map(map_file, scaler)
+    elif map_type == 'gridworld':
+        map_file = path_to_this_file + "/../data/gridworld/maps/map_" + str(map_ind) + ".map"
+        map_data = np.loadtxt(map_file)
+        map_data = map_data.T
+        height, width = map_data.shape
+    else:
+        raise ValueError("Invalid map type")
 
     # create the figure
     fig = plt.figure()
     # create the axis
     ax = plt.axes(xlim=(0, width), ylim=(0, height))
-    ax.invert_yaxis()
+    if map_type == 'octile':
+        ax.invert_yaxis()
     # create the image
     plt.imshow(map_data, cmap='Greys', vmin=0, vmax=100)
     # remove the xaixs and yaxis
     ax.axes.get_xaxis().set_visible(False)
     ax.axes.get_yaxis().set_visible(False)
+    # make the values be in the middle of the grid
+    ax.set_xticks(np.arange(-.5, width, 1), minor=True)
+    ax.set_yticks(np.arange(-.5, height, 1), minor=True)
+    ax.grid(which='minor', color='black', linestyle='-', linewidth=1)
+    # remove boundaries
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+
     # if a path id is provided, plot only that path
     if path_ids_to_visualize is not None:
         paths_to_visualize = {}
@@ -139,7 +158,7 @@ def visualize(map_ind, scaler, paths_dict, path_ids_to_visualize):
     plt.show()
 
 
-def visualize_paths_by_order(map_ind, scaler, paths_dict, path_ids_to_visualize):
+def visualize_paths_by_order(map_ind, scaler, paths_dict, path_ids_to_visualize, map_type):
     """
     Animate the paths in the order they are provided
     :param scaler:
@@ -148,20 +167,37 @@ def visualize_paths_by_order(map_ind, scaler, paths_dict, path_ids_to_visualize)
     :param path_ids_to_visualize: A list of path ids to visualize
     :return:
     """
-    # load the map (octile map)
-    map_file = MAPS[map_ind]
-    map_data, map_type, width, height = load_map(map_file, scaler)
-
+    if map_type == 'octile':
+        # load the map (octile map)
+        map_file = MAPS[map_ind]
+        map_data, map_type, width, height = load_map(map_file, scaler)
+    elif map_type == 'gridworld':
+        map_file = path_to_this_file + "/../data/gridworld/maps/map_" + str(map_ind) + ".map"
+        map_data = np.loadtxt(map_file) * 100
+        map_data = map_data.T
+        height, width = map_data.shape
+    else:
+        raise ValueError("Invalid map type")
     # create the figure
     fig = plt.figure()
     # create the axis
     ax = plt.axes(xlim=(0, width), ylim=(0, height))
-    ax.invert_yaxis()
+    if map_type == 'octile':
+        ax.invert_yaxis()
     # create the image
     plt.imshow(map_data, cmap='Greys', vmin=0, vmax=100)
     # remove the xaixs and yaxis
     ax.axes.get_xaxis().set_visible(False)
     ax.axes.get_yaxis().set_visible(False)
+    # make the values be in the middle of the grid
+    ax.set_xticks(np.arange(-.5, width, 1), minor=True)
+    ax.set_yticks(np.arange(-.5, height, 1), minor=True)
+    ax.grid(which='minor', color='black', linestyle='-', linewidth=1)
+    # remove boundaries
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
 
     # if a path id is provided, plot only that path
     if path_ids_to_visualize is not None:
@@ -200,6 +236,8 @@ if __name__ == "__main__":
     parser.add_argument("--animate", help="if set, the paths will be animated", default='true')
     parser.add_argument("--imagepath", help="path to the image file the generated plot will be saved to",
                         default=None)
+    parser.add_argument('--map_type', type=str, default='octile', help='Type of the map.')
+
     args = parser.parse_args()
     # if no argument is provided, raise an error
     if args.filepath is None:
@@ -223,9 +261,10 @@ if __name__ == "__main__":
 
     # load the data
     map_index, scale, paths = load_data(args.filepath)
+
     # visualize the paths
     if args.animate:
-        visualize_paths_by_order(map_index, scale, paths, args.path_ids)
+        visualize_paths_by_order(map_index, scale, paths, args.path_ids, args.map_type)
     else:
-        visualize(map_index, scale, paths, args.path_ids)
+        visualize(map_index, scale, paths, args.path_ids, args.map_type)
 

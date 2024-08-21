@@ -13,6 +13,10 @@ find_package(Eigen3 REQUIRED)
 
 find_package(HDF5 REQUIRED)
 
+set(CMAKE_PREFIX_PATH "/usr/local/libtorch")
+find_package(Torch REQUIRED)
+
+
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(${HDF5_INCLUDE_DIRS})
@@ -141,6 +145,12 @@ target_link_libraries(generate_data_traj search ${Boost_LIBRARIES} ${HDF5_LIBRAR
 
 add_executable(generate_data_fqi domains/2d_robot_nav/data/generate_data_fqi.cpp)
 target_link_libraries(generate_data_fqi search ${Boost_LIBRARIES} ${HDF5_LIBRARIES})
+
+add_executable(run_2dgridworld_mosaic domains/2d_robot_nav/run_2dgridworld_mosaic.cpp)
+target_link_libraries(run_2dgridworld_mosaic search ${Boost_LIBRARIES} ${TORCH_LIBRARIES})
+
+add_executable(run_test_torch_model domains/2d_robot_nav/run_test_torch_model.cpp)
+target_link_libraries(run_test_torch_model search ${Boost_LIBRARIES} ${TORCH_LIBRARIES})
 
 
 # Tests.

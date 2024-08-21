@@ -16,8 +16,7 @@
 
 namespace ims {
 
-
-Eigen::VectorXf applyDerivativeFilter(const Eigen::VectorXf &row) {
+inline Eigen::VectorXf applyDerivativeFilter(const Eigen::VectorXf &row) {
     Eigen::VectorXf filteredRow(row.size());
     for (int i = 1; i < row.size() - 1; ++i) {
         filteredRow[i] = row[i + 1] - row[i];
@@ -28,7 +27,7 @@ Eigen::VectorXf applyDerivativeFilter(const Eigen::VectorXf &row) {
 }
 
 // Function to apply a 1D derivative filter. Takes in a batch of rows
-Eigen::MatrixXf applyDerivativeFilterBatch(const Eigen::MatrixXf &rows) {
+inline Eigen::MatrixXf applyDerivativeFilterBatch(const Eigen::MatrixXf &rows) {
     Eigen::MatrixXf filteredRows(rows.rows(), rows.cols());
     for (int i = 0; i < rows.rows(); ++i) {
         Eigen::VectorXf row = rows.row(i);
@@ -39,11 +38,11 @@ Eigen::MatrixXf applyDerivativeFilterBatch(const Eigen::MatrixXf &rows) {
 }
 
 // Function to detect walls using derivative filters
-void detectWalls(const std::vector<std::vector<int>> &gridMap,
-                 std::vector<std::vector<int>> &wallMap,
-                 std::vector<std::vector<std::pair<int, int>>> &trajectories,
-                 int batch_size = 10, int stride = 1,
-                 double obs_threshold = 100) {
+inline void detectWalls(const std::vector<std::vector<int>> &gridMap,
+                        std::vector<std::vector<int>> &wallMap,
+                        std::vector<std::vector<std::pair<int, int>>> &trajectories,
+                        int batch_size = 10, int stride = 1,
+                        double obs_threshold = 100) {
     int rows = (int) gridMap.size();
     int cols = (int) gridMap[0].size();
     wallMap.resize(rows, std::vector<int>(cols, 0));
@@ -246,7 +245,7 @@ inline std::vector<ActionSequence> LinearControllerFn(void* user,
 
 
 /// @brief Weighted A* controller
-struct wAStarController : public Controller {
+struct wAStarController : Controller {
 
     struct wAStarUserData {
         Eigen::Vector2d start;
@@ -356,7 +355,7 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
     double epsilon = 100.0;
     ims::wAStarParams params (heuristic, epsilon);
 
-    params.time_limit_ = 0.1;
+    params.time_limit_ = 0.0005;
     params.verbose = false;
     ActionType2dRob action_type;
     std::shared_ptr<actionSpace2dRob> as = std::make_shared<actionSpace2dRob>(*user_data->scene,
@@ -394,6 +393,53 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
 
     return generated;
 }
+
+
+struct VIN : Controller {
+
+    struct VINUserData {
+        std::shared_ptr<Scene2DRob> scene;
+        StateType start;
+        StateType goal;
+        int max_horizon {150};
+        int num_iters {36};;
+    };
+
+    /// @brief Constructor
+    explicit VIN(ControllerType controller_type) {
+        type = controller_type;
+    }
+
+    ///@brief Destructor
+    ~VIN() {
+        delete static_cast<VINUserData*>(user_data);
+    }
+
+    /// @brief Initialize the controller
+    /// @param model_path The path to the model.
+    /// @param start The start state.
+    /// @param goal The goal state.
+    /// @param action_space_ptr The action space pointer.
+    /// @param scene The scene.
+    /// @param max_horizon The maximum horizon.
+    /// @param num_iters The number of iterations for the value iteration (K).
+    void init(const std::string& model_path,
+              const StateType& start,
+              const StateType& goal,
+              const std::shared_ptr<ActionSpaceMosaic>& action_space_ptr,
+              std::shared_ptr<Scene2DRob> scene,
+              int max_horizon,
+              int num_iters = 36) {
+        auto* user = new VINUserData();
+        user->start = start;
+        user->goal = goal;
+        user->max_horizon = max_horizon;
+        user->num_iters = num_iters;
+        user->scene = std::move(scene);
+        this->user_data = user;
+        this->as_ptr = action_space_ptr;
+    }
+};
 
 } // namespace ims
 

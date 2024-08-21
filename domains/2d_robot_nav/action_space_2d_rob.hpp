@@ -135,10 +135,10 @@ public:
     }
 
     bool isStateValid(const StateType& state_val) override{
-        if (state_val[0] < 0 || state_val[0] >= (double)env_->map_size[0] || state_val[1] < 0 || state_val[1] >= (double)env_->map_size[1]){
+        if (state_val[0] < 0 || state_val[0] >= static_cast<double>(env_->map_size[0]) || state_val[1] < 0 || state_val[1] >= static_cast<double>(env_->map_size[1])){
             return false;
         }
-        int map_val = env_->map->at((size_t)state_val[0]).at((size_t)state_val[1]);
+        int map_val = env_->map->at(static_cast<size_t>(state_val[0])).at(static_cast<size_t>(state_val[1]));
         if (map_val == 100){
             return false;
         }
