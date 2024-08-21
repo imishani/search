@@ -28,21 +28,20 @@ int main(int argc, char** argv) {
     }
     std::vector<std::string> maps;
 
-    // boost::filesystem::path full_path( boost::filesystem::current_path() );
-    // std::cout << "Current path is : " << full_path.string() << std::endl;
-
+    boost::filesystem::path full_path( boost::filesystem::current_path() );
+    std::cout << "Current path is : " << full_path.string() << std::endl;
     // At each emplace_back, use the full pathh and concatenate the map name
-    maps.emplace_back("/home/spencer/repos/search/domains/2d_robot_nav/data/hrt201n/hrt201n.map");
-    maps.emplace_back("/home/spencer/repos/search/domains/2d_robot_nav/data/den501d/den501d.map");
-    maps.emplace_back("/home/spencer/repos/search/domains/2d_robot_nav/data/den520d/den520d.map");
-    maps.emplace_back("/home/spencer/repos/search/domains/2d_robot_nav/data/ht_chantry/ht_chantry.map");
-    maps.emplace_back("/home/spencer/repos/search/domains/2d_robot_nav/data/brc203d/brc203d.map");
+    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/hrt201n.map");
+    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/den501d/den501d.map");
+    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/den520d/den520d.map");
+    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/ht_chantry.map");
+    maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/brc203d/brc203d.map");
 
-    std::vector<std::string> starts_goals_path = {"/home/spencer/repos/search/domains/2d_robot_nav/data/hrt201n/",
-                                                  "/home/spencer/repos/search/domains/2d_robot_nav/data/den501d/",
-                                                  "/home/spencer/repos/search/domains/2d_robot_nav/data/den520d/",
-                                                  "/home/spencer/repos/search/domains/2d_robot_nav/data/ht_chantry/",
-                                                  "/home/spencer/repos/search/domains/2d_robot_nav/data/brc203d/",
+    std::vector<std::string> starts_goals_path = {full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/",
+                                        full_path.string() + "/../domains/2d_robot_nav/data/den501d/",
+                                        full_path.string() + "/../domains/2d_robot_nav/data/den520d/",
+                                        full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/",
+                                        full_path.string() + "/../domains/2d_robot_nav/data/brc203d/",
     };
 
     int map_index = std::stoi(argv[1]);
