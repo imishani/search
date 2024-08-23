@@ -101,7 +101,7 @@ public:
         return getOrCreateProxyEdge(state_val);
     }
 
-    virtual double getQValue(int edge_id) override {
+    virtual void getQValue(int edge_id, double& cost, double& next_h) override {
         if (q_heuristic_ == nullptr) {
             throw std::runtime_error("Edge Action Space - (getQValue) Q-Heuristic is not set");
         }
@@ -113,15 +113,15 @@ public:
         // First get the transition cost
         std::vector<double> cost_seq(edge_ptr->action.size(), 0);
         getActionCost(getRobotStateId(edge_ptr->state), edge_ptr->action, cost_seq);
-        double cost = std::accumulate(cost_seq.begin(), cost_seq.end(), 0.0);
+        cost = std::accumulate(cost_seq.begin(), cost_seq.end(), 0.0);
         // Then get a proxy edge without validity check
         StateType next_state_val = StateType(edge_ptr->state.size(), 0);
         if (!getSuccessorProxy(edge_id, next_state_val)) {
-            throw std::runtime_error("Edge Action Space - (getQValue) Failed to get successor proxy");
+            // Failed to get the proxy successor. In this case, set the child's priority to be same as proxy.
+            cost = -1;
+            return;
         }
-        double next_state_h = 0;
-        q_heuristic_->getHeuristic(next_state_val, next_state_h);
-        return cost + next_state_h;
+        q_heuristic_->getHeuristic(next_state_val, next_h);
     }
 
     /// @brief Overrides reset planning data

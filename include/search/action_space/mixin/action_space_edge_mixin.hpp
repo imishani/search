@@ -229,8 +229,10 @@ public:
 
     /// @brief Get the Q-value of a state-action pair
     /// @param edge_id The id of the edge. This should be a real edge.
+    /// @param cost The cost of the transition
+    /// @param next_h the heuristic value of the next state
     /// @return The Q-value
-    virtual double getQValue(int edge_id) = 0;
+    virtual void getQValue(int edge_id, double& cost, double& next_h) = 0;
 
     /// @brief Get a proxy successor without any validity check
     /// @param curr_edge_id The id of the real edge
