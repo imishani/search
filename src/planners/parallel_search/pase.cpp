@@ -47,7 +47,7 @@ bool Pase::independenceCheck(int state_id, const boost::any& popped_vec) {
             continue;
         }
         auto h_diff = computeHeuristic(state_id, wip->state_id);
-        if (state->g > wip->g + params_.epsilon_ * h_diff) {
+        if (state->g > wip->g + params_.i_epsilon_ * h_diff) {
             return false;
         }
     }
@@ -55,7 +55,7 @@ bool Pase::independenceCheck(int state_id, const boost::any& popped_vec) {
     for (auto& pop : boost::any_cast<const std::vector<std::shared_ptr<SearchState>>&>(popped_vec)) {
         if (pop->state_id != state_id) {
             auto h_diff = computeHeuristic(state_id, pop->state_id);
-            if (state->g > pop->g + params_.epsilon_ * h_diff) {
+            if (state->g > pop->g + params_.i_epsilon_ * h_diff) {
                 return false;
             }
         }

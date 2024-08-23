@@ -54,10 +54,40 @@ namespace ims {
 /// @class ParallelSearch Parameters
 struct ParallelSearchParams : public PlannerParams {
     /// @brief Constructor
-    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic) : PlannerParams(), heuristic_(heuristic), i_heuristic_(heuristic) {}
-    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic, std::shared_ptr<BaseHeuristic> i_heuristic) : PlannerParams(), heuristic_(heuristic), i_heuristic_(i_heuristic) {}
-    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic, int num_threads, double epsilon) : PlannerParams(), heuristic_(heuristic), i_heuristic_(heuristic), num_threads_(num_threads), epsilon_(epsilon) {}
-    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic, std::shared_ptr<BaseHeuristic> i_heuristic, int num_threads, double epsilon) : PlannerParams(), heuristic_(heuristic), i_heuristic_(i_heuristic), num_threads_(num_threads), epsilon_(epsilon) {}
+    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic) : PlannerParams(),
+                                                                     heuristic_(heuristic),
+                                                                     i_heuristic_(heuristic) {}
+    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic,
+                         std::shared_ptr<BaseHeuristic> i_heuristic) : PlannerParams(),
+                                                                       heuristic_(heuristic),
+                                                                       i_heuristic_(i_heuristic) {}
+    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic,
+                         int num_threads,
+                         double epsilon) : PlannerParams(),
+                                           heuristic_(heuristic),
+                                           i_heuristic_(heuristic),
+                                           num_threads_(num_threads),
+                                           epsilon_(epsilon),
+                                           i_epsilon_(epsilon) {}
+    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic,
+                         std::shared_ptr<BaseHeuristic> i_heuristic,
+                         int num_threads,
+                         double epsilon) : PlannerParams(),
+                                           heuristic_(heuristic),
+                                           i_heuristic_(i_heuristic),
+                                           num_threads_(num_threads),
+                                           epsilon_(epsilon),
+                                           i_epsilon_(epsilon) {}
+    ParallelSearchParams(std::shared_ptr<BaseHeuristic> heuristic,
+                         std::shared_ptr<BaseHeuristic> i_heuristic,
+                         int num_threads,
+                         double epsilon,
+                         double i_epsilon) : PlannerParams(),
+                                             heuristic_(heuristic),
+                                             i_heuristic_(i_heuristic),
+                                             num_threads_(num_threads),
+                                             epsilon_(epsilon),
+                                             i_epsilon_(i_epsilon) {}
 
     /// @brief Destructor
     ~ParallelSearchParams() override = default;
@@ -66,6 +96,7 @@ struct ParallelSearchParams : public PlannerParams {
     std::shared_ptr<BaseHeuristic> i_heuristic_ = nullptr;  // Heuristic for independency check
     int num_threads_ = 1;
     double epsilon_ = 1.0;
+    double i_epsilon_ = 1.0;
 };
 
 struct ParallelSearchPlannerStats : public PlannerStats {
