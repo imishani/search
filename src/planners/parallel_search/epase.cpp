@@ -48,6 +48,9 @@ bool Epase::independenceCheck(int state_id, const boost::any& popped_vec) {
         }
         auto h_diff = computeHeuristic(state_id, wip->state_id);
         if (state->g > wip->g + params_.i_epsilon_ * h_diff) {
+            if (params_.debug) {
+                std::cout << "Independence Check Failed (wip) - state's g delta: " << state->g - wip->g << ", check value: " << params_.i_epsilon_ * h_diff << std::endl;
+            }
             return false;
         }
     }
@@ -56,6 +59,9 @@ bool Epase::independenceCheck(int state_id, const boost::any& popped_vec) {
         if (pop->state_id != state_id) {
             auto h_diff = computeHeuristic(state_id, pop->state_id);
             if (state->g > pop->g + params_.i_epsilon_ * h_diff) {
+                if (params_.debug) {
+                    std::cout << "Independence Check Failed (pop) - state's g delta: " << state->g - pop->g << ", check value: " << params_.i_epsilon_ * h_diff << std::endl;
+                }
                 return false;
             }
         }
@@ -377,6 +383,9 @@ void Epase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_spa
         edge_open_->push(start_edge_.get());
         start_edge_->setOpen();
     }
+    std::cout << "Start's BFS Heuristic: " << edge_open_->min()->f << std::endl;
+    double dist = 0;
+    std::cout << "Start's Joint Heuristic: " << computeHeuristic(edge_open_->min()->state_id, goal_state_ind_) << std::endl;
 }
 
 void Epase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_space_ptr,
@@ -416,6 +425,10 @@ void Epase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_spa
     // TODO: Temperarily using .get() to get the raw pointer.
     edge_open_->push(start_edge_.get());
     start_edge_->setOpen();
+
+    std::cout << "Start's BFS Heuristic: " << edge_open_->min()->f << std::endl;
+    double dist = 0;
+    std::cout << "Start's Joint Heuristic: " << computeHeuristic(edge_open_->min()->state_id, goal_state_ind_) << std::endl;
 }
 
 }  // namespace ims

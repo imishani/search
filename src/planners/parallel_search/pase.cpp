@@ -48,6 +48,9 @@ bool Pase::independenceCheck(int state_id, const boost::any& popped_vec) {
         }
         auto h_diff = computeHeuristic(state_id, wip->state_id);
         if (state->g > wip->g + params_.i_epsilon_ * h_diff) {
+            if (params_.debug) {
+                std::cout << "Independence Check Failed (wip) - state's g: " << state->g << ", check value: " << wip->g + params_.i_epsilon_ * h_diff << std::endl;
+            }
             return false;
         }
     }
@@ -56,6 +59,9 @@ bool Pase::independenceCheck(int state_id, const boost::any& popped_vec) {
         if (pop->state_id != state_id) {
             auto h_diff = computeHeuristic(state_id, pop->state_id);
             if (state->g > pop->g + params_.i_epsilon_ * h_diff) {
+                if (params_.debug) {
+                    std::cout << "Independence Check Failed (pop) - state's g: " << state->g << ", check value: " << pop->g + params_.i_epsilon_ * h_diff << std::endl;
+                }
                 return false;
             }
         }

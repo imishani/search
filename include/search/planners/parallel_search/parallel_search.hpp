@@ -97,6 +97,7 @@ struct ParallelSearchParams : public PlannerParams {
     int num_threads_ = 1;
     double epsilon_ = 1.0;
     double i_epsilon_ = 1.0;
+    bool debug = false;
 };
 
 struct ParallelSearchPlannerStats : public PlannerStats {

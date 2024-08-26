@@ -61,8 +61,9 @@ void Qpase::expandProxy(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id
         this->action_space_ptr_->getQValue(i, cost, next_h);
         double priority = curr_edge_ptr->edge_priority;
         if (cost > 0) {
-            priority = curr_edge_ptr->g + cost + params_.epsilon_ * next_h;
-            // priority = curr_edge_ptr->g + params_.epsilon_ * (cost + next_h);
+            // priority = curr_edge_ptr->g + cost + params_.epsilon_ * next_h;
+            priority = curr_edge_ptr->g + params_.epsilon_ * (cost + next_h);
+            // priority = curr_edge_ptr->g + params_.epsilon_ * next_h;
         }
         // Shouldn't be running into these case where the real edge is already in closed/opened.
         // Since the proxy edge will take care of the update in the open list.

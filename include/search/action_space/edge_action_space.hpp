@@ -61,7 +61,8 @@ public:
     virtual bool createRobotEdgesFromState(int state_id, std::vector<int>& edges_ind) override {
         // ActionSequence vec
         std::vector<ActionSequence> action_seqs;
-        getActions(state_id, action_seqs, false);
+        std::vector<std::vector<double>> action_transition_costs;
+        getActionSequences(state_id, action_seqs, action_transition_costs, false);
         if (action_seqs.empty()) {
             return false;
         }
@@ -69,8 +70,9 @@ public:
 
         // Create edges
         edges_ind.clear();
-        for (auto act : action_seqs) {
-            edges_ind.emplace_back(getOrCreateRobotEdge(std::make_pair(state_val, act)));
+        for (int i{0}; i < action_seqs.size(); i++) {
+            edges_ind.emplace_back(getOrCreateRobotEdge(std::make_pair(state_val, action_seqs[i])));
+            setRobotEdgeCost(edges_ind.back(), action_transition_costs[i]);
         }
         return true;
     }
@@ -111,8 +113,7 @@ public:
             throw std::runtime_error("Edge Action Space - (getQValue) Edge is not a real edge, action is empty");
         }
         // First get the transition cost
-        std::vector<double> cost_seq(edge_ptr->action.size(), 0);
-        getActionCost(getRobotStateId(edge_ptr->state), edge_ptr->action, cost_seq);
+        auto cost_seq = edge_ptr->action_cost;
         cost = std::accumulate(cost_seq.begin(), cost_seq.end(), 0.0);
         // Then get a proxy edge without validity check
         StateType next_state_val = StateType(edge_ptr->state.size(), 0);

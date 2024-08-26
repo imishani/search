@@ -87,6 +87,33 @@ public:
         }
     }
 
+    void getActionSequences(int state_id,
+                            std::vector<ActionSequence>& action_seqs,
+                            std::vector<std::vector<double>>& action_transition_costs,
+                            bool check_validity) override {
+        ims::RobotState* curr_state = this->getRobotState(state_id);
+        std::vector<ActionSequence> prim_action_seqs;
+        std::vector<std::vector<double>> prim_action_transition_costs;
+        action_type_->getPrimActions(prim_action_seqs, prim_action_transition_costs);
+        for (int i{0}; i < action_type_->num_actions; i++) {
+            ActionSequence action_seq = prim_action_seqs[i];
+            if (check_validity) {
+                for (const Action& action : action_seq) {
+                    StateType next_state_val = StateType(curr_state->state.size());
+                    std::transform(curr_state->state.begin(), curr_state->state.end(), action.begin(),
+                                   next_state_val.begin(), std::plus<>());
+                    if (!isStateValid(next_state_val)) {
+                        continue;
+                    }
+                }
+            }
+            // Each action is a sequence of states. In the most simple case, the sequence is of length 1 - only the next state.
+            // In more complex cases, the sequence is longer - for example, when the action is an experience, controller or a trajectory.
+            action_seqs.push_back(action_seq);
+            action_transition_costs.push_back(prim_action_transition_costs[i]);
+        }
+    }
+
     bool getSuccessors(int curr_state_ind,
                        std::vector<std::vector<int>>& seqs_state_ids,
                        std::vector<std::vector<double>>& seqs_transition_costs) override {
@@ -149,7 +176,7 @@ public:
                       std::vector<double>& seqs_transition_cost) override {
         auto curr_edge = this->getRobotEdge(curr_edge_ind);
         auto action_seq = curr_edge->action;
-        getActionCost(getRobotStateId(curr_edge->state), action_seq, seqs_transition_cost);
+        seqs_transition_cost = curr_edge->action_cost;
 
         bool is_action_valid = true;
 
@@ -193,20 +220,5 @@ public:
 
     bool isPathValid(const PathType& path) override {
         return std::all_of(path.begin(), path.end(), [this](const StateType& state_val) { return isStateValid(state_val); });
-    }
-
-    void getActionCost(int curr_state_id, const ActionSequence& action, std::vector<double>& seq_transition_costs) override {
-        std::vector<ActionSequence> prim_action_seqs;
-        std::vector<std::vector<double>> prim_action_transition_costs;
-        action_type_->getPrimActions(prim_action_seqs, prim_action_transition_costs);
-        for (int i{0}; i < prim_action_seqs.size(); ++i) {
-            if (action == prim_action_seqs[i]) {
-                auto cost_seq = this->action_type_->action_seqs_transition_costs[i];
-                seq_transition_costs = cost_seq;
-                return;
-            }
-        }
-
-        throw std::runtime_error("ActionSeq not found in action_type_'s prim action seqs");
     }
 };

@@ -51,6 +51,7 @@ struct RobotEdge {
     StateType state_mapped;
     StateType state;
     ActionSequence action;
+    std::vector<double> action_cost;
     int state_id = -1;
 
     enum VALID { valid,
@@ -219,13 +220,24 @@ public:
         q_heuristic_->setGoal(const_cast<StateType&>(goal));
     }
 
-    /// @brief Get the cost of an action.
-    /// @param curr_state_id The id of the current state
-    /// @param action_seq The action
+    /// @brief Set the cost of an action.
+    /// @param edge_id The id of the current state
     /// @param seq_transition_costs The cost of the transitions seq
-    virtual void getActionCost(int curr_state_id,
-                               const ActionSequence& action_seq,
-                               std::vector<double>& seq_transition_costs) = 0;
+    virtual void setRobotEdgeCost(int edge_id,
+                                   std::vector<double>& seq_transition_costs) {
+        auto edge = getRobotEdge(edge_id);
+        edge->action_cost = seq_transition_costs;
+    }
+
+    /// @brief Get action sequences
+    /// @param state_id The state id
+    /// @param actions_seqs The action sequences
+    /// @param actions_transition_costs The transition cost conresponding to the action sequences
+    /// @param check_validity Check if the actions are valid
+    virtual void getActionSequences(int state_id,
+                                    std::vector<ActionSequence>& action_seqs,
+                                    std::vector<std::vector<double>>& action_transition_costs,
+                                    bool check_validity) = 0;
 
     /// @brief Get the Q-value of a state-action pair
     /// @param edge_id The id of the edge. This should be a real edge.
