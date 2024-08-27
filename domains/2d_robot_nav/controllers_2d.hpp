@@ -350,7 +350,7 @@ inline std::vector<ActionSequence> wAStarControllerFn(void *user,
     double epsilon = 100.0;
     ims::wAStarParams params(heuristic, epsilon);
 
-    params.time_limit_ = 0.0005;
+    params.time_limit_ = 0.005;
     params.verbose = false;
     ActionType2dRob action_type;
     std::shared_ptr<actionSpace2dRob> as = std::make_shared<actionSpace2dRob>(*user_data->scene,
@@ -383,38 +383,37 @@ inline std::vector<ActionSequence> wAStarControllerFn(void *user,
     auto end_time = std::chrono::high_resolution_clock::now();
     // milliseconds
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-    //    std::cout << "Planning time: " << duration.count() << " ms" << std::endl;
+    std::cout << "Planning time: " << duration.count() << " ms" << std::endl;
 
     return generated;
 }
 
-struct VIN : Controller {
+struct VINController : Controller {
     struct VINUserData {
         std::shared_ptr<Scene2DRob> scene;
-        StateType start;
-        StateType goal;
+        // StateType start;
+        // StateType goal;
         int number_of_subregions;
         std::pair<int, int> subregion_size;
         int number_of_trajectories;
         int max_horizon;
         int num_iters;
+        torch::jit::script::Module model;
         torch::Device device{torch::kCPU};
     };
 
     /// @brief Constructor
-    explicit VIN(ControllerType controller_type) {
+    explicit VINController(ControllerType controller_type) {
         type = controller_type;
     }
 
     ///@brief Destructor
-    ~VIN() {
+    ~VINController() {
         delete static_cast<VINUserData *>(user_data);
     }
 
     /// @brief Initialize the controller
     /// @param model_path The path to the model.
-    /// @param start The start state.
-    /// @param goal The goal state.
     /// @param action_space_ptr The action space pointer.
     /// @param scene The scene.
     /// @param number_of_subregions The number of subregions to sample from.
@@ -422,10 +421,10 @@ struct VIN : Controller {
     /// @param max_horizon The maximum horizon.
     /// @param number_of_trajectories
     /// @param num_iters The number of iterations for the value iteration (K).
+    /// @param start The start state.
+    /// @param goal The goal state.
     /// @param device The device to run the model on.
     void init(const std::string &model_path,
-              const StateType &start,
-              const StateType &goal,
               const std::shared_ptr<ActionSpaceMosaic> &action_space_ptr,
               std::shared_ptr<Scene2DRob> scene,
               int number_of_subregions = 5,
@@ -433,6 +432,8 @@ struct VIN : Controller {
               int number_of_trajectories = 10,
               int max_horizon = 150,
               int num_iters = 36,
+              // const StateType &start ={},
+              // const StateType &goal = {},
               const std::string &device = "") {
         auto *user = new VINUserData();
         user->scene = std::move(scene);
@@ -444,12 +445,13 @@ struct VIN : Controller {
             std::cout << RED << "Invalid device. Using system capabilities" << RESET << std::endl;
             user->device = torch_utils::getDevice();
         }
-        torch_utils::loadTorchModel(model_path, model, user->device);
-        model.to(user->device);
+
+        torch_utils::loadTorchModel(model_path, user->model, user->device);
+        user->model.to(user->device);
         convert2DMapToTensor(user->scene->map, map_tensor);
 
-        user->start = start;
-        user->goal = goal;
+        // user->start = start;
+        // user->goal = goal;
         user->max_horizon = max_horizon;
         user->number_of_subregions = number_of_subregions;
         user->subregion_size = subregion_size;
@@ -459,18 +461,20 @@ struct VIN : Controller {
         this->as_ptr = action_space_ptr;
     }
 
-    torch::jit::script::Module model;
     torch::Tensor map_tensor;
 };
 
 /// @brief VIN controller function
-inline std::vector<ActionSequence> VINController(void *user,
-                                                 const std::shared_ptr<ims::ActionSpace> &action_space_ptr) {
-    auto start_time = std::chrono::high_resolution_clock::now();
-    auto *user_data = static_cast<VIN::VINUserData *>(user);
+inline std::vector<ActionSequence> VINControllerFn(void *user,
+                                                   const std::shared_ptr<ActionSpace> &action_space_ptr) {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    auto *user_data = static_cast<VINController::VINUserData *>(user);
+    auto action_type = ActionType2dRob();
+    auto *action_space_ptr_mosaic = dynamic_cast<ims::ActionSpaceMosaic *>(action_space_ptr.get());
+
     // sample subregions
     std::vector<torch::Tensor> subregions;
-    std::vector<StateType> subregion_centers;
+    std::vector<StateType> subregion_frames;
     for (int i{0}; i < user_data->number_of_subregions; ++i) {
         StateType center;
         do {
@@ -478,21 +482,21 @@ inline std::vector<ActionSequence> VINController(void *user,
             double y = rand() % (user_data->scene->map_size[1] - user_data->subregion_size.second);
             center = {x, y};
         } while (!action_space_ptr->isStateValid(center));
-        subregion_centers.push_back(center);
+        subregion_frames.push_back(center);
         torch::Tensor subregion = torch::zeros({
-            1, 1, static_cast<long>(user_data->scene->map_size[0]),
+            static_cast<long>(user_data->scene->map_size[0]),
             static_cast<long>(user_data->scene->map_size[1])
         });
         for (int j{0}; j < user_data->subregion_size.first; ++j) {
             for (int k{0}; k < user_data->subregion_size.second; ++k) {
-                subregion[0][0][j + center[0]][k + center[1]] = user_data->scene->map->at(j + center[0]).at(
+                subregion[j + center[0]][k + center[1]] = user_data->scene->map->at(j + center[0]).at(
                     k + center[1]);
             }
         }
         subregion.to(user_data->device);
         subregions.push_back(subregion);
     }
-
+    std::vector<ActionSequence> trajectories;
     for (int i{0}; i < user_data->number_of_trajectories; ++i) {
         // sample a subregion
         int subregion_idx = rand() % user_data->number_of_subregions;
@@ -504,18 +508,109 @@ inline std::vector<ActionSequence> VINController(void *user,
         StateType start;
         do {
             start = {
-                subregion_centers[subregion_idx][0] + dis(gen),
-                subregion_centers[subregion_idx][1] + dis2(gen)
+                subregion_frames[subregion_idx][0] + dis(gen),
+                subregion_frames[subregion_idx][1] + dis2(gen)
             };
         } while (!action_space_ptr->isStateValid(start));
         StateType goal;
         do {
             goal = {
-                subregion_centers[subregion_idx][0] + dis(gen),
-                subregion_centers[subregion_idx][1] + dis2(gen)
+                subregion_frames[subregion_idx][0] + dis(gen),
+                subregion_frames[subregion_idx][1] + dis2(gen)
             };
         } while (!action_space_ptr->isStateValid(goal));
+
+        StateType start_transformed = {
+            start[0] - subregion_frames[subregion_idx][0],
+            start[1] - subregion_frames[subregion_idx][1]
+        };
+        StateType goal_transformed = {
+            goal[0] - subregion_frames[subregion_idx][0],
+            goal[1] - subregion_frames[subregion_idx][1]
+        };
+
+        torch::Tensor value_prior = torch::full({
+                                                    subregions.at(subregion_idx).size(0),
+                                                    subregions.at(subregion_idx).size(1)
+                                                },
+                                                -1);
+        value_prior[static_cast<long>(goal_transformed[0])][static_cast<long>(goal_transformed[1])] = 10;
+        torch::Tensor input = torch::cat({
+                                             subregions.at(subregion_idx).unsqueeze(0).unsqueeze(0),
+                                             value_prior.unsqueeze(0).unsqueeze(0)
+                                         },
+                                         1);
+        auto state_x = torch::zeros({1});
+        auto state_y = torch::zeros({1});
+        state_x[0] = start_transformed[0];
+        state_y[0] = start_transformed[1];
+        // to device
+        state_x = state_x.to(user_data->device);
+        state_y = state_y.to(user_data->device);
+        input = input.to(user_data->device);
+        torch::Tensor k = torch::tensor({user_data->num_iters}).to(user_data->device);
+        // print the devices
+        std::cout << "state_x device: " << state_x.device().str() << std::endl;
+        std::cout << "state_y device: " << state_y.device().str() << std::endl;
+        std::cout << "input device: " << input.device().str() << std::endl;
+        std::cout << "k device: " << k.device().str() << std::endl;
+        ActionSequence action_seq;
+        for (int t{0}; t < user_data->max_horizon; t++) {
+            std::vector<torch::jit::IValue> inputs;
+            inputs.emplace_back(input);
+            inputs.emplace_back(state_x);
+            inputs.emplace_back(state_y);
+            inputs.emplace_back(k);
+            // forward pass;
+            auto output = user_data->model.forward(inputs).toTuple();
+            // Get the action probabilities (the second element in the tuple)
+            auto action_probs = output->elements()[1].toTensor();
+            // Get the max action
+            auto max_action = action_probs.max(1);
+            int action_index = std::get<1>(max_action).item<int>();
+            auto action = action_space_ptr_mosaic->action_type_.get()->getPrimActions().at(action_index);
+
+            // Get the next state
+            auto next_state = torch::zeros({2});
+            next_state[0] = state_x[0] + action[0];
+            next_state[1] = state_y[0] + action[1];
+            action_seq.emplace_back(std::vector{
+                next_state[0].item<double>() + subregion_frames[subregion_idx][0],
+                next_state[1].item<double>() + subregion_frames[subregion_idx][1]
+            });
+            // check if the goal is reached
+            if (next_state[0].item<double>() == (goal[0] - subregion_frames[subregion_idx][0]) &&
+                next_state[1].item<double>() == (goal[1] - subregion_frames[subregion_idx][1])) {
+                // paths[i] = path;
+                std::cout << GREEN << "Goal reached!" << RESET << std::endl;
+                break;
+            }
+            state_x = next_state[0].unsqueeze(0);
+            state_y = next_state[1].unsqueeze(0);
+        }
+        trajectories.push_back(action_seq);
     }
-    return std::vector<ActionSequence>();
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+        << "[ms]" << std::endl;
+    // Save to tmp file the regions, and generated trjectories
+
+    std::ofstream file;
+    file.open("../domains/2d_robot_nav/scripts/regions.txt");
+    for (int i{0}; i < subregions.size(); ++i) {
+        file << subregion_frames[i][0] << " " << subregion_frames[i][1] << std::endl;
+    }
+    file.close();
+    file.open("../domains/2d_robot_nav/scripts/vin_trajectories.txt");
+    for (int i{0}; i < trajectories.size(); ++i) {
+        for (int j{0}; j < trajectories[i].size(); ++j) {
+            file << trajectories[i][j][0] << " " << trajectories[i][j][1] << std::endl;
+        }
+        file << std::endl;
+    }
+    file.close();
+
+    return trajectories;
+
 }
 } // namespace ims

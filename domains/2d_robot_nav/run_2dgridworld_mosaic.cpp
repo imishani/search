@@ -53,7 +53,7 @@
 ///@brief loading the 2d grid map. It is a txt file of 0s and 1s. If the value is 1, it is an obstacle.
 bool load2DGrid(int map_idx, std::vector<std::vector<int>>& map) {
     // load the map via the map index.
-    std::string map_file = "./../domains/2d_robot_nav/data/gridworld/maps/200x200/map_" + std::to_string(map_idx) + ".map";
+    std::string map_file = "./../domains/2d_robot_nav/data/gridworld/maps/100x100/map_" + std::to_string(map_idx) + ".map";
     // check if the file exists
     if (!boost::filesystem::exists(map_file)) {
         std::cout << "The map file does not exist!" << std::endl;
@@ -169,27 +169,34 @@ int main(int argc, char** argv) {
 
 
         std::shared_ptr<std::vector<ims::Controller>> controllers = std::make_shared<std::vector<ims::Controller>>();
-        ims::WallFollowerController controller;
-        controller.init(map, ActionSpace);
-        controller.solver_fn = ims::ControllerWallsFollower;
-
-//        controller.type = ims::ControllerType::GENERATOR;
-//        controller.solver_fn = Controller2d;
-//        StateType user = {starts[i][0] + 3, starts[i][1]};
-//        controller.user_data = &user;
-//        controller.as_ptr = ActionSpace;
-
-        controllers->push_back(controller);
+//         ims::WallFollowerController controller;
+//         controller.init(map, ActionSpace);
+//         controller.solver_fn = ims::ControllerWallsFollower;
+//
+// //        controller.type = ims::ControllerType::GENERATOR;
+// //        controller.solver_fn = Controller2d;
+// //        StateType user = {starts[i][0] + 3, starts[i][1]};
+// //        controller.user_data = &user;
+// //        controller.as_ptr = ActionSpace;
+//
+//         controllers->push_back(controller);
 
 //        ims::LinearController controller2 (ims::ControllerType::CONNECTOR);
 //        controller2.init(1, ActionSpace, starts[i], goals[i]);
 //        controllers->push_back(controller2);
-
+    /////////////////////////////// WaStar controller ///////////////////////////////////
         ims::wAStarController controller2 (ims::ControllerType::CONNECTOR);
         controller2.init(starts[i], goals[i], ActionSpace, std::make_shared<Scene2DRob>(scene));
         controller2.solver_fn = ims::wAStarControllerFn;
         controllers->push_back(controller2);
-
+    //////////////////////////////////////////////////////////////////////////////////////
+    ///
+    /// /////////////////////// VIN controller //////////////////////////////////////////
+        ims::VINController controller3 (ims::ControllerType::GENERATOR);
+        controller3.init("/home/itamar/work/code/algorithms/search/scripts/trained/traced_vin_28x28.pt",
+            ActionSpace, std::make_shared<Scene2DRob>(scene));
+        controller3.solver_fn = ims::VINControllerFn;
+        controllers->push_back(controller3);
         // catch the exception if the start or goal is not valid
         try {
             planner.initializePlanner(ActionSpace, controllers, starts[i], goals[i]);
@@ -225,9 +232,10 @@ int main(int argc, char** argv) {
     // save the logs to a temporary file
     // logStats(logs, map_index, "mosaic");
 //
-    std::string path_file = logPaths(paths, map_idx, 200);
+    std::string path_file = logPaths(paths, map_idx, 100);
 
-    std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
+    // std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
+    std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/animate_VIN_trajectories_and_regions.py";
 //    std::string command = "python3 " + plot_path + " --filepath " + path_file + " --path_ids 49";
     std::string command = "python3 " + plot_path + " --filepath " + path_file + " --map_type gridworld";
     std::cout << "Running the plot script..." << std::endl;
