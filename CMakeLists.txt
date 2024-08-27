@@ -61,6 +61,9 @@ install(TARGETS search
 add_executable(run_2d_rob_nav_astar domains/2d_robot_nav/run_2d_astar.cpp)
 target_link_libraries(run_2d_rob_nav_astar search ${Boost_LIBRARIES})
 
+add_executable(run_3d_rob_nav_astar domains/3d_robot_nav/run_3d_astar.cpp)
+target_link_libraries(run_3d_rob_nav_astar search ${Boost_LIBRARIES})
+
 add_executable(run_2d_rob_nav_dijkstra domains/2d_robot_nav/run_2d_dijkstra.cpp)
 target_link_libraries(run_2d_rob_nav_dijkstra search ${Boost_LIBRARIES})
 
