@@ -101,6 +101,10 @@ void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
     stats_.num_expanded++;
 
     if (params_.verbose) curr_state_ptr->print("Thread " + std::to_string(thread_id) + " Expanding ");
+    
+    if (params_.debug) {
+        std::cout << "State Values: " << action_space_ptr_->getRobotState(curr_state_ptr->state_id)->state << std::endl;
+    }
 
     // Get the successors
     // TODO: Currently there is no check for Preconditions on whether the action is valid for a state or not
@@ -139,7 +143,9 @@ void Pase::expand(std::shared_ptr<SearchState> curr_state_ptr, int thread_id) {
                 state_open_->update(successor_ptr.get());
             }
         } else {
+            stampTimer(thread_id);
             setStateVals(successor_ptr->state_id, curr_state_ptr->state_id, cost);
+            stats_.h_time += getTimeFromStamp(thread_id);
             state_open_->push(successor_ptr.get());
             successor_ptr->setOpen();
         }

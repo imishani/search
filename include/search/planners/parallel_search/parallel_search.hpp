@@ -106,6 +106,8 @@ struct ParallelSearchPlannerStats : public PlannerStats {
     std::vector<int> num_jobs_per_thread;  // The number of jobs per thread
     double lock_time{0};                   // The time spent on locking
     double evaluation_time{0};             // The time spent on getSuccessor/edge evaluation
+    double h_time{0};              // The time spent on search heuristic computation
+    double q_time{0};              // The time spent on search heuristic computation
 };
 
 /// @class ParallelSearch Base class.

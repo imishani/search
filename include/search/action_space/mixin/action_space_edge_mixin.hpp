@@ -224,7 +224,7 @@ public:
     /// @param edge_id The id of the current state
     /// @param seq_transition_costs The cost of the transitions seq
     virtual void setRobotEdgeCost(int edge_id,
-                                   std::vector<double>& seq_transition_costs) {
+                                  std::vector<double>& seq_transition_costs) {
         auto edge = getRobotEdge(edge_id);
         edge->action_cost = seq_transition_costs;
     }

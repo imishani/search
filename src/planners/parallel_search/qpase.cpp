@@ -40,9 +40,6 @@ namespace ims {
 
 void Qpase::expandProxy(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
     /// Status change, Stats & Debug
-    stampTimer(thread_id);
-    lock_.lock();
-    stats_.lock_time += getTimeFromStamp(thread_id);
     stats_.num_expanded++;
 
     if (params_.verbose) curr_edge_ptr->print("Thread " + std::to_string(thread_id) + " Proxy Expanding ");
@@ -53,16 +50,24 @@ void Qpase::expandProxy(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id
         throw std::runtime_error("Action Space - Failed to create real edges from proxy edge");
     }
 
+    stampTimer(thread_id);
+    lock_.lock();
+    stats_.lock_time += getTimeFromStamp(thread_id);
+
     // Create the real edges and add them to the open list.
     for (auto i : real_edges) {
         auto real_edge_ptr = getOrCreateSearchEdge(i);
         // For qpase, the real-edge's expansion priority is g + epsilon * q-value
         double cost{0}, next_h{0};
+        lock_.unlock();
+        stampTimer(thread_id);
         this->action_space_ptr_->getQValue(i, cost, next_h);
+        stats_.q_time += getTimeFromStamp(thread_id);
+        lock_.lock();
         double priority = curr_edge_ptr->edge_priority;
         if (cost > 0) {
-            // priority = curr_edge_ptr->g + cost + params_.epsilon_ * next_h;
-            priority = curr_edge_ptr->g + params_.epsilon_ * (cost + next_h);
+            priority = curr_edge_ptr->g + cost + params_.epsilon_ * next_h;
+            // priority = curr_edge_ptr->g + params_.epsilon_ * (cost + next_h);
             // priority = curr_edge_ptr->g + params_.epsilon_ * next_h;
         }
         // Shouldn't be running into these case where the real edge is already in closed/opened.

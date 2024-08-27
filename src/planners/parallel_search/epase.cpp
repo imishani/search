@@ -94,9 +94,6 @@ void Epase::workerLoop(int thread_id) {
 
 void Epase::expandProxy(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
     /// Status change, Stats & Debug
-    stampTimer(thread_id);
-    lock_.lock();
-    stats_.lock_time += getTimeFromStamp(thread_id);
     stats_.num_expanded++;
 
     if (params_.verbose) curr_edge_ptr->print("Thread " + std::to_string(thread_id) + " Proxy Expanding ");
@@ -107,6 +104,9 @@ void Epase::expandProxy(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id
         throw std::runtime_error("Action Space - Failed to create real edges from proxy edge");
     }
 
+    stampTimer(thread_id);
+    lock_.lock();
+    stats_.lock_time += getTimeFromStamp(thread_id);
     // For epase, the real-edge's expansion priority is based on the proxy edge's f-value.
     double priority = curr_edge_ptr->edge_priority;
 
@@ -141,6 +141,9 @@ void Epase::expand(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
 
     if (params_.verbose) curr_edge_ptr->print("Thread " + std::to_string(thread_id) + " Expanding ");
 
+    if (params_.debug) {
+        std::cout << "State Values: " << action_space_ptr_->getRobotState(curr_edge_ptr->state_id)->state << std::endl;
+    }
     // Get a successor
     // TODO: Currently there is no check for Preconditions on whether the action is valid for a state or not
     // (or should it be taken care by the action space?)
@@ -178,8 +181,10 @@ void Epase::expand(std::shared_ptr<SearchEdge> curr_edge_ptr, int thread_id) {
             edge_open_->update(successor_ptr.get());
         }
     } else {
+        stampTimer(thread_id);
         setStateVals(successor_ptr->state_id, curr_edge_ptr->state_id, cost);
         setProxyVals(proxy_id);
+        stats_.h_time += getTimeFromStamp(thread_id);
         edge_open_->push(successor_ptr.get());
         successor_ptr->setOpen();
     }
@@ -383,9 +388,6 @@ void Epase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_spa
         edge_open_->push(start_edge_.get());
         start_edge_->setOpen();
     }
-    std::cout << "Start's BFS Heuristic: " << edge_open_->min()->f << std::endl;
-    double dist = 0;
-    std::cout << "Start's Joint Heuristic: " << computeHeuristic(edge_open_->min()->state_id, goal_state_ind_) << std::endl;
 }
 
 void Epase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_space_ptr,
@@ -426,9 +428,10 @@ void Epase::initializePlanner(const std::shared_ptr<EdgeActionSpace>& action_spa
     edge_open_->push(start_edge_.get());
     start_edge_->setOpen();
 
-    std::cout << "Start's BFS Heuristic: " << edge_open_->min()->f << std::endl;
-    double dist = 0;
-    std::cout << "Start's Joint Heuristic: " << computeHeuristic(edge_open_->min()->state_id, goal_state_ind_) << std::endl;
+    // Debug
+    // std::cout << "Start's BFS Heuristic: " << edge_open_->min()->f << std::endl;
+    // double dist = 0;
+    // std::cout << "Start's Joint Heuristic: " << computeHeuristic(edge_open_->min()->state_id, goal_state_ind_) << std::endl;
 }
 
 }  // namespace ims
