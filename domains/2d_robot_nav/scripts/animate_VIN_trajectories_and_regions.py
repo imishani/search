@@ -216,6 +216,19 @@ def animate_vin_regions_and_trajs(map_ind, scaler, map_type):
     ax.spines['left'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
 
+    # plot the regions
+    # It is in /home/itamar/work/code/algorithms/search/domains/2d_robot_nav/scripts/regions.txt
+    with open('/home/itamar/work/code/algorithms/search/domains/2d_robot_nav/scripts/regions.txt', 'r') as f:
+        # each point is the bottom left corner of a region and the size is 28x28
+        lines = f.readlines()
+        for line in lines:
+            region = line.strip().split(' ')
+            x = int(region[0])
+            y = int(region[1])
+            rect = matplotlib.patches.Rectangle((x, y), 28, 28, linewidth=1, edgecolor='r', facecolor='none')
+            ax.add_patch(rect)
+
+
     # plot the paths
     fig.tight_layout()
     for path in trajectories:

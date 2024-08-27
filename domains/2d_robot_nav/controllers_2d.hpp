@@ -427,10 +427,10 @@ struct VINController : Controller {
     void init(const std::string &model_path,
               const std::shared_ptr<ActionSpaceMosaic> &action_space_ptr,
               std::shared_ptr<Scene2DRob> scene,
-              int number_of_subregions = 5,
+              int number_of_subregions = 30,
               const std::pair<int, int> &subregion_size = {28, 28},
-              int number_of_trajectories = 10,
-              int max_horizon = 150,
+              int number_of_trajectories = 50,
+              int max_horizon = 50,
               int num_iters = 36,
               // const StateType &start ={},
               // const StateType &goal = {},
@@ -475,11 +475,15 @@ inline std::vector<ActionSequence> VINControllerFn(void *user,
     // sample subregions
     std::vector<torch::Tensor> subregions;
     std::vector<StateType> subregion_frames;
+    std::random_device rnd;
+    std::mt19937 gen(rnd());
+    std::uniform_int_distribution<> x_dist(0, user_data->scene->map_size[0] - user_data->subregion_size.first);
+    std::uniform_int_distribution<> y_dist(0, user_data->scene->map_size[1] - user_data->subregion_size.second);
     for (int i{0}; i < user_data->number_of_subregions; ++i) {
         StateType center;
         do {
-            double x = rand() % (user_data->scene->map_size[0] - user_data->subregion_size.first);
-            double y = rand() % (user_data->scene->map_size[1] - user_data->subregion_size.second);
+            int x = x_dist(gen);
+            int y = y_dist(gen);
             center = {x, y};
         } while (!action_space_ptr->isStateValid(center));
         subregion_frames.push_back(center);
@@ -499,24 +503,24 @@ inline std::vector<ActionSequence> VINControllerFn(void *user,
     std::vector<ActionSequence> trajectories;
     for (int i{0}; i < user_data->number_of_trajectories; ++i) {
         // sample a subregion
-        int subregion_idx = rand() % user_data->number_of_subregions;
+        int subregion_idx = std::rand() % user_data->number_of_subregions;
         // sample the start and goal
         std::random_device rd;
-        std::mt19937 gen(rd());
+        std::mt19937 generator(rd());
         std::uniform_int_distribution<> dis(0, user_data->subregion_size.first - 1);
         std::uniform_int_distribution<> dis2(0, user_data->subregion_size.second - 1);
         StateType start;
         do {
             start = {
-                subregion_frames[subregion_idx][0] + dis(gen),
-                subregion_frames[subregion_idx][1] + dis2(gen)
+                subregion_frames[subregion_idx][0] + dis(generator),
+                subregion_frames[subregion_idx][1] + dis2(generator)
             };
         } while (!action_space_ptr->isStateValid(start));
         StateType goal;
         do {
             goal = {
-                subregion_frames[subregion_idx][0] + dis(gen),
-                subregion_frames[subregion_idx][1] + dis2(gen)
+                subregion_frames[subregion_idx][0] + dis(generator),
+                subregion_frames[subregion_idx][1] + dis2(generator)
             };
         } while (!action_space_ptr->isStateValid(goal));
 
@@ -549,12 +553,7 @@ inline std::vector<ActionSequence> VINControllerFn(void *user,
         state_y = state_y.to(user_data->device);
         input = input.to(user_data->device);
         torch::Tensor k = torch::tensor({user_data->num_iters}).to(user_data->device);
-        // print the devices
-        std::cout << "state_x device: " << state_x.device().str() << std::endl;
-        std::cout << "state_y device: " << state_y.device().str() << std::endl;
-        std::cout << "input device: " << input.device().str() << std::endl;
-        std::cout << "k device: " << k.device().str() << std::endl;
-        ActionSequence action_seq;
+        ActionSequence action_seq = {{start[0], start[1]}};
         for (int t{0}; t < user_data->max_horizon; t++) {
             std::vector<torch::jit::IValue> inputs;
             inputs.emplace_back(input);
@@ -568,27 +567,38 @@ inline std::vector<ActionSequence> VINControllerFn(void *user,
             // Get the max action
             auto max_action = action_probs.max(1);
             int action_index = std::get<1>(max_action).item<int>();
-            auto action = action_space_ptr_mosaic->action_type_.get()->getPrimActions().at(action_index);
+            auto action = action_space_ptr_mosaic->action_type_->getPrimActions().at(action_index);
 
             // Get the next state
             auto next_state = torch::zeros({2});
             next_state[0] = state_x[0] + action[0];
             next_state[1] = state_y[0] + action[1];
-            action_seq.emplace_back(std::vector{
+            if (action_space_ptr_mosaic->isStateValid({
                 next_state[0].item<double>() + subregion_frames[subregion_idx][0],
-                next_state[1].item<double>() + subregion_frames[subregion_idx][1]
-            });
-            // check if the goal is reached
-            if (next_state[0].item<double>() == (goal[0] - subregion_frames[subregion_idx][0]) &&
-                next_state[1].item<double>() == (goal[1] - subregion_frames[subregion_idx][1])) {
-                // paths[i] = path;
-                std::cout << GREEN << "Goal reached!" << RESET << std::endl;
+                next_state[1].item<double>() + subregion_frames[subregion_idx][1]})) {
+                action_seq.emplace_back(std::vector{
+                    next_state[0].item<double>() + subregion_frames[subregion_idx][0],
+                    next_state[1].item<double>() + subregion_frames[subregion_idx][1]
+                });
+                // check if the goal is reached
+                if (next_state[0].item<double>() == goal_transformed[0] &&
+                    next_state[1].item<double>() == goal_transformed[1]) {
+                    // paths[i] = path;
+                    std::cout << GREEN << "Goal reached!" << RESET << std::endl;
+                    break;
+                }
+                state_x = next_state[0].unsqueeze(0);
+                state_y = next_state[1].unsqueeze(0);
+            } else {
+                std::cout << RED << "Invalid state" << RESET << std::endl;
                 break;
             }
-            state_x = next_state[0].unsqueeze(0);
-            state_y = next_state[1].unsqueeze(0);
         }
-        trajectories.push_back(action_seq);
+        if (action_seq.empty()) {
+            std::cout << RED << "Could not find a valid trajectory" << RESET << std::endl;
+        } else {
+            trajectories.push_back(action_seq);
+        }
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()

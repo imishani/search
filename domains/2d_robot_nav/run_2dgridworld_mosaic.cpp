@@ -53,7 +53,7 @@
 ///@brief loading the 2d grid map. It is a txt file of 0s and 1s. If the value is 1, it is an obstacle.
 bool load2DGrid(int map_idx, std::vector<std::vector<int>>& map) {
     // load the map via the map index.
-    std::string map_file = "./../domains/2d_robot_nav/data/gridworld/maps/100x100/map_" + std::to_string(map_idx) + ".map";
+    std::string map_file = "./../domains/2d_robot_nav/data/gridworld/maps/96x96/map_" + std::to_string(map_idx) + ".map";
     // check if the file exists
     if (!boost::filesystem::exists(map_file)) {
         std::cout << "The map file does not exist!" << std::endl;
@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
     // save the logs to a temporary file
     // logStats(logs, map_index, "mosaic");
 //
-    std::string path_file = logPaths(paths, map_idx, 100);
+    std::string path_file = logPaths(paths, map_idx, 96);
 
     // std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
     std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/animate_VIN_trajectories_and_regions.py";

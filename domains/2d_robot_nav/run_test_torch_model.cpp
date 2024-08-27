@@ -279,7 +279,7 @@ int main(int argc, char** argv) {
     map_index_str = map_index_str.substr(0, map_index_str.find_last_of("."));
     map_index_str = map_index_str.substr(map_index_str.find_first_of("0123456789"));
     int map_index = std::stoi(map_index_str);
-    std::string path_file = logPaths(paths, map_index, 1);
+    std::string path_file = logPaths(paths, map_index, 28);
     boost::filesystem::path full_path(boost::filesystem::current_path() );
 
     std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
