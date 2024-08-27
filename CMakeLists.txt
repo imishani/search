@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16.3)
 project(search)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 # add include directories
 include_directories(include)
@@ -14,12 +14,14 @@ find_package(Eigen3 REQUIRED)
 find_package(HDF5 REQUIRED)
 
 set(CMAKE_PREFIX_PATH "/usr/local/libtorch")
+#set(CMAKE_PREFIX_PATH "`python3 -c 'import torch;print(torch.utils.cmake_prefix_path)'`")
 find_package(Torch REQUIRED)
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(${HDF5_INCLUDE_DIRS})
+include_directories(${TORCH_INCLUDE_DIRS})
 
 add_library(search SHARED
         src/planners/best_first_search.cpp

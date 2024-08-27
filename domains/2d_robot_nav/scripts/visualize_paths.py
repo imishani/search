@@ -104,7 +104,7 @@ def visualize(map_ind, scaler, paths_dict, path_ids_to_visualize, map_type):
         map_file = MAPS[map_ind]
         map_data, map_type, width, height = load_map(map_file, scaler)
     elif map_type == 'gridworld':
-        map_file = path_to_this_file + "/../data/gridworld/maps/map_" + str(map_ind) + ".map"
+        map_file = path_to_this_file + f"/../data/gridworld/maps/{int(scaler)}x{int(scaler)}/map_" + str(map_ind) + ".map"
         map_data = np.loadtxt(map_file)
         map_data = map_data.T
         height, width = map_data.shape
@@ -172,7 +172,7 @@ def visualize_paths_by_order(map_ind, scaler, paths_dict, path_ids_to_visualize,
         map_file = MAPS[map_ind]
         map_data, map_type, width, height = load_map(map_file, scaler)
     elif map_type == 'gridworld':
-        map_file = path_to_this_file + "/../data/gridworld/maps/map_" + str(map_ind) + ".map"
+        map_file = path_to_this_file + f"/../data/gridworld/maps/{int(scaler)}x{int(scaler)}/map_" + str(map_ind) + ".map"
         map_data = np.loadtxt(map_file) * 100
         map_data = map_data.T
         height, width = map_data.shape

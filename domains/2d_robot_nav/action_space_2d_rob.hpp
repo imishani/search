@@ -56,8 +56,10 @@ struct ActionType2dRob : public ims::ActionType {
         name = "ActionType2dRob";
         num_actions = 8;
         action_names = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
-        action_costs = {1, 1.414, 1, 1.414, 1, 1.414, 1, 1.414};
-        action_prims = {{0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}, {-1, 1}};
+        // action_costs = {1, 1.414, 1, 1.414, 1, 1.414, 1, 1.414};
+        // action_prims = {{0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}, {-1, 1}};
+        action_costs = {1, 1, 1, 1, 1.414, 1.414, 1.414, 1.414};
+        action_prims = {{-1, 0}, {1, 0}, {0, 1}, {0, -1}, {-1, 1}, {-1, -1}, {1, 1}, {1, -1}};
         state_discretization_ = {1, 1};
     }
 

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "search/common/types.hpp"
+#include "search/common/torch_utils.hpp"
 #include "search/controllers/base_controller.hpp"
 #include "search/planners/wastar.hpp"
 #include "search/heuristics/standard_heuristics.hpp"
@@ -15,7 +16,6 @@
 #include <utility>
 
 namespace ims {
-
 inline Eigen::VectorXf applyDerivativeFilter(const Eigen::VectorXf &row) {
     Eigen::VectorXf filteredRow(row.size());
     for (int i = 1; i < row.size() - 1; ++i) {
@@ -38,17 +38,18 @@ inline Eigen::MatrixXf applyDerivativeFilterBatch(const Eigen::MatrixXf &rows) {
 }
 
 // Function to detect walls using derivative filters
-inline void detectWalls(const std::vector<std::vector<int>> &gridMap,
-                        std::vector<std::vector<int>> &wallMap,
-                        std::vector<std::vector<std::pair<int, int>>> &trajectories,
-                        int batch_size = 10, int stride = 1,
+inline void detectWalls(const std::vector<std::vector<int> > &gridMap,
+                        std::vector<std::vector<int> > &wallMap,
+                        std::vector<std::vector<std::pair<int, int> > > &trajectories,
+                        int batch_size = 10,
+                        int stride = 1,
                         double obs_threshold = 100) {
     int rows = (int) gridMap.size();
     int cols = (int) gridMap[0].size();
     wallMap.resize(rows, std::vector<int>(cols, 0));
 
     std::vector<bool> prev_row_batch(cols, false);
-    std::vector<std::vector<std::pair<int, int>>> prev_trajectories(cols, std::vector<std::pair<int, int>>());
+    std::vector<std::vector<std::pair<int, int> > > prev_trajectories(cols, std::vector<std::pair<int, int> >());
     for (int i{0}; i < rows - batch_size; i += stride) {
         // take a batch
         Eigen::MatrixXf batch(batch_size, cols);
@@ -88,8 +89,8 @@ inline void detectWalls(const std::vector<std::vector<int>> &gridMap,
 
     // lets do the same thing for the columns
     std::vector<bool> prev_col_batch(rows, false);
-    std::vector<std::vector<std::pair<int, int>>> prev_trajectories_col(rows,
-                                                                        std::vector<std::pair<int, int>>());
+    std::vector<std::vector<std::pair<int, int> > > prev_trajectories_col(rows,
+                                                                          std::vector<std::pair<int, int> >());
     for (int i{0}; i < cols - batch_size; i += stride) {
         // take a batch
         Eigen::MatrixXf batch(rows, batch_size);
@@ -129,12 +130,10 @@ inline void detectWalls(const std::vector<std::vector<int>> &gridMap,
     // TODO: what about other directions?
 }
 
-
 struct WallFollowerController : public Controller {
-
     struct WallFollowerUserData {
-        std::vector<std::vector<int>> map;
-        int min_wall_length {10};
+        std::vector<std::vector<int> > map;
+        int min_wall_length{10};
     };
 
     WallFollowerController() {
@@ -142,13 +141,13 @@ struct WallFollowerController : public Controller {
     }
 
     ~WallFollowerController() {
-        delete static_cast<WallFollowerUserData*>(user_data);
+        delete static_cast<WallFollowerUserData *>(user_data);
     }
 
-    void init(std::vector<std::vector<int>>& map,
-              const std::shared_ptr<ActionSpace>& action_space_ptr,
+    void init(std::vector<std::vector<int> > &map,
+              const std::shared_ptr<ActionSpace> &action_space_ptr,
               int min_wall_length = 10) {
-        auto* user = new WallFollowerUserData();
+        auto *user = new WallFollowerUserData();
         user->map = map;
         user->min_wall_length = min_wall_length;
         this->user_data = user;
@@ -157,31 +156,31 @@ struct WallFollowerController : public Controller {
 };
 
 /// @brief Controller that follows walls
-inline std::vector<ActionSequence> ControllerWallsFollower(void* user,
-                                                           const std::shared_ptr<ims::ActionSpace>& action_space_ptr) {
+inline std::vector<ActionSequence> ControllerWallsFollower(void *user,
+                                                           const std::shared_ptr<ims::ActionSpace> &action_space_ptr) {
     // Try to cast the user data. If it doesn't work, throw error
-    auto* user_data = static_cast<WallFollowerController::WallFollowerUserData*>(user);
+    auto *user_data = static_cast<WallFollowerController::WallFollowerUserData *>(user);
 
     std::vector<ActionSequence> generated;
-    std::vector<std::vector<int>> wallMap;
-    std::vector<std::vector<std::pair<int, int>>> trajectories;
+    std::vector<std::vector<int> > wallMap;
+    std::vector<std::vector<std::pair<int, int> > > trajectories;
     detectWalls(user_data->map, wallMap, trajectories, user_data->min_wall_length);
     generated.resize(trajectories.size());
     for (int i{0}; i < trajectories.size(); ++i) {
         ActionSequence action_seq;
         for (int j{0}; j < trajectories[i].size(); ++j) {
-            action_seq.push_back({static_cast<double>(trajectories[i][j].first),
-                                  static_cast<double>(trajectories[i][j].second)});
+            action_seq.push_back({
+                static_cast<double>(trajectories[i][j].first),
+                static_cast<double>(trajectories[i][j].second)
+            });
         }
         generated[i] = action_seq;
     }
     return generated;
 };
 
-
 /// @brief Linear controller
 struct LinearController : public Controller {
-
     explicit LinearController(ControllerType controller_type) {
         type = controller_type;
         if (controller_type == ControllerType::CONNECTOR) {
@@ -196,15 +195,15 @@ struct LinearController : public Controller {
     };
 
     ~LinearController() {
-        delete static_cast<LinearUserData*>(user_data);
+        delete static_cast<LinearUserData *>(user_data);
     }
 
     void init(double step_size,
-              const std::shared_ptr<ActionSpace>& action_space_ptr,
-              const std::vector<double>& start,
-              const std::vector<double>& goal) {
+              const std::shared_ptr<ActionSpace> &action_space_ptr,
+              const std::vector<double> &start,
+              const std::vector<double> &goal) {
         // make sure the no memory leak. If the user data is not null, delete it.
-        auto* user = new LinearUserData();
+        auto *user = new LinearUserData();
         user->start = {start[0], start[1]};
         user->goal = {goal[0], goal[1]};
         user->step_size = step_size;
@@ -212,19 +211,19 @@ struct LinearController : public Controller {
         this->as_ptr = action_space_ptr;
     }
 
-    void reinit(const std::vector<double>& start,
-                const std::vector<double>& goal) {
-        auto* user = static_cast<LinearUserData*>(user_data);
+    void reinit(const std::vector<double> &start,
+                const std::vector<double> &goal) {
+        auto *user = static_cast<LinearUserData *>(user_data);
         user->start = {start[0], start[1]};
         user->goal = {goal[0], goal[1]};
     }
 };
 
 /// @brief Linear controller function
-inline std::vector<ActionSequence> LinearControllerFn(void* user,
-                                                      const std::shared_ptr<ims::ActionSpace>& action_space_ptr) {
+inline std::vector<ActionSequence> LinearControllerFn(void *user,
+                                                      const std::shared_ptr<ims::ActionSpace> &action_space_ptr) {
     // Try to cast the user data. If it doesn't work, throw error
-    auto* user_data = static_cast<LinearController::LinearUserData*>(user);
+    auto *user_data = static_cast<LinearController::LinearUserData *>(user);
 
     std::vector<ActionSequence> generated;
     Eigen::Vector2d start = user_data->start;
@@ -243,10 +242,8 @@ inline std::vector<ActionSequence> LinearControllerFn(void* user,
     return generated;
 }
 
-
 /// @brief Weighted A* controller
 struct wAStarController : Controller {
-
     struct wAStarUserData {
         Eigen::Vector2d start;
         Eigen::Vector2d goal;
@@ -258,15 +255,15 @@ struct wAStarController : Controller {
     }
 
     ~wAStarController() {
-        delete static_cast<wAStarUserData*>(user_data);
+        delete static_cast<wAStarUserData *>(user_data);
     }
 
-    void init(const std::vector<double>& start,
-              const std::vector<double>& goal,
-              const std::shared_ptr<ActionSpaceMosaic>& action_space_ptr,
+    void init(const std::vector<double> &start,
+              const std::vector<double> &goal,
+              const std::shared_ptr<ActionSpaceMosaic> &action_space_ptr,
               std::shared_ptr<Scene2DRob> scene) {
         // make sure the no memory leak. If the user data is not null, delete it.
-        auto* user = new wAStarUserData();
+        auto *user = new wAStarUserData();
         user->start = {start[0], start[1]};
         user->goal = {goal[0], goal[1]};
         this->user_data = user;
@@ -274,44 +271,42 @@ struct wAStarController : Controller {
         user->scene = std::move(scene);
     }
 
-    void reinit(const std::vector<double>& start,
-                const std::vector<double>& goal) {
-        auto* user = static_cast<wAStarUserData*>(user_data);
+    void reinit(const std::vector<double> &start,
+                const std::vector<double> &goal) {
+        auto *user = static_cast<wAStarUserData *>(user_data);
         user->start = {start[0], start[1]};
         user->goal = {goal[0], goal[1]};
     }
-
 };
 
 /// @brief Weighted A* controller function
-inline std::vector<ActionSequence> wAStarControllerFn(void* user,
-                                                      const std::shared_ptr<ims::ActionSpace>& action_space_ptr) {
-
+inline std::vector<ActionSequence> wAStarControllerFn(void *user,
+                                                      const std::shared_ptr<ims::ActionSpace> &action_space_ptr) {
     // time the controller using chrono
     auto start_time = std::chrono::high_resolution_clock::now();
     // Try to cast the user data. If it doesn't work, throw error
-    auto* user_data = static_cast<wAStarController::wAStarUserData*>(user);
-    auto* action_space_ptr_mosaic = dynamic_cast<ims::ActionSpaceMosaic*>(action_space_ptr.get());
+    auto *user_data = static_cast<wAStarController::wAStarUserData *>(user);
+    auto *action_space_ptr_mosaic = dynamic_cast<ims::ActionSpaceMosaic *>(action_space_ptr.get());
     // get the closest trajectories from action_space_ptr
     std::pair<int, int> traj_pair;
-    std::pair<Eigen::VectorXd , Eigen::VectorXd> closest_states;
+    std::pair<Eigen::VectorXd, Eigen::VectorXd> closest_states;
 
     ///////////////////// Find the closest pair of trajectories /////////////////////
     // Surprisingly, this takes most of the time. TODO: We need to optimize this.
     for (int i{0}; i < action_space_ptr_mosaic->mosaic_trajectories_.size(); i++) {
         Eigen::MatrixXd traj = action_space_ptr_mosaic->mosaic_trajectories_[i]->trajectory;
-        for (int j {i}; j < action_space_ptr_mosaic->mosaic_trajectories_.size(); j++){
+        for (int j{i}; j < action_space_ptr_mosaic->mosaic_trajectories_.size(); j++) {
             if (action_space_ptr_mosaic->areTrajectoriesConnected(i, j) ||
-            action_space_ptr_mosaic->areTrajectoriesUnconnectable(i, j) || (i == j)) {
+                action_space_ptr_mosaic->areTrajectoriesUnconnectable(i, j) || (i == j)) {
                 continue;
             }
             Eigen::MatrixXd traj2 = action_space_ptr_mosaic->mosaic_trajectories_[j]->trajectory;
             // find the minimum distance between the two trajectories.
             double min_dist = std::numeric_limits<double>::max();
-            for (int k{0}; k < traj.rows(); k++){
-                for (int l{0}; l < traj2.rows(); l++){
+            for (int k{0}; k < traj.rows(); k++) {
+                for (int l{0}; l < traj2.rows(); l++) {
                     double dist = (traj.row(k) - traj2.row(l)).norm();
-                    if (dist < min_dist){
+                    if (dist < min_dist) {
                         min_dist = dist;
                         traj_pair = {i, j};
                         closest_states = {traj.row(k), traj2.row(l)};
@@ -328,32 +323,32 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
 
     ////////////////////////////////////////////////////////////////////////////////////
 
-//    // Lets randomly sample trajs
-//    do {
-//        traj_pair = {rand() % action_space_ptr_mosaic->mosaic_trajectories_.size(),
-//                     rand() % action_space_ptr_mosaic->mosaic_trajectories_.size()};
-//    } while (action_space_ptr_mosaic->areTrajectoriesConnected(traj_pair.first, traj_pair.second) ||
-//             traj_pair.first == traj_pair.second);
-//
-//    // TODO: multi-start multi-goal. It is already implemented just need to decide how to do it here.
-//    Eigen::MatrixXd traj = action_space_ptr_mosaic->mosaic_trajectories_[traj_pair.first]->trajectory;
-//    Eigen::MatrixXd traj2 = action_space_ptr_mosaic->mosaic_trajectories_[traj_pair.second]->trajectory;
-//    // find the minimum distance between the two trajectories.
-//    double min_dist = std::numeric_limits<double>::max();
-//
-//    for (int k{0}; k < traj.rows(); k++){
-//        for (int l{0}; l < traj2.rows(); l++){
-//            double dist = (traj.row(k) - traj2.row(l)).norm();
-//            if (dist < min_dist){
-//                min_dist = dist;
-//                closest_states = {traj.row(k), traj2.row(l)};
-//            }
-//        }
-//    }
+    //    // Lets randomly sample trajs
+    //    do {
+    //        traj_pair = {rand() % action_space_ptr_mosaic->mosaic_trajectories_.size(),
+    //                     rand() % action_space_ptr_mosaic->mosaic_trajectories_.size()};
+    //    } while (action_space_ptr_mosaic->areTrajectoriesConnected(traj_pair.first, traj_pair.second) ||
+    //             traj_pair.first == traj_pair.second);
+    //
+    //    // TODO: multi-start multi-goal. It is already implemented just need to decide how to do it here.
+    //    Eigen::MatrixXd traj = action_space_ptr_mosaic->mosaic_trajectories_[traj_pair.first]->trajectory;
+    //    Eigen::MatrixXd traj2 = action_space_ptr_mosaic->mosaic_trajectories_[traj_pair.second]->trajectory;
+    //    // find the minimum distance between the two trajectories.
+    //    double min_dist = std::numeric_limits<double>::max();
+    //
+    //    for (int k{0}; k < traj.rows(); k++){
+    //        for (int l{0}; l < traj2.rows(); l++){
+    //            double dist = (traj.row(k) - traj2.row(l)).norm();
+    //            if (dist < min_dist){
+    //                min_dist = dist;
+    //                closest_states = {traj.row(k), traj2.row(l)};
+    //            }
+    //        }
+    //    }
 
-    auto* heuristic = new ims::EuclideanHeuristic();
+    auto *heuristic = new ims::EuclideanHeuristic();
     double epsilon = 100.0;
-    ims::wAStarParams params (heuristic, epsilon);
+    ims::wAStarParams params(heuristic, epsilon);
 
     params.time_limit_ = 0.0005;
     params.verbose = false;
@@ -368,8 +363,7 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
 
     try {
         planner.initializePlanner(as, start, goal);
-    }
-    catch (std::exception& e) {
+    } catch (std::exception &e) {
         std::cout << RED << e.what() << RESET << std::endl;
         return generated;
     }
@@ -389,20 +383,22 @@ inline std::vector<ActionSequence> wAStarControllerFn(void* user,
     auto end_time = std::chrono::high_resolution_clock::now();
     // milliseconds
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-//    std::cout << "Planning time: " << duration.count() << " ms" << std::endl;
+    //    std::cout << "Planning time: " << duration.count() << " ms" << std::endl;
 
     return generated;
 }
 
-
 struct VIN : Controller {
-
     struct VINUserData {
         std::shared_ptr<Scene2DRob> scene;
         StateType start;
         StateType goal;
-        int max_horizon {150};
-        int num_iters {36};;
+        int number_of_subregions;
+        std::pair<int, int> subregion_size;
+        int number_of_trajectories;
+        int max_horizon;
+        int num_iters;
+        torch::Device device{torch::kCPU};
     };
 
     /// @brief Constructor
@@ -412,7 +408,7 @@ struct VIN : Controller {
 
     ///@brief Destructor
     ~VIN() {
-        delete static_cast<VINUserData*>(user_data);
+        delete static_cast<VINUserData *>(user_data);
     }
 
     /// @brief Initialize the controller
@@ -421,25 +417,105 @@ struct VIN : Controller {
     /// @param goal The goal state.
     /// @param action_space_ptr The action space pointer.
     /// @param scene The scene.
+    /// @param number_of_subregions The number of subregions to sample from.
+    /// @param subregion_size The size of the subregions.
     /// @param max_horizon The maximum horizon.
+    /// @param number_of_trajectories
     /// @param num_iters The number of iterations for the value iteration (K).
-    void init(const std::string& model_path,
-              const StateType& start,
-              const StateType& goal,
-              const std::shared_ptr<ActionSpaceMosaic>& action_space_ptr,
+    /// @param device The device to run the model on.
+    void init(const std::string &model_path,
+              const StateType &start,
+              const StateType &goal,
+              const std::shared_ptr<ActionSpaceMosaic> &action_space_ptr,
               std::shared_ptr<Scene2DRob> scene,
-              int max_horizon,
-              int num_iters = 36) {
-        auto* user = new VINUserData();
+              int number_of_subregions = 5,
+              const std::pair<int, int> &subregion_size = {28, 28},
+              int number_of_trajectories = 10,
+              int max_horizon = 150,
+              int num_iters = 36,
+              const std::string &device = "") {
+        auto *user = new VINUserData();
+        user->scene = std::move(scene);
+        if (device == "cuda") {
+            user->device = torch::kCUDA;
+        } else if (device == "cpu") {
+            user->device = torch::kCPU;
+        } else {
+            std::cout << RED << "Invalid device. Using system capabilities" << RESET << std::endl;
+            user->device = torch_utils::getDevice();
+        }
+        torch_utils::loadTorchModel(model_path, model, user->device);
+        model.to(user->device);
+        convert2DMapToTensor(user->scene->map, map_tensor);
+
         user->start = start;
         user->goal = goal;
         user->max_horizon = max_horizon;
+        user->number_of_subregions = number_of_subregions;
+        user->subregion_size = subregion_size;
+        user->number_of_trajectories = number_of_trajectories;
         user->num_iters = num_iters;
-        user->scene = std::move(scene);
         this->user_data = user;
         this->as_ptr = action_space_ptr;
     }
+
+    torch::jit::script::Module model;
+    torch::Tensor map_tensor;
 };
 
-} // namespace ims
+/// @brief VIN controller function
+inline std::vector<ActionSequence> VINController(void *user,
+                                                 const std::shared_ptr<ims::ActionSpace> &action_space_ptr) {
+    auto start_time = std::chrono::high_resolution_clock::now();
+    auto *user_data = static_cast<VIN::VINUserData *>(user);
+    // sample subregions
+    std::vector<torch::Tensor> subregions;
+    std::vector<StateType> subregion_centers;
+    for (int i{0}; i < user_data->number_of_subregions; ++i) {
+        StateType center;
+        do {
+            double x = rand() % (user_data->scene->map_size[0] - user_data->subregion_size.first);
+            double y = rand() % (user_data->scene->map_size[1] - user_data->subregion_size.second);
+            center = {x, y};
+        } while (!action_space_ptr->isStateValid(center));
+        subregion_centers.push_back(center);
+        torch::Tensor subregion = torch::zeros({
+            1, 1, static_cast<long>(user_data->scene->map_size[0]),
+            static_cast<long>(user_data->scene->map_size[1])
+        });
+        for (int j{0}; j < user_data->subregion_size.first; ++j) {
+            for (int k{0}; k < user_data->subregion_size.second; ++k) {
+                subregion[0][0][j + center[0]][k + center[1]] = user_data->scene->map->at(j + center[0]).at(
+                    k + center[1]);
+            }
+        }
+        subregion.to(user_data->device);
+        subregions.push_back(subregion);
+    }
 
+    for (int i{0}; i < user_data->number_of_trajectories; ++i) {
+        // sample a subregion
+        int subregion_idx = rand() % user_data->number_of_subregions;
+        // sample the start and goal
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(0, user_data->subregion_size.first - 1);
+        std::uniform_int_distribution<> dis2(0, user_data->subregion_size.second - 1);
+        StateType start;
+        do {
+            start = {
+                subregion_centers[subregion_idx][0] + dis(gen),
+                subregion_centers[subregion_idx][1] + dis2(gen)
+            };
+        } while (!action_space_ptr->isStateValid(start));
+        StateType goal;
+        do {
+            goal = {
+                subregion_centers[subregion_idx][0] + dis(gen),
+                subregion_centers[subregion_idx][1] + dis2(gen)
+            };
+        } while (!action_space_ptr->isStateValid(goal));
+    }
+    return std::vector<ActionSequence>();
+}
+} // namespace ims

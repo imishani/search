@@ -30,15 +30,19 @@ def plot_map(images):
         plt.imshow(image, cmap='Greys', vmin=0, vmax=1)
         plt.show()
 
-def save_map(images):
+def save_map(images, map_size):
     # make sure the extension is .map
     # check for number of maps in maps directory, and save as map_{n_maps}.map
 
     # check in maps
     import os
-    n_maps = len(os.listdir('maps'))
+    # if there is not a directory for the map size, create it
+    if not os.path.exists(f'maps/{map_size[0]}x{map_size[1]}'):
+        os.makedirs(f'maps/{map_size[0]}x{map_size[1]}')
+
+    n_maps = len(os.listdir(f'maps/{map_size[0]}x{map_size[1]}'))
     for i in range(len(images)):
-        filename = f'maps/map_{n_maps + i}.map'
+        filename = f'maps/{map_size[0]}x{map_size[1]}/map_{n_maps + i}.map'
         np.savetxt(filename, images[i], fmt='%d')
 
 def load_map(filename):
@@ -67,4 +71,4 @@ if __name__ == "__main__":
         plot_map(images)
 
     if args.save:
-        save_map(images)
+        save_map(images, args.map_size)
