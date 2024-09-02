@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.3)
+cmake_minimum_required(VERSION 3.16)
 project(search)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -109,11 +109,8 @@ target_link_libraries(run_2d_rob_nav_wastar_focal search ${Boost_LIBRARIES})
 add_executable(run_2d_ackermann_rob_nav_wastar domains/2d_robot_nav/run_2d_ackermann_wastar.cpp)
 target_link_libraries(run_2d_ackermann_rob_nav_wastar search ${Boost_LIBRARIES})
 
-add_executable(run_2d_rob_nav_mgs domains/2d_robot_nav/run_2d_mgs.cpp)
-target_link_libraries(run_2d_rob_nav_mgs search ${Boost_LIBRARIES})
-
 add_executable(run_2d_rob_nav_mosaic domains/2d_robot_nav/run_2d_mosaic.cpp)
-target_link_libraries(run_2d_rob_nav_mosaic search ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES})
+target_link_libraries(run_2d_rob_nav_mosaic search ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES} ${TORCH_LIBRARIES})
 
 #add_executable(run_2d_rob_nav_ackerman_mgs domains/2d_robot_nav/run_2d_ackerman_mgs.cpp)
 #target_link_libraries(run_2d_rob_nav_ackerman_mgs search ${Boost_LIBRARIES})
@@ -140,19 +137,22 @@ add_executable(run_2d_mapf_cbs_or_ecbs_sipp domains/2d_mapf/run_2d_cbs_or_ecbs_s
 target_link_libraries(run_2d_mapf_cbs_or_ecbs_sipp search ${Boost_LIBRARIES})
 
 add_executable(run_walls domains/2d_robot_nav/tests/follow_wall.cpp)
-target_link_libraries(run_walls search ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES})
+target_link_libraries(run_walls search ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES} ${TORCH_LIBRARIES})
 
 add_executable(generate_data_traj domains/2d_robot_nav/data/generate_data_traj.cpp)
 target_link_libraries(generate_data_traj search ${Boost_LIBRARIES} ${HDF5_LIBRARIES})
 
 add_executable(generate_data_fqi domains/2d_robot_nav/data/generate_data_fqi.cpp)
-target_link_libraries(generate_data_fqi search ${Boost_LIBRARIES} ${HDF5_LIBRARIES})
+target_link_libraries(generate_data_fqi search ${Boost_LIBRARIES} ${HDF5_LIBRARIES} )
 
 add_executable(run_2dgridworld_mosaic domains/2d_robot_nav/run_2dgridworld_mosaic.cpp)
 target_link_libraries(run_2dgridworld_mosaic search ${Boost_LIBRARIES} ${TORCH_LIBRARIES})
 
 add_executable(run_test_torch_model domains/2d_robot_nav/run_test_torch_model.cpp)
 target_link_libraries(run_test_torch_model search ${Boost_LIBRARIES} ${TORCH_LIBRARIES})
+
+add_executable(run_2d_rob_nav_mgs domains/2d_robot_nav/run_2d_mgs.cpp)
+target_link_libraries(run_2d_rob_nav_mgs search ${Boost_LIBRARIES} ${TORCH_LIBRARIES})
 
 
 # Tests.

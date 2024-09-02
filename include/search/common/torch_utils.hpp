@@ -38,10 +38,11 @@
 
 #include <torch/torch.h>
 #include <torch/script.h>
+// include whats needed for CUDA release
+#include <c10/cuda/CUDACachingAllocator.h>
 
 
 namespace torch_utils {
-
 inline torch::Device getDevice() {
     return torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
 }
@@ -56,6 +57,10 @@ inline void loadTorchModel(const std::string& model_path,
     } catch (const c10::Error& e) {
         std::cerr << "error loading the model\n";
     }
+}
+
+inline void releaseCudaMemory() {
+    c10::cuda::CUDACachingAllocator::emptyCache();
 }
 }   // namespace torch_utils
 

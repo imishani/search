@@ -50,56 +50,6 @@
 #include "controllers_2d.hpp"
 
 
-///@brief loading the 2d grid map. It is a txt file of 0s and 1s. If the value is 1, it is an obstacle.
-bool load2DGrid(int map_idx, std::vector<std::vector<int>>& map) {
-    // load the map via the map index.
-    std::string map_file = "./../domains/2d_robot_nav/data/gridworld/maps/96x96/map_" + std::to_string(map_idx) + ".map";
-    // check if the file exists
-    if (!boost::filesystem::exists(map_file)) {
-        std::cout << "The map file does not exist!" << std::endl;
-        return false;
-    }
-    FILE *f;
-    f = fopen(map_file.c_str(), "r");
-    if (f)
-    {
-        std::vector<int> row;
-        int val;
-        while (fscanf(f, "%d", &val) != EOF) {
-            // check if end of line
-            row.push_back(val*100);
-            if (fgetc(f) == '\n') {
-                map.push_back(row);
-                row.clear();
-            }
-        }
-        fclose(f);
-    }
-    return true;
-
-}
-
-
-bool sampleStartsGoals(const std::vector<std::vector<int>>& map, std::vector<std::vector<double>>& starts,
-                       std::vector<std::vector<double>>& goals, int num_runs) {
-    // sample the starts and goals
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, static_cast<int>(map.size()) - 1);
-    for (int i {0}; i < num_runs; i++) {
-        std::vector<double> start = {static_cast<double>(dis(gen)), static_cast<double>(dis(gen))};
-        std::vector<double> goal = {static_cast<double>(dis(gen)), static_cast<double>(dis(gen))};
-        while ((map.at(static_cast<int>(start[0])).at(static_cast<int>(start[1])) > 0) ||
-            (map.at(static_cast<int>(goal[0])).at(static_cast<int>(goal[1])) > 0)) {
-
-            start = {static_cast<double>(dis(gen)), static_cast<double>(dis(gen))};
-            goal = {static_cast<double>(dis(gen)), static_cast<double>(dis(gen))};
-        }
-        starts.push_back(start);
-        goals.push_back(goal);
-    }
-    return true;
-}
 
 int main(int argc, char** argv) {
 
@@ -116,7 +66,7 @@ int main(int argc, char** argv) {
     int num_runs = std::stoi(argv[2]);
 
     std::vector<std::vector<int>> map;
-    if (!load2DGrid(map_idx, map)) {
+    if (!load2DGrid(map_idx, 192, map)) {
         std::cout << "Failed to load the map!" << std::endl;
         return 0;
     }
@@ -169,17 +119,17 @@ int main(int argc, char** argv) {
 
 
         std::shared_ptr<std::vector<ims::Controller>> controllers = std::make_shared<std::vector<ims::Controller>>();
-//         ims::WallFollowerController controller;
-//         controller.init(map, ActionSpace);
-//         controller.solver_fn = ims::ControllerWallsFollower;
-//
-// //        controller.type = ims::ControllerType::GENERATOR;
-// //        controller.solver_fn = Controller2d;
-// //        StateType user = {starts[i][0] + 3, starts[i][1]};
-// //        controller.user_data = &user;
-// //        controller.as_ptr = ActionSpace;
-//
-//         controllers->push_back(controller);
+        ims::WallFollowerController controller;
+        controller.init(map, ActionSpace);
+        controller.solver_fn = ims::ControllerWallsFollower;
+
+//        controller.type = ims::ControllerType::GENERATOR;
+//        controller.solver_fn = Controller2d;
+//        StateType user = {starts[i][0] + 3, starts[i][1]};
+//        controller.user_data = &user;
+//        controller.as_ptr = ActionSpace;
+
+        controllers->push_back(controller);
 
 //        ims::LinearController controller2 (ims::ControllerType::CONNECTOR);
 //        controller2.init(1, ActionSpace, starts[i], goals[i]);

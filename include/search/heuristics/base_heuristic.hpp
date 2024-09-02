@@ -27,7 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*!
- * \file   astar.hpp
+ * \file   base_heuristic.hpp
  * \author Itamar Mishani (imishani@cmu.edu)
  * \date   4/13/23
 */
@@ -40,7 +40,7 @@
 
 
 namespace ims{
-    /// @class BaseHeuristic class.
+    /// @class BaseHeuristic
     /// @brief The base heuristic class
     class BaseHeuristic {
     public:
@@ -174,7 +174,7 @@ namespace ims{
         std::vector<StateType> goals_;
 
     };
-    /// @class ExperienceHeuristicBase
+    /// @class EGraphHeuristicBase
     /// @brief The base class for the experience heuristic
     class EGraphHeuristicBase : public BaseHeuristic {
     public:

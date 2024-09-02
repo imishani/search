@@ -130,7 +130,51 @@ inline void detectWalls(const std::vector<std::vector<int> > &gridMap,
     // TODO: what about other directions?
 }
 
-struct WallFollowerController : public Controller {
+struct PointSamplerController : Controller {
+
+    struct PointSamplerUserData {
+        std::shared_ptr<Scene2DRob> scene;
+        int num_samples{10};
+    };
+
+    PointSamplerController() {
+        type = ControllerType::GENERATOR;
+    }
+
+    ~PointSamplerController() {
+        delete static_cast<PointSamplerUserData *>(user_data);
+    }
+
+    void init(const std::shared_ptr<Scene2DRob> &scene,
+              const std::shared_ptr<ActionSpace> &action_space_ptr,
+              int num_samples = 10) {
+        auto *user = new PointSamplerUserData();
+        user->scene = scene;
+        user->num_samples = num_samples;
+        this->user_data = user;
+        this->as_ptr = action_space_ptr;
+    }
+};
+
+inline std::vector<ActionSequence> PointSamplerControllerFn(void *user,
+                                                            const std::shared_ptr<ims::ActionSpace> &action_space_ptr) {
+    auto *user_data = static_cast<PointSamplerController::PointSamplerUserData *>(user);
+    std::vector<ActionSequence> generated;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    for (int i{0}; i < user_data->num_samples; ++i) {
+        StateType sample;
+        sample.resize(2);
+        do {
+            sample[0] = std::uniform_real_distribution<double>(0, user_data->scene->map_size[0])(gen);
+            sample[1] = std::uniform_real_distribution<double>(0, user_data->scene->map_size[1])(gen);
+        } while (!action_space_ptr->isStateValid(sample));
+        generated.push_back({sample});
+    }
+    return generated;
+}
+
+struct WallFollowerController : Controller {
     struct WallFollowerUserData {
         std::vector<std::vector<int> > map;
         int min_wall_length{10};
@@ -400,6 +444,13 @@ struct VINController : Controller {
         int num_iters;
         torch::jit::script::Module model;
         torch::Device device{torch::kCPU};
+
+        // destructor. Make sure to release all GPU memory
+        ~VINUserData() {
+            if (device == torch::kCUDA) {
+                torch_utils::releaseCudaMemory();
+            }
+        }
     };
 
     /// @brief Constructor
@@ -425,16 +476,16 @@ struct VINController : Controller {
     /// @param goal The goal state.
     /// @param device The device to run the model on.
     void init(const std::string &model_path,
-              const std::shared_ptr<ActionSpaceMosaic> &action_space_ptr,
+              const std::shared_ptr<ActionSpace> &action_space_ptr,
               std::shared_ptr<Scene2DRob> scene,
-              int number_of_subregions = 30,
+              int number_of_subregions = 10,
               const std::pair<int, int> &subregion_size = {28, 28},
-              int number_of_trajectories = 50,
+              int number_of_trajectories = 10,
               int max_horizon = 50,
               int num_iters = 36,
               // const StateType &start ={},
               // const StateType &goal = {},
-              const std::string &device = "") {
+              const std::string &device = "cpu") {
         auto *user = new VINUserData();
         user->scene = std::move(scene);
         if (device == "cuda") {
@@ -470,7 +521,8 @@ inline std::vector<ActionSequence> VINControllerFn(void *user,
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     auto *user_data = static_cast<VINController::VINUserData *>(user);
     auto action_type = ActionType2dRob();
-    auto *action_space_ptr_mosaic = dynamic_cast<ims::ActionSpaceMosaic *>(action_space_ptr.get());
+    // auto *action_space_ptr_mosaic = dynamic_cast<ims::ActionSpaceMosaic *>(action_space_ptr.get());
+    ActionType2dRob action_type2d_robs;
 
     // sample subregions
     std::vector<torch::Tensor> subregions;
@@ -480,22 +532,31 @@ inline std::vector<ActionSequence> VINControllerFn(void *user,
     std::uniform_int_distribution<> x_dist(0, user_data->scene->map_size[0] - user_data->subregion_size.first);
     std::uniform_int_distribution<> y_dist(0, user_data->scene->map_size[1] - user_data->subregion_size.second);
     for (int i{0}; i < user_data->number_of_subregions; ++i) {
-        StateType center;
+        StateType frame;
         do {
             int x = x_dist(gen);
             int y = y_dist(gen);
-            center = {x, y};
-        } while (!action_space_ptr->isStateValid(center));
-        subregion_frames.push_back(center);
+            frame = {x, y};
+        } while (!action_space_ptr->isStateValid(frame));
+        subregion_frames.push_back(frame);
         torch::Tensor subregion = torch::zeros({
             static_cast<long>(user_data->scene->map_size[0]),
             static_cast<long>(user_data->scene->map_size[1])
         });
         for (int j{0}; j < user_data->subregion_size.first; ++j) {
             for (int k{0}; k < user_data->subregion_size.second; ++k) {
-                subregion[j + center[0]][k + center[1]] = user_data->scene->map->at(j + center[0]).at(
-                    k + center[1]);
+                subregion[j + frame[0]][k + frame[1]] = user_data->scene->map->at(j + frame[0]).at(
+                    k + frame[1]);
             }
+        }
+        // the values on the border of the subregion should be equal to 1
+        for (long j{0}; j < user_data->subregion_size.first; ++j) {
+            subregion[j + frame[0]][frame[1]] = 1;
+            subregion[j + frame[0]][frame[1] + user_data->subregion_size.second - 1] = 1;
+        }
+        for (int j{0}; j < user_data->subregion_size.second; ++j) {
+            subregion[frame[0]][j + frame[1]] = 1;
+            subregion[frame[0] + user_data->subregion_size.first - 1][j + frame[1]] = 1;
         }
         subregion.to(user_data->device);
         subregions.push_back(subregion);
@@ -503,7 +564,7 @@ inline std::vector<ActionSequence> VINControllerFn(void *user,
     std::vector<ActionSequence> trajectories;
     for (int i{0}; i < user_data->number_of_trajectories; ++i) {
         // sample a subregion
-        int subregion_idx = std::rand() % user_data->number_of_subregions;
+        int subregion_idx = std::random_device{}() % user_data->number_of_subregions;
         // sample the start and goal
         std::random_device rd;
         std::mt19937 generator(rd());
@@ -567,15 +628,16 @@ inline std::vector<ActionSequence> VINControllerFn(void *user,
             // Get the max action
             auto max_action = action_probs.max(1);
             int action_index = std::get<1>(max_action).item<int>();
-            auto action = action_space_ptr_mosaic->action_type_->getPrimActions().at(action_index);
+            auto action = action_type2d_robs.getPrimActions().at(action_index);
 
             // Get the next state
             auto next_state = torch::zeros({2});
             next_state[0] = state_x[0] + action[0];
             next_state[1] = state_y[0] + action[1];
-            if (action_space_ptr_mosaic->isStateValid({
+            if (action_space_ptr->isStateValid({
                 next_state[0].item<double>() + subregion_frames[subregion_idx][0],
-                next_state[1].item<double>() + subregion_frames[subregion_idx][1]})) {
+                next_state[1].item<double>() + subregion_frames[subregion_idx][1]
+            })) {
                 action_seq.emplace_back(std::vector{
                     next_state[0].item<double>() + subregion_frames[subregion_idx][0],
                     next_state[1].item<double>() + subregion_frames[subregion_idx][1]
@@ -621,6 +683,89 @@ inline std::vector<ActionSequence> VINControllerFn(void *user,
     file.close();
 
     return trajectories;
-
 }
+
+
+// struct MotionDiffusionModelController: Controller {
+//     struct MotionDiffusionModelUserData {
+//         std::shared_ptr<Scene2DRob> scene;
+//         std::shared_ptr<ActionSpaceMosaic> action_space_ptr;
+//         std::shared_ptr<torch::jit::script::Module> model;
+//         torch::Device device{torch::kCPU};
+//         int num_trajectories{10};
+//         int max_horizon{50};
+//         int num_iters{36};
+//         double step_size{1.0};
+//         double epsilon{100.0};
+//         double time_limit{0.005};
+//         bool verbose{false};
+//
+//         // destructor. Make sure to release all GPU memory
+//         ~MotionDiffusionModelUserData() {
+//             if (device == torch::kCUDA) {
+//                 torch_utils::releaseCudaMemory();
+//             }
+//         }
+//     };
+//
+//     explicit MotionDiffusionModelController(ControllerType controller_type) {
+//         type = controller_type;
+//     }
+//
+//     ~MotionDiffusionModelController() {
+//         delete static_cast<MotionDiffusionModelUserData *>(user_data);
+//     }
+//
+//     void init(const std::string &model_path,
+//               const std::shared_ptr<ActionSpace> &action_space_ptr,
+//               std::shared_ptr<Scene2DRob> scene,
+//               int num_trajectories = 10,
+//               int max_horizon = 50,
+//               int num_iters = 36,
+//               double step_size = 1.0,
+//               double epsilon = 100.0,
+//               double time_limit = 0.005,
+//               bool verbose = false,
+//               const std::string &device = "cpu") {
+//         auto *user = new MotionDiffusionModelUserData();
+//         user->scene = std::move(scene);
+//         user->action_space_ptr = action_space_ptr;
+//         if (device == "cuda") {
+//             user->device = torch::kCUDA;
+//         } else if (device == "cpu") {
+//             user->device = torch::kCPU;
+//         } else {
+//             std::cout << RED << "Invalid device. Using system capabilities" << RESET << std::endl;
+//             user->device = torch_utils::getDevice();
+//         }
+//
+//         torch_utils::loadTorchModel(model_path, user->model, user->device);
+//         user->model->to(user->device);
+//         user->num_trajectories = num_trajectories;
+//         user->max_horizon = max_horizon;
+//         user->num_iters = num_iters;
+//         user->  step_size = step_size;
+//         user->epsilon = epsilon;
+
+
+// /// @brief override the print function
+// inline std::ostream& operator<<(std::ostream &os, const WallFollowerController &controller) {
+//     os << "Wall Follower Controller";
+//     return os;
+// }
+// /// @brief override the print function
+// inline std::ostream& operator<<(std::ostream &os, const LinearController &controller) {
+//     os << "Linear Controller";
+//     return os;
+// }
+// /// @brief override the print function
+// inline std::ostream& operator<<(std::ostream &os, const wAStarController &controller) {
+//     os << "Weighted A* Controller";
+//     return os;
+// }
+// /// @brief override the print function
+// inline std::ostream& operator<<(std::ostream &os, const VINController &controller) {
+//     os << "VIN Controller";
+//     return os;
+// }
 } // namespace ims

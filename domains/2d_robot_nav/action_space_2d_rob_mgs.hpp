@@ -179,15 +179,14 @@ public:
             for (int i {0} ; i < actions.size() ; i++){
                 Action action = actions[i];
                 std::transform(curr_state_vals.begin(), curr_state_vals.end(), action.begin(), next_state_val.begin(), std::plus<>());
+                diff = {goal_state->state[0] - next_state_val[0], goal_state->state[1] - next_state_val[1]};
                 double dist = std::sqrt(std::pow(diff[0], 2) + std::pow(diff[1], 2));
                 if (dist < min_dist){
                     min_dist = dist;
                     best_action_id = i;
-                } else {
-                    continue;
                 }
             }
-            if ((min_dist == std::numeric_limits<double>::max()) || !isStateValid(next_state_val)){
+            if (min_dist == std::numeric_limits<double>::max() || !isStateValid(next_state_val)){
                 path.clear(); costs.clear();
                 return false;
             } else if (next_state_val == goal_state->state){

@@ -52,12 +52,13 @@
 
 namespace ims {
 
-/// @class MGS Parameters
+/// @class MGSParams
 struct MGSParams : public PlannerParams {
     /// @brief Constructor
-    explicit MGSParams(BaseHeuristic* heuristic) : PlannerParams(), heuristic_(heuristic) {}
-    explicit MGSParams(BaseHeuristic* heuristic, int g_num) : PlannerParams(),
-    heuristic_(heuristic), g_num_(g_num) {}
+    /// @param heuristic The heuristic
+    /// @param w The suboptimality of the anchor graph
+    explicit MGSParams(BaseHeuristic* heuristic, const double w = 100) : heuristic_(heuristic), w_(w) {}
+    // explicit MGSParams(BaseHeuristic* heuristic, int g_num) : heuristic_(heuristic), g_num_(g_num) {}
 
     /// @brief Destructor
     ~MGSParams() override = default;
@@ -65,18 +66,18 @@ struct MGSParams : public PlannerParams {
     BaseHeuristic* heuristic_ = nullptr;
 
     /// @brief The number of graphs to be used in the MGS algorithm.
-    int g_num_ = 2;
+    int g_num_ {-1};
+    /// @brief Suboptimality of anchor graph
+    double w_;
 };
 
-struct MGSPlannerStats : public PlannerStats {
+struct MGSPlannerStats : PlannerStats {
     std::vector<StateType> root_states;
 };
 
 /// @class MGS class.
 /// @brief A general search algorithm that uses heuristics and g values to find the optimal path
 class MGS : public Planner {
-private:
-
     /// @brief The search state.
     struct SearchState {
         int state_id = UNSET; // The id of the search state. If applicable, the search state would be mapped to a robot state with the same id.
@@ -93,7 +94,7 @@ private:
             std::cout << "State: " << state_id << std::endl;
         }
 
-        struct HeapData : public ::smpl::HeapElement {
+        struct HeapData : ::smpl::HeapElement {
             // graph id.
             int graph_id;
             /// @brief Pointer to the search state.
@@ -137,11 +138,10 @@ private:
         bool operator()(const SearchState::HeapData& s1, const SearchState::HeapData& s2) const {
             if ((s1.f == s2.f) && (s1.g == s2.g))
                 return (s1.me->state_id < s2.me->state_id);
-            else if (s1.f == s2.f)
+            if (s1.f == s2.f)
                 // For tie breaking, we prefer the state with the larger g value as it is closer to the goal (lower h in the case of an informed search).
                 return s1.g > s2.g;
-            else
-                return s1.f < s2.f;
+            return s1.f < s2.f;
         }
     };
 
@@ -155,6 +155,8 @@ private:
     using OpenList = ::smpl::IntrusiveHeap<SearchState::HeapData, HeapCompare>;
 //    using OpenList = ::smpl::IntrusiveHeap<SearchState, SearchStateCompare>;
     OpenList* opens_ {nullptr};
+
+    std::shared_ptr<std::unordered_map<int, std::vector<int>>> recently_expended_;
 
 
     SearchState* start_ {nullptr};
@@ -213,13 +215,13 @@ public:
                            std::shared_ptr<std::vector<Controller>>& controllers,
                            const StateType& start, const StateType& goal);
 
-    inline void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                  const std::vector<StateType>& starts,
-                                  const GoalConstraint& goal_constraint) override { throw std::runtime_error("MGS::initializePlanner() called with an ActionSpace that is not a ActionSpaceMGS."); }
+    void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                           const std::vector<StateType>& starts,
+                           const GoalConstraint& goal_constraint) override { throw std::runtime_error("MGS::initializePlanner() called with an ActionSpace that is not a ActionSpaceMGS."); }
 
-    inline void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
-                                  const StateType& starts,
-                                  const StateType& goals) override { throw std::runtime_error("MGS::initializePlanner() called with an ActionSpace that is not a ActionSpaceMGS."); }
+    void initializePlanner(const std::shared_ptr<ActionSpace>& action_space_ptr,
+                           const StateType& starts,
+                           const StateType& goals) override { throw std::runtime_error("MGS::initializePlanner() called with an ActionSpace that is not a ActionSpaceMGS."); }
 
 
     /// @brief plan a path
@@ -276,13 +278,6 @@ protected:
     /// @return True if the goal condition is satisfied
     bool isGoalConditionSatisfied();
 
-
-    /// @brief generate a random state within the ellipsoid defined based on the heuristic between start and goal
-    /// @brief start The start state
-    /// @brief goal The goal state
-    /// @return
-    int generateRandomState(const StateType& start, const StateType& goal);
-
     /// @brief Connect two graphs based on a state that was expanded in both graphs
     /// @param graph_id1 The first graph
     /// @param graph_id2 The second graph
@@ -291,7 +286,12 @@ protected:
     int connectGraphs(int graph_id1, int graph_id2, int state_id);
 
 
-    void saveData();
+    /// @brief Once an initial connection between start and goal found, run the anchor graph search (GRAPH_START)
+    /// to find the bounded sub-optimal path
+    /// @param path The path
+    bool runAnchorGraphSearch(std::vector<StateType>& path);
+
+    void saveData() const;
 
     BaseHeuristic* heuristic_ = nullptr;
 

@@ -214,8 +214,8 @@ bool ims::wAStar::plan(std::vector<StateType>& path) {
             getTimeFromStart(stats_.time);
             reconstructPath(path, stats_.transition_costs);
             stats_.cost = state->g;
-            stats_.path_length = (int)path.size();
-            stats_.num_generated = (int)action_space_ptr_->states_.size();
+            stats_.path_length = static_cast<int>(path.size());
+            stats_.num_generated = static_cast<int>(action_space_ptr_->states_.size());
             return true;
         }
         expand(state->state_id);

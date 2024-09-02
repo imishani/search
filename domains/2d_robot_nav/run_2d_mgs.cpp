@@ -51,9 +51,9 @@
 
 int main(int argc, char** argv) {
 
-    if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <map_file> <num_runs> <scale> <path>" << std::endl;
-        return 0;
+    if (argc < 3) {
+        std::cout << "Usage: " << argv[0] << " <map_file> <num_runs> <map_type> <scale> <path>" << std::endl;
+        return 1;
     }
     std::vector<std::string> maps;
 
@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
     maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/ht_chantry.map");
     maps.emplace_back(full_path.string() + "/../domains/2d_robot_nav/data/brc203d/brc203d.map");
 
-    std::vector<std::string> starts_goals_path = {full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/",
+    std::vector starts_goals_path = {full_path.string() + "/../domains/2d_robot_nav/data/hrt201n/",
                                                   full_path.string() + "/../domains/2d_robot_nav/data/den501d/",
                                                   full_path.string() + "/../domains/2d_robot_nav/data/den520d/",
                                                   full_path.string() + "/../domains/2d_robot_nav/data/ht_chantry/",
@@ -75,26 +75,35 @@ int main(int argc, char** argv) {
 
     int map_index = std::stoi(argv[1]);
     int num_runs = std::stoi(argv[2]);
-    int scale = std::stoi(argv[3]);
-    std::string path = starts_goals_path[map_index];
+    std::string map_type = argv[3];
+    if (map_type != "octile" && map_type != "gridworld") {
+        std::cout << RED << "[INPUT ERROR]: " <<"Invalid map type. Choose between 'octile' and 'gridworld'." << std::endl;
+        return 0;
+    }
+    int scale = std::stoi(argv[4]);
+    const std::string& path = starts_goals_path[map_index];
 
-    std::string map_file = maps[map_index];
-
-    std::string type;
-    int width, height;
-    std::vector<std::vector<int>> map = loadMap(map_file.c_str(), type, width, height, scale);
-
+    std::vector<std::vector<int>> map;
     std::vector<std::vector<double>> starts, goals;
-    loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
+    if (map_type == "octile") {
+        const std::string& map_file = maps[map_index];
+        int width, height;
+        std::string type;
+        map = loadMap(map_file.c_str(), type, width, height, scale);
+        loadStartsGoalsFromFile(starts, goals, scale, num_runs, path);
+    } else if (map_type == "gridworld") {
+        load2DGrid(map_index, scale, map);
+        sampleStartsGoals(map, starts, goals, num_runs);
+    }
 
     // construct the planner
     std::cout << "Constructing planner..." << std::endl;
     // construct planner params
     auto* heuristic = new ims::EuclideanHeuristic();
-    int graphs_number = 10;
-    ims::MGSParams params (heuristic, graphs_number);
-    params.time_limit_ = 5;
+    ims::MGSParams params (heuristic);
+    params.time_limit_ = 500;
     params.verbose = true;
+    params.w_ = 100.0;
     // construct the scene and the action space
     Scene2DRob scene (map);
     ActionType2dRob action_type;
@@ -114,26 +123,32 @@ int main(int argc, char** argv) {
         std::cout << "Rounded Goal: " << goals[i][0] << ", " << goals[i][1] << std::endl;
 
         // print the value in the map
-        std::cout << "Start value: " << map[(int)starts[i][0]][(int)starts[i][1]] << std::endl;
-        std::cout << "Goal value: " << map[(int)goals[i][0]][(int)goals[i][1]] << std::endl;
+        std::cout << "Start value: " << map[static_cast<int>(starts[i][0])][static_cast<int>(starts[i][1])] << std::endl;
+        std::cout << "Goal value: " << map[static_cast<int>(goals[i][0])][static_cast<int>(goals[i][1])] << std::endl;
 
-        std::shared_ptr<ActionSpace2dRobMGS> ActionSpace = std::make_shared<ActionSpace2dRobMGS>(scene,
-                                                                                                 action_type);
+        auto ActionSpace = std::make_shared<ActionSpace2dRobMGS>(scene,
+                                                                 action_type);
         // construct planner
         ims::MGS planner(params);
 
-        std::shared_ptr<std::vector<ims::Controller>> controllers = std::make_shared<std::vector<ims::Controller>>();
-        ims::WallFollowerController controller;
-        controller.init(map, ActionSpace);
-        controller.solver_fn = ims::ControllerWallsFollower;
+        auto controllers = std::make_shared<std::vector<ims::Controller>>();
 
-//        controller.type = ims::ControllerType::GENERATOR;
-//        controller.solver_fn = Controller2d;
-//        StateType user = {starts[i][0] + 3, starts[i][1]};
-//        controller.user_data = &user;
-//        controller.as_ptr = ActionSpace;
+        // ims::WallFollowerController controller;
+        // controller.init(map, ActionSpace);
+        // controller.solver_fn = ims::ControllerWallsFollower;
 
+        ims::VINController controller(ims::ControllerType::GENERATOR);
+        controller.init("/home/itamar/work/code/algorithms/search/scripts/trained/traced_vin_28x28.pt",
+            ActionSpace, std::make_shared<Scene2DRob>(scene));
+        controller.solver_fn = ims::VINControllerFn;
         controllers->push_back(controller);
+
+        ims::PointSamplerController controller2;
+        controller2.init(std::make_shared<Scene2DRob>(scene), ActionSpace);
+        controller2.solver_fn = ims::PointSamplerControllerFn;
+        // controllers->push_back(controller2);
+
+
         // catch the exception if the start or goal is not valid
         try {
             planner.initializePlanner(ActionSpace, controllers, starts[i], goals[i]);
@@ -163,14 +178,21 @@ int main(int argc, char** argv) {
         paths[i] = path_; // log the path
     }
 
+    if (paths.empty()) {
+        throw std::runtime_error("No valid paths found!");
+        return 0;
+    }
+
     // save the logs to a temporary file
     logStats(logs, map_index, "MGS");
 
     std::string path_file = logPaths(paths, map_index, scale);
 
-    std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
+    // std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/visualize_paths.py";
+    std::string plot_path = full_path.string() + "/../domains/2d_robot_nav/scripts/animate_VIN_trajectories_and_regions.py";
+
 //    std::string command = "python3 " + plot_path + " --filepath " + path_file + " --path_ids 3";
-    std::string command = "python3 " + plot_path + " --filepath " + path_file;
+    std::string command = "python3 " + plot_path + " --filepath " + path_file + " --map_type " + map_type;
     std::cout << "Running the plot script..." << std::endl;
     auto boo = system(command.c_str());
 

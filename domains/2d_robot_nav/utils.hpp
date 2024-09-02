@@ -7,6 +7,7 @@
 
 // standard includes
 #include <fstream>
+#include <random>
 // library includes
 #include "search/common/types.hpp"
 
@@ -67,6 +68,36 @@ inline std::vector<std::vector<int>> loadMap(const char *fname,
     return scaled_map;
 }
 
+///@brief loading the 2d grid map. It is a txt file of 0s and 1s. If the value is 1, it is an obstacle.
+inline bool load2DGrid(int map_idx, int map_size, std::vector<std::vector<int>>& map) {
+    // load the map via the map index.
+    std::string map_file = "./../domains/2d_robot_nav/data/gridworld/maps/" + std::to_string(map_size) + "x" +
+        std::to_string(map_size) + "/map_" + std::to_string(map_idx) + ".map";
+    // check if the file exists
+    if (!boost::filesystem::exists(map_file)) {
+        std::cout << "The map file does not exist!" << std::endl;
+        return false;
+    }
+    FILE *f;
+    f = fopen(map_file.c_str(), "r");
+    if (f)
+    {
+        std::vector<int> row;
+        int val;
+        while (fscanf(f, "%d", &val) != EOF) {
+            // check if end of line
+            row.push_back(val*100);
+            if (fgetc(f) == '\n') {
+                map.push_back(row);
+                row.clear();
+            }
+        }
+        fclose(f);
+    }
+    return true;
+
+}
+
 inline void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, std::vector<std::vector<double>>& goals, int scale, int num_runs, const std::string& path)
 {
     std::ifstream starts_fin(path + "nav2d_starts.txt");
@@ -92,6 +123,27 @@ inline void loadStartsGoalsFromFile(std::vector<std::vector<double>>& starts, st
         starts_fin >> length;
     }
 }
+
+inline void sampleStartsGoals(const std::vector<std::vector<int>>& map, std::vector<std::vector<double>>& starts,
+                       std::vector<std::vector<double>>& goals, int num_runs) {
+    // sample the starts and goals
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, static_cast<int>(map.size()) - 1);
+    for (int i {0}; i < num_runs; i++) {
+        std::vector<double> start = {static_cast<double>(dis(gen)), static_cast<double>(dis(gen))};
+        std::vector<double> goal = {static_cast<double>(dis(gen)), static_cast<double>(dis(gen))};
+        while ((map.at(static_cast<int>(start[0])).at(static_cast<int>(start[1])) > 0) ||
+            (map.at(static_cast<int>(goal[0])).at(static_cast<int>(goal[1])) > 0)) {
+
+            start = {static_cast<double>(dis(gen)), static_cast<double>(dis(gen))};
+            goal = {static_cast<double>(dis(gen)), static_cast<double>(dis(gen))};
+            }
+        starts.push_back(start);
+        goals.push_back(goal);
+    }
+}
+
 
 /// @brief Rounds the number to the nearest multiple of the discretization.
 /// @param discretization The rounding factor.

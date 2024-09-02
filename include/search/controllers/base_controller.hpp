@@ -35,7 +35,7 @@ struct Controller {
     std::shared_ptr<ActionSpace> as_ptr {nullptr};
     bool two_p_bvp {false}; // Whether it is a two point boundary value problem that requires the user to provide a start and a goal.
     // It is applicable only in connector controllers at the moment. For generator, default is false.
-    std::vector<ActionSequence> solve() const  {
+    [[nodiscard]] std::vector<ActionSequence> solve() const  {
         if (solver_fn == nullptr){
             throw std::runtime_error("Solver function is not set.");
         } else if (as_ptr == nullptr) {
@@ -44,7 +44,6 @@ struct Controller {
         return solver_fn(user_data, as_ptr);
     }
 
-    /// @brief Initialize the controller
-
 };
+
 }

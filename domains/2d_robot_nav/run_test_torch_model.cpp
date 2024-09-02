@@ -45,28 +45,6 @@ void convertMapToTensor(const std::vector<std::vector<int>>& map, torch::Tensor&
     }
 }
 
-bool sampleStartsGoals(const std::vector<std::vector<int>>& map, std::vector<std::vector<double>>& starts,
-                       std::vector<std::vector<double>>& goals, int num_runs) {
-    // sample the starts and goals
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, static_cast<int>(map.size()) - 1);
-    for (int i {0}; i < num_runs; i++) {
-        std::vector start = {static_cast<double>(dis(gen)), static_cast<double>(dis(gen))};
-        std::vector goal = {static_cast<double>(dis(gen)), static_cast<double>(dis(gen))};
-        while ((map.at(static_cast<int>(start[0])).at(static_cast<int>(start[1])) > 0) ||
-            (map.at(static_cast<int>(goal[0])).at(static_cast<int>(goal[1])) > 0)) {
-
-            start = {static_cast<double>(dis(gen)), static_cast<double>(dis(gen))};
-            goal = {static_cast<double>(dis(gen)), static_cast<double>(dis(gen))};
-        }
-        starts.push_back(start);
-        goals.push_back(goal);
-    }
-    return true;
-}
-
-
 
 void loadTorchModel(const std::string& model_path, torch::jit::script::Module& model) {
     try {

@@ -37,13 +37,6 @@
 
 ims::MGS::MGS(const MGSParams &params) : Planner(params), params_(params) {
     heuristic_ = params.heuristic_;
-    opens_ = new OpenList[params.g_num_];
-    max_h_states_.reserve(params.g_num_);
-    roots_.reserve(params.g_num_);
-    hl_graph_.reserve(params.g_num_);
-    for (int i {0}; i < params.g_num_; ++i){
-        hl_graph_[i] = std::vector<int>();
-    }
 }
 
 ims::MGS::~MGS() {
@@ -67,6 +60,23 @@ void ims::MGS::initializePlanner(const std::shared_ptr<ActionSpaceMGS>& action_s
     resetPlanningData();
     // Set the controllers
     controllers_ = controllers;
+    params_.g_num_ = 2;
+    std::vector<ActionSequence> experiences;
+    for (auto& controller : *controllers_) {
+        std::vector<ActionSequence> local_mosaic = controller.solve();
+        for (auto& action_seq : local_mosaic) {
+            experiences.push_back(action_seq);
+            params_.g_num_++;
+        }
+    }
+
+    opens_ = new OpenList[params_.g_num_];
+    max_h_states_.reserve(params_.g_num_);
+    roots_.reserve(params_.g_num_);
+    hl_graph_.reserve(params_.g_num_);
+    for (int i {0}; i < params_.g_num_; ++i){
+        hl_graph_[i] = std::vector<int>();
+    }
 
     // Check if start is valid and add it to the action space.
     int start_ind_ = action_space_ptr_->getOrCreateRobotState(start);
@@ -84,65 +94,46 @@ void ims::MGS::initializePlanner(const std::shared_ptr<ActionSpaceMGS>& action_s
     goal_constraint_.check_goal_user = &goal_->state_id;
     goal_constraint_.action_space_ptr = action_space_ptr_;
 
-
     // Evaluate the start state
     start_->data_[GRAPH_START].parent_id = std::make_shared<std::vector<int>>(1, PARENT_TYPE(START));
-    heuristic_->setStart(const_cast<StateType &>(start));
+    heuristic_->setStart(start);
     // Evaluate the goal state
     goal_->data_[GRAPH_GOAL].parent_id = std::make_shared<std::vector<int>>(1, PARENT_TYPE(GOAL));
 
-
     heuristic_->setGoalConstraint(goal_constraint_);
 
-
-    // generate local mosaics (trajectories) using the controllers and initiate graphs using the first and last states
+    
     int graph_id = 2;
     std::vector<SearchState*> added_roots;
-    for (auto& controller : *controllers_) {
-        std::vector<ActionSequence> local_mosaic = controller.solve();
-        for (auto& action_seq : local_mosaic) {
-            // add the first state to the action space
-            int first_state_ind = action_space_ptr_->getOrCreateRobotState(action_seq.front());
-            auto first_state = getOrCreateSearchState(first_state_ind);
-            first_state->data_[graph_id].parent_id->resize(1);
-            first_state->data_[graph_id].parent_id->at(0) = PARENT_TYPE(UNSET);
-            first_state->data_[graph_id].g = 0;
-            first_state->data_[graph_id].h_self = 0;
-
-            first_state->data_[graph_id + 1].parent_id->resize(1);
-            first_state->data_[graph_id + 1].parent_id->at(0) = PARENT_TYPE(UNSET);
-            first_state->data_[graph_id + 1].g = 0;
-            first_state->data_[graph_id + 1].h_self = 0;
-
-            max_h_states_.emplace(graph_id + 1, first_state);
-            roots_.emplace(graph_id + 1, first_state);
-            added_roots.push_back(first_state);
-            stats_.root_states.push_back(action_space_ptr_->getRobotState(first_state_ind)->state);
-
-
-            // Instead of make another graph, lets add the last state to the open queue but mak sure we have the entire trajectory
-            int last_state_ind = action_space_ptr_->getOrCreateRobotState(action_seq.back());
-            auto last_state = getOrCreateSearchState(last_state_ind);
-            last_state->data_[graph_id].parent_id->resize(action_seq.size() - 1);
-            for (size_t i {0}; i < action_seq.size() - 1; ++i){
-                int next_state_id = action_space_ptr_->getOrCreateRobotState(action_seq[i]);
-                getOrCreateSearchState(next_state_id);
-                last_state->data_[graph_id].parent_id->at(i) = next_state_id;
+    std::vector<std::vector<SearchState*>> experiences_states;
+    for (auto& experience : experiences) {
+        int parent_id = UNSET;
+        std::vector<SearchState*> experience_s;
+        for (size_t i {0}; i < experience.size(); ++i) {
+            int state_id = action_space_ptr_->getOrCreateRobotState(experience[i]);
+            auto state = getOrCreateSearchState(state_id);
+            state->data_[graph_id].parent_id->resize(1);
+            state->data_[graph_id].parent_id->at(0) = parent_id;
+            state->data_[graph_id].g = 0;
+            state->data_[graph_id].h_self = 0;
+            if (parent_id == UNSET){
+                roots_[graph_id] = state;
+            } else {
+                state->data_[graph_id].edges->emplace_back(parent_id, 1);
+                // add the edge in the opposite direction
+                auto parent = getSearchState(parent_id);
+                parent->data_[graph_id].edges->emplace_back(state_id, 1);
             }
-            last_state->data_[graph_id].g = 0;
-            last_state->data_[graph_id].h_self = 0;
-//            last_state->data_[graph_id].h = computeHeuristic(last_state->state_id, (size_t)graph_id);
-//            last_state->data_[graph_id].f = last_state->data_[graph_id].g + last_state->data_[graph_id].h;
-//            last_state->data_[graph_id].setOpen();
-//            opens_[graph_id].push(&last_state->data_[graph_id]);
-            max_h_states_.emplace(graph_id, last_state);
-            roots_.emplace(graph_id, last_state);
-            added_roots.push_back(last_state);
-            stats_.root_states.push_back(action_space_ptr_->getRobotState(last_state_ind)->state);
-            graph_id++; graph_id++;
+            if (i == experience.size() - 1){
+                max_h_states_[graph_id] = state;
+            }
+            parent_id = state_id;
+            state->use_graph_ = graph_id;
+            experience_s.emplace_back(state);
         }
+        experiences_states.emplace_back(experience_s);
+        graph_id++;
     }
-    params_.g_num_ = graph_id;
 
     roots_.emplace(GRAPH_START, start_);
     roots_.emplace(GRAPH_GOAL, goal_);
@@ -153,22 +144,29 @@ void ims::MGS::initializePlanner(const std::shared_ptr<ActionSpaceMGS>& action_s
     // create two open lists one forward and one backward
     start_->data_[GRAPH_START].g = 0; start_->data_[GRAPH_START].h_self = 0;
     start_->data_[GRAPH_START].h = computeHeuristic(start_->state_id, (size_t)GRAPH_START);
-    start_->data_[GRAPH_START].f = start_->data_[GRAPH_START].g + 1*start_->data_[GRAPH_START].h;
+    start_->data_[GRAPH_START].f = start_->data_[GRAPH_START].g + params_.w_ * start_->data_[GRAPH_START].h;
     start_->data_[GRAPH_START].setOpen();
     opens_[GRAPH_START].push(&start_->data_[GRAPH_START]);
 
     goal_->data_[GRAPH_GOAL].g = 0; goal_->data_[GRAPH_GOAL].h_self = 0;
     goal_->data_[GRAPH_GOAL].h = computeHeuristic(goal_->state_id, (size_t)GRAPH_GOAL);
-    goal_->data_[GRAPH_GOAL].f = goal_->data_[GRAPH_GOAL].g + 1*goal_->data_[GRAPH_GOAL].h;
+    goal_->data_[GRAPH_GOAL].f = goal_->data_[GRAPH_GOAL].g + goal_->data_[GRAPH_GOAL].h;
     goal_->data_[GRAPH_GOAL].setOpen();
     opens_[GRAPH_GOAL].push(&goal_->data_[GRAPH_GOAL]);
 
-    // initialize the open lists
+    // reserve recently_expanded_ vector to the size of the number of graphs
+    recently_expended_ = std::make_shared<std::unordered_map<int, std::vector<int>>>();
+    for (int i {0}; i < params_.g_num_; ++i){
+        recently_expended_->emplace(i, std::vector<int>());
+    }
+
     for (int i {2}; i < graph_id; ++i){
-        added_roots[i - 2]->data_[i].h = computeHeuristic(added_roots[i - 2]->state_id, (size_t)i);
-        added_roots[i - 2]->data_[i].f = added_roots[i - 2]->data_[i].g + added_roots[i - 2]->data_[i].h;
-        added_roots[i - 2]->data_->setOpen();
-        opens_[i].push(&added_roots[i - 2]->data_[i]);
+        for (auto& state : experiences_states[i - 2]){
+            state->data_[i].h = computeHeuristic(state->state_id, static_cast<size_t>(i));
+            state->data_[i].f = state->data_[i].g + state->data_[i].h;
+            state->data_[i].setOpen();
+            opens_[i].push(&state->data_[i]);
+        }
     }
 }
 
@@ -203,10 +201,10 @@ auto ims::MGS::getOrCreateSearchState(int state_id) -> ims::MGS::SearchState * {
 double ims::MGS::computeHeuristic(int state_id, size_t g_num) { // TODO: Something feels off here. Check this.
     computeHeuristics(state_id);
     auto ss = getSearchState(state_id);
-    if ((int)g_num == GRAPH_START) { // GRAPH_GOAL (// testing heuristics
-        return 1*ss->h_map->at(goal_in_graph_);
-    } else if ((int)g_num == goal_in_graph_) { // GRAPH_START
-        return 1*ss->h_map->at(GRAPH_START);
+    if (static_cast<int>(g_num) == GRAPH_START) { // GRAPH_GOAL (// testing heuristics
+        return ss->h_map->at(goal_in_graph_);
+    } else if (static_cast<int>(g_num) == goal_in_graph_) { // GRAPH_START
+        return ss->h_map->at(GRAPH_START);
     }
     else {
         double h {0};
@@ -225,7 +223,7 @@ double ims::MGS::computeHeuristic(int state_id, size_t g_num) { // TODO: Somethi
 //                h_min = std::max(ss->h_map->at(i) - max_h_states_[i]->data_[i].h_self, 0.0);
             }
         }
-        h /= (double)(params_.g_num_ - (int)closed_graphs_.size()); // TODO: should it be the minimum rather than the average?
+        h /= static_cast<double>(params_.g_num_ - static_cast<int>(closed_graphs_.size())); // TODO: should it be the minimum rather than the average?
 
 //        // randomly return 0
 //        std::random_device rd;
@@ -234,8 +232,8 @@ double ims::MGS::computeHeuristic(int state_id, size_t g_num) { // TODO: Somethi
 //        if (dis0(gen)){
 //            return 0;
 //        }
-        return h;
-//        return h_min;
+        // return h;
+        return h_min;
     }
 }
 
@@ -292,8 +290,14 @@ bool ims::MGS::plan(std::vector<StateType>& path) {
                 for (auto& cost : stats_.transition_costs){
                     stats_.cost += cost;
                 }
-                stats_.path_length = (int)path.size();
-                stats_.num_generated = (int)action_space_ptr_->states_.size();
+                stats_.path_length = static_cast<int>(path.size());
+                stats_.num_generated = static_cast<int>(action_space_ptr_->states_.size());
+                if (runAnchorGraphSearch(path)){
+                    std::cout << GREEN << "Anchor graph search succeeded!" << RESET << std::endl;
+                } else {
+                    std::cout << RED << "Anchor graph search failed!" << RESET << std::endl;
+                }
+                stats_.suboptimality = params_.w_;
                 saveData();
                 return true;
             }
@@ -304,8 +308,8 @@ bool ims::MGS::plan(std::vector<StateType>& path) {
                 if (state->me->graph_closed == i){
                     continue;
                 }
-                else if (std::find(closed_graphs_.begin(), closed_graphs_.end(),
-                                   state->me->graph_closed) == closed_graphs_.end()) {
+                if (std::find(closed_graphs_.begin(), closed_graphs_.end(),
+                              state->me->graph_closed) == closed_graphs_.end()) {
                     if (params_.verbose) {
                         std::cout << "Iter: " << iter << " open sizes: " <<  std::endl;
                         for (int j {0}; j < params_.g_num_; ++j){
@@ -329,10 +333,24 @@ bool ims::MGS::plan(std::vector<StateType>& path) {
             state->me->in_closed = true;
             state->me->graph_closed = i;
             expand(state->me->state_id, i);
+            recently_expended_->at(i).push_back(state->me->state_id);
+            //check if its parent is in recently_expanded_, and if so, remove it
+            if (state->me->data_[i].parent_id->at(0) != START &&
+                state->me->data_[i].parent_id->at(0) != GOAL &&
+                state->me->data_[i].parent_id->at(0) != UNSET){
+                const auto parent = getSearchState(state->me->data_[i].parent_id->at(0));
+                auto it = std::find(recently_expended_->at(i).begin(),
+                                    recently_expended_->at(i).end(),
+                                    parent->state_id);
+                if (it != recently_expended_->at(i).end()){
+                    recently_expended_->at(i).erase(it);
+                }
+            }
+            ////////////////////// CONNECT MANIPULATION WORKS NOT 2D ////////////////
             int curr_graph = i;
             // try to connect to other graphs
             for (int k{0} ; k < params_.g_num_ ; ++k) {
-                if (k == i || (std::find(closed_graphs_.begin(), closed_graphs_.end(), k) != closed_graphs_.end())) {
+                if (k == i || std::find(closed_graphs_.begin(), closed_graphs_.end(), k) != closed_graphs_.end()) {
                     continue;
                 }
                 std::vector<int> path_id; std::vector<double> costs;
@@ -340,6 +358,10 @@ bool ims::MGS::plan(std::vector<StateType>& path) {
                 if (connected) {
                     std::cout << "Found connection: " << curr_graph << ", " << k << std::endl;
                     // check if the last state is in closed
+                    double w = 1;
+                    if (curr_graph == GRAPH_START) {
+                        w = params_.w_;
+                    }
                     auto curr_state = state->me;
                     for (int l {0}; l < path_id.size() ; ++l) {
                         int state_in_path = path_id[l];
@@ -355,21 +377,30 @@ bool ims::MGS::plan(std::vector<StateType>& path) {
 //                        if (last_state->data_[curr_graph].h_self > max_h_states_[curr_graph]->data_[curr_graph].h_self){
 //                            max_h_states_[curr_graph] = last_state;
 //                        }
-                        last_state->data_[curr_graph].h = computeHeuristic(last_state->state_id, (size_t)curr_graph);
-                        last_state->data_[curr_graph].f = last_state->data_[curr_graph].g + last_state->data_[curr_graph].h;
+                        last_state->data_[curr_graph].h = computeHeuristic(last_state->state_id, static_cast<size_t>(curr_graph));
+                        last_state->data_[curr_graph].f = last_state->data_[curr_graph].g + w * last_state->data_[curr_graph].h;
+
+                        ///////// check////////
+                        if (l < path_id.size() - 1){
+                            last_state->use_graph_ = curr_graph;
+                            last_state->data_[curr_graph].setClosed();
+                            last_state->graph_closed = curr_graph;
+                        }
+                        ///////////////////////
+
                         curr_state = last_state;
                     }
-                    for (int l {0}; l < path_id.size()-1 ; ++l) {
-                        int state_in_path = path_id[l];
-                        auto last_state = getOrCreateSearchState(state_in_path);
-                        expand(last_state->state_id, curr_graph);
-                    }
-                    if (!curr_state->data_[k].is_closed) {
-                        curr_state->data_[k].setClosed();
-                        curr_state->in_closed = true;
-                        curr_state->graph_closed = k;
-                        expand(curr_state->state_id, k);
-                    }
+                    // for (int l {0}; l < path_id.size()-1 ; ++l) {
+                    //     int state_in_path = path_id[l];
+                    //     auto last_state = getOrCreateSearchState(state_in_path);
+                    //     expand(last_state->state_id, curr_graph);
+                    // }
+                    // if (!curr_state->data_[k].is_closed) {
+                    //     curr_state->data_[k].setClosed();
+                    //     curr_state->in_closed = true;
+                    //     curr_state->graph_closed = k;
+                    //     expand(curr_state->state_id, k);
+                    // }
                     // connect the graphs
                     int max_graph = connectGraphs(k, curr_graph, curr_state->state_id);
                     if (max_graph == curr_graph) {
@@ -377,6 +408,7 @@ bool ims::MGS::plan(std::vector<StateType>& path) {
                     }
                 }
             }
+            ////////////////////// CONNECT MANIPULATION WORKS NOT 2D ////////////////
             ++iter;
         }
         opens_empty = true;
@@ -400,6 +432,12 @@ void ims::MGS::expand(int state_id, int g_num){
     action_space_ptr_->getSuccessors(state->state_id,
                                      successors, costs);
 
+    double w;
+    if (g_num == GRAPH_START) {
+        w = params_.w_;
+    } else {
+        w = 1;
+    }
     for (size_t i {0} ; i < successors.size() ; ++i){
         int successor_id = successors[i];
         double cost = costs[i];
@@ -409,15 +447,15 @@ void ims::MGS::expand(int state_id, int g_num){
         }
 //        if (successor->data_[g_num].is_open){
         if (opens_[g_num].contains(&successor->data_[g_num])){ // really not efficient TODO: change this
-            if (successor->data_[g_num].f > state->data_[g_num].g + cost){
+            if (successor->data_[g_num].g > state->data_[g_num].g + cost){
                 state->data_[g_num].edges->emplace_back(successor_id, cost);
                 successor->data_[g_num].edges->emplace_back(state_id, cost);
                 successor->use_graph_ = g_num;
                 successor->data_[g_num].parent_id->resize(1); // TODO: I assume it is a new state with no parents assigned
                 successor->data_[g_num].parent_id->at(0) = state_id;
                 successor->data_[g_num].g = state->data_[g_num].g + cost;
-                successor->data_[g_num].h = computeHeuristic(successor->state_id, (size_t)g_num);
-                successor->data_[g_num].f = successor->data_[g_num].g + successor->data_[g_num].h;
+                successor->data_[g_num].h = computeHeuristic(successor->state_id, static_cast<size_t>(g_num));
+                successor->data_[g_num].f = successor->data_[g_num].g + w * successor->data_[g_num].h;
                 opens_[g_num].update(&successor->data_[g_num]);
             }
         } else {
@@ -436,11 +474,18 @@ void ims::MGS::expand(int state_id, int g_num){
 int ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
     // Use the root of the graph that the heuristic value between its root and the start state is the lowest.
     // Then, combine both open lists into one, which is the open belongs to the graph with the lowest heuristic value.
+
     SearchState* root1 = roots_[graph_id1];
     SearchState* root2 = roots_[graph_id2];
     double h1 = computeHeuristic(start_->state_id, root1->state_id);
     double h2 = computeHeuristic(start_->state_id, root2->state_id);
     int min_h_graph_id = h1 < h2 ? graph_id1 : graph_id2;
+    double w;
+    if (min_h_graph_id == GRAPH_START) {
+        w = params_.w_;
+    } else {
+        w = 1;
+    }
     int max_h_graph_id = h1 < h2 ? graph_id2 : graph_id1;
 
     if (params_.verbose) {
@@ -455,29 +500,21 @@ int ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
     if (max_h_graph_id == goal_in_graph_) {
         goal_in_graph_ = min_h_graph_id;
     }
-    ////////// DEBUG /////////// TODO: delete this debug block
-//    static int goal_graph_id = GRAPH_GOAL;
-//    bool goal_graph = false; bool goal_expanded = false;
-//    if (max_h_graph_id == goal_graph_id){
-//        goal_graph = true;
-//        goal_graph_id = min_h_graph_id;
-//    }
-    ////////////////////////////
 
     // Update the values of the states that where expanded from the root of the graph with the higher heuristic value.
     // first, back propagate the values from the state to the root
     SearchState* state = getSearchState(state_id); // the state that was expanded
     // make sure that the values of the state are updated correctly,
     // based on the graph with the lower heuristic value
-    if (state->graph_closed == max_h_graph_id) {
-        state->graph_closed = min_h_graph_id;
+    if (state->graph_closed != min_h_graph_id) {
+        // state->graph_closed = min_h_graph_id;
         state->data_[min_h_graph_id].h_self = computeHeuristic(state->state_id,
                                                                roots_[min_h_graph_id]->state_id);
         if (state->data_[min_h_graph_id].h_self > max_h_states_[min_h_graph_id]->data_[min_h_graph_id].h_self) {
             max_h_states_[min_h_graph_id] = state;
         }
-        state->data_[min_h_graph_id].h = computeHeuristic(state->state_id, (size_t)min_h_graph_id);
-        state->data_[min_h_graph_id].f = state->data_[min_h_graph_id].g + state->data_[min_h_graph_id].h;
+        state->data_[min_h_graph_id].h = computeHeuristic(state->state_id, static_cast<size_t>(min_h_graph_id));
+        state->data_[min_h_graph_id].f = state->data_[min_h_graph_id].g + w * state->data_[min_h_graph_id].h;
         state->data_[min_h_graph_id].setClosed();
     }
     // add all edges TODO: Is this necessary?
@@ -514,26 +551,21 @@ int ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
         open_list.pop();
         curr_state->expanded = true;
         curr_state->state->me->use_graph_ = min_h_graph_id;
-        if (curr_state->state->me->in_closed) {
-            curr_state->state->me->graph_closed = min_h_graph_id;
-        }
-        ////////// debug ///////// TODO: delete this debug block
-        if (curr_state->state_id == 1) {
-            std::cout << "State 1: " << curr_state->state->g << std::endl;
-        }
-        /////////////////////////
-        for (auto &succ_id : *curr_state->state->me->data_[max_h_graph_id].edges) {
-            auto succ = getSearchState(succ_id.first);
+        // if (curr_state->state->me->in_closed) {
+        //     curr_state->state->me->graph_closed = min_h_graph_id;
+        // }
+        for (auto &[fst, snd] : *curr_state->state->me->data_[max_h_graph_id].edges) {
+            const auto succ = getSearchState(fst);
             // check if was already in the open list
-            if (states_map.find(succ_id.first) != states_map.end()) {
-                auto succ_connect_state = states_map.at(succ_id.first);
+            if (states_map.find(fst) != states_map.end()) {
+                const auto& succ_connect_state = states_map.at(fst);
                 if (succ_connect_state->expanded) {
                     continue;
                 }
-                if (succ_connect_state->state->g > curr_state->state->g + succ_id.second) {
+                if (succ_connect_state->state->g > curr_state->state->g + snd) {
                     succ_connect_state->state->parent_id->resize(1); // TODO: I assume it is a new state with no parents assigned
                     succ_connect_state->state->parent_id->at(0) = curr_state->state_id;
-                    succ_connect_state->state->g = curr_state->state->g + succ_id.second;
+                    succ_connect_state->state->g = curr_state->state->g + snd;
                     succ_connect_state->state->h_self = computeHeuristic(succ_connect_state->state_id,
                                                                          roots_[min_h_graph_id]->state_id);
                     if (succ_connect_state->state->h_self
@@ -541,8 +573,8 @@ int ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
                         max_h_states_[min_h_graph_id] = succ_connect_state->state->me;
                     } // I think can be removed
                     succ_connect_state->state->h =
-                        computeHeuristic(succ_connect_state->state_id, (size_t) min_h_graph_id);
-                    succ_connect_state->state->f = succ_connect_state->state->g + succ_connect_state->state->h;
+                        computeHeuristic(succ_connect_state->state_id, static_cast<size_t>(min_h_graph_id));
+                    succ_connect_state->state->f = succ_connect_state->state->g + w * succ_connect_state->state->h;
                     // update the open list
                     open_list.push(succ_connect_state); // TODO: not efficient, can have duplicates
                 }
@@ -552,10 +584,10 @@ int ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
                 if (state_from_min->is_closed) {
                     continue;
                 }
-                if (state_from_min->g > curr_state->state->g + succ_id.second) {
+                if (state_from_min->g > curr_state->state->g + snd) {
                     state_from_min->parent_id->resize(1); // TODO: I assume it is a new state with no parents assigned
                     state_from_min->parent_id->at(0) = curr_state->state_id;
-                    state_from_min->g = curr_state->state->g + succ_id.second;
+                    state_from_min->g = curr_state->state->g + snd;
                     if (!state_from_min->is_open) {
                         state_from_min->setOpen();
                     } else {
@@ -569,8 +601,8 @@ int ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
                 if (state_from_min->h_self > max_h_states_[min_h_graph_id]->data_[min_h_graph_id].h_self) {
                     max_h_states_[min_h_graph_id] = succ->data_[min_h_graph_id].me;
                 }
-                state_from_min->h = computeHeuristic(succ->state_id, (size_t) min_h_graph_id);
-                state_from_min->f = state_from_min->g + state_from_min->h;
+                state_from_min->h = computeHeuristic(succ->state_id, static_cast<size_t>(min_h_graph_id));
+                state_from_min->f = state_from_min->g + w * state_from_min->h;
                 // add edges
                 for (auto& edges : *state_from_max->edges){
                     if (std::find(state_from_min->edges->begin(),
@@ -580,9 +612,9 @@ int ims::MGS::connectGraphs(int graph_id1, int graph_id2, int state_id){
                     }
                 }
                 // do i need to set it to closed if it is in closed of max_h_graph_id?
-                if (state_from_max->is_closed){
-                    state_from_min->setClosed();
-                }
+                // if (state_from_max->is_closed){
+                //     state_from_min->setClosed();
+                // }
                 auto succ_connect_state = std::make_shared<ConnectState>(succ->state_id, state_from_min);
                 open_list.push(succ_connect_state);
                 states_map.emplace(succ->state_id, succ_connect_state);
@@ -626,7 +658,11 @@ void ims::MGS::setStateVals(int state_id, int parent_id, double cost, int g_num)
         max_h_states_[g_num] = state_;
     }
     state_->data_[g_num].h = computeHeuristic(state_id, (size_t)g_num);
-    state_->data_[g_num].f = state_->data_[g_num].g + state_->data_[g_num].h;
+    double w {1};
+    if (g_num == GRAPH_START) {
+        w = params_.w_;
+    }
+    state_->data_[g_num].f = state_->data_[g_num].g + w * state_->data_[g_num].h;
 }
 
 
@@ -654,14 +690,14 @@ void ims::MGS::reconstructPath(std::vector<StateType>& path, std::vector<double>
     goal_ = goals_[0]; // TODO: fix this
     costs.push_back(0); // The goal state gets a transition cost of 0.
     SearchState* state_ = getSearchState(goal_);
-    if (state_->data_[GRAPH_START].parent_id->at(0) == -3){
-        bool bp = true;
-    }
+    // if (state_->data_[GRAPH_START].parent_id->at(0) == -3){
+    //     bool bp = true;
+    // }
     while (state_->data_[GRAPH_START].parent_id->at(0) != -1){
-//        if ((std::find(path.begin(), path.end(), action_space_ptr_->getRobotState(state_->state_id)->state) != path.end()) &&
-//            (state_->data_[GRAPH_START].parent_id != -1)){
-//            std::cout << "Loop in the path" << std::endl;
-//        }
+        if ((std::find(path.begin(), path.end(), action_space_ptr_->getRobotState(state_->state_id)->state) != path.end()) &&
+            (state_->data_[GRAPH_START].parent_id->at(0) != -1)){
+            std::cout << "Loop in the path" << std::endl;
+        }
         if (state_->data_[GRAPH_START].parent_id->size() > 1){
             for (int p_id : *state_->data_[GRAPH_START].parent_id){
                 path.push_back(action_space_ptr_->getRobotState(p_id)->state);
@@ -755,25 +791,86 @@ void ims::MGS::resetPlanningData() {
     stats_ = MGSPlannerStats();
 }
 
-int ims::MGS::generateRandomState(const StateType& start, const StateType& goal) {
-    // generate a random state within the ellipsoid defined based on the heuristic between start and goal
-    double dist;
-    if (!heuristic_->getHeuristic(start, goal, dist)) {
-        std::cout << RED << "Heuristic function failed" << RESET << std::endl;
-        return -1;
-    } else {
-        StateType random_state;
-        if (!action_space_ptr_->generateRandomState(start, goal, dist, random_state)) {
-            std::cout << RED << "Failed to generate random state" << RESET << std::endl;
-            return -1;
-        } else {
-            int rand_ind = action_space_ptr_->getOrCreateRobotState(random_state);
-            return rand_ind;
+
+bool ims::MGS::runAnchorGraphSearch(std::vector<StateType>& path) {
+    // time the search
+    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    // add goal state to the open list
+    auto goal_state = getSearchState(goal_);
+    opens_[GRAPH_START].push(&goal_state->data_[GRAPH_START]);
+    int iter {0};
+    while (!opens_[GRAPH_START].empty() && !isTimeOut()) {
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end - start;
+        // if (elapsed_seconds.count() > 5.0){
+        //     return false;
+        // }
+        // report progress every 1000 iterations
+        if (iter % 100000 == 0 && params_.verbose){
+            std::cout << "Anchor search Iter: " << iter << " open size: " << opens_[GRAPH_START].size() << std::endl;
         }
+        auto state = opens_[GRAPH_START].min();
+        opens_[GRAPH_START].pop();
+        if (state->me->in_closed && state->me->graph_closed == GRAPH_START){
+            continue;
+        }
+        state->setClosed();
+        state->me->graph_closed = GRAPH_START;
+
+        if (isGoalState(state->me->state_id)) {
+            getTimeFromStart(stats_.time);
+            std::cout << "Goal found!" << std::endl;
+            reconstructPath(path, stats_.transition_costs);
+            stats_.cost = 0;
+            for (auto& cost : stats_.transition_costs){
+                stats_.cost += cost;
+            }
+            stats_.path_length = static_cast<int>(path.size());
+            stats_.num_generated = static_cast<int>(action_space_ptr_->states_.size());
+            return true;
+        }
+        std::vector<int> successors;
+        std::vector<double> costs;
+        action_space_ptr_->getSuccessors(state->me->state_id,
+                                         successors, costs);
+        for (size_t i {0} ; i < successors.size() ; ++i){
+            int successor_id = successors[i];
+            double cost = costs[i];
+            auto successor = getOrCreateSearchState(successor_id);
+            if (successor->data_[GRAPH_START].is_closed && successor->graph_closed == GRAPH_START){
+                continue;
+            }
+            if (opens_[GRAPH_START].contains(&successor->data_[GRAPH_START])) {
+                if (successor->data_[GRAPH_START].g > state->g + cost) {
+                    state->edges->emplace_back(successor_id, cost);
+                    successor->data_[GRAPH_START].edges->emplace_back(state->me->state_id, cost);
+                    successor->data_[GRAPH_START].parent_id->resize(1); // TODO: I assume it is a new state with no parents assigned
+                    successor->data_[GRAPH_START].parent_id->at(0) = state->me->state_id;
+                    successor->data_[GRAPH_START].g = state->g + cost;
+                    // successor->data_[GRAPH_START].h_self = computeHeuristic(successor->state_id,
+                    //                                                        roots_[GRAPH_START]->state_id);
+                    // successor->data_[GRAPH_START].h = computeHeuristic(successor->state_id, static_cast<size_t>(GRAPH_START));
+                    successor->data_[GRAPH_START].f = successor->data_[GRAPH_START].g + params_.w_ * successor->data_[GRAPH_START].h;
+                    opens_[GRAPH_START].update(&successor->data_[GRAPH_START]);
+                }
+            } else {
+                setStateVals(successor->state_id,
+                             state->me->state_id,
+                             cost, GRAPH_START);
+                state->edges->emplace_back(successor->state_id, cost);
+                successor->data_[GRAPH_START].edges->emplace_back(state->me->state_id, cost);
+                opens_[GRAPH_START].push(&successor->data_[GRAPH_START]);
+                successor->data_[GRAPH_START].setOpen();
+            }
+        }
+        stats_.num_expanded++;
+        ++iter;
     }
+    getTimeFromStart(stats_.time);
+    return false;
 }
 
-void ims::MGS::saveData() {
+void ims::MGS::saveData() const {
     // save all states to a file
     std::ofstream states_file;
     states_file.open("states_mgs.txt");
@@ -801,6 +898,8 @@ bool ims::MGS::connect(int graph_curr, int graph_other,
     double min_dist = INF_DOUBLE;
     int min_state_id = -1;
     for (auto& s : states_){ // TODO: this is not efficient, it loops over all states and not only the states in the other graph
+    // for (const int recent_expanded : recently_expended_->at(graph_other)){
+        // if (const auto s = getSearchState(recent_expanded); s->data_[graph_other].g != INF_DOUBLE){
         if (s->data_[graph_other].g != INF_DOUBLE){
             double dist = computeHeuristic(state_id, s->state_id);
             if (dist < min_dist){
@@ -810,7 +909,6 @@ bool ims::MGS::connect(int graph_curr, int graph_other,
         }
     }
     if (min_state_id == -1){
-        std::cout << "No state in the other graph" << std::endl;
         return false;
     }
     // find the path between the two states
