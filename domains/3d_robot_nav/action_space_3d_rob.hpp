@@ -45,20 +45,36 @@
 struct ActionType3dRob : public ims::ActionType {
     ActionType3dRob() : ims::ActionType() {
         this->name = "ActionType3dRob";
-        this->num_actions = 6;
-        this->action_names = {"N", "E", "S", "W", "U", "D"};
+        this->num_actions = 14;
+        this->action_names = {"N", "NE", "E", "SE", "S", "SW", "W", "NW", "U", "D", "NU", "EU", "SU", "WU"};
         this->action_seqs_transition_costs = {{1, 0},
+                                              {std::sqrt(2), 0},
+                                              {1, 0},
+                                              {std::sqrt(2), 0},
+                                              {1, 0},
+                                              {std::sqrt(2), 0},
+                                              {1, 0},
+                                              {std::sqrt(2), 0},
                                               {1, 0},
                                               {1, 0},
-                                              {1, 0},
-                                              {1, 0},
-                                              {1, 0}};
+                                              {std::sqrt(2), 0},
+                                              {std::sqrt(2), 0},
+                                              {std::sqrt(2), 0},
+                                              {std::sqrt(2), 0}};
         this->action_seq_prims = {{{0, 0, 0}, {0, 1, 0}},
+                                  {{0, 0, 0}, {1, 1, 0}},
                                   {{0, 0, 0}, {1, 0, 0}},
+                                  {{0, 0, 0}, {1, -1, 0}},
                                   {{0, 0, 0}, {0, -1, 0}},
+                                  {{0, 0, 0}, {-1, -1, 0}},
                                   {{0, 0, 0}, {-1, 0, 0}},
+                                  {{0, 0, 0}, {-1, 1, 0}},
                                   {{0, 0, 0}, {0, 0, 1}},
-                                  {{0, 0, 0}, {0, 0, -1}}};
+                                  {{0, 0, 0}, {0, 0, -1}},
+                                  {{0, 0, 0}, {0, 1, 1}},
+                                  {{0, 0, 0}, {1, 0, 1}},
+                                  {{0, 0, 0}, {0, -1, 1}},
+                                  {{0, 0, 0}, {-1, 0, 1}}};
 
         this->state_discretization_ = {1, 1, 1};
     }
@@ -92,21 +108,37 @@ struct ActionType3dRob : public ims::ActionType {
 struct ActionType3dRobTimed : public ActionType3dRob {
     ActionType3dRobTimed() : ActionType3dRob() {
         this->name = "ActionType3dRobTimed";
-        this->num_actions = 7;
-        this->action_names = {"N", "E", "S", "W", "U", "D", "Wait"};
+        this->num_actions = 15;
+        this->action_names = {"N", "NE", "E", "SE", "S", "SW", "W", "NW", "U", "D", "NU", "EU", "SU", "WU", "Wait"};
         this->action_seqs_transition_costs = {{1, 0},
+                                              {std::sqrt(2), 0},
+                                              {1, 0},
+                                              {std::sqrt(2), 0},
+                                              {1, 0},
+                                              {std::sqrt(2), 0},
+                                              {1, 0},
+                                              {std::sqrt(2), 0},
                                               {1, 0},
                                               {1, 0},
-                                              {1, 0},
-                                              {1, 0},
-                                              {1, 0},
+                                              {std::sqrt(2), 0},
+                                              {std::sqrt(2), 0},
+                                              {std::sqrt(2), 0},
+                                              {std::sqrt(2), 0},
                                               {1, 0}};
         this->action_seq_prims = {{{0, 0, 0, 0}, {0, 1, 0, 1}},
+                                  {{0, 0, 0, 0}, {1, 1, 0, 1}},
                                   {{0, 0, 0, 0}, {1, 0, 0, 1}},
+                                  {{0, 0, 0, 0}, {1, -1, 0, 1}},
                                   {{0, 0, 0, 0}, {0, -1, 0, 1}},
+                                  {{0, 0, 0, 0}, {-1, -1, 0, 1}},
                                   {{0, 0, 0, 0}, {-1, 0, 0, 1}},
+                                  {{0, 0, 0, 0}, {-1, 1, 0, 1}},
                                   {{0, 0, 0, 0}, {0, 0, 1, 1}},
                                   {{0, 0, 0, 0}, {0, 0, -1, 1}},
+                                  {{0, 0, 0, 0}, {0, 1, 1, 1}},
+                                  {{0, 0, 0, 0}, {1, 0, 1, 1}},
+                                  {{0, 0, 0, 0}, {0, -1, 1, 1}},
+                                  {{0, 0, 0, 0}, {-1, 0, 1, 1}},
                                   {{0, 0, 0, 0}, {0, 0, 0, 1}}};
         this->state_discretization_ = {1, 1, 1, 1};
     }

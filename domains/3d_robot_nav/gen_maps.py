@@ -2,10 +2,32 @@ import numpy as np
 import os
 import argparse
 
-def generate_3d_map(width, height, depth, obstacle_density):
-    """Generate a 3D binary map with obstacles."""
-    map_3d = np.random.random((depth, height, width)) > obstacle_density
-    return map_3d.astype(int)
+def generate_3d_map(width, height, depth, obstacle_density, blocks=False):
+    """Generate a 3D binary map with obstacles or blocks."""
+    map_3d = np.ones((depth, height, width), dtype=int)
+
+    if blocks:
+        place_random_blocks(map_3d)
+    else:
+        map_3d = np.random.random((depth, height, width)) > obstacle_density
+        map_3d = map_3d.astype(int)
+
+    return map_3d
+
+def place_random_blocks(map_3d):
+    """Randomly place 7 blocks amounting to 20% of each side length."""
+    depth, height, width = map_3d.shape
+    block_size_w = int(width * 0.3)
+    block_size_h = int(height * 0.3)
+    block_size_d = int(depth * 0.3)
+
+    num_blocks = 7
+    for _ in range(num_blocks):
+        start_w = np.random.randint(0, width - block_size_w)
+        start_h = np.random.randint(0, height - block_size_h)
+        start_d = np.random.randint(0, depth - block_size_d)
+
+        map_3d[start_d:start_d+block_size_d, start_h:start_h+block_size_h, start_w:start_w+block_size_w] = 0
 
 def save_map_file(map_3d, filename):
     """Save the 3D map to a file."""
@@ -51,7 +73,7 @@ def main(args):
     os.makedirs(args.output_dir, exist_ok=True)
 
     for i in range(args.num_maps):
-        map_3d = generate_3d_map(args.width, args.height, args.depth, args.obstacle_density)
+        map_3d = generate_3d_map(args.width, args.height, args.depth, args.obstacle_density, args.blocks)
         map_filename = os.path.join(args.output_dir, f"map_{i+1}.map")
         save_map_file(map_3d, map_filename)
         print(f"Generated map: {map_filename}")
@@ -65,11 +87,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate 3D maps for pathfinding")
     parser.add_argument("--width", type=int, default=50, help="Width of the map")
     parser.add_argument("--height", type=int, default=50, help="Height of the map")
-    parser.add_argument("--depth", type=int, default=10, help="Depth of the map")
+    parser.add_argument("--depth", type=int, default=50, help="Depth of the map")
     parser.add_argument("--obstacle_density", type=float, default=0.3, help="Density of obstacles")
     parser.add_argument("--num_maps", type=int, default=5, help="Number of maps to generate")
     parser.add_argument("--num_start_goal_pairs", type=int, default=10, help="Number of start/goal pairs per map")
     parser.add_argument("--output_dir", type=str, default="data", help="Output directory for generated maps")
+    parser.add_argument("--blocks", action='store_true', help="Randomly place 7 blocks amounting to 20% of each side length instead of randomly scattering obstacles")
     
     args = parser.parse_args()
     main(args)

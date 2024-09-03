@@ -63,9 +63,9 @@ int main(int argc, char** argv) {
     boost::filesystem::path current_path(boost::filesystem::current_path());
     boost::filesystem::path project_root = current_path.parent_path(); // Assuming build is directly under project root
     std::cout << "Project root path is : " << project_root.string() << std::endl;
-    
+
     boost::filesystem::path data_path = project_root / "domains" / "3d_robot_nav" / "data";
-    
+
     // Populate maps and start_goal_files
     for (int i = 1; i <= 5; ++i) {
         maps.push_back((data_path / ("map_" + std::to_string(i) + ".map")).string());
@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
     std::string type;
     int width, height, depth;
     std::vector<std::vector<std::vector<int>>> map;
-    
+
     if (!loadMap(map_file.c_str(), type, width, height, depth, map, scale)) {
         std::cerr << "Failed to load map. Exiting." << std::endl;
         return 1;
@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
         std::cout << "Number of nodes expanded: " << stats.num_expanded << std::endl;
         std::cout << "Number of nodes generated: " << stats.num_generated << std::endl;
         std::cout << "Suboptimality: " << stats.suboptimality << RESET << std::endl;
-        
+
         logs[i] = stats;
         paths[i] = path_;
     }
@@ -208,12 +208,12 @@ int main(int argc, char** argv) {
     logStats(logs, map_index + 1, "Astar3D");
     std::string path_file = logPaths(paths, map_index + 1, scale);
 
-    std::string plot_path = (project_root / "domains" / "3d_robot_nav" / "scripts" / "visualize_3d_paths.py").string();
+    std::string plot_path = (project_root / "domains" / "3d_robot_nav" / "scripts" / "visualize_paths.py").string();
     if (!boost::filesystem::exists(plot_path)) {
         std::cerr << YELLOW << "Warning: Visualization script not found at " << plot_path << RESET << std::endl;
         std::cout << "You can visualize the results manually using the generated 'paths_tmp.csv' file." << std::endl;
     } else {
-        std::string command = "python3 " + plot_path + " --filepath " + path_file;
+        std::string command = "python3 " + plot_path + " --filepath " + path_file + " --mapfile " + map_file;
         std::cout << "Running the plot script: " << command << std::endl;
         int result = system(command.c_str());
         if (result != 0) {
