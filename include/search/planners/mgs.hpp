@@ -63,7 +63,8 @@ struct MGSParams : public PlannerParams {
     /// @brief Destructor
     ~MGSParams() override = default;
 
-    BaseHeuristic* heuristic_ = nullptr;
+    std::shared_ptr<BaseHeuristic> heuristic_ = nullptr;
+    std::shared_ptr<BaseHeuristic> anchor_heuristic_ = nullptr;
 
     /// @brief The number of graphs to be used in the MGS algorithm.
     int g_num_ {-1};
@@ -293,7 +294,8 @@ protected:
 
     void saveData() const;
 
-    BaseHeuristic* heuristic_ = nullptr;
+    std::shared_ptr<BaseHeuristic> heuristic_ = nullptr;
+    std::shared_ptr<BaseHeuristic> anchor_heuristic_ = nullptr;
 
     // The action space.
     std::shared_ptr<ActionSpaceMGS> action_space_ptr_;

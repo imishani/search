@@ -37,6 +37,7 @@
 
 ims::MGS::MGS(const MGSParams &params) : Planner(params), params_(params) {
     heuristic_ = params.heuristic_;
+    anchor_heuristic_ = params.anchor_heuristic_;
 }
 
 ims::MGS::~MGS() {
@@ -143,13 +144,13 @@ void ims::MGS::initializePlanner(const std::shared_ptr<ActionSpaceMGS>& action_s
 
     // create two open lists one forward and one backward
     start_->data_[GRAPH_START].g = 0; start_->data_[GRAPH_START].h_self = 0;
-    start_->data_[GRAPH_START].h = computeHeuristic(start_->state_id, (size_t)GRAPH_START);
+    start_->data_[GRAPH_START].h = computeHeuristic(start_->state_id, static_cast<size_t>(GRAPH_START));
     start_->data_[GRAPH_START].f = start_->data_[GRAPH_START].g + params_.w_ * start_->data_[GRAPH_START].h;
     start_->data_[GRAPH_START].setOpen();
     opens_[GRAPH_START].push(&start_->data_[GRAPH_START]);
 
     goal_->data_[GRAPH_GOAL].g = 0; goal_->data_[GRAPH_GOAL].h_self = 0;
-    goal_->data_[GRAPH_GOAL].h = computeHeuristic(goal_->state_id, (size_t)GRAPH_GOAL);
+    goal_->data_[GRAPH_GOAL].h = computeHeuristic(goal_->state_id, static_cast<size_t>(GRAPH_GOAL));
     goal_->data_[GRAPH_GOAL].f = goal_->data_[GRAPH_GOAL].g + goal_->data_[GRAPH_GOAL].h;
     goal_->data_[GRAPH_GOAL].setOpen();
     opens_[GRAPH_GOAL].push(&goal_->data_[GRAPH_GOAL]);
