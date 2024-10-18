@@ -121,8 +121,8 @@ namespace ims{
 
         SamplingBasedPlannerParams params_;
 
-        /// @brief The search state vector.
-        std::vector<SearchState*> states_;
+        // /// @brief The search state vector.
+        // std::vector<SearchState*> states_;
     };
 }
 

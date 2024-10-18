@@ -36,6 +36,7 @@ add_library(search SHARED
         src/planners/multi_agent/prioritized_planning.cpp
         src/planners/parallel_search/pase.cpp
         src/planners/sampling_based/drrt.cpp
+        src/planners/sampling_based/mtrrt.cpp
         src/common/experience_graph.cpp
         src/common/conflict_conversions.cpp
         src/common/bfs3d.cpp
@@ -57,6 +58,9 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include
         FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
 install(TARGETS search
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+
+add_executable(run_2d_mtrrt domains/2d_robot_nav/run_2d_mtrrt.cpp)
+target_link_libraries(run_2d_mtrrt search ${Boost_LIBRARIES})
 
 add_executable(run_2d_rob_nav_astar domains/2d_robot_nav/run_2d_astar.cpp)
 target_link_libraries(run_2d_rob_nav_astar search ${Boost_LIBRARIES})
