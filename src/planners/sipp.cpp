@@ -314,7 +314,7 @@ void ims::SIPP::expand(int state_id){
 }
 
 double ims::SIPP::computeHeuristic(int state_id) {
-    double dist;
+    double dist = 0.0;
     auto s = action_space_ptr_->getRobotState(state_id);
     if (!heuristic_->getHeuristic(s->state, dist)) {
         throw std::runtime_error("Heuristic function failed");
@@ -325,7 +325,7 @@ double ims::SIPP::computeHeuristic(int state_id) {
 }
 
 double ims::SIPP::computeHeuristic(int s1_id, int s2_id) {
-    double dist;
+    double dist = 0.0;
     auto s1 = action_space_ptr_->getRobotState(s1_id);
     auto s2 = action_space_ptr_->getRobotState(s2_id);
     if (!heuristic_->getHeuristic(s1->state, s2->state, dist)) {

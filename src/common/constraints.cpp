@@ -116,7 +116,9 @@ void ConstraintsCollective::clearContext() {
 void ConstraintsCollective::clear() {
     constraints_ptrs_.clear();
     time_to_constraints_ptrs_.clear();
-    last_constraint_time_ = -1;   
+    last_constraint_time_ = -1;
+    clearContext();
+    state_to_safe_intervals_.clear();
 }
 
 // Getters.
