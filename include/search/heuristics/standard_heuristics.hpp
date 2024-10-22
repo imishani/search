@@ -48,6 +48,7 @@ namespace ims {
 struct EuclideanHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
+        dist = 0.0;
         // check id the states are the same size
         if (s1.size() != s2.size()) {
             std::cout << "Error: The states are not the same size!" << std::endl;
@@ -67,11 +68,12 @@ struct EuclideanHeuristic : public BaseHeuristic {
 struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
+        dist = 0.0;
         StateType s1_no_time = s1;
         StateType s2_no_time = s2;
         s1_no_time.pop_back();
         s2_no_time.pop_back();
-          
+
         return EuclideanHeuristic::getHeuristic(s1_no_time, s2_no_time, dist);
     }
 };
@@ -80,6 +82,7 @@ struct EuclideanRemoveTimeHeuristic : public EuclideanHeuristic {
 struct EuclideanRemoveThetaHeuristic : public EuclideanHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
+        dist = 0.0;
         StateType s1_no_theta = s1;
         StateType s2_no_theta = s2;
         s1_no_theta.pop_back();
@@ -93,6 +96,7 @@ struct EuclideanRemoveThetaHeuristic : public EuclideanHeuristic {
 struct ManhattanHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
+        dist = 0.0;
         // check id the states are the same size
         if (s1.size() != s2.size()) {
             std::cout << "Error: The states are not the same size!" << std::endl;
@@ -111,6 +115,7 @@ struct ManhattanHeuristic : public BaseHeuristic {
 struct ChebyshevHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
+        dist = 0.0;
         // check id the states are the same size
         if (s1.size() != s2.size()) {
             std::cout << "Error: The states are not the same size!" << std::endl;
@@ -130,6 +135,7 @@ struct ChebyshevHeuristic : public BaseHeuristic {
 struct MinkowskiHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
+        dist = 0.0;
         // check id the states are the same size
         if (s1.size() != s2.size()) {
             std::cout << "Error: The states are not the same size!" << std::endl;
@@ -149,6 +155,7 @@ struct MinkowskiHeuristic : public BaseHeuristic {
 struct OctileHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
+        dist = 0.0;
         // check id the states are the same size
         if (s1.size() != s2.size()) {
             std::cout << "Error: The states are not the same size!" << std::endl;
@@ -168,6 +175,7 @@ struct OctileHeuristic : public BaseHeuristic {
 struct ZeroHeuristic : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
+        dist = 0.0;
         // check id the states are the same size
         if (s1.size() != s2.size()) {
             std::cout << "Error: The states are not the same size!" << std::endl;
@@ -192,6 +200,7 @@ struct JointAnglesHeuristic : public BaseHeuristic {
 
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
+        dist = 0.0;
         // check id the states are the same size
         if (s1.size() != s2.size()) {
             std::cout << "Error: The states are not the same size!" << std::endl;
@@ -225,6 +234,7 @@ private:
 struct SE3HeuristicRPY : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
+        dist = 0.0;
         // check id the states are the same size
         if (s1.size() != s2.size()) {
             std::cout << "Error: The states are not the same size!" << std::endl;
@@ -251,6 +261,7 @@ struct SE3HeuristicRPY : public BaseHeuristic {
 struct SE3HeuristicQuat : public BaseHeuristic {
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
+        dist = 0.0;
         // check id the states are the same size
         if (s1.size() != s2.size()) {
             std::cout << "Error: The states are not the same size!" << std::endl;
@@ -310,6 +321,7 @@ struct LocalHeuristic : public BaseHeuristic {
     //base_heuristic_ that uses above dijkstra class
     bool getHeuristic(const StateType& s1, const StateType& s2,
                       double& dist) override {
+        dist = 0.0;
         // check if the states are the same size
         if (s1.size() != s2.size()) {
             std::cout << "Error: The states are not the same size!" << std::endl;

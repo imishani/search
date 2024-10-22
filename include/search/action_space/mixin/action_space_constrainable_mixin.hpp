@@ -72,6 +72,11 @@ public:
         return *constraints_collective_ptr_;
     }
 
+    /// @brief Clear the constraints collective. This creates a new object instead of the current one. Resets the constraints and the context that is within it.
+    void clearConstraintsCollective() {
+        constraints_collective_ptr_ = std::make_shared<ConstraintsCollective>();
+    }
+
     /// @brief Clear the constraints.
     void clearConstraints() { constraints_collective_ptr_->clear(); }
 
